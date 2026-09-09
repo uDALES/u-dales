@@ -242,6 +242,108 @@ class TestLinfitAndVerdict(unittest.TestCase):
         self.assertFalse(parsed["aborted_past_record"])
 
 
+class TestBlowUpThroughTheParser(unittest.TestCase):
+    """A run whose diagnostics go non-finite must not be certified.
+
+    These go through :func:`analyse_v6.parse_log` on real log text rather than
+    a hand-built parsed dict, because the defect they guard lived in the
+    *parser*: the numeric patterns matched only well-formed Fortran ES tokens,
+    so a ``NaN``/``Infinity``/asterisk-overflow line failed to match and
+    dropped silently out of its series.  The ``modnesting: t =`` timestamps
+    parse independently and survived, so the aggregate saw a full-duration
+    record, the right number of nesting reports, and only the healthy samples
+    that preceded the blow-up -- every series "bounded, no drift", verdict
+    PASS.  The aggregate tests above cannot see this class of bug at all: they
+    build the parsed dict directly and so bypass the code that lost the data.
+    """
+
+    FREEZE = (" modnesting: WARNING t =  1.00000E+03 is past the last parent time"
+              " level at t =  2.40000E+01; the boundary now freezes on that level"
+              " (nest_lendabort = .false.)")
+
+    @classmethod
+    def _report(cls, t, value, diverged=False):
+        """One checksim + one nesting report, in the solver's exact formats."""
+        dd = "      NaN      NaN" if diverged else "1.00E-09 2.00E-09"
+        return [
+            f" Time of Day: 120000.000    Time of Simulation:      {t:9.5f}"
+            f"    dt:  0.500000000",
+            f"divmax, divtot =   {dd}",
+            f" modnesting: t          =     {t:8.3f}",
+            f" modnesting: Phi (norm) = {value}  (largest |Phi| since the previous report)",
+            f" modnesting: Phi lid    = {value}  closed faces = {value}"
+            f"  (largest since the previous report)",
+            f" modnesting: zone misfit rms [m/s] = {value}",
+            f" modnesting: |grad p| zone = {value}  interior = {value}"
+            f"  ratio =    {value}",
+        ]
+
+    def _verdict(self, lines, expected_runtime_s=1000.0):
+        path = HERE / "_v6_blowup_test.tmp"
+        path.write_text("\n".join(lines) + "\n", encoding="ascii")
+        try:
+            parsed = analyse_v6.parse_log(path)
+        finally:
+            path.unlink(missing_ok=True)
+        return parsed, analyse_v6.analyse(parsed, expected_runtime_s=expected_runtime_s)
+
+    def _four_good_then_seven_bad(self, token):
+        lines = []
+        for t in (0.0, 100.0, 200.0, 300.0):
+            lines += self._report(t, "1.5000E-10")
+        for t in range(400, 1001, 100):
+            lines += self._report(float(t), token, diverged=True)
+        lines.append(self.FREEZE)
+        return lines
+
+    def test_nan_diagnostics_are_parsed_and_fail(self):
+        parsed, result = self._verdict(self._four_good_then_seven_bad("NaN"))
+        # the NaN reports must be IN the series, not silently absent
+        self.assertEqual(len(parsed["nest_records"]), 11)
+        self.assertEqual(result["series"]["phi"]["n"], 11)
+        self.assertEqual(result["series"]["phi"]["n_nonfinite"], 7)
+        self.assertTrue(result["series"]["phi"]["verdict"].startswith("FAIL"))
+        self.assertEqual(result["overall_verdict"], "FAIL")
+        self.assertTrue(any("non-finite" in r for r in result["overall_reasons"]),
+                        result["overall_reasons"])
+
+    def test_es_field_overflow_is_parsed_and_fails(self):
+        # ES11.2 cannot print the value: Fortran fills the field with asterisks
+        _, result = self._verdict(self._four_good_then_seven_bad("***********"))
+        self.assertEqual(result["series"]["misfit_rms"]["n_nonfinite"], 7)
+        self.assertEqual(result["overall_verdict"], "FAIL")
+
+    def test_infinity_is_parsed_and_fails(self):
+        _, result = self._verdict(self._four_good_then_seven_bad("Infinity"))
+        self.assertEqual(result["series"]["gradp_zone"]["n_nonfinite"], 7)
+        self.assertEqual(result["overall_verdict"], "FAIL")
+
+    def test_a_series_that_stops_early_is_not_pass(self):
+        """Timestamps run the full duration but the diagnostics stop at 400 s."""
+        lines = []
+        for t in range(0, 401, 100):
+            lines += self._report(float(t), "1.5000E-10")
+        for t in range(500, 1001, 100):        # checksim + t only, no diagnostics
+            lines += self._report(float(t), "1.5000E-10")[:3]
+        lines.append(self.FREEZE)
+        _, result = self._verdict(lines)
+        self.assertNotEqual(result["overall_verdict"], "PASS")
+        self.assertEqual(result["overall_verdict"], "INCONCLUSIVE")
+        self.assertTrue(any("covering the intended interval" in r
+                            for r in result["overall_reasons"]),
+                        result["overall_reasons"])
+
+    def test_a_healthy_full_length_log_still_passes(self):
+        """The guard above must not reject a good run."""
+        lines = []
+        for t in range(0, 1001, 50):
+            lines += self._report(float(t), "1.5000E-10")
+        lines.append(self.FREEZE)
+        _, result = self._verdict(lines)
+        self.assertEqual(result["overall_verdict"], "PASS", result["overall_reasons"])
+        self.assertEqual(result["series"]["phi"]["n_nonfinite"], 0)
+
+
 class TestOverallVerdict(unittest.TestCase):
     """Unit tests for ``analyse_v6.analyse()``'s aggregate PASS/FAIL/NO-DATA/
     INCONCLUSIVE verdict -- no solver involved, and independent of

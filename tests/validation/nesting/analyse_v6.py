@@ -25,29 +25,54 @@ import argparse
 import json
 import re
 from pathlib import Path
-from typing import Dict, List, Optional, Sequence
+from typing import Dict, List, Optional, Sequence, Tuple
 
 import numpy as np
 
 # -- log line patterns -------------------------------------------------- #
 # One line each, all printed by rank 0 only (modchecksim.f90, modnesting.f90).
-_P_CHECKSIM = re.compile(r"Time of Simulation:\s*([-\d.Ee+]+)\s+dt:\s*([-\d.Ee+]+)")
+# Fortran prints a blown-up diagnostic as ``NaN``/``Infinity``, or -- when the
+# value overflows an ES field -- as a run of asterisks.  Those tokens MUST be
+# matched and carried through as non-finite floats rather than left unmatched.
+# An unmatched line drops silently out of its series while the surrounding
+# ``modnesting: t =`` timestamps still parse, so a run that blew up keeps only
+# the healthy samples that preceded it and then reads as bounded, trend-free
+# and full-duration -- a blow-up certified as PASS.  ``_num`` converts.
+_NONFIN = (r"(?:[-+]?(?:NaN|nan|NAN)"
+           r"|[-+]?(?:Infinity|INFINITY|infinity|Inf|INF|inf)"
+           r"|\*{2,})")
+_FLOAT = r"(?:" + _NONFIN + r"|[-+]?\d*\.?\d+(?:[EeDd][-+]?\d+)?)"
+_ES_NUM = r"(?:" + _NONFIN + r"|[+-]?\d\.\d+E[+-]\d+)"
+
+
+def _num(token: str) -> float:
+    """Fortran numeric token -> float, mapping NaN/Inf/overflow onto floats."""
+    t = token.strip()
+    if not t or t.startswith("*"):
+        return float("nan")
+    low = t.lstrip("+-").lower()
+    if low.startswith("nan"):
+        return float("nan")
+    if low in ("inf", "infinity"):
+        return float("-inf") if t.startswith("-") else float("inf")
+    return float(t.replace("D", "E").replace("d", "e"))
+
+_P_CHECKSIM = re.compile(rf"Time of Simulation:\s*({_FLOAT})\s+dt:\s*({_FLOAT})")
 # chkdiv's format is 2ES11.2 with NO literal separator between the two fields
 # (modchecksim.f90: "write(6,'(A,2ES11.2)')'divmax, divtot = ', divmax, divtot"),
 # so a negative value can butt straight up against the next field's sign with
 # no whitespace at all ("1.23E-08-4.56E-07").  Matching each Fortran ES token
 # by its own fixed shape (one leading digit, decimal point, exponent) rather
 # than relying on \s+ to separate them handles that case too.
-_ES_NUM = r"[+-]?\d\.\d+E[+-]\d+"
 _P_DIVDIV = re.compile(rf"divmax, divtot =\s*({_ES_NUM})\s*({_ES_NUM})")
-_P_NEST_T = re.compile(r"modnesting: t\s*=\s*([-\d.Ee+]+)")
-_P_PHI = re.compile(r"modnesting: Phi \(norm\) =\s*([-\d.Ee+]+)")
+_P_NEST_T = re.compile(rf"modnesting: t\s*=\s*({_FLOAT})")
+_P_PHI = re.compile(rf"modnesting: Phi \(norm\) =\s*({_FLOAT})")
 _P_PHI_LID = re.compile(
-    r"modnesting: Phi lid\s*=\s*([-\d.Ee+]+)\s*closed faces =\s*([-\d.Ee+]+)")
-_P_MISFIT = re.compile(r"modnesting: zone misfit rms \[m/s\] =\s*([-\d.Ee+]+)")
+    rf"modnesting: Phi lid\s*=\s*({_FLOAT})\s*closed faces =\s*({_FLOAT})")
+_P_MISFIT = re.compile(rf"modnesting: zone misfit rms \[m/s\] =\s*({_FLOAT})")
 _P_GRADP = re.compile(
-    r"modnesting: \|grad p\| zone =\s*([-\d.Ee+]+)\s*interior =\s*([-\d.Ee+]+)\s*"
-    r"ratio =\s*([-\d.Ee+]+)")
+    rf"modnesting: \|grad p\| zone =\s*({_FLOAT})\s*interior =\s*({_FLOAT})\s*"
+    rf"ratio =\s*({_FLOAT})")
 _P_FREEZE_WARN = re.compile(
     r"WARNING.*boundary (?:will freeze|now freezes) on (?:the last level|that level)")
 _P_ABORT = re.compile(r"the run extends past the end of the parent record")
@@ -86,39 +111,39 @@ def parse_log(path: Path) -> Dict[str, object]:
     for line in text.splitlines():
         m = _P_CHECKSIM.search(line)
         if m:
-            current_t, current_dt = float(m.group(1)), float(m.group(2))
+            current_t, current_dt = _num(m.group(1)), _num(m.group(2))
             continue
         m = _P_DIVDIV.search(line)
         if m and current_t is not None:
             checksim_t.append(current_t)
             checksim_dt.append(current_dt if current_dt is not None else float("nan"))
-            divmax.append(float(m.group(1)))
-            divtot.append(float(m.group(2)))
+            divmax.append(_num(m.group(1)))
+            divtot.append(_num(m.group(2)))
             continue
         m = _P_NEST_T.search(line)
         if m:
             flush_nest()
-            current_nest = {"t": float(m.group(1))}
+            current_nest = {"t": _num(m.group(1))}
             continue
         if current_nest is not None:
             m = _P_PHI.search(line)
             if m:
-                current_nest["phi"] = float(m.group(1))
+                current_nest["phi"] = _num(m.group(1))
                 continue
             m = _P_PHI_LID.search(line)
             if m:
-                current_nest["phi_lid"] = float(m.group(1))
-                current_nest["phi_closed"] = float(m.group(2))
+                current_nest["phi_lid"] = _num(m.group(1))
+                current_nest["phi_closed"] = _num(m.group(2))
                 continue
             m = _P_MISFIT.search(line)
             if m:
-                current_nest["misfit_rms"] = float(m.group(1))
+                current_nest["misfit_rms"] = _num(m.group(1))
                 continue
             m = _P_GRADP.search(line)
             if m:
-                current_nest["gradp_zone"] = float(m.group(1))
-                current_nest["gradp_interior"] = float(m.group(2))
-                current_nest["gradp_ratio"] = float(m.group(3))
+                current_nest["gradp_zone"] = _num(m.group(1))
+                current_nest["gradp_interior"] = _num(m.group(2))
+                current_nest["gradp_ratio"] = _num(m.group(3))
                 continue
     flush_nest()
 
@@ -191,12 +216,33 @@ def summarize_series(name: str, x: Sequence[float], y: Sequence[float],
         out.update(verdict="NO DATA", reason="no samples parsed for this series")
         return out
     yarr = np.asarray(y, dtype=float)
-    out["mean"] = float(yarr.mean())
-    out["std"] = float(yarr.std())
-    out["min"] = float(yarr.min())
-    out["max"] = float(yarr.max())
-    out["max_abs"] = float(np.max(np.abs(yarr)))
-    out["range"] = float(yarr.max() - yarr.min())
+    # A non-finite sample propagates through these aggregates; that is the
+    # intended reading (they are not trustworthy), so silence the warning
+    # rather than masking the values out.
+    with np.errstate(invalid="ignore"):
+        out["mean"] = float(yarr.mean())
+        out["std"] = float(yarr.std())
+        out["min"] = float(yarr.min())
+        out["max"] = float(yarr.max())
+        out["max_abs"] = float(np.max(np.abs(yarr)))
+        out["range"] = float(yarr.max() - yarr.min())
+    if x:
+        out["t_first"] = float(x[0])
+        out["t_last"] = float(x[-1])
+        out["t_span"] = float(x[-1] - x[0])
+    # A NaN/Inf diagnostic is the run blowing up, not evidence that is merely
+    # incomplete: report it as a failure rather than letting it degrade into
+    # INCONCLUSIVE (or, before the tokens were matched at all, vanish).
+    nonfinite = ~np.isfinite(yarr)
+    out["n_nonfinite"] = int(nonfinite.sum())
+    if out["n_nonfinite"]:
+        first_bad = next((xx for xx, bad in zip(x, nonfinite) if bad), None)
+        out["verdict"] = "FAIL (non-finite)"
+        out["reason"] = (
+            f"{out['n_nonfinite']} of {n} samples are not finite"
+            + ("" if first_bad is None else f", first at t = {first_bad:g}")
+            + " -- the run produced NaN/Inf diagnostics")
+        return out
     fit = linfit(x, y)
     out.update(fit)
     if n < 3:
@@ -315,11 +361,24 @@ def analyse(parsed: Dict[str, object], *, expected_runtime_s: Optional[float] = 
     aborted = parsed["aborted_past_record"]
 
     reasons: List[str] = []
+    short_series: List[Tuple[str, float]] = []
+    if expected_runtime_s is not None:
+        for name, r in results.items():
+            span = r.get("t_span")
+            if span is None or float(span) < duration_tol * expected_runtime_s:
+                short_series.append((name, 0.0 if span is None else float(span)))
     failing = [name for name, r in results.items()
               if str(r["verdict"]).startswith("FAIL")]
+    blown_up = [name for name, r in results.items()
+                if str(r["verdict"]).startswith("FAIL (non-finite")]
+    drifting = [name for name in failing if name not in blown_up]
     if failing:
         overall = "FAIL"
-        reasons.append(f"drifting series: {', '.join(sorted(failing))}")
+        if blown_up:
+            reasons.append(
+                "non-finite diagnostics (the run blew up): " + ", ".join(sorted(blown_up)))
+        if drifting:
+            reasons.append(f"drifting series: {', '.join(sorted(drifting))}")
     elif aborted:
         overall = "FAIL"
         reasons.append(
@@ -351,6 +410,15 @@ def analyse(parsed: Dict[str, object], *, expected_runtime_s: Optional[float] = 
             reasons.append(
                 f"run covered {total_time:.1f} s of the intended {expected_runtime_s:.1f} s "
                 f"(< {100 * duration_tol:.0f}% reached)")
+        elif expected_runtime_s is not None and short_series:
+            # The record's timestamps and each diagnostic's own samples are
+            # parsed independently, so a series can stop early -- or never
+            # start -- while the run's apparent duration still looks complete.
+            # Every series has to cover the interval it is claimed to certify.
+            overall = "INCONCLUSIVE"
+            reasons.append(
+                "series not covering the intended interval: "
+                + ", ".join(f"{nm} spans {sp:.1f} s" for nm, sp in sorted(short_series)))
         else:
             overall = "PASS"
 
