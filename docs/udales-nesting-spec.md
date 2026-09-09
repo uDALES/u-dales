@@ -86,7 +86,14 @@ integer, parameter :: TEST_NESTING_INIT     = 1011
 * `flux_residual(time)` — the net boundary flux of the data **as stored**, i.e. *after* any
   divergence correction — together with the `fluid_lateral_area` attribute giving the area it was
   summed over, so the solver can validate every stored level at initialisation without re-reading
-  the boundary slabs;
+  the boundary slabs. Both are sums over **all four** lateral faces, and there is no field
+  recording a narrower scope. A run that imposes only some of the four (`nest_lateral`, or
+  `BCxm`/`BCym` nesting one direction and leaving the other periodic) therefore **cannot be
+  certified by them** — a file balanced over four faces is generally not balanced over a subset.
+  `check_stored_flux` detects that case and recomputes over the imposed faces instead of trusting
+  the header; since the writer corrects over all four faces and has no face-subset option, such a
+  file will fail that check. **A partially nested child is not supported by the offline writer**:
+  either nest all four lateral faces, or produce a file balanced over the set to be imposed;
 * an **optional** full-domain initial condition `u_init`/`v_init`/`w_init`, flagged by the
   `has_initial_condition` attribute, for `nest_linitfromparent`.
 

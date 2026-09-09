@@ -1797,6 +1797,25 @@ contains
       ! ---- decide between the cheap check and the full recompute ----
       lfull = nest_lfluxcheckall
 
+      ! The stored residual, and the fluid_lateral_area it is normalised by,
+      ! are sums over ALL FOUR lateral faces: that is what the offline
+      ! correction zeroes.  When only some faces are imposed (nest_lateral, or
+      ! BCxm/BCym nesting only one direction) the imposed subset carries its
+      ! own net flux, which a four-face total says nothing about -- zero over
+      ! four faces does not imply zero over the pair actually used.  Trusting
+      ! it then passes initialisation and aborts on the first timestep with a
+      ! large Phi and no explanation.  Recompute over the faces this run really
+      ! imposes; that path already honours lface.
+      if (.not. all(lface)) then
+         if (myid == 0 .and. .not. lfull) then
+            write(*,'(a)') ' modnesting: only some lateral faces are imposed, so the'// &
+               ' stored four-face flux residual does not certify this'
+            write(*,'(a)') '   configuration; recomputing Phi over the imposed faces'// &
+               ' from the boundary slabs'
+         end if
+         lfull = .true.
+      end if
+
       if (.not. nestio_hdr%has_flux_residual) then
          if (myid == 0 .and. .not. lfull) write(*,'(a)') &
             ' modnesting: WARNING the input file predates schema 2 and stores no'// &
@@ -1903,8 +1922,24 @@ contains
                write(*,'(a,i0,a,es12.5,a,es12.5)') &
                   ' modnesting: flux residual of stored time level ', it, ' is ', phi, &
                   ' (normalised), tolerance ', nest_fluxtol
+               if (.not. all(lface)) then
+                  write(*,'(a)') '   this run imposes only some of the four lateral faces,'// &
+                     ' and the offline correction balances all four:'
+                  write(*,'(a,4(1x,l1))') '   faces imposed (w e s n):', lface
+                  write(*,'(a)') '   a file balanced over four faces is generally NOT balanced'// &
+                     ' over a subset, and rerunning'
+                  write(*,'(a)') '   the correction unchanged cannot fix it - the writer would'// &
+                     ' have to correct over the imposed'
+                  write(*,'(a)') '   set.  Nest all four lateral faces, or generate the file'// &
+                     ' for this face set.'
+               end if
             end if
-            call nest_abort('the parent file is not flux balanced - rerun the offline correction')
+            if (all(lface)) then
+               call nest_abort('the parent file is not flux balanced - rerun the offline correction')
+            else
+               call nest_abort('the parent file is not flux balanced over the faces this run'// &
+                 ' imposes - see above; rerunning the offline correction unchanged will not fix it')
+            end if
          end if
       end do
 

@@ -1121,6 +1121,8 @@ module modnesting
   real    :: nest_fluxtol    = 1.e-10        ! abort threshold on Phi
   logical :: nest_lfluxassert= .true.        ! assertion ON by default (C2)
   logical :: nest_lfluxcheckall = .false.    ! recompute Phi from the slabs at init (10.6.3)
+                                             ! (forced on when only some faces are imposed:
+                                             !  the stored residual covers all four)
   logical :: nest_linitfromparent = .false.  ! cold start from the full-3D block (10.6.4)
 
   !------------------------------------------------------------- zone geometry

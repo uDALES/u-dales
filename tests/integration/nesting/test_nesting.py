@@ -181,6 +181,21 @@ ABORT_CASES = [
         {"nest_lateral": ".true.,.false.,.true.,.true."},
         "needs both x faces",
     ),
+    # A legal partial face set: x nested, y periodic, so lface = (T,T,F,F).
+    # The stored flux_residual and fluid_lateral_area are sums over all FOUR
+    # faces (the spec defines them that way and the writer has no notion of a
+    # subset), so they certify nothing about the imposed pair -- zero over four
+    # faces does not imply zero over west/east.  The cheap check used to accept
+    # that four-face zero, pass initialisation, and abort on the first timestep
+    # with a large Phi and no explanation.  It must now be caught at init, over
+    # the faces actually imposed, and say why rerunning the correction will not
+    # help.
+    (
+        "partial face set is not certified by the four-face residual",
+        1009,
+        {"BCym": "1"},
+        "imposes only some of the four lateral faces",
+    ),
 ]
 
 #: Cases that must succeed and whose output must contain a given string.
