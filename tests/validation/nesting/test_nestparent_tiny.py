@@ -288,10 +288,11 @@ class TestNestParentRestart(unittest.TestCase):
     The append cursor also used ``modstat_nc``'s ``>=`` convention, which
     overwrote the boundary sample taken at exactly the restart time.
 
-    A production parent is the case that needs this: the preset's production
-    phase sets ``trestart = 1e9`` and so writes no restart of its own, which
-    is why the campaign never continued one.  This test sets a finite
-    ``trestart`` to make the two-segment run possible at all.
+    A production parent is the case that needs this, and until now could not
+    be built: ``make_parent_case`` gave the production phase ``trestart = 1e9``
+    unconditionally, so it wrote no restart of its own and no campaign parent
+    could be continued -- which is how the defect above reached production.
+    ``Preset.production_trestart`` now overrides that, and this suite sets it.
     """
 
     SEG1_RUNTIME = 6.0
@@ -303,8 +304,12 @@ class TestNestParentRestart(unittest.TestCase):
         binary = caselib.solver_binary()
         if not binary.exists():
             raise unittest.SkipTest(f"solver binary not found at {binary}")
+        # production_trestart is what makes a continuable parent possible at
+        # all: without it the production phase gets trestart = 1e9 and writes no
+        # restart, which is why nothing in the campaign exercised this path.
         cls.preset = replace(get_preset("tiny"), name="tiny-nestparent-restart",
-                             parent_output="nestparent")
+                             parent_output="nestparent",
+                             production_trestart=cls.SEG1_RUNTIME)
         cls.preset.validate()
         cls._temp = tempfile.mkdtemp(prefix="udales-nestparent-restart-")
         cls.rundir = Path(cls._temp)
@@ -318,8 +323,13 @@ class TestNestParentRestart(unittest.TestCase):
 
         # segment 1 -- a short production phase that does write a restart
         run_v1._set_startfile(nml, run_v1._restart_file(cls.parent_dir, nr))
-        _set_namelist(nml, runtime=cls.SEG1_RUNTIME, trestart=cls.SEG1_RUNTIME,
-                      tnestparent=cls.CADENCE)
+        # runtime and cadence still need patching (they are the preset's own
+        # production window), but trestart now comes from the preset.
+        _set_namelist(nml, runtime=cls.SEG1_RUNTIME, tnestparent=cls.CADENCE)
+        # captured here: segment 2 patches trestart back to 1e9 below, so the
+        # file cannot be read for this after setUpClass has finished.
+        cls.seg1_trestart = caselib.read_namoption(nml, "trestart")
+        cls.seg1_restart = run_v1._restart_file(cls.parent_dir, nr)
         run_solver(cls.parent_dir, f"namoptions.{nr}", nproc, cls.parent_dir / "seg1.log")
         cls.band1 = _band_times(cls.parent_dir, nr)
         cls.init1 = _init_time(cls.parent_dir, nr)
@@ -344,6 +354,16 @@ class TestNestParentRestart(unittest.TestCase):
                                msg=f"the snapshot moved {self.init1} -> {self.init2}")
         self.assertAlmostEqual(self.init2, self.band2[0], places=4,
                                msg="the snapshot must match the first band level")
+
+    def test_the_preset_made_a_continuable_parent(self):
+        """The restart the second segment starts from must exist because the
+        PRESET asked for it, not because the test patched the namelist."""
+        self.assertEqual(self.preset.production_trestart, self.SEG1_RUNTIME)
+        self.assertIsNotNone(self.seg1_trestart,
+                             "no trestart line in the production namelist")
+        self.assertAlmostEqual(float(self.seg1_trestart), self.SEG1_RUNTIME, places=6)
+        self.assertTrue(self.seg1_restart,
+                        "the production phase wrote no restart to continue from")
 
     def test_the_continuation_says_so(self):
         self.assertIn("continuing an existing output series", self.seg2_log)

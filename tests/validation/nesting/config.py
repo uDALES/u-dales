@@ -264,6 +264,16 @@ class Preset:
     #: right throttle depends on the measured step rate, not on anything
     #: ``config.py`` can know in advance.
     nest_statint: Optional[float] = None
+    #: ``trestart`` [s] for the parent's **production** phase.  ``None`` keeps
+    #: the historical 1e9, i.e. the production run writes no restart of its own
+    #: and so cannot be continued -- which is why no campaign parent has ever
+    #: exercised the solver's continuation path, and why the 2026-09-08 review's
+    #: parent-restart defect (`nesting_parent.f90`, initnestparent) survived to
+    #: production.  Set it to make a continuable parent: the real workflow that
+    #: needs this is the one the GMD 2024 indoor-outdoor case uses, where a
+    #: precursor is spun up and then *continued* as a separate job to write the
+    #: driving record (519 -> 520 -> 567).
+    production_trestart: Optional[float] = None
 
     def __post_init__(self) -> None:
         # Frozen, so the two defaults that depend on another field are filled

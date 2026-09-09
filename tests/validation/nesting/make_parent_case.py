@@ -83,7 +83,10 @@ def parent_sections(preset: Preset, *, warmstart: bool, startfile: str,
             ("runtime", preset.production if production else preset.spinup),
             ("dtmax", preset.dtmax),
             ("ladaptive", True),
-            ("trestart", 1.0e9 if production else preset.spinup),
+            # 1e9 means "never", so a production parent writes no restart and
+            # cannot be continued; preset.production_trestart overrides that.
+            ("trestart", (preset.production_trestart or 1.0e9) if production
+                         else preset.spinup),
             ("lwarmstart", warmstart),
             ("startfile", startfile),
             ("irandom", 43),
