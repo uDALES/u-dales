@@ -129,6 +129,30 @@ cat <<EOF > post-job.$exp
 #PBS -l walltime=${WALLTIME}
 #PBS -l select=1:ncpus=1:mem=${MEM}
 ${gather_modules}
+EOF
+
+## Report how long this job waited in the queue, from PBS's own timestamps.
+## Quoted heredoc: nothing below is expanded at submit time.
+cat <<'EOF' >> post-job.$exp
+queue_wait_line() {
+    local info qt st w
+    if [ -n "${PBS_JOBID:-}" ] && command -v qstat >/dev/null 2>&1; then
+        info=$(qstat -f "$PBS_JOBID" 2>/dev/null)
+        qt=$(printf '%s\n' "$info" | awk -F' = ' '/^[[:space:]]*qtime = /{print $2}')
+        st=$(printf '%s\n' "$info" | awk -F' = ' '/^[[:space:]]*stime = /{print $2}')
+        if [ -n "$qt" ] && [ -n "$st" ]; then
+            w=$(( $(date -d "$st" +%s) - $(date -d "$qt" +%s) ))
+            printf 'PBS job %s on %s: queued %s, started %s, queue wait %dm %02ds\n' \
+                "$PBS_JOBID" "$(hostname -s)" "$qt" "$st" $((w / 60)) $((w % 60))
+            return
+        fi
+    fi
+    echo "PBS queue wait: unknown (not under PBS, or qstat unavailable)"
+}
+EOF
+
+cat <<EOF >> post-job.$exp
+queue_wait_line | tee -a $outdir/output.$exp.log
 
 ## Time the gather the same way tools/local_execute.sh does, so the phase is
 ## comparable between a local run and a cluster one. The \$ are escaped to reach

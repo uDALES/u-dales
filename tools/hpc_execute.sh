@@ -235,10 +235,36 @@ cat <<EOF > job.$exp
 #!/bin/bash
 ${pbs_directives}
 ${job_modules}
+EOF
+
+## Report how long this job waited in the queue, from PBS's own timestamps.
+## Quoted heredoc: nothing below is expanded at submit time.
+cat <<'EOF' >> job.$exp
+queue_wait_line() {
+    local info qt st w
+    if [ -n "${PBS_JOBID:-}" ] && command -v qstat >/dev/null 2>&1; then
+        info=$(qstat -f "$PBS_JOBID" 2>/dev/null)
+        qt=$(printf '%s\n' "$info" | awk -F' = ' '/^[[:space:]]*qtime = /{print $2}')
+        st=$(printf '%s\n' "$info" | awk -F' = ' '/^[[:space:]]*stime = /{print $2}')
+        if [ -n "$qt" ] && [ -n "$st" ]; then
+            w=$(( $(date -d "$st" +%s) - $(date -d "$qt" +%s) ))
+            printf 'PBS job %s on %s: queued %s, started %s, queue wait %dm %02ds\n' \
+                "$PBS_JOBID" "$(hostname -s)" "$qt" "$st" $((w / 60)) $((w % 60))
+            return
+        fi
+    fi
+    echo "PBS queue wait: unknown (not under PBS, or qstat unavailable)"
+}
+EOF
+
+## The queue-wait line opens output.exp (still overwritten on a rerun, as
+## before); the solver then appends to it.
+cat <<EOF >> job.$exp
 mkdir -p $outdir
 cp -r $inputdir/* $outdir
 pushd $outdir
-${launch} $outdir/namoptions.$exp > $outdir/output.$exp 2>&1
+queue_wait_line > $outdir/output.$exp
+${launch} $outdir/namoptions.$exp >> $outdir/output.$exp 2>&1
 EOF
 
 ## submit job.exp file to queue
