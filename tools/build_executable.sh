@@ -71,15 +71,12 @@ then
 
 elif [ $system == "hx1" ]
 then
-    # Keep these as separate module loads. intel/2023a is built on GCCcore/12.2.0
-    # while CMake and git need 12.3.0, so asking for all of them on one line makes
-    # Lmod hit that conflict and abort the whole line - silently, with status 0,
-    # leaving you with "cmake: command not found" and no explanation. Loading
-    # netCDF first swaps GCCcore up to 12.3.0 and the rest then goes on cleanly.
-    module load intel/2023a
-    module load netCDF/4.9.2-iimpi-2023a netCDF-Fortran/4.6.1-iimpi-2023a
-    module load FFTW/3.3.10-intel-compilers-2023.1.0
-    module load CMake/3.26.3-GCCcore-12.3.0 git/2.41.0-GCCcore-12.3.0-nodocs
+    # Imperial HX1. It has its own EasyBuild tree (/gpfs/easybuild/prod) rather
+    # than CX3's /sw-eb, and it carries no iimpi-2021a netCDF at all, so the
+    # "icl" module list cannot resolve here. intel/2023a is the oldest Intel
+    # toolchain on HX1 with a complete netCDF + netCDF-Fortran pair. Lmod swaps
+    # GCCcore 12.2.0 -> 12.3.0 for CMake and git on its own; one load is fine.
+    module load intel/2023a netCDF/4.9.2-iimpi-2023a netCDF-Fortran/4.6.1-iimpi-2023a FFTW/3.3.10-intel-compilers-2023.1.0 CMake/3.26.3-GCCcore-12.3.0 git/2.41.0-GCCcore-12.3.0-nodocs
     FC=mpiifort
     NETCDF_DIR=/gpfs/easybuild/prod/software/netCDF/4.9.2-iimpi-2023a
     NETCDF_FORTRAN_DIR=/gpfs/easybuild/prod/software/netCDF-Fortran/4.6.1-iimpi-2023a

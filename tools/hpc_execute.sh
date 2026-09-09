@@ -28,6 +28,7 @@ set -e
 #   NNODE, NCPU, WALLTIME, MEM   required for every run
 #   NGPU                         GPUs per node; setting it makes this a GPU run
 #   QUEUE                        optional, adds "#PBS -q <QUEUE>"
+#   PLACE                        optional, adds "#PBS -l place=<PLACE>", e.g. excl
 #   GPU_TYPE                     GPU card for the select line, default A100;
 #                                set to "" to omit the constraint
 #
@@ -171,11 +172,8 @@ case "$UDALES_SYSTEM:$UDALES_TARGET" in
         job_modules='module load intel/2025a netCDF/4.9.2-iimpi-2023a netCDF-Fortran/4.6.1-iimpi-2023a FFTW/3.3.9-intel-2021a CMake/3.29.3-GCCcore-13.3.0 git/2.45.1-GCCcore-13.3.0'
         ;;
     hx1:cpu)
-        # Mirrors the "hx1" block of build_executable.sh, split across several
-        # loads for the GCCcore reason documented there.
-        job_modules='module load intel/2023a
-module load netCDF/4.9.2-iimpi-2023a netCDF-Fortran/4.6.1-iimpi-2023a
-module load FFTW/3.3.10-intel-compilers-2023.1.0'
+        # The runtime part of the "hx1" block of build_executable.sh.
+        job_modules='module load intel/2023a netCDF/4.9.2-iimpi-2023a netCDF-Fortran/4.6.1-iimpi-2023a FFTW/3.3.10-intel-compilers-2023.1.0'
         ;;
     hx1:gpu)
         # Mirrors "gpuhx1". netCDF and FFTW are reached through the executable's
@@ -223,6 +221,12 @@ pbs_directives="#PBS -l walltime=${WALLTIME}
 if [ -n "${QUEUE:-}" ]; then
     pbs_directives="${pbs_directives}
 #PBS -q ${QUEUE}"
+fi
+# Optional placement, e.g. PLACE=excl for a node of your own. On the a100
+# queue that holds a whole 4-GPU node whatever NGPU is, so use it deliberately.
+if [ -n "${PLACE:-}" ]; then
+    pbs_directives="${pbs_directives}
+#PBS -l place=${PLACE}"
 fi
 
 ## set the output directory

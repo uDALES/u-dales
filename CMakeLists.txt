@@ -58,7 +58,21 @@ elseif(CMAKE_Fortran_COMPILER_ID MATCHES "Intel")
     # FIXME: `-heap-arrays 10` required as using Intel Fortran
     # means they are stored on the stack (by default), whereas GNU Fortran stores
     # them on the heap (https://github.com/uDALES/u-dales/issues/13).
-    set(CMAKE_Fortran_FLAGS "-r8 -fpe0 -heap-arrays 10 -fpp" CACHE STRING "Fortran flags" FORCE)
+    #
+    # -fp-model precise: Intel's default fast model at -O3 may reassociate and
+    # contract floating-point operations, and it does so differently in
+    # different code paths. A warm start recomputes in readinitfiles what the
+    # uninterrupted run carries in memory, so the two paths diverged by an ULP
+    # and the restart round-trip test failed on the Release build while the -O0
+    # Debug build was bit-exact. precise keeps source order, as the GNU flags
+    # already do, and the round trip passes. Measured cost on a 128^3 case: none
+    # resolvable (36 s vs 36 s per 33 steps, inside the run-to-run noise).
+    #
+    # This does not make two runs of the same binary bit-identical: that
+    # variation comes from FFTW planning with FFTW_MEASURE in modpois, which
+    # picks the transform algorithm by timing it, and is independent of these
+    # flags.
+    set(CMAKE_Fortran_FLAGS "-r8 -fpe0 -fp-model precise -heap-arrays 10 -fpp" CACHE STRING "Fortran flags" FORCE)
     # #7712 (unused variables/imports) and the non-MPI #8889 (own procedures now
     # in modules; FFTW declared EXTERNAL) are fixed in the source. The remaining
     # #8889 are all MPI calls: Intel's F90 `use mpi` module does not provide the

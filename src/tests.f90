@@ -614,7 +614,7 @@ contains
       character(len=*), intent(in) :: label
       real, intent(in) :: grid(:)
       integer :: i, n
-      real :: span
+      real :: span, below
 
       check_probe_sweep = .true.
       n = size(grid)
@@ -627,7 +627,13 @@ contains
 
       do i = 1, n
         if (.not. check_lookup(label//' on-node',    grid(i),                grid, i))   check_probe_sweep = .false.
-        if (.not. check_lookup(label//' below-node', nearest(grid(i), -1.),  grid, i-1)) check_probe_sweep = .false.
+        ! One ULP below a node at 0.0 is a subnormal, and Intel's -fpe0 (in the
+        ! base flags) sets denormals-are-zero, so the lookup would see 0.0 and
+        ! return this cell rather than the one below. Ask about the smallest
+        ! normal number instead: still below the node, on every compiler.
+        below = nearest(grid(i), -1.)
+        if (abs(below) < tiny(below)) below = -tiny(below)
+        if (.not. check_lookup(label//' below-node', below,                  grid, i-1)) check_probe_sweep = .false.
         if (.not. check_lookup(label//' above-node', nearest(grid(i),  1.),  grid, i))   check_probe_sweep = .false.
         if (i < n) then
           if (.not. check_lookup(label//' midpoint', 0.5*(grid(i) + grid(i+1)), grid, i)) check_probe_sweep = .false.
@@ -4188,7 +4194,7 @@ contains
   !! UDALES_RUN_CUDA_SELFTEST on a Debug GPU build.
   !! Returns .true. if all checks pass, .false. otherwise.
   logical function tests_checksim()
-    use modglobal,      only : runmode, ib, ie, jb, je, kb, ke, &
+    use modglobal,      only : runmode, ib, ie, jb, je, kb, ke, btime, &
                                dx, dy, dxi, dyi, dy2i, dxhi, dzhi, dzf, dzfi, dzh, dxh2i, dvcell
     use modfields,      only : initfields, um, vm, wm, u0, v0, w0
     use modsubgrid,     only : initsubgrid
@@ -4229,6 +4235,10 @@ contains
 
     call initfields
     call initsubgrid
+    ! btime is set by the startup path this test bypasses, and initchecksim
+    ! reads it (tnext = tcheck + btime). Left unset it is a signalling NaN
+    ! under Intel Debug's -init=snan and traps there.
+    btime = 0.
     call initchecksim
 
     all_passed = .true.

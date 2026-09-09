@@ -294,6 +294,143 @@ python run_tests.py master dmey/patch-1 Release
 
 ## Validation Before Committing, Pushing, or Merging
 
+### On the Imperial HX1 cluster
+
+The whole sequence below runs with one command on HX1:
+
+```bash
+tests/hpc_run_all_tests.sh          # fast: about 30 min of run time
+tests/hpc_run_all_tests.sh full     # everything
+```
+
+It submits an orchestrator job, so it carries on after the terminal is
+closed. That job builds all four executables from clean build directories,
+submits the test jobs that can run at the same time, then runs the ones that
+must run alone one after the other, and writes a final report, stating the
+mode and every selection run, with the path of every log under
+`logdir/run_all_tests_<timestamp>/` (the same place
+`tools/ud_compare_multiple_inputs.py` logs to).
+
+`fast`, the default, covers every build, `python-library`, `gpu-smoke`,
+`gpu-mpi`, `gpu-nightly` (so both GPU build types, CPU/GPU parity and the
+restart round trip) and `supported` in Debug. `full` adds `gpu-full`, which
+needs four free A100s and can queue for hours for five minutes of work; the
+CPU-only run of the GPU fixture matrix, submitted with `place=excl` because
+its 128³ Debug case slows 3.5× when it shares a node, so it waits for an idle
+node and then takes about 40 minutes; and `all` in Release. Queue waits are
+outside the timings above and are reported per job.
+
+`--dry-run` writes the job scripts without submitting anything. Commit first
+if you want the supported regression to run: it checks out `master` and
+`HEAD` in place and skips itself on a dirty tree.
+
+The rest of this section is the environment that script sets up, for running
+selections by hand. On HX1 everything comes from Lmod modules, and three
+things about the cluster interact with the test harness. Set the environment
+once per shell or job, then run the commands in the following subsections
+unchanged.
+
+**1. Run the compiled-solver streams on a compute node.** `python-library` is
+fine on a login node. Everything that launches `mpiexec` or builds the solver
+(`supported`, `all`, every `gpu-*` selection) belongs in a job. For the CPU
+streams a batch job is simplest; for the GPU selections either submit a batch
+job or take an interactive node:
+
+```bash
+# two GPUs: enough for gpu-smoke, gpu-nightly and gpu-mpi
+qsub -I -l select=1:ncpus=2:mpiprocs=2:mem=256gb:ngpus=2:gpu_type=A100 -l walltime=01:00:00
+# gpu-full needs four
+qsub -I -l select=1:ncpus=8:mpiprocs=8:mem=128gb:ngpus=4:gpu_type=A100 -l walltime=04:00:00
+```
+
+The `a100` queue is one node per job with a fair-use ceiling of 12 GPUs per
+user, so `gpu-full` (four GPUs) is the largest single request.
+
+**2. Environment for the CPU streams** (`python-library`, `supported`, `all`):
+
+```bash
+cd u-dales
+module load intel/2023a netCDF/4.9.2-iimpi-2023a netCDF-Fortran/4.6.1-iimpi-2023a \
+            FFTW/3.3.10-intel-compilers-2023.1.0 CMake/3.26.3-GCCcore-12.3.0
+
+# The solver integration suites load their runtime themselves, through
+# tests/integration/common/runtime_modules.sh, from this variable.
+export UDALES_RUNTIME_MODULES="intel/2023a netCDF/4.9.2-iimpi-2023a netCDF-Fortran/4.6.1-iimpi-2023a FFTW/3.3.10-intel-compilers-2023.1.0"
+
+# The supported regression builds master and HEAD with plain cmake. Hand it
+# the compiler and netCDF the hx1 target uses, or cmake picks ifx from PATH.
+export UDALES_CMAKE_ARGS="-DCMAKE_Fortran_COMPILER=$(command -v mpiifort) -DNETCDF_DIR=$EBROOTNETCDF -DNETCDF_FORTRAN_DIR=$EBROOTNETCDFMINFORTRAN"
+
+# The experimental regressions build older revisions through their own
+# tools/build_executable.sh, which predates the hx1 target; "common" is the
+# one target every revision has, and it relies on the modules loaded above.
+export UDALES_BUILD_SYSTEM=common
+export MPIEXEC="$(command -v mpiexec)"
+
+# HX1 sets BASH_ENV to Lmod's init script, so every child bash re-defines the
+# real `module` command - which defeats the stub that the build-wrapper and
+# runtime-module contract tests rely on, and makes them fail against real
+# module names. Dropping it is safe: the exported function survives.
+unset BASH_ENV
+
+source tools/python/.venv/bin/activate
+```
+
+**3. Environment for the GPU selections** (`gpu-smoke`, `gpu-mpi`,
+`gpu-nightly`, `gpu-full`), on top of the block above:
+
+```bash
+NVHPC=/gpfs/easybuild/prod/software/NVHPC/23.7-CUDA-12.2.0
+IMPI=/gpfs/easybuild/prod/software/impi/2021.9.0-intel-compilers-2023.1.0/mpi/2021.9.0/bin
+
+# tests/integration/gpu/build_test_binaries.sh: which build targets, which
+# MPI wrappers. It needs absolute paths, and the two must differ.
+export UDALES_CPU_SYSTEM=hx1
+export UDALES_GPU_SYSTEM=gpuhx1
+export UDALES_CPU_FORTRAN_COMPILER=$IMPI/mpiifort
+export UDALES_GPU_FORTRAN_COMPILER=$NVHPC/Linux_x86_64/23.7/comm_libs/mpi/bin/mpif90
+
+# run_gpu_tests.py: one launcher per binary. NVHPC's mpiexec finds orted via
+# PATH; appended, so Intel's tools keep precedence for everything else.
+export UDALES_CPU_MPIEXEC=$IMPI/mpiexec
+export UDALES_GPU_MPIEXEC=$NVHPC/Linux_x86_64/23.7/comm_libs/mpi/bin/mpiexec
+export PATH="$PATH:$NVHPC/Linux_x86_64/23.7/comm_libs/mpi/bin"
+
+# Parity compares CPU and GPU output to 1e-6; keep host threads out of it.
+export OMP_NUM_THREADS=1
+```
+
+Do not load the NVHPC module in this shell: `build_executable.sh gpuhx1`
+loads it in its own subshell, and the GPU executable reaches its libraries
+through its RPATH plus the GCCcore that the Intel set already provides.
+
+**4. Keep the working tree clean while `supported` or `all` runs.** The
+branch-comparison regression checks out `master` and `HEAD` in place and
+restores the checkout afterwards. With uncommitted changes it skips itself
+with a warning rather than failing, and an edit made while it is running can
+block the checkout. Commit first, then run.
+
+**5. The GPU and CPU selections share `build/cpu/debug` and
+`build/cpu/release`**: `build_test_binaries.sh` rebuilds both. Do not run a
+GPU selection and a CPU selection at the same time. Chaining the batch jobs
+with `qsub -W depend=afterany:<cpu-job-id>` serialises them.
+
+**6. What to expect.** Run this way on HX1 (Intel 2023a for the CPU
+builds, NVHPC 23.7 for the GPU ones), `python-library`, `supported` in both
+build types, the CPU-only fixture run and every GPU selection pass. What
+remains is in the `experimental` stream:
+
+- the two `experimental` regressions: they copy a `2decomp-fft` directory
+  that this branch no longer carries as a submodule, and fail before building.
+  A property of the branch, not of the cluster.
+
+Worth knowing even though no test fails on it any more: with the Intel module
+set loaded, Intel's TBB is on `LD_LIBRARY_PATH` and numba silently prefers it
+over OpenMP as its threading layer. TBB assigns `prange` chunks dynamically, so
+results that come from per-thread partial sums (the directshortwave budget
+totals, for instance) move by a few ULPs between runs. Set
+`NUMBA_THREADING_LAYER=omp` if you need the preprocessing bit-reproducible.
+
 ### Before committing
 
 Inspect the working tree and check the patch for whitespace errors:

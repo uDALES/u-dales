@@ -342,7 +342,7 @@
       "required_outputs": ["fielddump", "tdump", "xytdump"],
       "coverage": ["immersed-boundary", "ibm-wall-function-reconstruction", "ibm-cell-index"],
       "namelist_assertions": {"libm": true, "iwallmom": 2},
-      "timeout_seconds": 900
+      "timeout_seconds": 2400
     },
     {
       "name": "vegetation",

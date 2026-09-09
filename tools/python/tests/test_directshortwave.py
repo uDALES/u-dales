@@ -540,8 +540,28 @@ class TestDirectShortwaveVegetation(unittest.TestCase):
                     periodic_xy=True,
                 )
                 self.assertTrue(np.array_equal(first[0], second[0]))
-                self.assertTrue(np.array_equal(first[1], second[1]))
-                self.assertEqual(first[2], second[2])
+                # first[1] comes out of a parallel reduction. With a static
+                # schedule (omp, workqueue) two runs at the same thread count
+                # group the partial sums identically and the result is
+                # bit-exact; under TBB, which numba prefers whenever Intel's
+                # libtbb is on LD_LIBRARY_PATH, the chunks are assigned
+                # dynamically and the result moves by a few ULPs (measured:
+                # 2.3e-15 relative). Hold it to the same roundoff tolerance
+                # the one-thread versus multi-thread comparison below uses.
+                np.testing.assert_allclose(
+                    first[1], second[1], rtol=1.0e-14, atol=1.0e-14
+                )
+                # The budget totals are formed the same way (per-thread
+                # partials summed afterwards), so their floating entries get
+                # the same roundoff tolerance; counts stay exact.
+                self.assertEqual(set(first[2]), set(second[2]))
+                for key in first[2]:
+                    if isinstance(first[2][key], float):
+                        self.assertAlmostEqual(
+                            first[2][key], second[2][key], delta=1.0e-14 * max(1.0, abs(first[2][key]))
+                        )
+                    else:
+                        self.assertEqual(first[2][key], second[2][key])
                 results[threads] = first
         finally:
             nb.set_num_threads(original_threads)
