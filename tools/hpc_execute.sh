@@ -80,17 +80,42 @@ fi;
 ## and HX1; set UDALES_SYSTEM=<cx3|hx1> to override it.
 ## ---------------------------------------------------------------------------
 if [ -z "${UDALES_SYSTEM:-}" ]; then
+    # Three tells, tried in turn.
+    # 1. The hostname: HX1 nodes are hx1-... (login: hx1-c12-login-1); CX3
+    #    compute nodes are cx3-... but its login nodes are login-a, login-b,
+    #    login-ai, login-bi.
+    # 2. The module tree: HX1 keeps EasyBuild under /gpfs/easybuild/prod, CX3
+    #    under /sw-eb.
+    # 3. The PBS server from /etc/pbs.conf: pbs-6 serves HX1; Imperial's other
+    #    server is CX3's.
+    pbs_server=$(sed -n 's/^PBS_SERVER=//p' /etc/pbs.conf 2>/dev/null)
     case "$(hostname -s)" in
-        hx1*) UDALES_SYSTEM=hx1 ;;
-        cx3*) UDALES_SYSTEM=cx3 ;;
-        *)
-            echo "Could not tell which cluster this is from the hostname: $(hostname -s)"
-            echo "Set UDALES_SYSTEM=cx3 or UDALES_SYSTEM=hx1 and run again."
-            exit 1
-            ;;
+        hx1-*)         UDALES_SYSTEM=hx1; cluster_tell="hostname $(hostname -s)" ;;
+        cx3-*|login-*) UDALES_SYSTEM=cx3; cluster_tell="hostname $(hostname -s)" ;;
     esac
+    if [ -z "${UDALES_SYSTEM:-}" ]; then
+        if [ -d /gpfs/easybuild/prod ]; then
+            UDALES_SYSTEM=hx1; cluster_tell="module tree /gpfs/easybuild/prod"
+        elif [ -d /sw-eb ]; then
+            UDALES_SYSTEM=cx3; cluster_tell="module tree /sw-eb"
+        fi
+    fi
+    if [ -z "${UDALES_SYSTEM:-}" ]; then
+        case "$pbs_server" in
+            pbs-6.*)        UDALES_SYSTEM=hx1; cluster_tell="PBS server $pbs_server" ;;
+            *.hpc.ic.ac.uk) UDALES_SYSTEM=cx3; cluster_tell="PBS server $pbs_server" ;;
+        esac
+    fi
+    if [ -z "${UDALES_SYSTEM:-}" ]; then
+        echo "Could not tell which cluster this is: hostname $(hostname -s)," \
+             "no /gpfs/easybuild/prod or /sw-eb, PBS server ${pbs_server:-none}."
+        echo "Set UDALES_SYSTEM=cx3 or UDALES_SYSTEM=hx1 and run again."
+        exit 1
+    fi
+else
+    cluster_tell="UDALES_SYSTEM set by hand"
 fi
-echo "cluster: $UDALES_SYSTEM"
+echo "cluster: $UDALES_SYSTEM ($cluster_tell)"
 
 ## The runtime the executable was built against; keep in step with the
 ## matching block of tools/build_executable.sh.
@@ -148,6 +173,7 @@ mkdir -p $outdir
 cp -r $inputdir/* $outdir
 pushd $outdir
 queue_wait_line >> $outdir/output.$exp.log
+echo "cluster: $UDALES_SYSTEM ($cluster_tell)" >> $outdir/output.$exp.log
 mpirun -v6 -n $(( $NCPU * $NNODE )) $DA_BUILD $outdir/namoptions.$exp >> $outdir/output.$exp.log 2>&1
 EOF
 
