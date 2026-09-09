@@ -1946,12 +1946,28 @@ afterwards and are unchanged (the `V0(?!b)` label-matching regex in
 `test_v0_tiny.py` was widened to `V0(?![bc])` so it does not also match V0c's
 own registration).
 
-| job | experiment | submitted | job id |
-|---|---|---|---|
-| V0c | `v0c` (982 fine-truth parent, 3 children: r1/r2/r4) | 2026-09-08 | `4004496.pbs-7` |
+| job | experiment | submitted | job id | outcome |
+|---|---|---|---|---|
+| V0c | `v0c` (982 fine-truth parent, 3 children: r1/r2/r4) | 2026-09-08 | `4004496.pbs-7` | **DONE**, exit 0, 08:37:45 on `cx3-6-15` |
 
-Queued in `v1_medium24` at submission (`qstat -u $USER`); check
-`$EPHEMERAL/nesting-v0c/analysis/v0_summary.md` once it finishes.
+**Result (design section 10.5).** Criterion A is **0.0392** (r = 1 control, against V1 converged's
+independently measured 0.0386), **0.0479** at r = 2 -- inside the 0.05 bound -- and 0.0746 at r = 4,
+which is not. Every value roughly halves against the same case at 1800 s, as 1/sqrt(N) predicts, so
+the earlier "refinement fails the mean-flow standard" reading was a short-window artefact. Resolved
+TKE above z/h = 2 is -1.32 / -2.18 / -9.21 % against driving-parent deficits of 0.00 / -9.20 /
+-22.82 %. The interior pressure norm is identical to 0.5 % across pre-projection divergences
+spanning six orders, so the linear prolongation's extra divergence carries no measurable pressure
+cost. `nest_statint = 30 s` gave 361 pressure samples per arm instead of V0b's two.
+
+Three limits are recorded in design section 10.5 under "what V0c does not settle": all three arms
+are **box-filtered** (the suite ran no genuine-coarse-parent arm), the paired differences carry
+**no uncertainty estimate** (the harness's two spreads are unpaired and ~100x too large to serve),
+and this reference is **much noisier aloft than V1's** (13.1 % half-window TKE spread at
+z/h = 3-5 against V1's 1.1-1.5 %). It also **failed V7**: the children read boundary data for
+48.2 / 45.7 / 49.2 % of their runtime against a < 1 % criterion.
+
+Full table: `$EPHEMERAL/nesting-v0c/analysis/v0_summary.md` (dumps retained, ~1.1 TB, so the
+paired-uncertainty re-analysis needs no new run -- but `$EPHEMERAL` is purged periodically).
 
 ---
 
@@ -2080,15 +2096,17 @@ and criterion A are both finite; the summary table is written.
 its registration check widened to `V0c(?!\d)` so it does not also match
 V0c16's own label) were re-run afterwards and are unchanged.
 
-| job | experiment | submitted | job id |
-|---|---|---|---|
-| V0c16 | `v0c16` (992 fine-truth parent, 4x4/16 ranks, 3 children: r1/r2/r4) | 2026-09-08 | `4008364.pbs-7` |
+| job | experiment | submitted | job id | outcome |
+|---|---|---|---|---|
+| V0c16 | `v0c16` (992 fine-truth parent, 4x4/16 ranks, 3 children: r1/r2/r4) | 2026-09-08 | `4008364.pbs-7` | **superseded -- never ran** |
 
-Queued in `v1_small72` at submission (confirmed via `qstat -f`), alongside
-V0c's own `v1_medium24` (job 4004496, `$EPHEMERAL/nesting-v0c`, 64 ranks,
-still queued, untouched by this addition). Twin jobs -- whichever starts
-first wins; `qdel` the other once one is producing output. Check
-`$EPHEMERAL/nesting-v0c16/analysis/v0_summary.md` once it finishes.
+**Outcome: V0c won the race.** 4004496 started in `v1_medium24` at 03:19 on 2026-09-09 and finished
+at 11:57 with exit 0, so its 16-core twin was cancelled at 06:49 without ever starting
+(`qstat -x` records "Not Running: Insufficient amount of resource: ncpus and terminated"), exactly
+as the twin-job rule above prescribes. No `$EPHEMERAL/nesting-v0c16` directory was created and no
+V0c16 analysis exists. The preset, suite and submission script are kept: they are the working
+16-core decomposition of the same three-point suite, and the next time a 64-core job will not clear
+this is the one to submit.
 
 ---
 

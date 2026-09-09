@@ -3,8 +3,12 @@
 **Status:** implemented on branch `nesting` (PR #376); validation campaign in progress, see §10.5.
 **Code inspected:** uDALES `master` @ `1f8ff3e8`; DALES `v4.4_openBC` @ `aadd296d`; PALM `v23.04`.
 **Scope of v1:** aligned Cartesian grids, offline parent data, one-way, velocity only; scalars keep the existing inlet and outflow treatment. Refinement
-ratios $r>1$ are supported by the writer and covered by its unit tests, but are **not yet validated
-end to end** — every system test so far runs at $r=1$. See the note under §10.4.
+ratios $r>1$ are **validated end to end at $r=2$** (V0c, §10.5: criterion A $0.0479$ against the
+$0.05$ bound, beside a matched-resolution control at $0.0392$); $r=4$ misses the bound at $0.0746$.
+That validation is on **box-filtered** parents — a coarse parent constructed from a fine run.
+Children driven by a *genuine* coarse LES parent have only ever been run at the superseded 3 s
+cadence with the piecewise-constant reconstruction (§10.5, V0's `coarse` arms), so that
+configuration is not validated at the shipped settings. See the note under §10.4.
 
 ---
 
@@ -787,7 +791,11 @@ for the Hermite stencil; at a parent-interval crossing the slots are rolled and 
 read *synchronously, at the crossing, in the substep that crosses* — there is no read-ahead or
 prefetch, contrary to what §6.2 item 3 asks for. This was measured rather than argued (§10.7
 item 3): the per-crossing read is small against a parent interval at 64 ranks, so the "metadata
-storm" of §6.2 did not materialise at that scale and the simpler design stands. Stage the file to
+storm" of §6.2 did not materialise at that scale and the simpler design stands. **That conclusion
+does not survive V0c** (§10.5): at 0.5 s over 21 600 levels, three production children spent
+$46$–$49\,\%$ of their runtime in `nestio_read`. The measurement that justified the simpler design
+was taken on a smaller, shorter case; at production cadence and record length the read dominates,
+and the two faster rows of this table are again the open options. Stage the file to
 node-local/ephemeral storage before the run when it fits, as `AGENTS.md` already recommends.
 
 **Measure it.** `nesting_stats` reports the read wall time per parent interval and its fraction of
@@ -1433,10 +1441,10 @@ $\mathcal{D}\mathbf{u}=\frac{h^2}{24}k_xk_y(k_x^2-k_y^2)\cos k_xx_f\cos k_yy_f+O
 | V2 | Does the zone width behave as §1.4 predicts? | V1 repeated over $N_{\rm rel}\in\{4,9,12,16\}$ at fixed child size, plus a child-size arm (interior $5h$, $9h$, $13h$) at fixed zone width, every child clearing its own zone (§9.4) | **DONE — §10.5.** Zone width moves the deficit by 0.16 % over the whole range (0.03 of a sampling spread); interior extent moves it from $-13.5$ to $-9.9\,\%$. The deficit is a recovery over fetch, and §10.5's note on *what* is being recovered from applies |
 | V3 | **Parent without buildings** (**closed — out of scope**) | parent resolves no geometry; child has buildings starting **at** the inner zone edge, compared against 0/5/15/40-cell standoffs; plus a **cleared-parent-cubes** arm at standoff 0 — the identical child, but its parent resolves V1's own aligned canopy where the child's zone sits and the child clears it (`nest_lparentgeom = .false.`) | **DONE — §10.5.** The adjustment length is **not measurable**: with a building-free parent no child equilibrated within $26h$, and the canopy wind is $38$–$57\,\%$ wrong at the last row. A parent that resolves buildings puts the same child inside the sampling spread by $5h$. §9.4's prediction that a standoff lengthens adjustment is **REFUTED**, for a configuration now out of scope. **Decision 2026-09-07: building-free parents are not supported and this row is closed** — a building-free domain struggles to generate and sustain canopy turbulence at all, so there is nothing for the child to inherit. The cleared-parent-cubes arm isolates what a genuinely absent boundary condition costs from what "parent had cubes, child removed them" costs (§0, "New from V2") |
 | V4 | **Different parent geometry** | parent with a different building layout, child identical to V1's | **DONE — §10.5.** Turbulence: the child's canopy is its own ($+46\,\%$ against its parent, 3–4$\sigma$) and aloft it matches its parent to $1.1\,\%$. Mean flow: **inherited, and not re-established over this fetch** — the child sits at $0.80$ of the V1 child, tracking the $0.83$ bulk ratio of the two parents. The V1-child reference is valid for turbulence only |
-| **V0** | **Does a child at higher resolution than its parent reproduce it?** | genuinely coarse parent grid ($r = 2, 4$), child at $\Delta x$; the writer's conservative interpolation carries the refinement | **DONE, both arms — §10.5**, and restated after the TKE-estimator correction. It reproduces its *parent*: with genuine 4 m / 8 m parents the child carries the parent's own $0.9$–$1.5\,u_\star$ mean-flow bias through the whole interior. Above the canopy it recovers at most a few points on its parent within $13h$; in the canopy it *overshoots* the truth by $+18$–$28\,\%$, because the too-fast imposed momentum drives too much production. Mean flow: **above the canopy it transfers well** ($\le0.02\,u_\star$ above $z/h=2$ at $r=2$), with the residual in the canopy and at roof height where a coarse parent cannot resolve the cubes. **Settled by V0c at a converged window**: criterion A is $0.0392$ (matched control, against V1's independent $0.0386$), $0.0479$ at $r=2$ — **inside the $0.05$ bound** — and $0.0746$ at $r=4$, which is not. The child also *beats its parent* by 7 points of resolved TKE at $r=2$ and 14 at $r=4$ |
+| **V0** | **Does a child at higher resolution than its parent reproduce it?** | genuinely coarse parent grid ($r = 2, 4$), child at $\Delta x$; the writer's conservative interpolation carries the refinement | **DONE, both arms — §10.5**, and restated after the TKE-estimator correction. It reproduces its *parent*: with genuine 4 m / 8 m parents the child carries the parent's own $0.9$–$1.5\,u_\star$ mean-flow bias through the whole interior. Above the canopy it recovers at most a few points on its parent within $13h$; in the canopy it *overshoots* the truth by $+18$–$28\,\%$, because the too-fast imposed momentum drives too much production — **that pair of numbers is the `coarse` arm at the old 3 s cadence with the piecewise-constant reconstruction, and has not been re-run since**; the `filtered` arms at the shipped settings read $+3.7$ and $+1.6\,\%$ (V0b and V0c agree, so the window is not what moves it). Mean flow: **above the canopy it transfers well** ($\le0.02\,u_\star$ above $z/h=2$ at $r=2$), with the residual in the canopy and at roof height where a coarse parent cannot resolve the cubes. **Settled by V0c at a converged window, on the `filtered` arms**: criterion A is $0.0392$ (matched control, against V1's independent $0.0386$), $0.0479$ at $r=2$ — **inside the $0.05$ bound** — and $0.0746$ at $r=4$, which is not. The child also *beats its parent* by 7 points of resolved TKE at $r=2$ and 14 at $r=4$, a difference whose uncertainty is not yet quantified (§10.5, "what V0c does not settle") |
 | V5 | How far can the parent be coarsened? | parent smoothed at 2/4/8 in space, 10/30/60 in time | **Superseded**: the time axis is C0 (0.5–9 s, §10.5) and the space axis is V0; the ≤4/≤30 guidance is withdrawn (§1.3). C6 is a go, on the terms of §6.2 |
 | V6 | Does mass drift over long runs? | 10⁵-step run | **DONE — PASS (job 4001085).** ~100 590 steps (an estimate from sampled interval-mean timesteps, not an exact counter), 37 999 s simulated. `nest_lendabort = .false.` freezes the boundary on the last stored parent level for ~99 % of the run, so nothing at the boundary varies and any growth is numerical. All nine diagnostics — `divmax`, `divtot`, $\Phi$ and its lid/closed split, the zone misfit, $\|\mathcal{G}p\|$ over zone and interior and their ratio — are **bounded with no trend**: every fitted slope is under $1.9$ standard errors from zero and moves its series by at most 6 % of its own range over the whole run. The freeze warning fired exactly once, as designed. *A defect in the acceptance logic was found afterwards and fixed*: `analyse_v6` returned PASS whenever nothing said FAIL, so an empty log passed. PASS now requires positive evidence — every series finite and resolved, a minimum sample count, the intended duration reached, the freeze warning seen once, no abort — and a failing verdict now propagates to a non-zero exit status. The production run's PASS was re-checked against the stricter logic and stands |
-| V7 | Does the I/O cost anything? | production-sized case | read time <1% of runtime; if not, switch container (§6.3) |
+| V7 | Does the I/O cost anything? | production-sized case | **FAILS the stated bound — §10.5.** V0c's three children report `read time` at $48.2$, $45.7$ and $49.2\,\%$ of runtime against a $<1\,\%$ criterion, and the solver's own `WARNING parent I/O exceeds 1 %` fires on every arm. The remedy the row names — switch container, §6.3 — is therefore **live and unevaluated**; §6.3's conclusion that the simpler design stands was drawn from a smaller case |
 
 **Refinement ratio 1 is a deliberate simplification, and a temporary one.** V1 and V2 both run
 parent and child on the *same* grid. That is the right way to start — at $r=1$ the prolongation is
@@ -1895,6 +1903,24 @@ slab cut and the writer never touches the prolongation: a true control.
 | pre-projection child divmax | $2.7\times10^{-7}$ | $0.363$ | $0.287$ |
 | $\|\mathcal{G}p\|$ zone ($n=361$) | $0.0323\pm0.0021$ | $0.0304\pm0.0021$ | $0.0262\pm0.0020$ |
 | $\|\mathcal{G}p\|$ interior ($n=361$) | $0.01162\pm0.0028$ | $0.01161\pm0.0028$ | $0.01156\pm0.0029$ |
+| resolved TKE, canopy | $+0.02\,\%$ | $+3.69\,\%$ | $+1.58\,\%$ |
+| TKE error at the zone edge / at max fetch | $0.044$ / $0.039$ | $0.120$ / $0.099$ | $0.317$ / $0.190$ |
+| spectral band: parent-resolved | $0.995$ | $1.037$ | $1.062$ |
+| — parent-marginal | $0.954$ | $0.851$ | $0.634$ |
+| — sub-parent-filter | — | $0.974$ | $0.563$ |
+| staircase RMS / max $[u_\star]$ | — | $0.0044$ / $0.0189$ | $0.0099$ / $0.0519$ |
+| dispersive/temporal TKE, above $z/h=2$ | $0.033$ | $0.035$ | $0.041$ |
+| — in the canopy | $0.62$ | $0.82$ | $1.17$ |
+| max $|\Phi|$ / max `divmax` | $1.8/1.6\times10^{-15}$ | $1.9/1.6\times10^{-15}$ | $1.8/1.8\times10^{-15}$ |
+| `read time` as a fraction of runtime | $48.2\,\%$ | $45.7\,\%$ | $49.2\,\%$ |
+
+Two rows carry their own conclusions. The **spectral bands** show where refinement actually buys
+something and where it does not: at $r=2$ the child recovers the scales its parent never carried
+($0.974$ of the truth below the parent filter) while giving up $15\,\%$ in the marginal band around
+the parent Nyquist; at $r=4$ both collapse ($0.563$ and $0.634$), which is the spectral face of the
+same $r=4$ weakness criterion A reports. The **flux assertion holds at production size** on every
+arm: $\Phi$ and `divmax` stay at round-off through 3400 samples, which is the runtime contract of
+§0 measured on a real case rather than a fixture.
 
 **Three questions settled.**
 
@@ -1923,10 +1949,43 @@ tracks the smoothness of the imposed target, not its divergence. **So the extra 
 absorbed with no measurable pressure cost anywhere.** The claim withdrawn on 2026-09-08 is
 reinstated — this time on 361 samples with a control, rather than two endpoints.
 
-*Incidental, and it answers V7.* The children report `read time` at $47.8\,\%$ of runtime: at 0.5 s
-over a 21 600-level record, reading boundary data costs nearly half the child's wall clock. That is
-the cost the parent-side zone dump (§6.2, `&NESTDUMP`) exists to remove, and it is measured here at
-production size.
+**What V0c does not settle.** Three limits, none of which the numbers above disclose on their own.
+
+*Only box-filtered parents ran.* V0c's suite declares "coarse parents to run: none" — all three arms
+are box-filtered from the fine reference. The `coarse` arms, where the parent is a genuine coarse LES
+that resolves its own turbulence and its own version of the buildings, exist only in V0, at the 3 s
+cadence with the piecewise-constant reconstruction. Those are the arms that represent the intended
+use, and the two configurations differ in cadence, reconstruction *and* window at once, so nothing
+here separates them. The $+18$–$28\,\%$ canopy overshoot in §10.4's V0 row belongs to that older
+configuration, not to this one.
+
+*No uncertainty is attached to the differences being claimed.* The harness reports two spreads and
+both are **unpaired**: `tke_spread_above_2h_median` is the reference's own half-window spread
+($15.4\,\%$ above $z/h=2$ here, $8$–$19\,\%$ across those levels) and `u_noise_floor_over_ustar` is
+the same construction for the mean ($0.285\,u_\star$). Every metric quoted above is a *paired*
+child-minus-reference difference over a shared realisation, and the pairing is evidently very tight
+— the $r=1$ control's profile RMS is $0.0027\,u_\star$, a hundredth of that floor. So the reported
+spreads are the wrong yardstick by roughly two orders of magnitude, and comparing a value against
+them (in either direction) means nothing. The $7$- and $14$-point "beats its parent" margins and the
+$r=2$-versus-$r=4$ gap are therefore unquantified, not insignificant. The fix needs no new
+simulation: both half-window accumulations are already kept for the child as well as the reference
+(`Bundle.mean[comp][0..1]`), so a paired floor
+$\mathrm{RMS}\big[(c_A-r_A)-(c_B-r_B)\big]/\sqrt2$ — or a block bootstrap of the paired
+differences, which the 2026-09-08 review asked for — is a re-analysis of dumps still on disk.
+
+*The reference is far less converged than V1's.* At $z/h=3$–$5$ the V0c reference's half-window TKE
+spread is $13.1\,\%$, against the $1.1$–$1.5\,\%$ §10.5 quotes for the V1 converged run at the same
+window. The smaller domain ($512\times512\times128$ m) simply holds fewer independent large eddies.
+The criterion-A cross-check against V1 ($0.0392$ vs $0.0386$) is a *mean*-flow agreement and says
+nothing about the second moments, so the TKE rows above rest on a noisier truth than V1's do.
+
+*Incidental, and it answers V7 — in the negative.* The three children report `read time` at $48.2$,
+$45.7$ and $49.2\,\%$ of runtime (§10.4 quotes the mean, $47.8\,\%$): at 0.5 s over a 21 600-level
+record, reading boundary data costs nearly half the child's wall clock, against a $<1\,\%$
+criterion, and `nesting_stats` prints its own `WARNING parent I/O exceeds 1 %` on every arm. The
+parent-side zone dump (§6.2, `&NESTDUMP`) removes the *parent's* dump volume and the offline
+slab-cut, not this: the child reads the same boundary file either way. So the container question
+§6.3 recorded as closed is reopened by its own acceptance criterion.
 
 ### 10.6 Wiring
 
