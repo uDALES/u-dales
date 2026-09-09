@@ -398,10 +398,16 @@ if [ ! -d src ] || [ ! -f tools/build_executable.sh ]; then
     echo "Run this from the u-dales directory."
     exit 1
 fi
-case "$(hostname -s)" in
-    hx1*) ;;
-    *) echo "This script is written for HX1; hostname is $(hostname -s)."; exit 1 ;;
-esac
+# The HX1 tells, in the order tools/hpc_execute.sh tries them: hostname
+# hx1-..., module tree /gpfs/easybuild/prod, PBS server pbs-6.
+on_hx1=""
+case "$(hostname -s)" in hx1-*) on_hx1=1 ;; esac
+[ -d /gpfs/easybuild/prod ] && on_hx1=1
+case "$(sed -n 's/^PBS_SERVER=//p' /etc/pbs.conf 2>/dev/null)" in pbs-6.*) on_hx1=1 ;; esac
+if [ -z "$on_hx1" ]; then
+    echo "This script is written for HX1; hostname is $(hostname -s)."
+    exit 1
+fi
 if [ ! -f tools/python/.venv/bin/activate ]; then
     echo "tools/python/.venv is missing; set it up with: bash tools/python/setup_venv.sh icl"
     exit 1
