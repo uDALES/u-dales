@@ -719,6 +719,22 @@ groups:
         command:
           - "{python}"
           - "{tests_dir}/validation/nesting/test_nestparent_tiny.py"
+      # The GMD 2024 indoor-outdoor enclosure, parametrised on wall thickness
+      # (tests/validation/nesting/indoor_geometry.py).  Pure geometry, no
+      # solver: it pins the cavity as the invariant and reproduces every
+      # structural plane of the published STL.  The two tests that compare
+      # against the published file skip with a reason unless
+      # UDALES_GMD2024_INPUTS points at the extracted inputs; the hard-coded
+      # plane checks run either way, so the entry is not vacuous offline.
+      - label: "nesting-validation: GMD 2024 indoor-outdoor geometry (no solver)"
+        class: experimental
+        kind: unit
+        component: nesting
+        platform: any
+        cost: fast
+        command:
+          - "{python}"
+          - "{tests_dir}/validation/nesting/test_indoor_geometry.py"
       - label: "nesting-validation: driving-parent TKE estimator (R1 regression, no solver)"
         class: experimental
         kind: unit
