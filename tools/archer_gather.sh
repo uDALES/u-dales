@@ -51,8 +51,8 @@ cat <<EOF > post-job.$exp.slurm
 #SBATCH --partition=standard
 #SBATCH --qos=${QOS}
 
-module load nco gsl
-$DA_TOOLSDIR/gather_outputs.sh $outdir
+module load cray-hdf5 cray-netcdf nco gsl
+$DA_TOOLSDIR/gather_outputs.sh $outdir >> $outdir/output.$exp.log 2>&1
 EOF
 
 ## submit job file to queue

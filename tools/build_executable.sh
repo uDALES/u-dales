@@ -19,7 +19,7 @@
 
 set -euo pipefail
 
-# Usage: ./tools/build_executable.sh [icl, archer, cca, common] [debug, release]
+# Usage: ./tools/build_executable.sh [icl, hx1, archer, cca, common] [debug, release]
 
 if [ ! -d src ]; then
     echo "Please run this script from being inside the u-dales folder"
@@ -61,6 +61,17 @@ then
     FC=mpiifort
     NETCDF_DIR=/sw-eb/software/netCDF/4.8.0-iimpi-2021a
     NETCDF_FORTRAN_DIR=/sw-eb/software/netCDF-Fortran/4.5.3-iimpi-2021a
+
+elif [ $system == "hx1" ]
+then
+    # Imperial HX1. It has its own EasyBuild tree (/gpfs/easybuild/prod) rather
+    # than CX3's /sw-eb, and it carries no iimpi-2021a netCDF at all, so the
+    # "icl" module list cannot resolve here. intel/2023a is the oldest Intel
+    # toolchain on HX1 with a complete netCDF + netCDF-Fortran pair.
+    module load intel/2023a netCDF/4.9.2-iimpi-2023a netCDF-Fortran/4.6.1-iimpi-2023a FFTW/3.3.10-intel-compilers-2023.1.0 CMake/3.26.3-GCCcore-12.3.0 git/2.41.0-GCCcore-12.3.0-nodocs
+    FC=mpiifort
+    NETCDF_DIR=/gpfs/easybuild/prod/software/netCDF/4.9.2-iimpi-2023a
+    NETCDF_FORTRAN_DIR=/gpfs/easybuild/prod/software/netCDF-Fortran/4.6.1-iimpi-2023a
 
 elif [ $system == "archer" ]
 then

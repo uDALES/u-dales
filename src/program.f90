@@ -24,7 +24,8 @@ program uDALES
 !!----------------------------------------------------------------
 !!     0.0    USE STATEMENTS FOR CORE MODULES
 !!----------------------------------------------------------------
-  use modmpi,            only : initmpi,exitmpi,starttimer
+  use mpi
+  use modmpi,            only : initmpi,exitmpi,starttimer,myid
   use modglobal,         only : initglobal,rk3step,timeleft
   use modglobal,         only : runmode,RUN_COLDSTART,RUN_WARMSTART,RUN_DRIVER,RUN_STRATSTART,TEST_SPARSE_IJK,TEST_2DCOMP_INIT_EXIT,TEST_MPI_OPERATORS
   use modglobal,         only : TEST_NESTING_WEIGHTS,TEST_NESTING_GEOMETRY,TEST_NESTING_IO,TEST_NESTING_FLUX,TEST_NESTING_UPDATE,TEST_NESTING_INIT
@@ -62,10 +63,13 @@ program uDALES
                               tests_nesting_flux,tests_nesting_update,tests_nesting_init
   implicit none
 
+  real    :: stime
+
 !----------------------------------------------------------------
 !     0      READ NAMELISTS,INITIALISE GRID, CONSTANTS AND FIELDS
 !----------------------------------------------------------------
   call initmpi
+  stime = MPI_Wtime()
 
   !call startup
   call readnamelists
@@ -137,6 +141,8 @@ program uDALES
   call init_heatpump
 
   !call fielddump
+
+  call print_time('After initialization')
 
 !------------------------------------------------------
 !   3.0   MAIN TIME LOOP
@@ -249,7 +255,7 @@ program uDALES
 !-------------------------------------------------------
 !             END OF TIME LOOP
 !-------------------------------------------------------
-
+  call print_time('After main time loop')
 !--------------------------------------------------------
 !    4    FINALIZE ADD ONS AND THE MAIN PROGRAM
 !-------------------------------------------------------
@@ -260,9 +266,25 @@ program uDALES
   call nesting_finalize  ! closes the parent file; a no-op unless lnesting
   !call exitmodules
   !call exittest
+
+  call print_time('After finalization')
+
   call exitmpi
 
 contains
+  subroutine print_time(phase_name)
+    use modmpi, only : comm3d, mpierr
+    implicit none
+    character(len=*), intent(in) :: phase_name
+    real :: tnow
+    call MPI_BARRIER(comm3d, mpierr)
+    tnow = MPI_Wtime()
+    if (myid == 0) then
+      write(6,'(3A,F12.6,A)') 'Wall time for phase [', trim(phase_name), '] : ', tnow - stime, ' seconds'
+    end if
+    stime = tnow
+  end subroutine print_time
+
   subroutine execute_runmode_actions
     logical :: test_failed
     logical :: invalid_runmode
