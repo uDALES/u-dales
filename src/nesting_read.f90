@@ -71,12 +71,32 @@ module nesting_read
 
   type(nestio_header_type) :: nestio_hdr
 
-  !> Cumulative wall time spent inside nf90_get_var in nestio_read [s].
+  !> Cumulative wall time spent in the read path of nestio_read /
+  !! nestio_read_block [s]. This covers the WHOLE path -- the variable and
+  !! dimension lookup as well as nf90_get_var -- because timing only
+  !! nf90_get_var understated the cost: every call used to re-issue six
+  !! metadata operations (inq_varid, inquire_variable and four
+  !! inquire_dimension) outside the timer, on a shared-filesystem file, from
+  !! every rank, for a varid and dimension lengths that cannot change while
+  !! the file is open. V0c measured 46-49 % of child runtime in this path with
+  !! only nf90_get_var counted (design section 10.5, V7).
   real :: nestio_tread = 0.
 
   integer            :: ncid    = -1
   logical            :: lopen   = .false.
   character(len=256) :: ncfname = ''
+
+  ! --- variable metadata cache ------------------------------------------- #
+  ! The file is opened read-only and never redefined, so a variable's id and
+  ! its dimension lengths are fixed for the lifetime of the open file. There
+  ! are 12 slab variables (4 faces x 3 components) plus at most 3 init
+  ! variables, so a linear scan over a handful of names is far cheaper than
+  ! one filesystem metadata round trip.
+  integer, parameter :: NVCACHE = 32
+  integer            :: nvcached = 0
+  character(len=64)  :: vc_name(NVCACHE) = ''
+  integer            :: vc_varid(NVCACHE) = -1
+  integer            :: vc_dlen(4, NVCACHE) = 0
 
 contains
 
@@ -93,6 +113,10 @@ contains
 
     ncfname = fname
     nestio_tread = 0.
+    nvcached = 0
+    vc_name = ''
+    vc_varid = -1
+    vc_dlen = 0
 
     ierr = nf90_open(trim(fname), NF90_NOWRITE, ncid)
     if (nestio_failed(ierr, 'nf90_open')) then
@@ -454,14 +478,57 @@ contains
   !! nesting when a new parent time level is needed. varname is e.g.
   !! 'u_west'; it, start2 and count2 are 1-based; buf is
   !! (n_zone_dim, n_z_dim, count2). ierr /= 0 on failure.
+  !> Variable id and dimension lengths for ``varname``, from the cache.
+  !! Populated on first use; a hit costs a string compare, a miss costs the
+  !! six metadata calls this exists to stop repeating.
+  subroutine nestio_varinfo(varname, varid, ndims, dlen, ierr)
+    character(len=*), intent(in)  :: varname
+    integer,          intent(out) :: varid, ndims, dlen(4)
+    integer,          intent(out) :: ierr
+
+    integer :: i, k
+    integer :: dimids(NF90_MAX_VAR_DIMS)
+
+    ierr = nf90_noerr
+    dlen = 0
+
+    do i = 1, nvcached
+      if (trim(vc_name(i)) == trim(varname)) then
+        varid = vc_varid(i)
+        dlen  = vc_dlen(:, i)
+        ndims = 4
+        return
+      end if
+    end do
+
+    ierr = nf90_inq_varid(ncid, trim(varname), varid)
+    if (nestio_failed(ierr, 'nf90_inq_varid('//trim(varname)//')')) return
+
+    ierr = nf90_inquire_variable(ncid, varid, ndims=ndims, dimids=dimids)
+    if (nestio_failed(ierr, 'nf90_inquire_variable('//trim(varname)//')')) return
+
+    if (ndims /= 4) return          ! caller reports; nothing cached
+
+    do k = 1, 4
+      ierr = nf90_inquire_dimension(ncid, dimids(k), len=dlen(k))
+      if (nestio_failed(ierr, 'nf90_inquire_dimension('//trim(varname)//')')) return
+    end do
+
+    if (nvcached < NVCACHE) then
+      nvcached = nvcached + 1
+      vc_name(nvcached)   = varname
+      vc_varid(nvcached)  = varid
+      vc_dlen(:, nvcached) = dlen
+    end if
+  end subroutine nestio_varinfo
+
   subroutine nestio_read(varname, it, start2, count2, buf, ierr)
     character(len=*), intent(in)  :: varname
     integer,          intent(in)  :: it, start2, count2
     real,             intent(out) :: buf(:,:,:)
     integer,          intent(out) :: ierr
 
-    integer :: varid, ndims, i
-    integer :: dimids(NF90_MAX_VAR_DIMS)
+    integer :: varid, ndims
     integer :: dlen(4), start(4), count(4)
     real    :: t0
 
@@ -476,22 +543,19 @@ contains
 
     if (count2 <= 0) return
 
-    ierr = nf90_inq_varid(ncid, trim(varname), varid)
-    if (nestio_failed(ierr, 'nf90_inq_varid('//trim(varname)//')')) return
-
-    ierr = nf90_inquire_variable(ncid, varid, ndims=ndims, dimids=dimids)
-    if (nestio_failed(ierr, 'nf90_inquire_variable('//trim(varname)//')')) return
+    t0 = MPI_Wtime()
+    call nestio_varinfo(varname, varid, ndims, dlen, ierr)
+    if (ierr /= nf90_noerr) then
+      nestio_tread = nestio_tread + (MPI_Wtime() - t0)
+      return
+    end if
 
     if (ndims /= 4) then
+      nestio_tread = nestio_tread + (MPI_Wtime() - t0)
       call nestio_abortmsg(varname, 'expected a 4-dimensional variable')
       ierr = -1
       return
     end if
-
-    do i = 1, 4
-      ierr = nf90_inquire_dimension(ncid, dimids(i), len=dlen(i))
-      if (nestio_failed(ierr, 'nf90_inquire_dimension('//trim(varname)//')')) return
-    end do
 
     ! dlen is in Fortran order: (zone, z, decomposed, time)
     if (size(buf,1) /= dlen(1) .or. size(buf,2) /= dlen(2) .or. size(buf,3) /= count2) then
@@ -519,7 +583,6 @@ contains
     start = (/ 1, 1, start2, it /)
     count = (/ dlen(1), dlen(2), count2, 1 /)
 
-    t0 = MPI_Wtime()
     ierr = nf90_get_var(ncid, varid, buf, start=start, count=count)
     nestio_tread = nestio_tread + (MPI_Wtime() - t0)
     if (nestio_failed(ierr, 'nf90_get_var('//trim(varname)//')')) return

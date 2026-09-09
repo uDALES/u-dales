@@ -851,6 +851,41 @@ def interpolate_child_fields(
 # --------------------------------------------------------------------------- #
 
 
+#: Target size of one slab chunk [bytes].  A compromise: large enough that
+#: HDF5 is not managing a huge number of tiny chunks, small enough that a
+#: single rank's slice of the decomposed dimension does not drag in the whole
+#: span.  See :func:`slab_chunksizes`.
+SLAB_CHUNK_TARGET_BYTES = 128 * 1024
+
+
+def slab_chunksizes(span_len: int, nz: int, nzone: int, *,
+                    span_chunk: Optional[int] = None,
+                    itemsize: int = 8) -> Tuple[int, int, int, int]:
+    """Chunk shape ``(time, span, z, zone)`` for a slab variable.
+
+    **Why this is set explicitly.** netCDF-4 left to itself picks a chunk that
+    approaches its own ~4 MB target, and because ``nz * nzone * 8`` is only a
+    few KB per index of the decomposed dimension, that default comes out
+    spanning the *whole* dimension -- measured as ``[1, 512, 64, 13]`` on a
+    512-wide slab. The solver reads one rank's contiguous slice of exactly
+    that dimension (``nesting_read.f90``, ``start=(1,1,start2,it)``), so with
+    the default every rank has to pull a chunk covering all 512 columns to get
+    its own 8, and every rank does it for the same chunks. Design section 6.3
+    names this ("Good if chunked right, poor if not") and it is the shape the
+    read path has been running against.
+
+    ``span_chunk`` pins the decomposed extent when the caller knows the child's
+    decomposition; otherwise it is sized to :data:`SLAB_CHUNK_TARGET_BYTES`.
+    One time level per chunk always, because that is how the data is both
+    written (level by level) and read (one level per parent interval).
+    """
+    per_index = max(1, nz * nzone * itemsize)
+    if span_chunk is None:
+        span_chunk = int(SLAB_CHUNK_TARGET_BYTES // per_index)
+    span_chunk = max(1, min(int(span_chunk), int(span_len)))
+    return (1, span_chunk, nz, nzone)
+
+
 def slab_dimensions(face: str, component: str) -> Tuple[str, str, str]:
     """CDL dimension names of slab variable ``<component>_<face>``, after ``time``."""
     _check_face(face)
@@ -2276,6 +2311,7 @@ class NestingWriter:
         allow_refinement_violation: bool = False,
         refinement_reason: Optional[str] = None,
         divergence_corrected: Optional[bool] = None,
+        span_chunk: Optional[int] = None,
         **metadata: Any,
     ) -> None:
         unknown = sorted(set(metadata) - set(_WRITER_METADATA))
@@ -2287,6 +2323,11 @@ class NestingWriter:
         self.path = Path(path)
         self.grid = grid
         self.nzone = int(nzone)
+        #: Chunk extent along the decomposed slab dimension.  ``None`` sizes it
+        #: from :data:`SLAB_CHUNK_TARGET_BYTES`; a caller that knows the child's
+        #: decomposition can pin it to one rank's slice (see
+        #: :func:`slab_chunksizes`).
+        self._span_chunk = None if span_chunk is None else int(span_chunk)
         _check_nzone(grid, self.nzone)
         self.masks = masks if masks is not None else _ALL_FLUID
         self.correct_divergence = bool(correct_divergence)
@@ -2400,7 +2441,13 @@ class NestingWriter:
                 for component in COMPONENTS:
                     name = f"{component}_{face}"
                     dims = ("time",) + slab_dimensions(face, component)
-                    var = ds.createVariable(name, "f8", dims)
+                    var = ds.createVariable(
+                        name, "f8", dims,
+                        chunksizes=slab_chunksizes(
+                            len(ds.dimensions[dims[1]]),
+                            len(ds.dimensions[dims[2]]),
+                            len(ds.dimensions[dims[3]]),
+                            span_chunk=self._span_chunk))
                     var.stagger = STAGGER[component]
                     var.units = "m s-1"
         except Exception:

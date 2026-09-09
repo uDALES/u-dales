@@ -57,6 +57,7 @@ from udprep.nesting import (  # noqa: E402
     CORRECTION_WARN_FRACTION,
     FLUX_UNITS,
     PARENT_DT_RTOL,
+    SLAB_CHUNK_TARGET_BYTES,
     SPEC,
     FaceMasks,
     NestGrid,
@@ -89,6 +90,7 @@ from udprep.nesting import (  # noqa: E402
     refinement_ratios,
     refinement_ratios_by_axis,
     refinement_verdict,
+    slab_chunksizes,
     slabs_from_parent,
     stagger_masks_from_ibm,
     stored_coordinates,
@@ -911,6 +913,71 @@ class TestW8LinearProlongation(unittest.TestCase):
 
 
 # --------------------------------------------------------------------------- #
+
+# --------------------------------------------------------------------------- #
+# V7 -- slab chunk shape (2026-09-09)
+# --------------------------------------------------------------------------- #
+
+
+class TestSlabChunkShape(unittest.TestCase):
+    """Slab variables must not be chunked across the whole decomposed axis.
+
+    ``nesting_read.f90`` reads one rank's contiguous slice of the decomposed
+    slab dimension per call. netCDF-4's own default chunking approaches a ~4 MB
+    target, and since ``nz * nzone * 8`` is only a few KB per index of that
+    dimension the default came out spanning ALL of it -- measured as
+    ``[1, 512, 64, 13]`` on a 512-wide slab. Every rank then has to pull a
+    chunk covering all 512 columns to obtain its own 8, and every rank pulls
+    the same chunks. Design section 6.3 names this failure mode, and V7
+    measured 46-49 % of child runtime in the read path.
+
+    These pin the shape, not a timing: the end-to-end saving has to be measured
+    by a production child run (the solver's own ``read time`` diagnostic).
+    """
+
+    def test_the_decomposed_axis_is_chunked_well_below_its_length(self):
+        chunk = slab_chunksizes(512, 64, 13)
+        self.assertEqual(chunk[0], 1, "one time level per chunk")
+        self.assertLess(chunk[1], 512 // 8,
+                        f"chunk {chunk} still spans much of the decomposed axis")
+        self.assertEqual(chunk[2:], (64, 13), "z and zone are small; keep them whole")
+
+    def test_the_chunk_is_a_sensible_size(self):
+        for span, nz, nzone in ((512, 64, 13), (512, 128, 13), (256, 64, 9)):
+            chunk = slab_chunksizes(span, nz, nzone)
+            nbytes = chunk[1] * nz * nzone * 8
+            self.assertLessEqual(nbytes, 2 * SLAB_CHUNK_TARGET_BYTES, (span, nz, chunk))
+            self.assertGreater(nbytes, 8 * 1024, (span, nz, chunk))
+
+    def test_it_never_exceeds_the_axis_length(self):
+        """A tiny slab must not ask for a chunk bigger than the variable."""
+        chunk = slab_chunksizes(4, 16, 13)
+        self.assertLessEqual(chunk[1], 4)
+        self.assertGreaterEqual(chunk[1], 1)
+
+    def test_a_caller_can_pin_it_to_a_rank_slice(self):
+        self.assertEqual(slab_chunksizes(512, 64, 13, span_chunk=8), (1, 8, 64, 13))
+        # and pinning is still clamped to the axis
+        self.assertEqual(slab_chunksizes(6, 64, 13, span_chunk=64)[1], 6)
+
+    def test_written_slabs_carry_the_shape(self):
+        """Through the real writer, not just the helper."""
+        data = random_nesting_data(seed=5)
+        with TemporaryDirectory() as tmp:
+            path = Path(tmp) / "nesting.inp.901.nc"
+            write_nesting_file(path, data)
+            with Dataset(path) as ds:
+                slabs = [n for n in ds.variables
+                         if n.startswith(("u_", "v_", "w_")) and "init" not in n]
+                self.assertTrue(slabs, "no slab variables written")
+                for name in slabs:
+                    v = ds.variables[name]
+                    chunk = v.chunking()
+                    self.assertNotEqual(chunk, "contiguous", name)
+                    self.assertEqual(chunk[0], 1, f"{name}: {chunk}")
+                    self.assertLessEqual(chunk[1], v.shape[1], f"{name}: {chunk}")
+
+
 # R4 -- linear prolongation on a two-cell parent axis (2026-09-07 review)
 # --------------------------------------------------------------------------- #
 
