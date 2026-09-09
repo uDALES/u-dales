@@ -99,6 +99,17 @@ case "$UDALES_SYSTEM" in
     hx1) job_modules='module load intel/2023a netCDF/4.9.2-iimpi-2023a netCDF-Fortran/4.6.1-iimpi-2023a FFTW/3.3.10-intel-compilers-2023.1.0' ;;
 esac
 
+## Optional PBS placement from config.sh, e.g. PLACE=excl to have the node to
+## yourself (nothing else scheduled on it; you still pay only for NCPU). The
+## same directive works on CX3 and HX1, both PBS Pro. Unset means the default,
+## and on the shared small/medium pools that is a shared node.
+pbs_directives="#PBS -l walltime=${WALLTIME}
+#PBS -l select=${NNODE}:ncpus=${NCPU}:mpiprocs=$(( $NCPU * $NNODE )):mem=${MEM}"
+if [ -n "${PLACE:-}" ]; then
+    pbs_directives="${pbs_directives}
+#PBS -l place=${PLACE}"
+fi
+
 ## set the output directory
 outdir=$DA_WORKDIR/$exp
 
@@ -107,8 +118,7 @@ echo "writing job.$exp."
 ## write new job.exp file for HPC
 cat <<EOF > job.$exp
 #!/bin/bash
-#PBS -l walltime=${WALLTIME}
-#PBS -l select=${NNODE}:ncpus=${NCPU}:mpiprocs=$(( $NCPU * $NNODE )):mem=${MEM}
+${pbs_directives}
 ${job_modules}
 EOF
 
