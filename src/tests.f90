@@ -3475,4 +3475,134 @@ contains
 
   end function tests_nesting_init
 
+  !> U50 -- the Fortran prolongation reproduces the Python specification.
+  !!
+  !! Reads every `prolong_*.fix` fixture in the run directory, each written by
+  !! `make_fixtures.py` from `udprep.nesting.conservative_interpolate`, and
+  !! requires this code to reproduce its output. The Python is the
+  !! specification (see nesting_prolong.f90's header): the point of the check
+  !! is that moving the spatial interpolation into the solver -- which is what
+  !! lets the file carry raw parent-grid bands instead of child-grid slabs,
+  !! 16x smaller at r = 2 and 128x at r = 4 -- cannot silently change the
+  !! numerics. Agreement is required to round-off; it is in fact bit exact for
+  !! every fixture, across both reconstructions, all three components,
+  !! refinement ratios 2 and 3, uniform and stretched vertical grids, and with
+  !! and without a parent solid mask.
+  logical function tests_nesting_prolong()
+    use nesting_prolong, only : prolong_axis_map, build_tangential_map,        &
+                                build_normal_map, prolong_band, prolong_free
+    use modmpi, only : myid
+    implicit none
+    integer, parameter :: MAXFIX = 64
+    character(len=256) :: names(MAXFIX), line
+    integer :: nfix, i, u, ios, scheme, imask, isface(3), np(3), nc(3), ierr, nbad
+    real, allocatable :: xh(:), yh(:), zh(:), xf(:), yf(:), zf(:)
+    real, allocatable :: tx(:), ty(:), tz(:), f(:,:,:), ref(:,:,:), out(:,:,:)
+    logical, allocatable :: mask(:,:,:)
+    integer, allocatable :: mi(:)
+    type(prolong_axis_map) :: mx, my, mz
+    real :: emax, tol
+
+    tests_nesting_prolong = .true.
+    nbad = 0
+
+    ! The fixture list is a file so that the set is the writer's business, not
+    ! this routine's; an empty or missing list is a FAILURE, not a pass -- a
+    ! test that silently checks nothing is worse than no test.
+    open(newunit=u, file='prolong_fixtures.txt', status='old', action='read', iostat=ios)
+    if (ios /= 0) then
+      if (myid == 0) write(*,'(a)') ' U50 FAIL: prolong_fixtures.txt not found;'// &
+        ' run make_fixtures.py in this directory first'
+      tests_nesting_prolong = .false.
+      return
+    end if
+    nfix = 0
+    do
+      read(u, '(a)', iostat=ios) line
+      if (ios /= 0) exit
+      if (len_trim(line) == 0) cycle
+      nfix = nfix + 1
+      if (nfix > MAXFIX) exit
+      names(nfix) = adjustl(trim(line))
+    end do
+    close(u)
+    if (nfix == 0) then
+      if (myid == 0) write(*,'(a)') ' U50 FAIL: no fixtures listed'
+      tests_nesting_prolong = .false.
+      return
+    end if
+
+    do i = 1, nfix
+      open(newunit=u, file=trim(names(i)), status='old', action='read', iostat=ios)
+      if (ios /= 0) then
+        if (myid == 0) write(*,'(a,a)') ' U50 FAIL: cannot open ', trim(names(i))
+        nbad = nbad + 1
+        cycle
+      end if
+      read(u,*) scheme, imask
+      read(u,*) isface
+      read(u,*) np
+      read(u,*) nc
+      call prolong_rd(u, xh); call prolong_rd(u, yh); call prolong_rd(u, zh)
+      call prolong_rd(u, xf); call prolong_rd(u, yf); call prolong_rd(u, zf)
+      call prolong_rd(u, tx); call prolong_rd(u, ty); call prolong_rd(u, tz)
+      allocate(f(np(1),np(2),np(3)), ref(nc(1),nc(2),nc(3)), out(nc(1),nc(2),nc(3)))
+      allocate(mask(np(1),np(2),np(3)), mi(np(1)*np(2)*np(3)))
+      read(u,*) f
+      read(u,*) mi
+      mask = reshape(mi == 1, shape(mask))
+      read(u,*) ref
+      close(u)
+
+      if (isface(1) == 1) then
+        call build_normal_map(xh, tx, mx, ierr)
+      else
+        call build_tangential_map(xh, xf, tx, mx, ierr)
+      end if
+      if (isface(2) == 1) then
+        call build_normal_map(yh, ty, my, ierr)
+      else
+        call build_tangential_map(yh, yf, ty, my, ierr)
+      end if
+      if (isface(3) == 1) then
+        call build_normal_map(zh, tz, mz, ierr)
+      else
+        call build_tangential_map(zh, zf, tz, mz, ierr)
+      end if
+
+      call prolong_band(f, mx, my, mz, xf, yf, zf, scheme, mask, imask == 1, out, ierr)
+      if (ierr /= 0) then
+        if (myid == 0) write(*,'(a,a,a,i0)') ' U50 FAIL ', trim(names(i)), &
+          ': prolong_band ierr = ', ierr
+        nbad = nbad + 1
+      else
+        emax = maxval(abs(out - ref))
+        tol = 1.e-11*max(maxval(abs(ref)), 1.)
+        if (emax > tol) then
+          if (myid == 0) write(*,'(a,a,a,es12.5,a,es12.5)') ' U50 FAIL ', &
+            trim(names(i)), ': max error ', emax, ' exceeds ', tol
+          nbad = nbad + 1
+        else if (myid == 0) then
+          write(*,'(a,a,a,es12.5)') ' U50 ', trim(names(i)), ' max error ', emax
+        end if
+      end if
+
+      call prolong_free(mx); call prolong_free(my); call prolong_free(mz)
+      deallocate(f, ref, out, mask, mi, xh, yh, zh, xf, yf, zf, tx, ty, tz)
+    end do
+
+    if (myid == 0) write(*,'(a,i0,a,i0,a)') ' U50 prolongation vs the Python'// &
+      ' specification: ', nfix - nbad, ' of ', nfix, ' fixtures reproduced'
+    if (nbad > 0) tests_nesting_prolong = .false.
+  end function tests_nesting_prolong
+
+  subroutine prolong_rd(unit, a)
+    integer, intent(in) :: unit
+    real, allocatable, intent(out) :: a(:)
+    integer :: n
+    read(unit,*) n
+    allocate(a(n))
+    read(unit,*) a
+  end subroutine prolong_rd
+
 end module tests

@@ -45,8 +45,44 @@ WINDOW_SILL = 0.062
 CENTRE_X = 0.600
 CENTRE_Y = 0.900
 
-#: The published wall thickness, forced by the 3.34 mm grid.
+#: The published wall thickness, forced by the grid (GMD section 4.2).
 PAPER_WALL = 0.020
+
+#: The paper's own admissibility rule, quoted: "the wall thickness cannot be
+#: specified independently of the grid resolution when using an IBM. At least
+#: three grid points must be present inside the solid domain, which translates
+#: to a wall thickness of 0.02 m."  So a wall is only representable if it spans
+#: at least this many cells on the grid that will carry it.
+MIN_SOLID_POINTS = 3
+
+
+class WallTooThin(ValueError):
+    """A wall that the target grid cannot represent (< MIN_SOLID_POINTS cells)."""
+
+
+def min_wall(dx: float, dy: float, points: int = MIN_SOLID_POINTS) -> float:
+    """Thinnest admissible wall on a grid with spacing ``dx``, ``dy`` [m].
+
+    Both horizontal directions carry a wall, so the binding spacing is the
+    coarser of the two.
+    """
+    return points * max(float(dx), float(dy))
+
+
+def check_wall(t: float, dx: float, dy: float, points: int = MIN_SOLID_POINTS) -> float:
+    """Return ``t`` if the grid can represent it, else raise :class:`WallTooThin`.
+
+    This is the constraint that decides how thin a refined child may go: it is
+    a property of the CHILD's grid, not of the physical building, and it is why
+    the published case carries a 20 mm wall it does not physically want.
+    """
+    need = min_wall(dx, dy, points)
+    if float(t) < need - 1e-12:
+        raise WallTooThin(
+            f"wall {float(t)*1e3:.2f} mm spans {float(t)/max(dx, dy):.1f} cells on a "
+            f"{max(dx, dy)*1e3:.3f} mm grid; the IBM needs at least {points} "
+            f"({need*1e3:.2f} mm). Refine the child or thicken the wall.")
+    return float(t)
 
 Box = Tuple[float, float, float, float, float, float]
 

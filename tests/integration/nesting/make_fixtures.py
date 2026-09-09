@@ -195,6 +195,10 @@ def _poison(src: Path, dst: Path) -> None:
 def write_all(outdir: Path) -> None:
     outdir.mkdir(parents=True, exist_ok=True)
 
+    # U50: the prolongation reference, written first so the list file exists
+    # even if a later fixture fails.
+    write_prolong_fixtures(outdir)
+
     analytic = outdir / f"nesting_analytic.{EXPNR}.nc"
     write_nesting_file(analytic, _data(TIMES), override=True)
 
@@ -284,3 +288,85 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
+
+# --------------------------------------------------------------------------- #
+# U50 -- prolongation reference fixtures
+# --------------------------------------------------------------------------- #
+
+
+def _mid(a):
+    return 0.5 * (a[:-1] + a[1:])
+
+
+def write_prolong_fixtures(outdir: Path) -> list:
+    """Reference output of ``conservative_interpolate`` for runmode 1012.
+
+    The Python is the specification for ``src/nesting_prolong.f90``; these
+    fixtures are how the Fortran port is held to it.  Coverage is deliberately
+    the full cross product of the things that change the numerics: all three
+    components (which axis is the face-normal one), refinement 2 and 3,
+    a uniform and a stretched vertical grid (the maps must not assume uniform
+    spacing), both reconstructions, and with/without a parent solid mask (the
+    mask only affects the linear slopes, so it is not crossed with constant).
+    """
+    from udprep.nesting import (COMPONENTS, NestGrid, conservative_interpolate,
+                                stagger_masks_from_ibm, _IS_FACE)
+    import itertools
+
+    def stretched(n, total, beta=1.6):
+        s = np.linspace(0.0, 1.0, n + 1)
+        e = total * (np.tanh(beta * (s - 1.0)) / np.tanh(beta) + 1.0)
+        return e - e[0]
+
+    written = []
+    for comp, r, sz, mk, sc in itertools.product(
+            COMPONENTS, (2, 3), (False, True), (False, True),
+            ("constant", "linear")):
+        if mk and sc == "constant":
+            continue
+        npx, npy, npz = 6, 5, 4
+        xh = np.linspace(0.0, 6.0, npx + 1)
+        yh = np.linspace(0.0, 5.0, npy + 1)
+        zh = stretched(npz, 4.0) if sz else np.linspace(0.0, 4.0, npz + 1)
+        parent = NestGrid(xh=xh, yh=yh, zh=zh,
+                          xf=_mid(xh), yf=_mid(yh), zf=_mid(zh))
+        cxh = np.linspace(xh[1], xh[npx - 1], (npx - 2) * r + 1)
+        cyh = np.linspace(yh[1], yh[npy - 1], (npy - 2) * r + 1)
+        czh = np.interp(np.linspace(1, npz - 1, (npz - 2) * r + 1),
+                        np.arange(npz + 1), zh)
+        child = NestGrid(xh=cxh, yh=cyh, zh=czh,
+                         xf=_mid(cxh), yf=_mid(cyh), zf=_mid(czh))
+        rng = np.random.default_rng(3)
+        field = rng.standard_normal(parent.component_shape(comp))
+        mask = None
+        if mk:
+            fluid = rng.random((npx, npy, npz)) > 0.25
+            mask = stagger_masks_from_ibm(fluid)[comp]
+        tgt = [child.component_coords(comp, ax) for ax in range(3)]
+        ref = conservative_interpolate(parent, field, comp, *tgt,
+                                       prolongation=sc, parent_mask=mask)
+        name = (f"prolong_{comp}_r{r}_{'str' if sz else 'uni'}_"
+                f"{'mask' if mk else 'nomask'}_{sc}.fix")
+        path = outdir / name
+        # numpy 2 prints scalars as "np.float64(x)", which Fortran
+        # list-directed input cannot read; %.17g round-trips a double.
+        fmt = lambda v: "%.17g" % float(v)
+        with path.open("w", encoding="ascii") as fh:
+            wr = lambda *a: fh.write(" ".join(str(x) for x in a) + "\n")
+            wr(1 if sc == "constant" else 2, 1 if mk else 0)
+            wr(*[1 if _IS_FACE[comp][ax] else 0 for ax in range(3)])
+            wr(*field.shape)
+            wr(*ref.shape)
+            for arr in (parent.xh, parent.yh, parent.zh,
+                        parent.xf, parent.yf, parent.zf, *tgt):
+                wr(len(arr))
+                wr(*[fmt(v) for v in arr])
+            wr(*[fmt(v) for v in field.ravel(order="F")])
+            flat = (mask if mask is not None
+                    else np.ones(field.shape, bool)).ravel(order="F")
+            wr(*[(1 if v else 0) for v in flat])
+            wr(*[fmt(v) for v in ref.ravel(order="F")])
+        written.append(name)
+    (outdir / "prolong_fixtures.txt").write_text(
+        "\n".join(written) + "\n", encoding="ascii")
+    return written

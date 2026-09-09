@@ -73,6 +73,7 @@ RUNMODES = {
     1009: "flux (U23-U28, U35-U39, U48)",
     1010: "update (U29-U34, U45, U49)",
     1011: "cold-start init from the parent (U40-U43)",
+    1012: "prolongation vs the Python specification (U50)",
 }
 
 #: Cases that must abort. Each entry is
@@ -323,6 +324,14 @@ class NestingUnitRunmodes(unittest.TestCase):
 
     def test_runmode_1010_update(self) -> None:
         self._assert_runmode(1010, "serial", 1, 1)
+
+    def test_runmode_1012_prolong(self) -> None:
+        """The in-solver prolongation must reproduce udprep.nesting exactly.
+
+        Serial only: it is pure numerics on fixtures, with no decomposition to
+        get wrong, so running it on four layouts would only cost time.
+        """
+        self._assert_runmode(1012, "serial", 1, 1)
 
     def test_runmode_1011_init(self) -> None:
         self._assert_runmode(1011, "serial", 1, 1)
