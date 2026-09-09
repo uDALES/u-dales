@@ -86,9 +86,34 @@ cat <<EOF > job.$exp
 #PBS -l walltime=${WALLTIME}
 #PBS -l select=${NNODE}:ncpus=${NCPU}:mpiprocs=$(( $NCPU * $NNODE )):mem=${MEM}
 module load intel/2025a netCDF/4.9.2-iimpi-2023a netCDF-Fortran/4.6.1-iimpi-2023a FFTW/3.3.9-intel-2021a CMake/3.29.3-GCCcore-13.3.0 git/2.45.1-GCCcore-13.3.0
+EOF
+
+## Report how long this job waited in the queue, from PBS's own timestamps.
+## Quoted heredoc: nothing below is expanded at submit time.
+cat <<'EOF' >> job.$exp
+queue_wait_line() {
+    local info qt st w
+    if [ -n "${PBS_JOBID:-}" ] && command -v qstat >/dev/null 2>&1; then
+        info=$(qstat -f "$PBS_JOBID" 2>/dev/null)
+        qt=$(printf '%s\n' "$info" | awk -F' = ' '/^[[:space:]]*qtime = /{print $2}')
+        st=$(printf '%s\n' "$info" | awk -F' = ' '/^[[:space:]]*stime = /{print $2}')
+        if [ -n "$qt" ] && [ -n "$st" ]; then
+            w=$(( $(date -d "$st" +%s) - $(date -d "$qt" +%s) ))
+            printf 'PBS job %s on %s: queued %s, started %s, queue wait %dm %02ds\n' \
+                "$PBS_JOBID" "$(hostname -s)" "$qt" "$st" $((w / 60)) $((w % 60))
+            return
+        fi
+    fi
+    echo "PBS queue wait: unknown (not under PBS, or qstat unavailable)"
+}
+EOF
+
+## The queue-wait line goes into output.exp.log ahead of this run's solver output.
+cat <<EOF >> job.$exp
 mkdir -p $outdir
 cp -r $inputdir/* $outdir
 pushd $outdir
+queue_wait_line >> $outdir/output.$exp.log
 mpirun -v6 -n $(( $NCPU * $NNODE )) $DA_BUILD $outdir/namoptions.$exp >> $outdir/output.$exp.log 2>&1
 EOF
 
