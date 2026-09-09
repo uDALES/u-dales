@@ -3522,7 +3522,13 @@ contains
       if (ios /= 0) exit
       if (len_trim(line) == 0) cycle
       nfix = nfix + 1
-      if (nfix > MAXFIX) exit
+      if (nfix > MAXFIX) then
+        if (myid == 0) write(*,'(a,i0,a)') ' U50 FAIL: more than ', MAXFIX, &
+          ' fixtures listed in prolong_fixtures.txt'
+        close(u)
+        tests_nesting_prolong = .false.
+        return
+      end if
       names(nfix) = adjustl(trim(line))
     end do
     close(u)
