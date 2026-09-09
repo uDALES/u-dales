@@ -82,7 +82,7 @@ cat <<EOF > job.$exp.slurm
 #SBATCH --qos=${QOS}
 module load epcc-job-env
 export OMP_NUM_THREADS=1
-srun --distribution=block:block --hint=nomultithread ./u-dales $outdir/namoptions.$exp > $outdir/output.$exp 2>&1
+srun --distribution=block:block --hint=nomultithread ./u-dales $outdir/namoptions.$exp >> $outdir/output.$exp.log 2>&1
 EOF
 
 ## submit job.exp file to queue

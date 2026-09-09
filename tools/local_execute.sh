@@ -73,11 +73,14 @@ cp -r ./* $outdir
 pushd $outdir
 
 ## execute program with mpi
-mpiexec -n $NCPU --oversubscribe $DA_BUILD namoptions.$exp 2>&1 | tee -a output.$exp
+mpiexec -n $NCPU --oversubscribe $DA_BUILD namoptions.$exp 2>&1 | tee -a output.$exp.log
 
 ## Merge output files across outputs.
-echo "Merging outputs across cores into one..."
-$DA_TOOLSDIR/gather_outputs.sh $outdir
+gather_start=$(date +%s.%N)
+echo "Merging outputs across cores into one..." | tee -a output.$exp.log
+$DA_TOOLSDIR/gather_outputs.sh $outdir 2>&1 | tee -a output.$exp.log
+gather_end=$(date +%s.%N)
+echo "Wall time for phase [gather outputs] : $(echo "$gather_end $gather_start" | awk '{printf "%.6f", $1 - $2}') seconds" | tee -a output.$exp.log
 
 popd
 
