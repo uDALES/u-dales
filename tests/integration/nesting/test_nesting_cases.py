@@ -325,8 +325,17 @@ class _I1Base(_NestingCase):
         gfortran's runtime diagnostics ("At line N of file /abs/path/x.f90")
         embed the source path, and the baseline is compiled from a different
         tree by construction, so the path is reduced to the file name.
+
+        The match is case-INSENSITIVE, which is load-bearing: the pattern used
+        to spell the timing filter "wall|WALL" and so missed `program.f90`'s
+        "Wall time for phase [...] : N seconds", leaving two wall-clock
+        readings to be compared for equality. Nothing about this test can
+        survive that, and it is not hypothetical -- it took the whole PR's CI
+        red the moment master added that line, on a docs-only commit. Any new
+        volatile line needs adding here, in whatever case it is written.
         """
-        drop = re.compile(r"Time of Day|CPU time|Elapsed|wall|WALL|unit =|^\s*$")
+        drop = re.compile(r"Time of Day|CPU time|Elapsed|wall|unit =|^\s*$",
+                          re.IGNORECASE)
         path = re.compile(r"(At line \d+ of file )\S*/")
         return [path.sub(r"\1", ln.rstrip()) for ln in text.splitlines() if not drop.search(ln)]
 
@@ -494,6 +503,54 @@ class TestI1NoOpSmallCase(_I1Base):
         self.assertLessEqual(
             against, max(3.0 * reference, 2.0),
             "divmax/divtot moved further than the baseline's own run-to-run spread")
+
+
+
+class TestVolatileStdoutFilter(unittest.TestCase):
+    """`_filtered_stdout` must drop every line that varies run to run.
+
+    No solver, no MPI -- it exercises the filter directly. The I1 stdout
+    comparison asserts byte equality line by line, so one volatile line
+    reaching it turns the whole no-op guarantee red at random. That is not a
+    hypothetical: `program.f90` gained "Wall time for phase [...]" on master
+    while the filter spelled its timing pattern "wall|WALL", and the next CI
+    run on this PR failed on a docs-only commit.
+    """
+
+    VOLATILE = (
+        "Wall time for phase [After initialization] :     0.015782 seconds",
+        "wall time 1.0",
+        "WALL TIME 1.0",
+        " Time of Day: 011829.392    Time of Simulation:  16.4  dt: 0.4",
+        "CPU time = 1.5",
+        "Elapsed time by IBM fortran routine:      0.477 seconds.",
+        "  ",
+    )
+
+    #: Real solver output that carries physics and must survive the filter.
+    MEANINGFUL = (
+        "divmax, divtot =   1.00E-09 2.00E-09",
+        " modnesting: Phi (norm) = 1.5000E-10  (largest |Phi| since the previous report)",
+        " modnesting: zone misfit rms [m/s] = 3.0000E-05",
+        " Determined solid points for c-grid.",
+        " Total area missing flux:    0.00000000      m^2",
+    )
+
+    def test_every_volatile_line_is_dropped(self):
+        kept = _I1Base._filtered_stdout("\n".join(self.VOLATILE))
+        self.assertEqual(kept, [], f"these should have been dropped: {kept}")
+
+    def test_meaningful_lines_survive(self):
+        kept = _I1Base._filtered_stdout("\n".join(self.MEANINGFUL))
+        self.assertEqual(len(kept), len(self.MEANINGFUL),
+                         "the filter is eating real solver output")
+
+    def test_the_filter_is_case_insensitive(self):
+        """The specific gap that took CI red, pinned in both directions."""
+        for case in ("Wall time for phase [x] : 1.0 seconds",
+                     "wall time for phase [x] : 1.0 seconds",
+                     "WALL TIME FOR PHASE [x] : 1.0 SECONDS"):
+            self.assertEqual(_I1Base._filtered_stdout(case), [], case)
 
 
 class TestI1NoOpExistingCase(_I1Base):
