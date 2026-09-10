@@ -1118,10 +1118,12 @@ module modstartup
          storeu0inletbc, storev0inletbc, storew0inletbc, nstepread, nfile, Tinl, &
          Trec, tminletbc, t0inletbcold, t0inletbc, storet0inletbc, utaui, ttaui
       use modinlet, only:readinletfile
-      use moddriver, only: readdriverfile,initdriver,drivergen,readdriverfile_chunk
+      use moddriver, only: readdriverfile,initdriver,drivergen,readdriverfile_chunk,driver_records_written
+      use modinletdata, only: nstepreaddriver
       use decomp_2d, only : exchange_halo_z, update_halo
 
       integer i, j, k, n
+      integer :: nrecdriver  !< driver records already on disk when a writer is warm started
 
       real, allocatable :: height(:), th0av(:)
       real, dimension(ib - ih:ie + ih, jb - jh:je + jh, kb:ke + kh) :: thv0
@@ -1659,11 +1661,19 @@ module modstartup
                if (runtime < tdriverstart) then
                   if (myid==0) write(*,*) 'Warning! No driver files will be written as runtime < tdriverstart.'
                else
-                  trestart = (tdriverstart + (driverstore-1)*dtdriver)
+                  ! A restart at the record end is forced only when the namelist asks for
+                  ! none earlier: a shorter trestart is kept, because periodic restarts are
+                  ! what let a record longer than one job be written in several (the
+                  ! writer resumes its record on warm start, see readinitfiles).
+                  if (trestart > (tdriverstart + (driverstore-1)*dtdriver)) then
+                     trestart = (tdriverstart + (driverstore-1)*dtdriver)
+                     if (myid==0) then
+                        write(*,'(A,F15.5)') 'Warning! for driver simulation, trestart gets set as &
+                                              &(tdriverstart + (driverstore-1)*dtdriver), ignoring the &
+                                              &trestart mentioned in namoptions. Hence, trestart = ', trestart
+                     end if
+                  end if
                   if (myid==0) then
-                     write(*,'(A,F15.5)') 'Warning! for driver simulation, trestart gets set as &
-                                           (tdriverstart + (driverstore-1)*dtdriver), ignoring the &
-                                           trestart mentioned in namoptions. Hence, trestart = ',(tdriverstart + (driverstore-1)*dtdriver)
                      if (runtime >= tdriverstart .and. runtime+1e-10 < (tdriverstart + (driverstore-1)*dtdriver)) then
                         write(*,*) 'Warning! Driver files cannot be written upto ', driverstore, ' steps. &
                                     &Consider taking runtime >= (tdriverstart + (driverstore-1)*dtdriver).'
@@ -1860,31 +1870,59 @@ module modstartup
               !if(myid==0) then
               !  write(*,*) 'driverstore: ', driverstore
               !end if
+               nrecdriver = 0
                if (timee>=tdriverstart) then
 
                   tdriverstart_cold = tdriverstart
+                  nrecdriver = driver_records_written()
+
+                  if (nrecdriver > 0) then
+                  ! This experiment already started its record before the restart
+                  ! (the tdriver_ file of rank column 0 holds nrecdriver records), so
+                  ! CONTINUE it: keep the cold clock, resume the record index and the
+                  ! nominal dump time.  Before this, a warm-started writer began again
+                  ! at record 1 and overwrote the start of the record, which made a
+                  ! record longer than one job impossible.
+                     nstepreaddriver = nrecdriver
+                     tdriverdump = tdriverstart_cold + nrecdriver*dtdriver
+                     if (trestart > (tdriverstart_cold + (driverstore-1)*dtdriver) - btime) then
+                        trestart = (tdriverstart_cold + (driverstore-1)*dtdriver) - btime
+                     end if
+                     if (myid==0) then
+                        write(*,'(A,I8,A,F15.5)') 'Driver record continued: ', nrecdriver, &
+                           ' records already written, next nominal dump time ', tdriverdump
+                        if (btime + runtime + 1e-10 < tdriverstart_cold + (driverstore-1)*dtdriver) then
+                           write(*,'(A,F15.5,A)') 'Note: this job ends before the record does (', &
+                              tdriverstart_cold + (driverstore-1)*dtdriver, ' s); continue it from a restart.'
+                        end if
+                     end if
+
+                  else
+
                   tdriverstart = timee
-                  trestart = (driverstore-1)*dtdriver
+                  if (trestart > (driverstore-1)*dtdriver) trestart = (driverstore-1)*dtdriver
 
                   if (myid==0) then
                      write(*,'(A,F15.5)') "Warning! during warmstart of driver simulat ion, tdriverstart &
                                            &gets overwritten by the time instant of initd restartfile, ignoring the &
                                            &tdriverstart mentioned in namoptions. Hence, tdriverstart = ",timee
-                     write(*,'(A,F15.5)') 'Warning! for this driver simulation, trestart gets set as &
-                                           (driverstore-1)*dtdriver, ignoring the trestart mentioned &
-                                           in namoptions. Hence, trestart = ',(driverstore-1)*dtdriver
+                     write(*,'(A,F15.5)') 'Warning! for this driver simulation, trestart is at most &
+                                           &(driverstore-1)*dtdriver. Hence, trestart = ',trestart
                      if ( runtime < (driverstore-1)*dtdriver ) then
                         write(*,*) 'Warning! Driver files cannot be written upto ', driverstore, ' steps. &
                                     &Consider taking runtime >= (driverstore-1)*dtdriver).'
                      end if
                   end if
 
+                  end if ! nrecdriver > 0
+
                else ! if (timee<tdriverstart)
-                  trestart = (tdriverstart + (driverstore-1)*dtdriver) - btime
+                  if (trestart > (tdriverstart + (driverstore-1)*dtdriver) - btime) then
+                     trestart = (tdriverstart + (driverstore-1)*dtdriver) - btime
+                  end if
                   if (myid==0) then
-                     write(*,'(A,F15.5)') 'Warning! for this driver simulation, trestart gets set as &
-                                           (tdriverstart + (driverstore-1)*dtdriver - btime), ignoring the &
-                                           trestart mentioned in namoptions. Hence, trestart = ',(tdriverstart + (driverstore-1)*dtdriver) - btime
+                     write(*,'(A,F15.5)') 'Warning! for this driver simulation, trestart is at most &
+                                           &(tdriverstart + (driverstore-1)*dtdriver - btime). Hence, trestart = ',trestart
                      if ( (timee + runtime) < (tdriverstart + (driverstore-1)*dtdriver) ) then
                         write(*,*) 'Warning! Driver files cannot be written upto ', driverstore, ' steps. &
                                     &Consider taking runtime + ',timee,' >= (tdriverstart + (driverstore-1)*dtdriver).'
@@ -1893,7 +1931,7 @@ module modstartup
                end if
 
               call drivergen
-              tdriverdump = tdriverstart
+              if (nrecdriver == 0) tdriverdump = tdriverstart
             endif
 
             !ILS13 reintroduced thv

@@ -315,6 +315,25 @@ groups:
           - "{tests_dir}/integration/nesting/test_nesting_cases.py"
           - "TestI5CubeParity2x2"
 
+      # Not a nesting feature: it lives alongside the nesting suites because it
+      # shares their launch harness (tests/integration/nesting/_launch.py) and
+      # because idriver was touched preparing the nesting branch's GMD 2024
+      # indoor-outdoor precursor. Regression for a warm-started driver writer
+      # continuing its inflow-plane record instead of overwriting it from
+      # record 1 (src/moddriver.f90, src/modstartup.f90). Three solver runs on
+      # 1x1 and 1x2 ranks each, all on a tiny 32x32x32 grid -- a few seconds.
+      - label: "driver: warm-started writer continues its record (1x1, 1x2)"
+        class: supported
+        kind: integration
+        component: driver
+        platform: linux
+        cost: fast
+        env_UDALES_BUILD: "{repo_root}/build/{build_type_lower}/u-dales"
+        env_UDALES_REQUIRE_LAUNCHER: "1"
+        command:
+          - "{python}"
+          - "{tests_dir}/integration/driver_restart/test_driver_restart.py"
+
   nesting:
     includes:
       - nesting-unit

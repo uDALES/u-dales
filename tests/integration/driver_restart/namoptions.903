@@ -1,0 +1,95 @@
+! Template for tests/integration/driver_restart/test_driver_restart.py.
+!
+! Grid, DOMAIN and DYNAMICS are based on tests/integration/nesting/namoptions.1012,
+! but runmode here is RUN_COLDSTART (1), not TEST_NESTING_PROLONG (1012): that
+! nesting runmode dispatches straight into an in-solver unit test and returns
+! before the time loop ever runs (see execute_runmode_actions in
+! src/program.f90), whereas this test needs a real, fixed-timestep
+! time-marching run that writes and restarts a driver record.
+!
+! No &NESTING block and no nesting BCs: BCxm/BCym are left at their periodic
+! defaults (BCxm_periodic = 1, BCym_periodic = 1, see src/modglobal.f90).
+! libm = .false. (no IBM) and ladaptive = .false. (fixed dt = dtmax), so that
+! restart parity is bitwise, as required for the byte-identity assertions in
+! test_driver_restart.py.
+!
+! BCbotm/BCtopm are set to freeslip (1) rather than left at the BCbotm
+! default (BCbotm_wf = 2, wall function), and iwallmom = 1 (no wall function)
+! rather than its default 2 (Werner-Wengle): with ltempeq = .false. (this
+! case does not solve temperature), checkinitvalues in src/modstartup.f90
+! forces the *neutral* wall function (iwallmom==2 .and. .not. ltempeq) no
+! matter what BCbotm says, and a wall function needs a physically valid
+! surface thls/qts, which this bare-bones case does not set (they stay at
+! modsurfdata's placeholder default of -1 K / -1 kg/kg) -- that drove
+! modthermodynamics::fromztop into a divide-by-zero at cold start. Matches
+! tests/integration/nesting/namoptions.902's explicit BCbotm/BCtopm = 1.
+!
+! lrandomize defaults to .true. (src/modglobal.f90), so the cold start gets a
+! small, deterministic (seeded by irandom), decomposition-independent velocity
+! perturbation -- see randomize_field in src/modstartup.f90. That gives the
+! driver-written planes actual, non-zero content instead of a trivial all-zero
+! field, without needing an extra namelist block here.
+!
+! ktot = 32, not the 16 of tests/integration/nesting/namoptions.1012: the
+! idriver == 1 monitor-file diagnostic in src/modtstep.f90 (around "elseif
+! (idriver == 1)") hardcodes u0(irecydriver,1,32), so any grid with ktot < 32
+! trips an out-of-bounds read of u0 under a bounds-checked (debug) build --
+! a pre-existing latent bug in modtstep.f90, outside this fix's scope
+! (modstartup.f90/moddriver.f90), worked around here by sizing the grid
+! around it rather than fixed.
+!
+! test_driver_restart.py rewrites runtime, trestart, lwarmstart, startfile,
+! nprocx and nprocy per run; every key it may rewrite must therefore stay
+! present here even at a placeholder value (same convention as
+! tests/integration/nesting/make_case_fixtures.py).
+
+&RUN
+iexpnr       = 903
+runmode      = 1
+runtime      = 1.
+trestart     = 1.e9
+dtmax        = 0.05
+ladaptive    = .false.
+libm         = .false.
+lwarmstart   = .false.
+startfile    = 'initd00000000_000_000.903'
+nprocx       = 1
+nprocy       = 1
+/
+
+&DOMAIN
+itot         = 32
+jtot         = 32
+ktot         = 32
+xlen         = 32.
+ylen         = 32.
+/
+
+&BC
+BCbotm       = 1
+BCtopm       = 1
+thls         = 288.
+qts          = 0.
+z0           = 0.05
+z0h          = 0.05
+/
+
+&WALLS
+iwallmom     = 1
+/
+
+&DYNAMICS
+ipoiss       = 0
+/
+
+&DRIVER
+idriver      = 1
+tdriverstart = 0.25
+dtdriver     = 0.05
+driverstore  = 40
+iplane       = 16
+/
+
+&INPS
+zsize        = 32.
+/
