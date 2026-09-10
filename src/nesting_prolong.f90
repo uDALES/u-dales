@@ -165,9 +165,8 @@ contains
       real,    intent(in)  :: f(:,:,:), centres(:)
       logical, intent(in)  :: mask(:,:,:), lmask
       real,    intent(out) :: s(:,:,:)
-      integer :: n, i, j, k
+      integer :: n, i, j, k, il, ir
       logical :: left, right
-      real    :: bwd, fwd
 
       n = size(f, 1)
       s = 0.
@@ -175,29 +174,25 @@ contains
       do k = 1, size(f, 3)
          do j = 1, size(f, 2)
             do i = 1, n
-               ! the one-sided differences available at i
-               if (i > 1) then
-                  bwd = (f(i,j,k) - f(i-1,j,k))/(centres(i) - centres(i-1))
-               else
-                  bwd = 0.
-               end if
-               if (i < n) then
-                  fwd = (f(i+1,j,k) - f(i,j,k))/(centres(i+1) - centres(i))
-               else
-                  fwd = 0.
-               end if
+               ! Neighbour indices clamped to the array: `il`/`ir` are only
+               ! dereferenced when `left`/`right` say the neighbour exists.
+               ! (Written this way, rather than f(i-1)/f(i+1) inside the guards,
+               ! because gfortran >= 13 flags the guarded literal subscripts with
+               ! -Wdo-subscript and the warning gate is zero-tolerance.)
+               il = max(i - 1, 1)
+               ir = min(i + 1, n)
                left  = (i > 1)
                right = (i < n)
                if (lmask) then
-                  if (left)  left  = mask(i-1,j,k)
-                  if (right) right = mask(i+1,j,k)
+                  if (left)  left  = mask(il,j,k)
+                  if (right) right = mask(ir,j,k)
                end if
                if (left .and. right) then
-                  s(i,j,k) = (f(i+1,j,k) - f(i-1,j,k))/(centres(i+1) - centres(i-1))
+                  s(i,j,k) = (f(ir,j,k) - f(il,j,k))/(centres(ir) - centres(il))
                else if (left) then
-                  s(i,j,k) = bwd
+                  s(i,j,k) = (f(i,j,k) - f(il,j,k))/(centres(i) - centres(il))
                else if (right) then
-                  s(i,j,k) = fwd
+                  s(i,j,k) = (f(ir,j,k) - f(i,j,k))/(centres(ir) - centres(i))
                else
                   s(i,j,k) = 0.
                end if
