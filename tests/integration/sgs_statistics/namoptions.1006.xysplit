@@ -1,0 +1,48 @@
+&RUN
+iexpnr       = 300
+runmode      = 1006
+runtime      = 10.
+trestart     = 10.
+dtmax        = 0.5
+ladaptive    = .true.
+libm         = .false.
+lles         = .true.
+nprocx       = 2
+nprocy       = 2
+/
+
+&OUTPUT
+lfielddump   = .false.
+ltdump       = .false.
+lxytdump     = .false.
+tstatstart   = 0.
+tstatsdump   = 10.
+tsample      = 1.
+/
+
+&DOMAIN
+itot         = 16
+jtot         = 16
+ktot         = 32
+xlen         = 16.
+ylen         = 16.
+/
+
+&PHYSICS
+ltempeq      = .true.
+lmoist       = .false.
+/
+
+&NAMSUBGRID
+lvreman      = .true.
+/
+
+&WALLS
+nfcts        = 0
+/
+
+&INPS
+zsize        = 32.
+u0           = 1.
+dpdx         = 0.
+/

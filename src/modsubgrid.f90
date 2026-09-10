@@ -39,6 +39,9 @@ module modsubgrid
   implicit none
   save
   public :: subgrid, initsubgrid, exitsubgrid, subgridnamelist
+  ! exposed so the in-solver SGS statistics test (tests.f90) can compare the
+  ! statistics' SGS fluxes against the tendencies the solver actually applies
+  public :: diffu, diffv, diffw, diffc
 
 contains
   subroutine initsubgrid
