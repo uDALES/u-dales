@@ -20,6 +20,7 @@ module tests
   implicit none
   save
   public :: tests_read_sparse_ijk, tests_2decomp_init_exit, tests_mpi_operators
+  public :: init_tests, exit_tests, tests_roundtrip
 
 contains
 
@@ -46,7 +47,7 @@ contains
   !> Returns .true. if all tests pass, .false. otherwise
   logical function tests_read_sparse_ijk()
     use modglobal,    only : runmode
-    use readinput, only : read_sparse_ijk
+    use readsparsefiles, only : read_sparse_ijk
     use modibm,       only : initibm
     use modibm,       only : solid_info_u, solid_info_v, solid_info_w, solid_info_c
     use modibm,       only : bound_info_u, bound_info_v, bound_info_w, bound_info_c
@@ -427,5 +428,73 @@ contains
     end function compare_real_2d_jk
 
   end function tests_mpi_operators
+
+  !> Prepare for the input round-trip test (TEST_ROUNDTRIP).  Unlike the other
+  !! test runmodes, this one is dispatched directly after initrunparams, so it
+  !! sets up its own decomposition and finalizes MPI itself in exit_tests.
+  subroutine init_tests
+    use mpi
+    use modmpi,     only : nprocx, nprocy
+    use modstartup, only : init2decomp
+    implicit none
+
+    integer :: ierr, myid
+
+    call MPI_COMM_RANK(MPI_COMM_WORLD, myid, ierr)
+
+    if (nprocx * nprocy > 32) then
+      if (myid == 0) then
+        write(*,*) 'ERROR: input round-trip test refuses to run with more than 32 MPI ranks.'
+        write(*,*) 'Requested nprocx*nprocy =', nprocx * nprocy
+      end if
+      call MPI_ABORT(MPI_COMM_WORLD, 1, ierr)
+    end if
+
+    call init2decomp
+
+  end subroutine init_tests
+
+  subroutine exit_tests
+    use mpi
+    implicit none
+
+    integer :: ierr
+
+    call decomp_2d_finalize
+    call MPI_FINALIZE(ierr)
+  end subroutine exit_tests
+
+  !> Input round-trip test: the last rank writes the interpreted namelist
+  !! state so it can be compared against the input namelists with f90nml.
+  subroutine tests_roundtrip
+    use mpi
+    use modmpi,         only : nprocx, nprocy
+    use readnamelists, only : writenamelists
+    implicit none
+
+    integer :: ierr, nprocs, myid, last_proc
+
+    call MPI_COMM_RANK(MPI_COMM_WORLD, myid, ierr)
+    call MPI_COMM_SIZE(MPI_COMM_WORLD, nprocs, ierr)
+    last_proc = nprocs - 1
+
+    if (myid == 0) then
+      write(*,*) '========================================='
+      write(*,*) 'INPUT ROUND-TRIP TEST'
+      write(*,*) '========================================='
+      write(*,*) 'Total processes:', nprocs
+      write(*,*) 'Requested nprocx*nprocy:', nprocx * nprocy
+      write(*,*) 'Last process ID:', last_proc
+      write(*,*) '========================================='
+    end if
+
+    call MPI_BARRIER(MPI_COMM_WORLD, ierr)
+
+    if (myid == last_proc) then
+      write(*,*) '  Last process (', myid, ') received ALL INPUT VALUES:'
+      call writenamelists
+    end if
+
+  end subroutine tests_roundtrip
 
 end module tests

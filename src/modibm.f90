@@ -250,7 +250,7 @@ module modibm
 
 
    subroutine initibmnorm(fname, solid_info)
-     use readinput, only : read_sparse_ijk
+     use readsparsefiles, only : read_sparse_ijk
 
      character(11), intent(in) :: fname
 
@@ -276,7 +276,7 @@ module modibm
      use modmpi,    only : myid, comm3d, MY_REAL, mpierr
      use initfac,   only : facnorm, facz0
      use decomp_2d, only : zstart, zend
-     use readinput, only : read_sparse_ijk
+     use readsparsefiles, only : read_sparse_ijk
 
      character(20), intent(in) :: fname_bnd, fname_sec
      type(bound_info_type) :: bound_info

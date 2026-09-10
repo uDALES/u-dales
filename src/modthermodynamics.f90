@@ -80,7 +80,7 @@ contains
     call avexy_ibm(thvh(kb:ke+kh),thv0h(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,kh,IIw(ib:ie,jb:je,kb:ke+kh),IIws(kb:ke+kh),.false.)
 
 !    if (libm) then
-!      call avexy_ibm(thvh(kb:ke),thv0h(ib:ie,jb:je,kb:ke),ib,ie,jb,je,kb,ke,IIw(ib:ie,jb:je,kb:ke),IIws(kb:ke))    
+!      call avexy_ibm(thvh(kb:ke),thv0h(ib:ie,jb:je,kb:ke),ib,ie,jb,je,kb,ke,kh,IIw(ib:ie,jb:je,kb:ke),IIws(kb:ke))    
 !    else
 !      call slabsum(thvh,kb,ke+kh,thv0h(:,:,kb:ke+kh),ib-ih,ie+ih,jb-jh,je+jh,kb,ke+kh,ib,ie,jb,je,kb,ke+kh)
 !     !redefine halflevel thv using calculated thv

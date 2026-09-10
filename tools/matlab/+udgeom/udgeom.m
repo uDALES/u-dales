@@ -455,7 +455,7 @@ classdef udgeom < handle
          %
          % Examples:
          %   obj.show_outline();     % Use precomputed outline
-         %   obj.show_outline(30);   % Recalculate with 30┬░ threshold
+         %   obj.show_outline(30);   % Recalculate with 30 degree threshold
 
          if isempty(obj.stl)
              warning('No STL geometry loaded. Load geometry first.');

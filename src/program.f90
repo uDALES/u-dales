@@ -27,8 +27,8 @@ program uDALES
   use mpi
   use modmpi,            only : initmpi,exitmpi,starttimer,myid
   use modglobal,         only : initglobal,rk3step,timeleft
-  use modglobal,         only : runmode,RUN_COLDSTART,RUN_WARMSTART,RUN_DRIVER,RUN_STRATSTART,TEST_SPARSE_IJK,TEST_2DCOMP_INIT_EXIT,TEST_MPI_OPERATORS
-  use modstartup,        only : readnamelists,init2decomp,checkinitvalues,readinitfiles,exitmodules
+  use modglobal,         only : runmode,RUN_COLDSTART,RUN_WARMSTART,RUN_DRIVER,RUN_STRATSTART,TEST_ROUNDTRIP,TEST_IO,TEST_SPARSE_IJK,TEST_2DCOMP_INIT_EXIT,TEST_MPI_OPERATORS
+  use modstartup,        only : initrunparams,init2decomp,checkinitvalues,readinitfiles,exitmodules
   use modfields,         only : initfields
   use modsave,           only : writerestartfiles
   use modboundary,       only : initboundary,boundary,grwdamp,halos
@@ -43,19 +43,25 @@ program uDALES
   use initfac,           only : readfacetfiles
   use modEB,             only : initEB,EB
   use moddriver,         only : initdriver
+  use modchecksim,       only : initchecksim,checksim
+  use modtimedep,        only : inittimedep,timedep
   use modadvection,      only : advection
   use modtstep,          only : tstep_update,tstep_integrate
   use modscalsource,     only : createscals,scalsource
 
-!----------------------------------------------------------------
-!     0.1     USE STATEMENTS FOR ADDONS STATISTICAL ROUTINES
-!----------------------------------------------------------------
-  use modchecksim,     only : initchecksim,checksim
-  use modstat_nc,      only : initstat_nc
-  use modfielddump,    only : initfielddump,fielddump,exitfielddump
-  use modstatsdump,    only : initstatsdump,statsdump,exitstatsdump    !tg3315
-  use modtimedep,      only : inittimedep,timedep
-  use tests,           only : tests_read_sparse_ijk,tests_2decomp_init_exit,tests_mpi_operators
+!------------------------------------------------------------------------------
+!     0.1     USE STATEMENTS FOR STATISTICAL AND INSTANTANEOUS OUTPUT ROUTINES
+!------------------------------------------------------------------------------
+  use modstatsdump,      only : initstatsdump,statsdump,exitstatsdump    !tg3315
+  use stats,             only : stats_init,stats_main,stats_exit
+  use instant,           only : instant_init,instant_main,instant_exit
+  
+!------------------------------------------------------------------------------
+!     0.2     USE STATEMENTS FOR TESTS
+!------------------------------------------------------------------------------
+  use tests,             only : tests_read_sparse_ijk,tests_2decomp_init_exit,tests_mpi_operators
+  use tests,             only : init_tests,tests_roundtrip,exit_tests
+
   implicit none
 
   real    :: stime
@@ -67,7 +73,11 @@ program uDALES
   stime = MPI_Wtime()
 
   !call startup
-  call readnamelists
+  call initrunparams
+
+  ! TEST_ROUNDTRIP is dispatched before init2decomp because it manages its
+  ! own decomposition setup and teardown in init_tests/exit_tests.
+  call execute_early_runmode_actions
 
   call init2decomp
 
@@ -109,15 +119,13 @@ program uDALES
 !---------------------------------------------------------
   call initchecksim ! Could be deprecated
 
-  call initstat_nc ! Could be deprecated
-
   call initstatsdump
+  call stats_init
+  call instant_init
 
   call initEB
 
   call inittimedep
-
-  call initfielddump
 
   call boundary
 
@@ -126,8 +134,6 @@ program uDALES
   call createpurifiers
 
   call init_heatpump
-
-  !call fielddump
 
   call print_time('After initialization')
 
@@ -206,9 +212,9 @@ program uDALES
 
     call checksim
 
-    call fielddump
-
-    call statsdump
+    call statsdump     ! will depricate soon; contains tke budget only(not working)
+    call stats_main
+    call instant_main
 
     call boundary
 
@@ -233,9 +239,10 @@ program uDALES
 !--------------------------------------------------------
 !    4    FINALIZE ADD ONS AND THE MAIN PROGRAM
 !-------------------------------------------------------
-  call exitfielddump
   call exitstatsdump     !tg3315
   call exit_heatpump
+  call stats_exit
+  call instant_exit
   !call exitmodules
   !call exittest
 
@@ -244,6 +251,18 @@ program uDALES
   call exitmpi
 
 contains
+  subroutine execute_early_runmode_actions
+    select case (runmode)
+      case (TEST_ROUNDTRIP)
+        call init_tests
+        call tests_roundtrip
+        call exit_tests
+        stop
+      case default
+        return
+    end select
+  end subroutine execute_early_runmode_actions
+
   subroutine print_time(phase_name)
     use modmpi, only : comm3d, mpierr
     implicit none
@@ -274,6 +293,9 @@ contains
         test_failed = .not. tests_mpi_operators()
       case (TEST_2DCOMP_INIT_EXIT)
         call tests_2decomp_init_exit
+      case (TEST_IO)
+        write(*,*) 'TEST_IO mode not yet implemented'
+        invalid_runmode = .true.
       case default
         write(*,*) 'Unknown runmode:', runmode
         invalid_runmode = .true.
