@@ -147,5 +147,22 @@
     "r_s" : 50.0,
     "dqdt": 0.0,
     "qstar" : 400.0
+  },
+  "nesting": {
+    "lnesting": false,
+    "nestfile": "",
+    "nest_guardwidth": 0.0,
+    "nest_zonewidth": 0.0,
+    "nest_tau": 0.0,
+    "nest_shape": 1,
+    "nest_lateral": [true, true, true, true],
+    "nest_top": false,
+    "nest_timeinterp": 2,
+    "nest_nwall": 1,
+    "nest_lparentgeom": false,
+    "nest_fluxtol": 1e-10,
+    "nest_lfluxassert": true,
+    "nest_lfluxcheckall": false,
+    "nest_linitfromparent": false
   }
 }

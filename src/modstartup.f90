@@ -95,6 +95,13 @@ module modstartup
                                     nbndpts_u, nbndpts_v, nbndpts_w, nbndpts_c, &
                                     nfctsecs_u, nfctsecs_v, nfctsecs_w, nfctsecs_c, &
                                     createmasks, lbottom, lnorec
+      use nesting_scheme,        only : lnesting, nestfile, nest_guardwidth, nest_zonewidth, nest_tau, &
+                                    nest_shape, nest_lateral, nest_top, nest_timeinterp, nest_nwall, &
+                                    nest_lparentgeom, nest_fluxtol, nest_lfluxassert, &
+                                    nest_lfluxcheckall, nest_linitfromparent, nest_statint, &
+                                    nest_lendabort
+      use nesting_parent,       only : lnestparent, tnestparent, nestparent_x0, nestparent_y0, &
+                                    nestparent_xsize, nestparent_ysize, nestparent_nzone, nestparent_linit
       use decomp_2d
 
       implicit none
@@ -170,6 +177,14 @@ module modstartup
          lpurif, npurif, Qpu, epu
       namelist/HEATPUMP/ &
          lheatpump, lfan_hp, nhppoints, Q_dot_hp, QH_dot_hp
+      namelist/NESTING/ &
+         lnesting, nestfile, nest_guardwidth, nest_zonewidth, nest_tau, &
+         nest_shape, nest_lateral, nest_top, nest_timeinterp, nest_nwall, &
+         nest_lparentgeom, nest_fluxtol, nest_lfluxassert, &
+         nest_lfluxcheckall, nest_linitfromparent, nest_statint, nest_lendabort
+      namelist/NESTPARENT/ &
+         lnestparent, tnestparent, nestparent_x0, nestparent_y0, nestparent_xsize, nestparent_ysize, &
+         nestparent_nzone, nestparent_linit
 
       if (myid == 0) then
          if (command_argument_count() >= 1) then
@@ -308,6 +323,23 @@ module modstartup
             stop 1
          endif
          !write (6, HEATPUMP)
+         rewind (ifnamopt)
+
+         read (ifnamopt, NESTING, iostat=ierr)
+         if (ierr > 0) then
+            write(0, *) 'ERROR: Problem in namoptions NESTING'
+            write(0, *) 'iostat error: ', ierr
+            stop 1
+         endif
+         !write (6, NESTING)
+         rewind (ifnamopt)
+
+         read (ifnamopt, NESTPARENT, iostat=ierr)
+         if (ierr > 0) then
+            write(0, *) 'ERROR: Problem in namoptions NESTPARENT'
+            write(0, *) 'iostat error: ', ierr
+            stop 1
+         endif
          rewind (ifnamopt)
 
          read (ifnamopt, OUTPUT, iostat=ierr)
@@ -608,6 +640,31 @@ module modstartup
       call MPI_BCAST(nhppoints, 1, MPI_INTEGER, 0, comm3d, mpierr)
       call MPI_BCAST(Q_dot_hp, 1, MY_REAL, 0, comm3d, mpierr)
       call MPI_BCAST(QH_dot_hp, 1, MY_REAL, 0, comm3d, mpierr)
+      call MPI_BCAST(lnesting, 1, MPI_LOGICAL, 0, comm3d, mpierr)
+      call MPI_BCAST(nestfile, 256, MPI_CHARACTER, 0, comm3d, mpierr)
+      call MPI_BCAST(nest_guardwidth, 1, MY_REAL, 0, comm3d, mpierr)
+      call MPI_BCAST(nest_zonewidth, 1, MY_REAL, 0, comm3d, mpierr)
+      call MPI_BCAST(nest_tau, 1, MY_REAL, 0, comm3d, mpierr)
+      call MPI_BCAST(nest_shape, 1, MPI_INTEGER, 0, comm3d, mpierr)
+      call MPI_BCAST(nest_lateral, 4, MPI_LOGICAL, 0, comm3d, mpierr)
+      call MPI_BCAST(nest_top, 1, MPI_LOGICAL, 0, comm3d, mpierr)
+      call MPI_BCAST(nest_timeinterp, 1, MPI_INTEGER, 0, comm3d, mpierr)
+      call MPI_BCAST(nest_nwall, 1, MPI_INTEGER, 0, comm3d, mpierr)
+      call MPI_BCAST(nest_lparentgeom, 1, MPI_LOGICAL, 0, comm3d, mpierr)
+      call MPI_BCAST(nest_fluxtol, 1, MY_REAL, 0, comm3d, mpierr)
+      call MPI_BCAST(nest_lfluxassert, 1, MPI_LOGICAL, 0, comm3d, mpierr)
+      call MPI_BCAST(nest_lfluxcheckall, 1, MPI_LOGICAL, 0, comm3d, mpierr)
+      call MPI_BCAST(nest_linitfromparent, 1, MPI_LOGICAL, 0, comm3d, mpierr)
+      call MPI_BCAST(nest_statint, 1, MY_REAL, 0, comm3d, mpierr)
+      call MPI_BCAST(nest_lendabort, 1, MPI_LOGICAL, 0, comm3d, mpierr)
+      call MPI_BCAST(lnestparent, 1, MPI_LOGICAL, 0, comm3d, mpierr)
+      call MPI_BCAST(tnestparent, 1, MY_REAL, 0, comm3d, mpierr)
+      call MPI_BCAST(nestparent_x0, 1, MY_REAL, 0, comm3d, mpierr)
+      call MPI_BCAST(nestparent_y0, 1, MY_REAL, 0, comm3d, mpierr)
+      call MPI_BCAST(nestparent_xsize, 1, MY_REAL, 0, comm3d, mpierr)
+      call MPI_BCAST(nestparent_ysize, 1, MY_REAL, 0, comm3d, mpierr)
+      call MPI_BCAST(nestparent_nzone, 1, MPI_INTEGER, 0, comm3d, mpierr)
+      call MPI_BCAST(nestparent_linit, 1, MPI_LOGICAL, 0, comm3d, mpierr)
 
       ! ! Allocate and initialize core modules
       ! call initglobal
@@ -716,6 +773,7 @@ module modstartup
                               BCxm_periodic, BCxT_periodic, BCxq_periodic, &
                               BCxm_profile, BCxT_profile, BCxq_profile, &
                               BCxm_driver, BCxT_driver, BCxq_driver, BCxs_driver, &
+                              BCxm_nesting, BCym_nesting, &
                               BCym_periodic, BCym_profile, BCyT_periodic, BCyT_profile, &
                               BCyq_periodic, BCyq_profile, &
                               linoutflow,ltempeq,iwalltemp,iwallmom,&
@@ -725,6 +783,7 @@ module modstartup
                               TREE_MODE_DRAG_ONLY,TREE_MODE_SVEG,TREE_MODE_LEGACY_SEB
       use modmpi,      only : myid, comm3d, mpierr, nprocx, nprocy
       use modglobal,   only : idriver
+      use nesting_scheme,  only : lnesting, nest_top, nest_guardwidth, nest_zonewidth, nest_tau, nest_lateral
       implicit none
 
       if (mod(jtot, nprocy) /= 0) then
@@ -887,6 +946,15 @@ module modstartup
             if (myid == 0) write (*, *) "inflow-outflow: allowing vertical velocity at top, setting BCtopm = 3"
             BCtopm = BCtopm_pressure
          end if
+
+      case(BCxm_nesting)
+         linoutflow = .true.
+         call MPI_BCAST(linoutflow, 1, MPI_LOGICAL, 0, comm3d, mpierr)
+
+         ! NOTE: deliberately no BCtopm override here, unlike BCxm_profile/BCxm_driver
+         ! above. Nesting uses the rigid lid (design section 3.2, case A) and enforces
+         ! mass compatibility offline (Phi = 0); a leaky lid would let the child
+         ! exchange mass with a fictitious reservoir instead of with its parent.
       end select
 
       select case(BCym)
@@ -921,7 +989,91 @@ module modstartup
            write (*, *) "Warning: allowing vertical velocity at top might be necessary, &
                          &consider setting BCtopm = ", BCtopm_pressure
          end if
+
+      case(BCym_nesting)
+         linoutflow = .true.
+         call MPI_BCAST(linoutflow, 1, MPI_LOGICAL, 0, comm3d, mpierr)
+
+         ! No BCtopm override; see the BCxm_nesting branch above.
        end select
+
+       ! Nesting (docs/udales-nesting-spec.md section 4).
+       if ((.not. lnesting) .and. &
+           ((BCxm .eq. BCxm_nesting) .or. (BCym .eq. BCym_nesting))) then
+          if (myid == 0) then
+             write(0, *) 'ERROR: BCxm = ', BCxm_nesting, ' / BCym = ', BCym_nesting, &
+                         ' select the nesting boundary conditions but lnesting = .false.'
+             write(0, *) 'The parent field would never be imposed. Set lnesting = .true. in &NESTING.'
+          end if
+          stop 1
+       end if
+
+       if (lnesting) then
+          if (ipoiss .ne. POISS_FFT2D) then
+             if (myid == 0) then
+                write(0, *) 'ERROR: lnesting requires ipoiss = ', POISS_FFT2D, ' (POISS_FFT2D).'
+                write(0, *) 'Only that solver supports non-periodic lateral boundaries. ipoiss = ', ipoiss
+             end if
+             stop 1
+          end if
+
+          if ((BCxm .ne. BCxm_nesting) .and. (BCym .ne. BCym_nesting)) then
+             if (myid == 0) then
+                write(0, *) 'ERROR: lnesting requires BCxm = ', BCxm_nesting, ' and/or BCym = ', BCym_nesting
+                write(0, *) 'BCxm and BCym are: ', BCxm, BCym
+             end if
+             stop 1
+          end if
+
+          ! A nested direction imposes BOTH of its faces: the nesting BC replaces
+          ! the convective outflow as well as the inflow, so a face left out of
+          ! nest_lateral would get neither and its ghost plane would never be set.
+          if ((BCxm .eq. BCxm_nesting) .and. .not. (nest_lateral(1) .and. nest_lateral(2))) then
+             if (myid == 0) then
+                write(0, *) 'ERROR: BCxm = ', BCxm_nesting, ' (nesting) needs both x faces: nest_lateral(1) and'
+                write(0, *) 'nest_lateral(2) must both be .true. -- a face with neither the nesting'
+                write(0, *) 'imposition nor the convective outflow has no boundary condition at all.'
+                write(0, *) 'nest_lateral = ', nest_lateral
+             end if
+             stop 1
+          end if
+          if ((BCym .eq. BCym_nesting) .and. .not. (nest_lateral(3) .and. nest_lateral(4))) then
+             if (myid == 0) then
+                write(0, *) 'ERROR: BCym = ', BCym_nesting, ' (nesting) needs both y faces: nest_lateral(3) and'
+                write(0, *) 'nest_lateral(4) must both be .true. -- a face with neither the nesting'
+                write(0, *) 'imposition nor the convective outflow has no boundary condition at all.'
+                write(0, *) 'nest_lateral = ', nest_lateral
+             end if
+             stop 1
+          end if
+
+          if (nest_top) then
+             if (myid == 0) write(0, *) 'ERROR: nest_top (nested lid, design case C) is not implemented in v1.'
+             stop 1
+          end if
+
+          if (nest_guardwidth <= 0.) then
+             if (myid == 0) write(0, *) 'ERROR: nest_guardwidth must be > 0; got ', nest_guardwidth
+             stop 1
+          end if
+
+          if (nest_zonewidth < 0.) then
+             if (myid == 0) write(0, *) 'ERROR: nest_zonewidth must be >= 0; got ', nest_zonewidth
+             stop 1
+          end if
+
+          ! The relaxation rate is W/nest_tau, so nest_tau <= 0 means an infinite rate
+          ! wherever W > 0 -- the whole zone becomes Dirichlet and the ramp is defeated.
+          ! It is only meaningful for a pure guard strip (no relaxation width).
+          if ((nest_tau <= 0.) .and. (nest_zonewidth > 0.)) then
+             if (myid == 0) then
+                write(0, *) 'ERROR: nest_tau <= 0 imposes Dirichlet wherever W > 0, which defeats'
+                write(0, *) 'the relaxation ramp. Set nest_tau > 0, or nest_zonewidth = 0 for a'
+                write(0, *) 'pure guard strip. Got nest_tau, nest_zonewidth = ', nest_tau, nest_zonewidth
+             end if
+             stop 1
+          end if
+       end if
 
        if ((lydump .or. lytdump) .and. (nprocx > 1)) then
           write(*, *) "Error: y-averaged statistics not currently implemented for nprocx > 1."
@@ -966,10 +1118,12 @@ module modstartup
          storeu0inletbc, storev0inletbc, storew0inletbc, nstepread, nfile, Tinl, &
          Trec, tminletbc, t0inletbcold, t0inletbc, storet0inletbc, utaui, ttaui
       use modinlet, only:readinletfile
-      use moddriver, only: readdriverfile,initdriver,drivergen,readdriverfile_chunk
+      use moddriver, only: readdriverfile,initdriver,drivergen,readdriverfile_chunk,driver_records_written
+      use modinletdata, only: nstepreaddriver
       use decomp_2d, only : exchange_halo_z, update_halo
 
       integer i, j, k, n
+      integer :: nrecdriver  !< driver records already on disk when a writer is warm started
 
       real, allocatable :: height(:), th0av(:)
       real, dimension(ib - ih:ie + ih, jb - jh:je + jh, kb:ke + kh) :: thv0
@@ -1507,11 +1661,19 @@ module modstartup
                if (runtime < tdriverstart) then
                   if (myid==0) write(*,*) 'Warning! No driver files will be written as runtime < tdriverstart.'
                else
-                  trestart = (tdriverstart + (driverstore-1)*dtdriver)
+                  ! A restart at the record end is forced only when the namelist asks for
+                  ! none earlier: a shorter trestart is kept, because periodic restarts are
+                  ! what let a record longer than one job be written in several (the
+                  ! writer resumes its record on warm start, see readinitfiles).
+                  if (trestart > (tdriverstart + (driverstore-1)*dtdriver)) then
+                     trestart = (tdriverstart + (driverstore-1)*dtdriver)
+                     if (myid==0) then
+                        write(*,'(A,F15.5)') 'Warning! for driver simulation, trestart gets set as &
+                                              &(tdriverstart + (driverstore-1)*dtdriver), ignoring the &
+                                              &trestart mentioned in namoptions. Hence, trestart = ', trestart
+                     end if
+                  end if
                   if (myid==0) then
-                     write(*,'(A,F15.5)') 'Warning! for driver simulation, trestart gets set as &
-                                           (tdriverstart + (driverstore-1)*dtdriver), ignoring the &
-                                           trestart mentioned in namoptions. Hence, trestart = ',(tdriverstart + (driverstore-1)*dtdriver)
                      if (runtime >= tdriverstart .and. runtime+1e-10 < (tdriverstart + (driverstore-1)*dtdriver)) then
                         write(*,*) 'Warning! Driver files cannot be written upto ', driverstore, ' steps. &
                                     &Consider taking runtime >= (tdriverstart + (driverstore-1)*dtdriver).'
@@ -1708,31 +1870,59 @@ module modstartup
               !if(myid==0) then
               !  write(*,*) 'driverstore: ', driverstore
               !end if
+               nrecdriver = 0
                if (timee>=tdriverstart) then
 
                   tdriverstart_cold = tdriverstart
+                  nrecdriver = driver_records_written()
+
+                  if (nrecdriver > 0) then
+                  ! This experiment already started its record before the restart
+                  ! (the tdriver_ file of rank column 0 holds nrecdriver records), so
+                  ! CONTINUE it: keep the cold clock, resume the record index and the
+                  ! nominal dump time.  Before this, a warm-started writer began again
+                  ! at record 1 and overwrote the start of the record, which made a
+                  ! record longer than one job impossible.
+                     nstepreaddriver = nrecdriver
+                     tdriverdump = tdriverstart_cold + nrecdriver*dtdriver
+                     if (trestart > (tdriverstart_cold + (driverstore-1)*dtdriver) - btime) then
+                        trestart = (tdriverstart_cold + (driverstore-1)*dtdriver) - btime
+                     end if
+                     if (myid==0) then
+                        write(*,'(A,I8,A,F15.5)') 'Driver record continued: ', nrecdriver, &
+                           ' records already written, next nominal dump time ', tdriverdump
+                        if (btime + runtime + 1e-10 < tdriverstart_cold + (driverstore-1)*dtdriver) then
+                           write(*,'(A,F15.5,A)') 'Note: this job ends before the record does (', &
+                              tdriverstart_cold + (driverstore-1)*dtdriver, ' s); continue it from a restart.'
+                        end if
+                     end if
+
+                  else
+
                   tdriverstart = timee
-                  trestart = (driverstore-1)*dtdriver
+                  if (trestart > (driverstore-1)*dtdriver) trestart = (driverstore-1)*dtdriver
 
                   if (myid==0) then
                      write(*,'(A,F15.5)') "Warning! during warmstart of driver simulat ion, tdriverstart &
                                            &gets overwritten by the time instant of initd restartfile, ignoring the &
                                            &tdriverstart mentioned in namoptions. Hence, tdriverstart = ",timee
-                     write(*,'(A,F15.5)') 'Warning! for this driver simulation, trestart gets set as &
-                                           (driverstore-1)*dtdriver, ignoring the trestart mentioned &
-                                           in namoptions. Hence, trestart = ',(driverstore-1)*dtdriver
+                     write(*,'(A,F15.5)') 'Warning! for this driver simulation, trestart is at most &
+                                           &(driverstore-1)*dtdriver. Hence, trestart = ',trestart
                      if ( runtime < (driverstore-1)*dtdriver ) then
                         write(*,*) 'Warning! Driver files cannot be written upto ', driverstore, ' steps. &
                                     &Consider taking runtime >= (driverstore-1)*dtdriver).'
                      end if
                   end if
 
+                  end if ! nrecdriver > 0
+
                else ! if (timee<tdriverstart)
-                  trestart = (tdriverstart + (driverstore-1)*dtdriver) - btime
+                  if (trestart > (tdriverstart + (driverstore-1)*dtdriver) - btime) then
+                     trestart = (tdriverstart + (driverstore-1)*dtdriver) - btime
+                  end if
                   if (myid==0) then
-                     write(*,'(A,F15.5)') 'Warning! for this driver simulation, trestart gets set as &
-                                           (tdriverstart + (driverstore-1)*dtdriver - btime), ignoring the &
-                                           trestart mentioned in namoptions. Hence, trestart = ',(tdriverstart + (driverstore-1)*dtdriver) - btime
+                     write(*,'(A,F15.5)') 'Warning! for this driver simulation, trestart is at most &
+                                           &(tdriverstart + (driverstore-1)*dtdriver - btime). Hence, trestart = ',trestart
                      if ( (timee + runtime) < (tdriverstart + (driverstore-1)*dtdriver) ) then
                         write(*,*) 'Warning! Driver files cannot be written upto ', driverstore, ' steps. &
                                     &Consider taking runtime + ',timee,' >= (tdriverstart + (driverstore-1)*dtdriver).'
@@ -1741,7 +1931,7 @@ module modstartup
                end if
 
               call drivergen
-              tdriverdump = tdriverstart
+              if (nrecdriver == 0) tdriverdump = tdriverstart
             endif
 
             !ILS13 reintroduced thv

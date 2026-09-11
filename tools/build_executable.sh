@@ -122,6 +122,10 @@ if [ -n "${FFTW_FLOAT_LIB:-}" ]; then
     cmake_args+=("-DFFTW_FLOAT_OPENMP_LIB=$FFTW_FLOAT_LIB")
 fi
 
-FC=$FC cmake "${cmake_args[@]}" ../../ 2>&1 | tee -a $path_to_build_dir/config.log
-make -j$NPROC 2>&1 | tee -a $path_to_build_dir/build.log
+# `tee`, not `tee -a`: build.log is read back by
+# tests/lint/check_build_warnings.py, which counts warnings per file. An
+# appending log accumulates the warnings of every past build in this directory,
+# so a warning fixed today would still be counted tomorrow. One build, one log.
+FC=$FC cmake "${cmake_args[@]}" ../../ 2>&1 | tee $path_to_build_dir/config.log
+make -j$NPROC 2>&1 | tee $path_to_build_dir/build.log
 popd

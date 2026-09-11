@@ -118,11 +118,11 @@ contains
                                  BCxm, BCym, BCxT, BCyT, BCxq, BCyq, BCxs, BCys, BCtopm, BCtopT, BCtopq, BCtops, &
                                  BCtopm_freeslip, BCtopm_noslip, BCtopm_pressure, &
                                  BCtopT_flux, BCtopT_value, BCtopq_flux, BCtopq_value, BCtops_flux, BCtops_value, &
-                                 BCxm_periodic, BCxm_profile, BCxm_driver, &
+                                 BCxm_periodic, BCxm_profile, BCxm_driver, BCxm_nesting, &
                                  BCxT_periodic, BCxT_profile, BCxT_driver, &
                                  BCxq_periodic, BCxq_profile, BCxq_driver, &
                                  BCxs_periodic, BCxs_profile, BCxs_driver, BCxs_custom, &
-                                 BCym_periodic, BCym_profile, BCyT_periodic, BCyT_profile, &
+                                 BCym_periodic, BCym_profile, BCym_nesting, BCyT_periodic, BCyT_profile, &
                                  BCyq_periodic, BCyq_profile, BCys_periodic, &
                                  ibrank, ierank, jbrank, jerank, e12min, idriver, &
                                  Uinf, Vinf, &
@@ -133,6 +133,7 @@ contains
       use modmpi,         only : slabsum, avey_ibm
       use moddriver,      only : drivergen, driverchunkread
       use modinletdata,   only : ubulk, vbulk
+      use nesting_scheme,     only : nesting_boundary
       use decomp_2d,      only : exchange_halo_z
 
       implicit none
@@ -264,6 +265,9 @@ contains
           call drivergen ! think this should be done at the start of an rk3 loop?
          end if
          call xmi_driver
+       case(BCxm_nesting)
+         ! Ghost planes for BOTH x faces come from the parent via nesting_boundary,
+         ! which is called once per rank below (outside the ibrank/jbrank guards).
        case default
          write(0, *) "ERROR: lateral boundary type for veloctiy in x-direction undefined"
          stop 1
@@ -325,6 +329,8 @@ contains
          ! Handled in halos
        case(BCym_profile)
          call ymi_profile
+       case(BCym_nesting)
+         ! See the BCxm_nesting branch: handled by nesting_boundary below.
        case default
          write(0, *) "ERROR: lateral boundary type for veloctiy in y-direction undefined"
          stop 1
@@ -370,17 +376,26 @@ contains
 
      end if !jbrank
 
+     ! Nesting: fill the ghost planes on the nested domain faces from the parent.
+     ! Called exactly ONCE per rank and deliberately outside the ibrank/jbrank
+     ! guards: nesting_boundary covers all nested lateral faces itself, so calling
+     ! it from inside those guards would skip east/north-only ranks and would run
+     ! twice on a rank that is both ibrank and jbrank.
+     if ((BCxm .eq. BCxm_nesting) .or. (BCym .eq. BCym_nesting)) call nesting_boundary
+
      !> Outlet
      ! Currently only outflow boundary conditions are convective
      if (ierank) then
-       if (BCxm .ne. BCxm_periodic) call xmo_convective
+       ! Nesting imposes the far face rather than convecting it (nesting_boundary).
+       if ((BCxm .ne. BCxm_periodic) .and. (BCxm .ne. BCxm_nesting)) call xmo_convective
        if ((BCxT .ne. BCxT_periodic) .and. ltempeq) call xTo_convective
        if ((BCxq .ne. BCxq_periodic) .and. lmoist ) call xqo_convective
        if ((BCxs .ne. BCxs_periodic) .and. nsv > 0) call xso_convective
      end if
 
      if (jerank) then
-       if (BCym .ne. BCym_periodic) call ymo_convective
+       ! Nesting imposes the far face rather than convecting it (nesting_boundary).
+       if ((BCym .ne. BCym_periodic) .and. (BCym .ne. BCym_nesting)) call ymo_convective
        if ((BCyT .ne. BCyT_periodic) .and. ltempeq) call yTo_convective
        if ((BCyq .ne. BCyq_periodic) .and. lmoist ) call yqo_convective
        if ((BCys .ne. BCys_periodic) .and. nsv > 0) call yso_convective
@@ -1193,10 +1208,11 @@ contains
      use modglobal,    only : ib, ie, jb, je, ih, jh, kb, ke, kh, dxi, dyi, dzhi, &
                               ibrank, ierank, jbrank, jerank, BCxm, BCym, BCtopm, &
                               BCtopm_freeslip, BCtopm_noslip, BCtopm_pressure, &
-                              BCxm_periodic, BCxm_profile, BCxm_driver, &
-                              BCym_periodic, BCym_profile
+                              BCxm_periodic, BCxm_profile, BCxm_driver, BCxm_nesting, &
+                              BCym_periodic, BCym_profile, BCym_nesting
      use modfields,    only : pres0, up, vp, wp, um, vm, wm, u0, v0, uouttot, vouttot, uprof, vprof, pres0, IIc, IIcs
      use modmpi,       only : excjs, excis, avexy_ibm
+     use nesting_scheme,   only : nesting_bcpup
      use modinletdata, only : u0driver
      use decomp_2d,    only : exchange_halo_z
 
@@ -1302,6 +1318,9 @@ contains
          ! pup(ie+1, :, kb) = pup(ie, :, kb)
          ! up(ie+1, :, kb) = pup(ie+1, :, kb) - um(ie+1, :, kb) * rk3coefi
        end if
+
+    case(BCxm_nesting)
+      ! Both x faces are imposed by nesting_bcpup, called once below.
     end select ! BCxm
 
     select case(BCym)
@@ -1336,7 +1355,17 @@ contains
         vp(:, je+1, kb) = pvp(:, je+1, kb) - vm(:, je+1, kb)*rk3coefi
       end if
 
+    case(BCym_nesting)
+      ! Both y faces are imposed by nesting_bcpup, called once below.
     end select
+
+    ! Nesting: impose the parent boundary-normal velocity on the predicted
+    ! velocity and assert the flux residual. Called exactly ONCE per rank, hence
+    ! outside the BCxm/BCym select blocks above - it handles all nested faces and
+    ! would otherwise run twice when both directions are nested.
+    if ((BCxm .eq. BCxm_nesting) .or. (BCym .eq. BCym_nesting)) then
+      call nesting_bcpup(pup, pvp, pwp, rk3coef)
+    end if
 
    end subroutine bcpup
 

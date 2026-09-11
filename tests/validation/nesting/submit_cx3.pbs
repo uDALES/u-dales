@@ -1,0 +1,84 @@
+#!/bin/bash
+#PBS -N udales-nesting-v1
+#PBS -l walltime=08:00:00
+#PBS -l select=1:ncpus=64:mpiprocs=64:mem=128gb
+#PBS -j oe
+#
+# V1 "Big Brother" nesting validation, production preset.
+# docs/udales-nesting-design.md section 10.4 row V1;
+# tests/validation/nesting/README.md for what the numbers mean.
+#
+# PREPARE, REVIEW, THEN SUBMIT BY HAND:
+#
+#     qsub tests/validation/nesting/submit_cx3.pbs
+#
+# (qsub/qstat live in /opt/pbs/bin on CX3.)
+#
+# Sizing, re-derived from this exact case.  The production parent
+# (256 x 256 x 64 = 4.19e6 cells, 228 cubes, nfcts = 12992) was run for 30 s of
+# simulated time on 4 ranks on a login node: 80 steps in 62.0 s of main-loop
+# time, i.e. 5.4e6 cell-steps/s on 4 ranks with a mean dt of 0.379 s at a total
+# Courant number near 1.2.  So the parent needs 5400/0.379 = 1.43e4 steps
+# = 6.0e10 cell-steps and the child (128 x 128 x 64, ~1800 s) 4.7e3 steps
+# = 5.0e9.  On 64 ranks that is 11.5 + 1.0 min at perfect scaling, 23 + 2 min at
+# 50 % parallel efficiency, and 29 + 2 min at the 3.5e7 cell-steps/s the brief
+# assumed.  Preprocessing is ~3 min (the parent IBM step alone took 143 s).  The
+# other significant cost is I/O: the pipeline walks the parent dumps twice and
+# the child's once, ~68 GB of reads, call it up to an hour.  Total ~1.5 h, so
+# the 8 h walltime carries roughly 5x headroom -- deliberately, because none of
+# the I/O numbers were measured at production volume.
+#
+# Disk.  Parent field dumps 30.2 GB (600 levels of u, v, w at 256 x 256 x 64 in
+# single precision), child dumps 7.5 GB, nesting input 5.9 GB (12 zone slabs x
+# 600 levels in double precision, 9.8 MB per level) plus a 25 MB initial
+# condition.  Budget 60 GB in $RUNDIR.  Memory: the slab cut holds the whole
+# nesting file in memory before writing, ~6.5 GB at peak, so mem=128gb is
+# comfortable rather than tight.
+#
+# Everything else -- grid, geometry, zone widths, forcing, schedule -- lives in
+# tests/validation/nesting/config.py under the name 'production'.  Change it
+# there, not here, so that what runs is what the tiny smoke test exercised.
+
+set -e
+
+REPO=${UDALES_REPO:-$HOME/udales/u-dales}
+RUNDIR=${UDALES_V1_RUNDIR:-$EPHEMERAL/nesting-v1-${UDALES_V1_PRESET:-production}}
+
+echo "repo    : $REPO"
+echo "rundir  : $RUNDIR"
+echo "started : $(date)"
+mkdir -p "$RUNDIR"
+
+# The solver binary. Build it beforehand with
+#   ./tools/build_executable.sh icl release
+export UDALES_BUILD=${UDALES_BUILD:-$REPO/build/release/u-dales}
+if [ ! -x "$UDALES_BUILD" ]; then
+    echo "solver binary not found at $UDALES_BUILD" >&2
+    exit 1
+fi
+
+# Two module stacks are needed and they are not compatible with each other:
+# the Python tooling wants Python/3.9.6-GCCcore-11.2.0, the solver wants the
+# Intel 2021a stack.  caselib.run_solver loads the runtime stack itself, in the
+# same shell as the mpiexec, so this script only sets up the Python side.
+export UDALES_RUNTIME_MODULES="tools/prod intel/2021a netCDF/4.8.0-iimpi-2021a netCDF-Fortran/4.5.3-iimpi-2021a FFTW/3.3.9-intel-2021a"
+
+module purge
+module load tools/prod
+module load Python/3.9.6-GCCcore-11.2.0
+source "${UDALES_VENV:-$HOME/udales/.venv}/bin/activate"
+
+export HDF5_USE_FILE_LOCKING=FALSE
+export MPLCONFIGDIR=${MPLCONFIGDIR:-$RUNDIR/.mpl}
+
+cd "$REPO"
+# Which preset: 'production' (the original V1, ~1.5 h) or 'converged'
+# (longer spin-up and window so the statistics can resolve the TKE deficit,
+# ~3.8 h, ~180 GB of dumps).  See config.py for both.
+PRESET=${UDALES_V1_PRESET:-production}
+echo "preset  : $PRESET"
+
+python tests/validation/nesting/run_v1.py "$RUNDIR" --preset "$PRESET" --yes
+
+echo "finished: $(date)"
+echo "results : $RUNDIR/analysis"

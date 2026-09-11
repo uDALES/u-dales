@@ -1,0 +1,206 @@
+#!/bin/bash
+#PBS -N udales-nesting-v0
+#PBS -l walltime=06:00:00
+#PBS -l select=1:ncpus=64:mpiprocs=64:mem=128gb
+#PBS -j oe
+#
+# V0 -- validation at refinement ratio > 1.
+# docs/udales-nesting-design.md section 10.4 row V0 and the note under that
+# table; tests/validation/nesting/README.md, "V0 -- refinement".
+#
+# PREPARE, REVIEW, THEN SUBMIT BY HAND:
+#
+#     qsub tests/validation/nesting/submit_cx3_v0.pbs
+#
+# (qsub/qstat live in /opt/pbs/bin on CX3.)
+#
+# ---------------------------------------------------------------------------
+# WHAT THIS IS.  V1 and V2 both ran parent and child on the SAME grid, so the
+# conservative interpolation of design section 1.3 has never carried a running
+# simulation -- only its own unit tests, P1-P17.  V0 is the first end-to-end
+# test of refinement and, at the same time, the first end-to-end test of that
+# interpolation, and it is arranged so the two can be told apart.
+#
+# The child is the V1 child, unchanged: 128 x 128 x 64 cells at 2 m over the
+# same 256 x 256 x 128 m box, the same 36 cubes, the same 3 + 9 cell zone, the
+# same dpdx, the same 10 800 s window.  The truth is the V1 converged parent's
+# own sub-region.  Only the grid the boundary data arrives on changes -- so the
+# V1 result IS the r = 1 row of this table, measured by the same code over the
+# same window, and every number is readable straight against section 10.5.
+#
+# Four children, two ratios x two arms:
+#
+#   r2-filtered (921)  4 m boundary data, box-filtered from 903's own dumps
+#   r2-coarse   (923)  4 m boundary data from a genuine 4 m LES, run here (911)
+#   r4-filtered (922)  8 m boundary data, box-filtered from 903's own dumps
+#   r4-coarse   (924)  8 m boundary data from a genuine 8 m LES, run here (912)
+#
+# The 'filtered' arm is an IDEALISATION and is labelled as one: a box-filtered
+# fine field is a *perfect* coarse parent, and it hands the child filtered
+# fine-scale information no real coarse LES would have had.  What it buys is
+# that it is paired with the truth -- same realisation, same eddies -- so it is
+# V1 with exactly one variable changed and it isolates the prolongation and the
+# parent's filter scale.  The 'coarse' arm is the real use case and is NOT
+# paired.  Reporting them apart is the point: their difference at one ratio is
+# how much the child suffers from its parent genuinely not knowing the small
+# scales, as opposed to from the interpolation.
+#
+# WHAT THIS DOES NOT DO: it does not run a fine parent.  The reference is the
+# V1 'converged' parent already on disk at $EPHEMERAL/nesting-v1-converged/903
+# (170 GB, 3600 dumped levels, spin-up 10800 s, window [10800, 21600] s).  It
+# is read, never written.
+# ---------------------------------------------------------------------------
+#
+# SIZING.  Derived from the measured stage times of the V1 converged job
+# (3991175, same 64 ranks, same machine, same child) recorded in
+# submit_cx3_v2.pbs and README.md, plus two things measured directly for this
+# script on the real 903 dumps:
+#
+#   solver rate, fine parent 903 ... 181.2 G cell-steps in 10 080 s = 1.80e7/s
+#   solver rate, 128^2 child ....... 21.4 G cell-steps in 1 621 s   = 1.32e7/s
+#   V1 slab cut, 3600 levels ....... 608 s (I/O bound: 0.012 s/level of compute)
+#   V1 analysis .................... ~800 s parent accumulation + 240 s/child
+#   NEW, measured here: the refinement adds 0.045 + 0.011 s/level at r = 2 and
+#   0.017 + 0.008 s/level at r = 4 (coarsening + interpolating 12 slabs), i.e.
+#   +160 s and +46 s over the whole 3600-level record.  The slab cut stays I/O
+#   bound; refinement is not what costs.
+#
+#   stage                                                             [s]
+#   coarse parent 911, 4 m, 22.6 G cell-steps, 64 ranks              2500
+#   coarse parent 912, 8 m,  2.8 G cell-steps, 16 ranks              1500
+#   slab cut r2-filtered  (608 read/write + 160 refinement)           770
+#   slab cut r4-filtered  (608 + 46)                                  655
+#   slab cut r2-coarse    (reads 22.6 GB, not 170)                    500
+#   slab cut r4-coarse    (reads 2.8 GB)                              400
+#   4 child runs at 1621 s each                                      6484
+#   reference accumulation, 3400 levels, SHARED by all four           800
+#   4 child analyses at 240 s each                                    960
+#   child + parent case preprocessing                                 360
+#                                                              total 14 929 s
+#
+# = 4.15 h.  The 6 h request is 1.45x that.  Less headroom than the V2 job's
+# 2.2x, deliberately: the queue is deep and every hour of walltime asked for is
+# paid in queue time, and the two genuinely new items here (the coarse parent
+# rates, which are extrapolated per-rank from 903's, and the coarse arm's slab
+# cuts) are together only 4900 s, so even being 2x wrong about both fits.
+#
+# IF THE QUEUE IS DEEP, SUBMIT IT IN PIECES.  The points are independent once
+# the coarse parents exist, and UDALES_V0_POINTS selects them; a command-line
+# -l overrides the directive above:
+#
+#   qsub -l walltime=02:30:00 -v 'UDALES_V0_POINTS=r2-filtered r4-filtered' \
+#        tests/validation/nesting/submit_cx3_v0.pbs        # filtered arm, 1.9 h
+#   qsub -l walltime=03:30:00 -v 'UDALES_V0_POINTS=r2-coarse r4-coarse' \
+#        tests/validation/nesting/submit_cx3_v0.pbs        # coarse arm,   2.5 h
+#
+# or one point at a time (~1.2 h for a filtered point, ~2.0 h for a coarse one,
+# which has to run its parent first).  Re-running with UDALES_V0_POINTS unset
+# and --start-at analysis then rebuilds the whole table from the per-point JSON
+# without redoing anything.  Each piece re-runs only what it needs: run_v0.py
+# builds a coarse parent only when a selected point is on the 'coarse' arm.
+#
+# ONE THING TO KNOW ABOUT THE SHARED REFERENCE.  analyse.run caches the
+# accumulated reference sub-region by child window, and all four points have the
+# same 128 x 128 window, so the reference statistics are accumulated ONCE and
+# every point is measured against literally the same numbers -- which is what
+# makes a few per cent between points attributable to the points.  The cache is
+# built by whichever point runs first; in the default order that is r2-filtered,
+# whose time offset is the fine parent's own, so the window is exactly V1's.
+# Running a 'coarse' point alone shifts that window by at most a dump interval
+# or two out of 3400, which is immaterial but is why the default order is left
+# alone.
+#
+# MEMORY.  The peak is the slab cut, which holds the whole nesting file in
+# memory before writing it (udprep.nesting.write_nesting_file takes arrays, not
+# a stream): 34.0 GB of slabs for a 128^2 child at nzone = 12 over 3600 levels,
+# plus a 0.03 GB initial-condition block.  The V1 job peaked at 39 GB for a
+# 35.2 GB file, so budget ~45 GB.  mem=128gb is comfortable.
+#
+# DISK, in $RUNDIR, all new:
+#
+#   coarse parent dumps   911 22.6 + 912 2.8                     =  25 GB
+#   nesting files         4 x 34.0                               = 136 GB
+#   child field dumps     4 x 45.3                               = 181 GB
+#                                                          total ~343 GB
+#
+# The V1 run it reads (246 GB) is not touched.  Ephemeral has ~10.6 TB free.
+# --prune-nesting deletes each child's nesting.inp once it has run, if that ever
+# gets tight -- the analysis does not need it, only a re-run does.
+#
+# Everything else -- the ratios, the arms, the coarse grids, the zone, the
+# schedule -- lives in tests/validation/nesting/config.py as the 'v0'
+# RefinementSuite.  Change it there, not here, so that what runs at production
+# scale is what the tiny suite exercised.
+
+set -e
+
+REPO=${UDALES_REPO:-$HOME/udales/u-dales}
+RUNDIR=${UDALES_V0_RUNDIR:-$EPHEMERAL/nesting-v0}
+# The V1 converged run: its parent is BOTH the reference every child is measured
+# against AND, for the filtered arm, the field that is filtered to drive them.
+V1DIR=${UDALES_V1_CONVERGED:-$EPHEMERAL/nesting-v1-converged}
+REFDIR=${UDALES_V0_REFDIR:-$V1DIR/903}
+SUITE=${UDALES_V0_SUITE:-v0}
+POINTS=${UDALES_V0_POINTS:-}
+# qsub -v cannot carry a comma: PBS treats it as the separator between
+# variables, so a comma-separated list arrives truncated or escaped
+# depending on the version. Accept spaces or semicolons too and normalise.
+POINTS=$(printf '%s' "$POINTS" | tr ' ;' ',,' | tr -s ',' | sed 's/^,//; s/,$//')
+
+echo "repo      : $REPO"
+echo "rundir    : $RUNDIR"
+echo "reference : $REFDIR  (read only, not re-run)"
+echo "suite     : $SUITE"
+echo "points    : ${POINTS:-all}"
+echo "started   : $(date)"
+
+if [ ! -f "$REFDIR/namoptions.903" ]; then
+    echo "no fine reference case at $REFDIR." >&2
+    echo "V0 measures every child against a fine, unnested run and drives its" >&2
+    echo "filtered arm from that run's dumps; run" >&2
+    echo "  qsub tests/validation/nesting/submit_cx3.pbs   (UDALES_V1_PRESET=converged)" >&2
+    echo "first, or point UDALES_V0_REFDIR at an existing one." >&2
+    exit 1
+fi
+if [ -z "$(ls "$REFDIR"/fielddump.???.???.903.nc 2>/dev/null)" ]; then
+    echo "no field dumps under $REFDIR; the reference run has no production phase." >&2
+    exit 1
+fi
+mkdir -p "$RUNDIR"
+
+# The solver binary. Build it beforehand with
+#   ./tools/build_executable.sh icl release
+export UDALES_BUILD=${UDALES_BUILD:-$REPO/build/release/u-dales}
+if [ ! -x "$UDALES_BUILD" ]; then
+    echo "solver binary not found at $UDALES_BUILD" >&2
+    exit 1
+fi
+
+# Two module stacks are needed and they are not compatible with each other: the
+# Python tooling wants Python/3.9.6-GCCcore-11.2.0, the solver wants the Intel
+# 2021a stack.  caselib.run_solver loads the runtime stack itself, in the same
+# shell as the mpiexec, so this script only sets up the Python side.
+export UDALES_RUNTIME_MODULES="tools/prod intel/2021a netCDF/4.8.0-iimpi-2021a netCDF-Fortran/4.5.3-iimpi-2021a FFTW/3.3.9-intel-2021a"
+
+module purge
+module load tools/prod
+module load Python/3.9.6-GCCcore-11.2.0
+source "${UDALES_VENV:-$HOME/udales/.venv}/bin/activate"
+
+export HDF5_USE_FILE_LOCKING=FALSE
+# /tmp has a small per-user quota on the compute nodes and the slab cut writes
+# large temporaries through netCDF.
+export TMPDIR=${TMPDIR:-$EPHEMERAL}
+export MPLCONFIGDIR=${MPLCONFIGDIR:-$RUNDIR/.mpl}
+
+cd "$REPO"
+python tests/validation/nesting/run_v0.py "$RUNDIR" \
+    --suite "$SUITE" \
+    --reference-dir "$REFDIR" \
+    ${POINTS:+--only "$POINTS"} \
+    --yes
+
+echo "finished  : $(date)"
+echo "table     : $RUNDIR/analysis/v0_summary.md"
+echo "machine   : $RUNDIR/analysis/v0_summary.{csv,json}"
+echo "per point : $RUNDIR/analysis/<point>/v0_metrics.json"

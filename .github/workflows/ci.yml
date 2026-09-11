@@ -1,6 +1,12 @@
 name: CI
 
-on: [push, pull_request]
+# Pushes to a branch with an open pull request used to fire BOTH triggers,
+# running the whole 4-leg matrix twice on identical commits. Pull requests
+# carry their own CI; pushes need it only where there is no PR to carry it.
+on:
+  push:
+    branches: [master]
+  pull_request:
 
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
@@ -87,8 +93,9 @@ jobs:
         cmake --build "$build_dir" -- -j 4 2>&1 | tee "$build_dir/build.log"
 
     - name: Summarise compiler warnings
-      # Reporting only -- deliberately never fails the build. See the script
-      # header for why this is not a -Werror gate.
+      # Reporting only -- this step never fails the build; the gate on new
+      # warnings is the `lint` suite in the test step below, per gfortran major
+      # (see tests/lint/check_build_warnings.py).
       if: always()
       run: bash .github/scripts/summarise_warnings.sh "$UDALES_BUILD_LOG" "${{ matrix.os }} ${{ matrix.build-type }}"
 
@@ -101,11 +108,14 @@ jobs:
         # Remove supported-macos and switch back to supported on macOS once
         # that fix has been merged into master.
         if [ "${{ matrix.os }}" = "macos-latest" ]; then
-          selection="supported-macos"
+          selection="supported-macos"; platform="macos"
         else
-          selection="supported"
+          selection="supported"; platform="linux"
         fi
-        python3 -u tests/run_tests.py "$selection" --branch-a master --branch-b $GITHUB_SHA --build-type ${{ matrix.build-type }}
+        # --platform makes the manifest's platform: field bite: suites marked
+        # hpc are too large for a runner and are skipped here, visibly, and
+        # run on the target HPC machine with --platform hpc instead.
+        python3 -u tests/run_tests.py "$selection" --platform "$platform" --branch-a master --branch-b $GITHUB_SHA --build-type ${{ matrix.build-type }}
 
   python-viz:
     # environment.yml installs PyVista (the default backend), but the GL-free

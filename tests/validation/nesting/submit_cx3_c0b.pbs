@@ -1,0 +1,118 @@
+#!/bin/bash
+#PBS -N udales-nesting-c0b
+#PBS -l walltime=04:00:00
+#PBS -l select=1:ncpus=64:mpiprocs=64:mem=128gb
+#PBS -j oe
+#
+# C0b -- the fine-cadence half of the cadence discriminator.
+# nesting-plan-2026-09-06.md section 1 (C0); tests/validation/nesting/README.md,
+# "C0 -- the cadence discriminator".
+#
+# PREPARE, REVIEW, THEN SUBMIT BY HAND:
+#
+#     qsub tests/validation/nesting/submit_cx3_c0b.pbs
+#
+# (qsub/qstat live in /opt/pbs/bin on CX3.)
+#
+# ---------------------------------------------------------------------------
+# WHAT THIS DOES: one parent, then six children, then the table.
+#
+# The parent (config.C0_FINE, expnr 960) is the V1 converged parent CONTINUED:
+# it warm-starts from the restart files that run left at the end of its spin-up
+# ($EPHEMERAL/nesting-v1-converged/903/initd00031204_*.903, t = 10800 s) and
+# runs 2400 s dumping u, v, w every 0.5 s -- dt is about 0.38 s, so every 1-2
+# steps -- 4800 levels, 240 GB.  make_parent_case symlinks the 64 restart files
+# into $RUNDIR/960 under the new experiment number and writes a warm-start
+# namelist; there is no spin-up phase.  Same grid, same 228 cubes, same forcing,
+# same ranks: everything the restart's IBM arrays assume.
+#
+# The six children (964-969) are the V1 child sliced from those dumps at 0.5,
+# 1, 1.5, 3, 6 and 9 s (linear interpolation in every case), each with the
+# 600 s discard and an 1800 s statistics window.  One parent realisation drives
+# the whole ladder, so the comparison is paired; the 3 s point cross-checks V1
+# and C0a.  The children dump every 3 s as V1's did and the analysis samples
+# the parent every 6th level to match.
+#
+# If the run directory already holds 960's field dumps -- a resubmission after
+# a failed child -- the parent is NOT re-run; run_v2.py --only <key> --start-at
+# child-case redoes single points.
+# ---------------------------------------------------------------------------
+#
+# SIZING.  Parent: 2400 s at the converged run's 1.96 s simulated per s wall
+# while dumping = 20 min of compute, plus 240 GB of dump I/O which at the
+# ~200 MB/s ephemeral sustains is another 20 min if not overlapped: budget
+# 45 min.  Slab cuts: the 0.5 s point reads all 240 GB (20 min), the others
+# 1/2, 1/3, 1/6, 1/12, 1/18 of it (the subsampling skips the levels it does
+# not need, they are never opened), 43 min of reads in all, plus 100 GB of
+# nesting-file writes at 170 MB/s (10 min).  Children: 2400 s each at 6.5x
+# real time, 6 min each, 37 min.  Analysis: 600 parent levels once (shared),
+# 600 child levels six times, ~12 min.  Preprocessing ~10 min.  Total ~2.6 h
+# against 4 h.
+#
+# MEMORY.  The slab cut holds the whole nesting file in RAM: 9.8 MB per level
+# for the 128^2 child at nzone = 12, so 47 GB for the 0.5 s point.  The writer
+# stores each of the 12 slab variables separately and the flux correction
+# works in place, so the peak is that plus one slab; the V1 job measured 39 GB
+# for a 35 GB file.  mem=128gb holds it with margin -- which is why this job
+# asks for 128 GB and not the 64 GB the children alone would need.
+#
+# DISK, in $RUNDIR, all new: 240 GB of parent dumps + 47+24+16+8+4+3 = 102 GB
+# of nesting files + 6 x 7.5 GB of child dumps = ~390 GB.  Ephemeral has ~1 PB
+# free and is unquotaed; --prune-nesting would drop the nesting files once each
+# child has run if that ever mattered.
+
+set -e
+
+REPO=${UDALES_REPO:-$HOME/udales/u-dales}
+RUNDIR=${UDALES_C0B_RUNDIR:-$EPHEMERAL/nesting-c0b}
+# The V1 converged run: its parent's end-of-spin-up restart is what the fine
+# parent continues from.
+V1DIR=${UDALES_V1_CONVERGED:-$EPHEMERAL/nesting-v1-converged}
+RESTARTDIR=${UDALES_C0B_RESTARTDIR:-$V1DIR/903}
+SWEEP=${UDALES_C0B_SWEEP:-c0b}
+
+echo "repo     : $REPO"
+echo "rundir   : $RUNDIR"
+echo "restart  : $RESTARTDIR  (the fine parent warm-starts from here)"
+echo "sweep    : $SWEEP"
+echo "started  : $(date)"
+
+if ! ls "$RESTARTDIR"/initd????????_000_000.903 >/dev/null 2>&1; then
+    echo "no restart files initd????????_000_000.903 in $RESTARTDIR." >&2
+    echo "C0b continues the V1 converged parent from its end-of-spin-up restart;" >&2
+    echo "point UDALES_C0B_RESTARTDIR at a directory that holds one." >&2
+    exit 1
+fi
+mkdir -p "$RUNDIR"
+
+# The solver binary. Build it beforehand with
+#   ./tools/build_executable.sh icl release
+export UDALES_BUILD=${UDALES_BUILD:-$REPO/build/release/u-dales}
+if [ ! -x "$UDALES_BUILD" ]; then
+    echo "solver binary not found at $UDALES_BUILD" >&2
+    exit 1
+fi
+
+# Two module stacks are needed and they are not compatible with each other: the
+# Python tooling wants Python/3.9.6-GCCcore-11.2.0, the solver wants the Intel
+# 2021a stack.  caselib.run_solver loads the runtime stack itself, in the same
+# shell as the mpiexec, so this script only sets up the Python side.
+export UDALES_RUNTIME_MODULES="tools/prod intel/2021a netCDF/4.8.0-iimpi-2021a netCDF-Fortran/4.5.3-iimpi-2021a FFTW/3.3.9-intel-2021a"
+
+module purge
+module load tools/prod
+module load Python/3.9.6-GCCcore-11.2.0
+source "${UDALES_VENV:-$HOME/udales/.venv}/bin/activate"
+
+export HDF5_USE_FILE_LOCKING=FALSE
+export MPLCONFIGDIR=${MPLCONFIGDIR:-$RUNDIR/.mpl}
+
+cd "$REPO"
+python tests/validation/nesting/run_v2.py "$RUNDIR" \
+    --sweep "$SWEEP" \
+    --parent-restart-dir "$RESTARTDIR" \
+    --yes
+
+echo "finished : $(date)"
+echo "table    : $RUNDIR/analysis/sweep_summary.md"
+echo "machine  : $RUNDIR/analysis/sweep_summary.{csv,json}"

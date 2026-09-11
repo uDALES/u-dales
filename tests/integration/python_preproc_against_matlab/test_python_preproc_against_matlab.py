@@ -167,7 +167,17 @@ class TestPythonPreprocAgainstMatlab(unittest.TestCase):
                         text=True,
                     )
                     if result.returncode != 0:
-                        self.fail(f"Python preprocessing failed for case {case_source.name}:\n{result.stdout}")
+                        # Report the return code, not just the output. A negative
+                        # code means the child died on a signal -- a native crash
+                        # in the compiled preprocessing extension -- and in that
+                        # case stdout is whatever survived an unflushed buffer,
+                        # which on its own looks like an ordinary early exit.
+                        rc = result.returncode
+                        how = f"signal {-rc}" if rc < 0 else f"exit code {rc}"
+                        self.fail(
+                            f"Python preprocessing failed for case {case_source.name} "
+                            f"({how}):\n{result.stdout}"
+                        )
 
                     mismatches = []
                     for relpath in outputs:

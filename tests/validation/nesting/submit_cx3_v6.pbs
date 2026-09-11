@@ -1,0 +1,143 @@
+#!/bin/bash
+#PBS -N udales-nesting-v6
+#PBS -l walltime=06:00:00
+#PBS -l select=1:ncpus=4:mpiprocs=4:mem=8gb
+#PBS -j oe
+#
+# V6 -- does mass drift over long nested runs?
+# docs/udales-nesting-design.md section 10.4 row V6 ("10^5-step run -> divtot
+# bounded, not drifting"), section 6.4 (diagnostics), src/nesting_scheme.f90's
+# check_record_end (the freeze) and nesting_stats (what gets reported);
+# tests/validation/nesting/README.md.
+#
+# PREPARE, REVIEW, THEN SUBMIT BY HAND:
+#
+#     qsub tests/validation/nesting/submit_cx3_v6.pbs
+#
+# (qsub/qstat live in /opt/pbs/bin on CX3.)
+#
+# ---------------------------------------------------------------------------
+# WHAT THIS IS.  Not a physics question -- purely numerical.  config.V6 reuses
+# the TINY preset's geometry (a 96x96x32 parent, a 64x64x32 child, the same
+# aligned cube array) so the cost sits in the step count, not the grid: a
+# small domain on 1 rank, run for a very long time, rather than a big domain
+# run briefly.  The parent writes only 8 dumped levels (dtdump = 3 s,
+# production = 24 s, spin-up 15 s -- just long enough for the cold random
+# initial condition to be pressure-projected before the first dump); the
+# child is built from that short record with nest_lendabort = .false.
+# (config.V6), so instead of aborting when it reads past the last stored
+# level (src/nesting_scheme.f90 check_record_end, the Fortran default), it warns
+# once and holds the boundary at that last level for the rest of the run.
+# run_v6.py then patches RUN.runtime out to ~100,000 steps' worth of
+# simulated time -- about 3.7x the ~24 s stored record's own span -- so the
+# imposed boundary is time-invariant for the vast majority of the run.  With
+# nothing left to vary at the boundary, any later growth in divtot, divmax or
+# the nesting flux residual Phi is numerical drift and nothing else; a flat,
+# bounded series is the pass criterion, a monotone trend is a fail
+# (analyse_v6.summarize_series, tests/validation/nesting/README.md).
+#
+# nest_timeinterp = 2 (Catmull-Rom cubic Hermite) rather than TINY's linear:
+# the freeze exercises eval_target's h2 <= 0 fallback in nesting_scheme.f90, which
+# only exists on the cubic path (confirmed by reading the code, not assumed --
+# see config.V6's docstring and test_v6_tiny.TestV6TinyPipeline, which checks
+# the warning fires exactly once and the run does not abort).
+#
+# SIZING, from measurement (two probe runs on a login node, this build,
+# UDALES_BUILD=build/release/u-dales, 1 rank):
+#
+#   probe runtime [s]   steps (Time of Simulation lines)   main-loop CPU [s]   rate [steps/s]
+#          300.0                       793                       61.67              12.86
+#          900.0                      2383                      186.81              12.76
+#
+# ("TOTAL CPU time by main time loop", printed at the end of child.log --
+# this excludes the ~13-20 s fixed start-up (nesting file read, IBM/domain
+# decomposition setup), which does not grow with the run and is folded into
+# the walltime headroom below rather than the rate itself.)  Mean dt was
+# 0.3775-0.3777 s in both probes, consistent with TINY's ustar = 0.4 m/s,
+# u0 = 3 m/s forcing on this grid.  Taking the mean measured rate, 12.81
+# steps/s:
+#
+#   target                 101000 steps (a deliberate ~1% overshoot of 1e5,
+#                                         since the actual count depends on
+#                                         the adaptive dt actually taken)
+#   --runtime               38000 s  (101000 * 0.3775 s, rounded up)
+#   main-loop wall time    ~2965 s  (101000 / 12.81 steps/s) = 0.82 h
+#   parent build+spin-up+production+child build+analysis   ~75 s (measured
+#                                                            directly above)
+#   total estimate                                          ~0.85 h
+#
+# walltime=06:00:00 requested is ~7.1x that estimate -- more headroom than
+# most of this campaign's other jobs (V0b used 3.0x), deliberately: this is
+# the first time this construction (nest_lendabort = .false., a run three
+# orders of magnitude past its own record) has been run for real, so an
+# unexpectedly slow step (e.g. a much smaller adaptive dt than the probes saw)
+# should still finish inside the request rather than be killed one step short
+# of the answer.  ncpus=4 matches the parent's own rank count (2x2); the
+# child runs on 1x1 for almost the entire walltime ("few cores is fine and
+# preferable; this is a long thin job, not a wide one") -- the 3 idle cores
+# during the child phase are the cost of keeping parent and child in one PBS
+# job, the same tradeoff every other script in this directory makes.
+#
+# --stat-interval 300 s: nest_statint and tcheck are both patched to this, so
+# divmax/divtot (chkdiv) and Phi/the zone misfit/|grad p| (nesting_stats) are
+# sampled on the same clock.  Over ~38000 s of simulated time that is close to
+# 127 samples -- enough to fit a trend with a meaningful standard error
+# (analyse_v6.summarize_series wants >= 3, comfortably cleared) without the
+# log growing past a few thousand lines (each report is ~8 lines).
+#
+# DISK.  child_dtdump = 300000 s (config.V6) never triggers inside this run,
+# so there are no child field dumps at all -- every diagnostic V6 needs comes
+# from child.log, not from netCDF output.  The parent's own 8 field-dump
+# levels on a 96x96x32 grid are a few MB total.  This job writes essentially
+# nothing to $EPHEMERAL beyond the case files and the log.
+# ---------------------------------------------------------------------------
+
+set -e
+
+REPO=${UDALES_REPO:-$HOME/udales/u-dales}
+RUNDIR=${UDALES_V6_RUNDIR:-$EPHEMERAL/nesting-v6}
+RUNTIME=${UDALES_V6_RUNTIME:-38000}
+STAT_INTERVAL=${UDALES_V6_STAT_INTERVAL:-300}
+
+echo "repo          : $REPO"
+echo "rundir        : $RUNDIR"
+echo "runtime [s]   : $RUNTIME"
+echo "stat-interval : $STAT_INTERVAL"
+echo "started       : $(date)"
+
+mkdir -p "$RUNDIR"
+
+# The solver binary. Build it beforehand with
+#   ./tools/build_executable.sh icl release
+export UDALES_BUILD=${UDALES_BUILD:-$REPO/build/release/u-dales}
+if [ ! -x "$UDALES_BUILD" ]; then
+    echo "solver binary not found at $UDALES_BUILD" >&2
+    exit 1
+fi
+
+# Two module stacks are needed and they are not compatible with each other: the
+# Python tooling wants Python/3.9.6-GCCcore-11.2.0, the solver wants the Intel
+# 2021a stack.  caselib.run_solver loads the runtime stack itself, in the same
+# shell as the mpiexec, so this script only sets up the Python side.
+export UDALES_RUNTIME_MODULES="tools/prod intel/2021a netCDF/4.8.0-iimpi-2021a netCDF-Fortran/4.5.3-iimpi-2021a FFTW/3.3.9-intel-2021a"
+
+module purge
+module load tools/prod
+module load Python/3.9.6-GCCcore-11.2.0
+source "${UDALES_VENV:-$HOME/udales/.venv}/bin/activate"
+
+export HDF5_USE_FILE_LOCKING=FALSE
+export TMPDIR=${TMPDIR:-$EPHEMERAL}
+export MPLCONFIGDIR=${MPLCONFIGDIR:-$RUNDIR/.mpl}
+
+cd "$REPO"
+python tests/validation/nesting/run_v6.py "$RUNDIR" \
+    --preset v6 \
+    --runtime "$RUNTIME" \
+    --stat-interval "$STAT_INTERVAL" \
+    --yes
+
+echo "finished  : $(date)"
+echo "summary   : $RUNDIR/analysis/v6_summary.md"
+echo "machine   : $RUNDIR/analysis/v6_summary.json"
+echo "log       : $RUNDIR/991/child.log"

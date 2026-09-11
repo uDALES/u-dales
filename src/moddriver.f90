@@ -33,9 +33,35 @@ module moddriver
 use modinletdata
 implicit none
 save
-  public :: initdriver,exitdriver,readdriverfile,drivergen,readdriverfile_chunk,driverchunkread
+  public :: initdriver,exitdriver,readdriverfile,drivergen,readdriverfile_chunk,driverchunkread, &
+            driver_records_written
 
 contains
+
+  !> Number of records this experiment's driver writer has already put on disk,
+  !! read from the size of rank column 0's time file `tdriver_000.<expnr>`
+  !! (one real per record, direct access, no header); 0 when there is none.
+  !! Used by readinitfiles so that a warm-started writer CONTINUES its record
+  !! instead of starting again at record 1.  The count comes from the file and
+  !! not from (timee - tdriverstart)/dtdriver because the timestep is adaptive.
+  integer function driver_records_written()
+    use modglobal, only : cexpnr
+    character(15)   :: name
+    logical         :: lexist
+    integer(kind=8) :: nbytes
+    real            :: one
+
+    driver_records_written = 0
+    name = 'tdriver_   .'
+    name(9:11)  = '000'
+    name(13:15) = cexpnr
+    inquire(file=name, exist=lexist)
+    if (.not. lexist) return
+    inquire(file=name, size=nbytes)
+    if (nbytes <= 0) return
+    driver_records_written = int(nbytes/(storage_size(one)/8))
+  end function driver_records_written
+
   subroutine initdriver
     use modglobal, only : jh,jb,je,kb,ke,kh,jhc,khc,idriver,lchunkread,chunkread_size,iplane,ltempeq,lmoist,driverstore,tdriverstart,tdriverdump,nsv,lhdriver,lqdriver,lsdriver,ibrank,iplanerank,driverid,cdriverid
     use modmpi, only : myidy,nprocy

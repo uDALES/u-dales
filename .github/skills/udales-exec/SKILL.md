@@ -59,6 +59,9 @@ Supported tests:
 
 ```bash
 python tests/run_tests.py supported --branch-a <branch_a> --branch-b <branch_b> --build-type <Debug|Release>
+# On the HPC target, add --platform hpc to include the suites too large for CI
+# (they are otherwise reported as SKIP); --list shows the selection without running.
+python tests/run_tests.py all --platform hpc --branch-a <branch_a> --branch-b <branch_b> --build-type <Debug|Release>
 ```
 
 MPI integration tests (solver):

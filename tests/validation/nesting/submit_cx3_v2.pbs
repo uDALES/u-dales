@@ -1,0 +1,166 @@
+#!/bin/bash
+#PBS -N udales-nesting-v2
+#PBS -l walltime=08:00:00
+#PBS -l select=1:ncpus=64:mpiprocs=64:mem=128gb
+#PBS -j oe
+#
+# V2 -- the nesting falsification sweep.
+# docs/udales-nesting-design.md section 10.4 row V2 and section 10.5;
+# tests/validation/nesting/README.md, "V2 -- the falsification test".
+#
+# PREPARE, REVIEW, THEN SUBMIT BY HAND:
+#
+#     qsub tests/validation/nesting/submit_cx3_v2.pbs
+#
+# (qsub/qstat live in /opt/pbs/bin on CX3.)
+#
+# The same script runs any sweep that reuses the V1 converged parent and child:
+# C0a (config.C0, the cadence ladder off the existing 3 s dumps -- README.md,
+# "C0 -- the cadence discriminator") is
+#
+#     qsub -N udales-nesting-c0a -l walltime=03:00:00 \
+#          -v UDALES_V2_SWEEP=c0,UDALES_V2_RUNDIR=$EPHEMERAL/nesting-c0a \
+#          tests/validation/nesting/submit_cx3_v2.pbs
+#
+# (three 128^2 children at ~40 min each plus the shared analysis; the 8 h below
+# is V2's and is overridden on the command line).
+#
+# ---------------------------------------------------------------------------
+# WHAT THIS DOES NOT DO: it does not run a parent.
+#
+# Every child is driven by the V1 'converged' parent that is already on disk at
+# $EPHEMERAL/nesting-v1-converged/903 (170 GB, 3600 dumped levels, spin-up
+# 10800 s, production window [10800, 21600] s).  Re-running it would cost 3.2 h
+# AND -- the real reason -- would give a different turbulence realisation, so
+# the few-per-cent differences between children would no longer be attributable
+# to the children.  config.Sweep.validate() checks that every sweep point really
+# can share that parent (grid, geometry, forcing, schedule and the plaza window)
+# and aborts before anything runs if one cannot.
+#
+# The reference point of the sweep (N_rel = 9 at 128^2) is the V1 child at
+# .../903's sibling 904, and it is reused rather than repeated: 5 children run
+# here, not 6.  run_v2.py checks 904's manifest against the preset before
+# believing its dumps.
+#
+# ALL SIX POINTS RUN nest_lparentgeom = .false.  The two smaller children of the
+# size arm cannot inherit a building-free zone from this parent, so they clear
+# it themselves: the child's geometry drops the cubes that would fall in its
+# guard + ramp band while the parent keeps them and goes on imprinting them
+# through the imposed velocity field (design section 9.4 -- parent and child
+# geometry are allowed to differ).  So the boundary treatment is identical at
+# every point and child size is the only variable moving along the size arm.
+# config.Preset.removed_cubes_reaching_the_interior is asserted empty, so the
+# two geometries differ only inside the band, where the solution is imposed.
+# ---------------------------------------------------------------------------
+#
+# SIZING, from the measured stage times of the V1 converged job (3991175, same
+# 64 ranks, same machine, same case):
+#
+#   slab cut, 128^2 child, nzone = 12, 3600 parent levels ... 608 s
+#   child run, 128^2, 10190 s of simulated time ............ 1621 s
+#   analysis, 3400 parent + 3400 child levels .............. 1040 s
+#
+# The slab cut reads all 170 GB of parent dumps whatever the child's size, so it
+# splits into ~400 s of fixed read and ~170 MB/s of nesting-file write; the child
+# run scales with cell-steps at 1.7e7 cell-steps/s on 64 ranks; the analysis
+# splits into ~800 s of parent accumulation and ~240 s per 128^2 child.  The
+# parent accumulation is *shared* between children that use the same window
+# (analyse.run's parent_cache), so it is paid three times, not six.
+#
+#   stage                       nrel4  nrel12 nrel16 size64 size96   sum
+#   slab cut               [s]    525    661    728    505    557   2976
+#   child run              [s]   1621   1621   1621    650   1200   6713
+#   analysis               [s]    240    240    240     60    135    915
+#   parent accumulation    [s]   800 (128^2, shared by 4) + 800 + 800   2400
+#                                                            total  13000 s
+#
+# ~3.7 h against an 8 h walltime: 2.2x headroom, which is the right amount given
+# that none of the three sizes below 128^2 has been timed at production volume.
+#
+# MEMORY.  The peak is the slab cut, which holds the whole nesting file in
+# memory before writing it (udprep.nesting.write_nesting_file takes arrays, not
+# a stream).  The widest point, nrel16 at nzone = 19, is 55.2 GB of slabs; the
+# V1 job peaked at 39 GB for a 35.2 GB file, so budget ~60 GB.  mem=128gb is
+# comfortable.  Do not widen the zone ramp past N_rel = 16 without re-checking
+# this: N_rel = 20 would be 66.6 GB of slabs (and would need a new parent -- see
+# config.py).
+#
+# DISK, in $RUNDIR, all new:
+#
+#   nesting.inp   nrel4 20.9 + nrel12 43.8 + nrel16 55.2
+#                 + size64 17.6 + size96 26.4                  = 164 GB
+#   fielddumps    3 x 45.3 (128^2) + 25.5 (96^2) + 11.3 (64^2)  = 173 GB
+#                                                        total  ~337 GB
+#
+# The V1 run it reads stays where it is (246 GB) and is not touched.  Ephemeral
+# has ~11 TB.  If that ever gets tight, --prune-nesting deletes each child's
+# nesting.inp once it has run -- the analysis does not need it, only a re-run
+# does.
+#
+# Everything else -- the zone ramp, the child sizes, the common comparison
+# block, the schedule -- lives in tests/validation/nesting/config.py as the
+# 'v2' Sweep.  Change it there, not here, so that what runs at production scale
+# is what the tiny sweep exercised.
+
+set -e
+
+REPO=${UDALES_REPO:-$HOME/udales/u-dales}
+RUNDIR=${UDALES_V2_RUNDIR:-$EPHEMERAL/nesting-v2}
+# The V1 converged run: its parent case supplies every child's boundary data,
+# and its child case is the sweep's reference point.
+V1DIR=${UDALES_V1_CONVERGED:-$EPHEMERAL/nesting-v1-converged}
+PARENTDIR=${UDALES_V2_PARENTDIR:-$V1DIR/903}
+SWEEP=${UDALES_V2_SWEEP:-v2}
+
+echo "repo     : $REPO"
+echo "rundir   : $RUNDIR"
+echo "parent   : $PARENTDIR  (reused, not re-run)"
+echo "sweep    : $SWEEP"
+echo "started  : $(date)"
+
+if [ ! -f "$PARENTDIR/namoptions.903" ]; then
+    echo "no V1 parent case at $PARENTDIR." >&2
+    echo "V2 reuses the V1 converged parent rather than re-running it; run" >&2
+    echo "  qsub tests/validation/nesting/submit_cx3.pbs   (UDALES_V1_PRESET=converged)" >&2
+    echo "first, or point UDALES_V2_PARENTDIR at an existing one." >&2
+    exit 1
+fi
+if [ ! -f "$V1DIR/904/manifest.json" ]; then
+    echo "no V1 child case at $V1DIR/904; the sweep's reference point is that" >&2
+    echo "run.  Point UDALES_V1_CONVERGED at the V1 rundir." >&2
+    exit 1
+fi
+mkdir -p "$RUNDIR"
+
+# The solver binary. Build it beforehand with
+#   ./tools/build_executable.sh icl release
+export UDALES_BUILD=${UDALES_BUILD:-$REPO/build/release/u-dales}
+if [ ! -x "$UDALES_BUILD" ]; then
+    echo "solver binary not found at $UDALES_BUILD" >&2
+    exit 1
+fi
+
+# Two module stacks are needed and they are not compatible with each other: the
+# Python tooling wants Python/3.9.6-GCCcore-11.2.0, the solver wants the Intel
+# 2021a stack.  caselib.run_solver loads the runtime stack itself, in the same
+# shell as the mpiexec, so this script only sets up the Python side.
+export UDALES_RUNTIME_MODULES="tools/prod intel/2021a netCDF/4.8.0-iimpi-2021a netCDF-Fortran/4.5.3-iimpi-2021a FFTW/3.3.9-intel-2021a"
+
+module purge
+module load tools/prod
+module load Python/3.9.6-GCCcore-11.2.0
+source "${UDALES_VENV:-$HOME/udales/.venv}/bin/activate"
+
+export HDF5_USE_FILE_LOCKING=FALSE
+export MPLCONFIGDIR=${MPLCONFIGDIR:-$RUNDIR/.mpl}
+
+cd "$REPO"
+python tests/validation/nesting/run_v2.py "$RUNDIR" \
+    --sweep "$SWEEP" \
+    --parent-dir "$PARENTDIR" \
+    --reuse-dir "$V1DIR/904" \
+    --yes
+
+echo "finished : $(date)"
+echo "table    : $RUNDIR/analysis/sweep_summary.md"
+echo "machine  : $RUNDIR/analysis/sweep_summary.{csv,json}"

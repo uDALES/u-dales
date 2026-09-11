@@ -36,6 +36,7 @@ from .udprep_bcs import SPEC as BCS_SPEC
 from .udprep_grid import SPEC as GRID_SPEC
 from .udprep_forcing import SPEC as FORCING_SPEC
 from .udprep_ibm import SPEC as IBM_SPEC
+from .nesting import SPEC as NESTING_SPEC
 from .udprep_radiation import SPEC as RADIATION_SPEC
 from .udprep_scalars import SPEC as SCALARS_SPEC
 from .udprep_seb import SPEC as SEB_SPEC
@@ -56,6 +57,7 @@ class UDPrep:
         IBM_SPEC,
         RADIATION_SPEC,
         SEB_SPEC,
+        NESTING_SPEC,
     ]
     DEFAULTS_JSON = None
 

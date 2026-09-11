@@ -80,9 +80,11 @@ Gotchas (learned the hard way):
 - `git push` from a plain shell here has no GitHub credential (HTTPS remote, no helper/
   token) — push from VSCode Source Control / a VSCode integrated terminal instead.
 
-Tests:
+Tests (`--platform hpc` is what makes the CX3-only suites run; without it they are
+listed as SKIP, which is by design -- they are the ones too large for GitHub CI):
 ```bash
 python tests/run_tests.py supported --branch-a <branch_a> --branch-b <branch_b> --build-type <Debug|Release>
+python tests/run_tests.py all --platform hpc --branch-a <branch_a> --branch-b <branch_b> --build-type <Debug|Release>
 bash tests/integration/mpi_operators/run_test.sh
 python tests/integration/processor_boundaries/test_processor_boundaries.py
 ```
@@ -112,3 +114,348 @@ python tests/run_tests.py supported --branch-a <branch_a> --branch-b <branch_b> 
 bash tests/integration/mpi_operators/run_test.sh
 ```
 ```
+
+### CX3 addendum (2026-09, nesting test work)
+
+- The Python venv activation line above needs `module load tools/prod` FIRST,
+  otherwise `Python/3.9.6-GCCcore-11.2.0` is not visible and `python` dies with
+  `libpython3.9.so.1.0: cannot open shared object file`:
+  ```bash
+  module purge && module load tools/prod && module load Python/3.9.6-GCCcore-11.2.0
+  source ~/udales/.venv/bin/activate
+  ```
+- Debug builds (`./tools/build_executable.sh icl debug`) run the in-solver test
+  runmodes fine and are worth using: Intel's `-check bounds` catches array
+  overruns the release build reads straight past. Set
+  `FOR_DISABLE_DIAGNOSTIC_DISPLAY=FALSE` or the `forrtl: severe` message and
+  the traceback are suppressed and you only see exit code 152.
+- In-solver test runmodes take the namoptions file name from `argv[1]`, so a
+  driver can generate namelist variants freely (the nesting driver in
+  `tests/integration/nesting/` does this to vary `nprocx`/`nprocy` and to
+  select the abort cases).
+- The default `python3` on CX3 login nodes is **3.6**, which cannot parse
+  `from __future__ import annotations` and fails at import with
+  `SyntaxError: future feature annotations is not defined`. Any test driver
+  written against modern typing syntax needs the module-loaded 3.9 above --
+  the failure looks like a broken test, not a missing module.
+- Debug builds also carry `-init=snan -fpe0`, so an uninitialised real traps
+  at its first use rather than propagating. Worth running the integration
+  suites against Debug for that alone: it is how the nesting `timee` ordering
+  bug announced itself.
+
+### CX3 addendum (2026-09, V1 nesting validation harness)
+
+- **Measured solver throughput, neutral urban LES with full IBM.** Two sizes of
+  a periodic cube-array case (`iwallmom = 2`, `ipoiss = 0`, `ladaptive`, no
+  temperature/moisture), both on **4 ranks** on a login node:
+  256 x 128 x 64 = 2.10e6 cells, 128 cubes, `nfcts = 7168` -- 65 steps in 24.0 s
+  = **5.7e6 cell-steps/s**, `dt ~ 0.46 s`;
+  256 x 256 x 64 = 4.19e6 cells, 228 cubes, `nfcts = 12992` -- 80 steps in 62.0 s
+  = **5.4e6 cell-steps/s**, mean `dt = 0.379 s`, total Courant number ~1.2.
+  That is about 2x the 2.9e6 cell-steps/s previously recorded for
+  `tests/cases/526`, which carries trees, scalars and energy balance -- so quote
+  a per-case figure, not a universal one.
+- **IBM preprocessing cost scales with the domain, not just the geometry**: the
+  2.10e6-cell case above took 46 s through the legacy `IBM_preproc`, the
+  4.19e6-cell one 143 s.
+- **The IBM preprocessor `f2py` extension is not built in this checkout**;
+  `tools/preprocessing/build/bin/IBM_preproc` is. `UDPrep.ibm.run_all()`
+  defaults to `backend='f2py'` and raises
+  `RuntimeError: ibm_preproc_f2py module not available`; pass
+  `backend='legacy'` (or catch and retry) until
+  `tools/build_preprocessing.sh` has been run. Preprocessing the case above
+  through the legacy executable took 46 s.
+- **`UDPrep.forcing.generate_lscale` can double a mean pressure gradient.** With
+  no forcing switch set it writes `dpdx` into the `pgx` column of `lscale.inp`,
+  while `modstartup` forms `dpdxl(k) = -pgx(k) - dpdx` from `pgx` *and* the
+  `&PHYSICS` `dpdx` (`src/modstartup.f90:2236`). Set one or the other, never
+  both.
+- The solver takes the namelist path from `argv[1]`, so one case directory can
+  hold several namelists (e.g. `namoptions_spinup.<nr>` and `namoptions.<nr>`)
+  and be run in phases; `iexpnr` inside the file names the outputs. Restart
+  files are `initd<ntrun:08d>_<x>_<y>.<nr>` where `ntrun` is the *timestep
+  count*, so under `ladaptive` the name has to be discovered by globbing, not
+  predicted.
+
+### CX3 addendum (2026-09, nesting init-time I/O)
+
+- **Cold versus cached netCDF reads differ by ~25x on RDS, and it is easy to
+  measure the wrong one.** Timing `nesting_init`'s per-time-level flux check on
+  a 13 GB `nesting.inp` written moments earlier gave 1.4 s; the same run an hour
+  later, after the file had left the filesystem client's cache, gave 35 s. Every
+  read after that was 1.5 s again. **Always take the first-touch number**, or
+  say explicitly that the number is a cached one — `dd oflag=nocache
+  conv=notrunc,fdatasync count=0` does *not* evict on this filesystem, and with
+  ~350 GB of free RAM on a login node you cannot churn it out either. The only
+  reliable way found was to let time and other I/O pass.
+- Effective cold rates measured, both from `nf90_get_var` hyperslabs of a
+  NETCDF4 (HDF5) file with an unlimited time dimension: **130 MB/s** for 4.5 MB
+  reads (34 ms each) and **16 MB/s** for 74 kB reads (4.7 ms each). The small
+  case is latency-bound, not bandwidth-bound — about 5 ms per call regardless of
+  size. Sequential whole-file `dd` on the same filesystem sustains 8 GB/s, so do
+  not size an I/O budget from a streaming benchmark.
+- Login nodes here have 64 cores and ~500 GB RAM, so building a multi-GB test
+  fixture in memory is fine; writing 13 GB through `netCDF4` took ~7 s.
+
+### Reproducing the GitHub CI compiler locally on CX3 (2026-09)
+
+CI builds with gfortran; the CX3 default stack is Intel, and **Intel accepts code
+gfortran rejects**. The nesting branch hit this: `use mpi` gives gfortran one
+implicit interface per MPI routine per file, so mixing scalar and rank-1 actual
+arguments to `MPI_ALLREDUCE` in a single file is a hard error there and silent
+under ifort. Worth building both before pushing.
+
+```bash
+module purge && module load tools/prod
+module load foss/2023a netCDF-Fortran/4.6.1-gompi-2023a \
+            FFTW/3.3.10-GCC-12.3.0 CMake/3.26.3-GCCcore-12.3.0
+mkdir -p build/gnu && cd build/gnu
+FC=mpif90 cmake ../.. -DCMAKE_BUILD_TYPE=Debug \
+  -DNETCDF_DIR=$EBROOTNETCDF -DNETCDF_FORTRAN_DIR=$EBROOTNETCDFMINFORTRAN
+make -j8
+```
+
+To run the suites against it, pass the *same* modules as the runtime stack, since
+the test drivers reload modules in the run shell:
+
+```bash
+UDALES_RUNTIME_MODULES="tools/prod foss/2023a netCDF-Fortran/4.6.1-gompi-2023a FFTW/3.3.10-GCC-12.3.0" \
+UDALES_BUILD=$PWD/build/gnu/u-dales TMPDIR=$EPHEMERAL \
+  python tests/integration/nesting/test_nesting.py
+```
+
+OpenMPI needs `--oversubscribe` for login-node runs; the drivers add it when they
+detect Open MPI.
+
+Timings measured 2026-09 on a CX3 login node: `make -j8` from clean is ~4 min for
+the Debug configuration, so a gfortran cross-check before pushing is cheap.
+
+Pipe the build through `tee build.log` (into the build directory). The `lint`
+test group -- `python tests/run_tests.py lint`, included by `supported` --
+parses `build/*/build.log` and fails when a `(file, warning class)` count
+exceeds `tests/lint/build_warnings_baseline.txt`. It picks the newest usable
+*Debug* log, preferring GNU, and refuses a Release log (the warning flags only
+exist in Debug). `./tools/build_executable.sh icl debug` writes an acceptable
+Intel log by itself. See "Compiler warning gate" in `tests/README.md`.
+
+### CX3 addendum (2026-09, V1 converged run and the V2 sweep sizing)
+
+Measured stage times of the V1 "Big Brother" nesting validation, `converged`
+preset, PBS job 3991175, one node, `ncpus=64:mpiprocs=64:mem=128gb`, walltime
+used 4:08. Parent 256 x 256 x 64 (4.19e6 cells, 228 cubes, `nfcts = 12992`),
+child 128 x 128 x 64, 3600 dumped levels at `dtdump = 3 s`:
+
+| stage | time |
+|---|---|
+| parent case build (incl. IBM preprocessing) | 200 s |
+| parent spin-up, 10800 s simulated, no dumps | 5479 s |
+| parent production, 10800 s simulated + dumps | 5916 s |
+| child case build = slab cut over all 3600 parent levels | 608 s |
+| child run, 10190 s simulated | 1621 s |
+| analysis, 3400 parent + 3400 child levels | 1040 s |
+
+Derived rates worth reusing:
+
+- **Nested child solver throughput: 1.7e7 cell-steps/s on 64 ranks** for this
+  case (1.05e6 cells = 16 x 16 x 64 per rank, mean `dt ~ 0.38 s`). The 4-rank
+  parent figure recorded above is 5.4e6 cell-steps/s, so 16x the ranks bought
+  ~3.1x the throughput — but the two are different case sizes, so read that as
+  "scaling is far from perfect at this size", not as a measured efficiency.
+  Do not size a small nested child from perfect scaling.
+- **The slab cut reads the whole parent record whatever the child's size.**
+  170 GB of dumps; ~400 s of that 608 is the fixed read and the rest tracks the
+  nesting-file write at roughly 170 MB/s.
+- **Analysis I/O splits ~80/20 between parent and child** (a parent level is
+  47 MB against the child's 12.6 MB), so accumulating the parent once and
+  sharing it between several children is most of the saving available.
+- **`udprep.nesting.write_nesting_file` takes arrays, not a stream, so peak RSS
+  is the nesting file's size.** Observed 39 GB peak for a 35.2 GB file. Size a
+  `mem=` request from
+  `3 * 2 * (itot + jtot) * ktot * nzone * 8 bytes` per time level, times the
+  number of levels, plus ~5 GB. A 128 x 128 x 64 child at `nzone = 12` is
+  9.8 MB/level; at `nzone = 19`, 15.3 MB/level.
+- **Field dump volume:** `3 * itot * jtot * ktot * 4 bytes` per level
+  (single precision). 12.6 MB/level for 128 x 128 x 64, 47 MB/level for
+  256 x 256 x 64.
+
+`$EPHEMERAL` held 246 GB for that one V1 run (170 GB parent dumps + 76 GB child
+dumps and nesting file) against a ~11 TB quota, so volume was never the
+constraint on this work.
+
+### CX3 addendum (2026-09, V3/V4 geometry-mismatch harness)
+
+**PBS routing, and what a tighter walltime actually buys.** Queues are selected
+by `ncpus` and a walltime band, nothing else: `resources_max.ncpus` is 16 for
+`v1_small*`, 64 for `v1_medium*`, 128 for `v1_large*`, each in a `24` and a `72`
+hour flavour. So a `select=1:ncpus=64:...` job at 5 h and the same job at 8 h
+land in **the same queue** (`v1_medium24`) and a shorter request buys only
+backfill eligibility — that queue has `backfill_depth = 1`, so it does buy
+something, but not a different queue. Snapshot taken 2026-09 while the medium
+queue was the complaint: `v1_medium24` 288 queued / 19 running against
+`v1_small24a` 144 / 1270 and `v1_small72a` 24 / 3043, i.e. the 16-core queues
+were three orders of magnitude busier *running* jobs. The `...a` variants differ
+from their siblings only in `max_array_size` (10000 vs 0) — they are the
+array-job queues and cannot be selected by a resource request. `qstat -Q` and
+`qmgr -c "print queue <name>"` are how to check this; both are readable without
+privileges.
+
+**Flat versus cube-array cost per cell-step is the same; only `dt` differs.**
+Two periodic cases on 4 ranks, same solver settings, `dtmax = 0.5`:
+flat ground, 96 x 64 x 32 = 1.97e5 cells, 90 s simulated in 5.42 s of main loop
+at `dt = 0.5` throughout = **6.5e6 cell-steps/s**; aligned 16 m cube array,
+96 x 96 x 32 = 2.95e5 cells, 90 s in 9.07 s at `dt ~ 0.44` = **6.7e6
+cell-steps/s**. So the IBM facets cost essentially nothing per step here (193
+facets against 2017), and a flat parent is cheaper only because it never reaches
+the Courant limit and runs at `dtmax`. Budget a flat run at ~12 % fewer steps
+than an urban one of the same size, not at a lower cost per step.
+
+**The IBM wall function caps `z0` at about a tenth of the first cell height.**
+`modibm.f90:1383` requires `log(dist/facz0) > 1` at the first fluid point or it
+takes a fallback branch, so on a 2 m grid (first centre at 1 m) `z0` must stay
+below ~0.2 m. A flat LES parent therefore cannot carry a city-scale roughness
+(`z0 ~ 2 m` by Macdonald's morphometry for a `lambda_p = 0.25` cube array) at
+matched resolution — it would need a genuinely coarse grid. The default facet
+roughness the preprocessing writes is `z0 = 0.05 m`, `z0h = 0.00035 m`
+(`udprep_ibm.generate_factypes`, wall id 1), and `factypes.inp` is treated as
+authored input and never overwritten, so it can be supplied by hand.
+
+**`&PHYSICS` `luvolflowr` / `uflowrate` works and holds to ~0.2 %.** The
+controller averages `u` over the *fluid* cells of each level and then over the
+full depth (`modforces.f90:404-410`), so a target computed any other way — an
+unmasked mean, or one over a reduced array — is not the number the solver holds.
+Set `dpdx = 0` alongside it or the two forcings add.
+
+**`udgeom.create_cubes(..., 'SC')` clips two half cubes onto the spanwise
+periodic faces.** The total solid cell count in `solid_c.txt` matches the aligned
+array's exactly, but statistics reduced onto cell centres drop the last cell in
+each direction (`caselib.cell_centred`), and the staggered array puts solid cells
+in precisely that last spanwise row — so a solid-cell census taken on the reduced
+arrays differs by ~1 % between the two layouts while the geometries are
+equivalent. Compare `solid_c.txt`, not the reduced mask, when checking that two
+layouts carry the same plan area density.
+
+### CX3 addendum (2026-09, nesting test-suite blockers)
+
+- **GitHub runner compilers, read from a CI job log** (`gh run view <id>
+  -R uDALES/u-dales --log`, run 34050854706): `ubuntu-latest` has gfortran
+  13.2.0 (`4:13.2.0-7ubuntu1`), `macos-latest` Homebrew GCC 16.2.0; both
+  install Open MPI. The local `foss/2023a` recipe above is gfortran 12.3.0, so
+  the three majors report different warning sets (12 flags `-Wunused-value`
+  in `modstatsdump`, 13 and 16 do not) and
+  `tests/lint/build_warnings_baseline.txt` is recorded per major. `gh` needs
+  `-R uDALES/u-dales` here: the worktrees under `$EPHEMERAL` are on another
+  filesystem and git refuses to discover the repo across the mount.
+- **`MPI_Abort(comm, 1)` and `stop 1` both give `mpiexec` exit 1** under Intel
+  MPI 2021.2 and Open MPI 4.1.5, on 1 and 2 ranks (two-line probe program).
+- **A fresh `git worktree` has no submodules**: `cmake` fails with
+  "2decomp-fft does not contain a CMakeLists.txt" until
+  `git submodule update --init --recursive` has run in the worktree.
+  `tools/build_executable.sh icl` also needs `module load tools/prod` before
+  it, or `intel/2021a` is not visible.
+- **Case 064 (64^3, one cube) on the gfortran Debug build, login node:** 1x1
+  ~9.5 s initialisation + ~1.5 s/step; 2x2 (`--oversubscribe`) 16 steps in
+  18 s. That sizing is why the CI parity case runs 4 steps.
+
+### CX3 addendum (2026-09, D1 parent-side zone dump)
+
+- **A fresh worktree also lacks the preprocessing build**, not just the
+  submodules: `python tests/run_tests.py python-library` fails its
+  "python preprocessing reference integration" suite with
+  `View3D executable not found at <worktree>/tools/preprocessing/build/bin/view3d`.
+  Either run `./tools/build_preprocessing.sh icl` in the worktree or point
+  `VIEW3D_EXE` at the main checkout's binary
+  (`~/udales/u-dales/tools/preprocessing/build/bin/view3d`); with that the
+  suite passes (63 s) and the whole stream is green.  The IBM `f2py`
+  extension is likewise absent and `caselib.run_preprocessing` falls back to
+  the `IBM_preproc` executable by itself.
+- **Measured cost of `&NESTPARENT` on the tiny nesting parent** (96 x 96 x 32,
+  4 ranks, login node, Release/Intel): 40 dumps of a 64 x 64 box with an
+  8-cell band = 35.0 MB in 0.057 s of write calls on the slowest rank
+  (first dump 2.46 MB incl. the 1.72 MB init block, 9.5 ms).  The full field
+  dumps of the same run are 141.7 MB, i.e. the band files are 4.0x smaller
+  (5.1x by cell count for this geometry; the production geometry gives
+  ~15x).  `tests/validation/nesting/test_nestparent_tiny.py` -- parent run,
+  two child builds and a refined build off a coarse band-only driver --
+  takes 163 s on a login node.
+- The gfortran cross-check recipe above still holds: `foss/2023a` Debug
+  build of the D1 branch reports the baseline's 17 warnings, none new.
+
+### CX3 addendum (2026-09-07, D1 integration gate)
+
+- `tools/build_preprocessing.sh icl` loads a Python 3.13 module and it
+  displaces the venv's Python 3.9.6 on `PATH`, so f2py builds against 3.13 and
+  then has no `Python.h` for it (3.13 has no matching `-dev`/headers module
+  here). Use the `common` branch of the script instead
+  (`./tools/build_preprocessing.sh common`) together with
+  `CMake/3.22.1-GCCcore-11.2.0`, which matches the venv's own
+  `Python/3.9.6-GCCcore-11.2.0` toolchain and does not touch `PATH`'s Python.
+- With numpy 2.0.2 and setuptools 82 in `~/udales/.venv`, `numpy.f2py -c`
+  refuses the legacy distutils backend and requires `--backend meson`.
+  `tools/preprocessing/CMakeLists.txt` does not pass that flag, so on this
+  venv the f2py modules (`ibm_preproc_f2py`, `directshortwave_f2py`) have to
+  be built by hand: reuse the CMake invocation's compiler/include flags and
+  add `--backend meson` to the `f2py -c` command line directly, rather than
+  going through the CMake target.
+- The legacy `tools/preprocessing/build/bin/IBM_preproc` executable is no
+  longer produced by any CMake target in this tree. That is harmless: the
+  test harness's `ibm_backend='auto'` finds the hand-built f2py module first
+  and never looks for the executable.
+- A `tools/View3D` submodule binary built from a commit older than the
+  submodule's bound-obstructed-view-factors fix fails `test_view3d`'s
+  obstructor bound check (measured 1.31 against the expected <= 0.76) --
+  rebuild View3D after any submodule update rather than trusting a stale
+  `build/bin/view3d`.
+
+  Recorded from the integration gate that rebuilt both Intel debug/release
+  solver builds from clean and reran `nesting-unit`,
+  `test_nestparent_tiny.py`, and `test_v1_tiny.py` against them.
+
+### GitHub Actions run 34116796155 (PR #376, commit 80ed05e4): two unrelated CI breaks
+
+`macos-latest Debug`/`Release` and `ubuntu-latest Release` failed; `ubuntu-latest
+Debug`, `python-viz` and `docs` passed. The fix (originally intended as its own
+commit) landed inside `998cdbe0` ("nesting: record V3/V4 job ids in the README
+status block") because two agents shared this checkout and a `git commit`
+without `-a` still commits whatever another process left staged in the index --
+worth remembering before running unattended agents against one working tree.
+CI run 34122779017 on that commit is green on all four matrix legs plus
+python-viz and docs.
+
+- **macOS Debug and Release, all 8 `nesting-unit` suites**: every one failed
+  `setUpClass` the same way --
+  `RuntimeError: UDALES_REQUIRE_LAUNCHER=1, so an unusable launcher is a
+  failure, not a skip: MPI launcher is not usable here
+  (/opt/homebrew/opt/open-mpi/bin/mpiexec --oversubscribe): ... prterun was
+  unable to launch the specified application as it could not access an
+  executable: Executable: /bin/true`. `UDALES_REQUIRE_LAUNCHER` is new on this
+  branch; before it, `launch.require_launcher()`'s probe (`mpiexec
+  --oversubscribe -n 1 /bin/true`) failing on macOS just raised `SkipTest`,
+  which `run_tests.py` reports as PASS, so this Homebrew Open MPI 5 / PRRTE
+  problem was already there and already silent. It is a runner/toolchain
+  issue, not a uDALES bug: `mpiexec -n 1 /bin/true` fails the same way with no
+  uDALES build in the loop. Fix: `tests/test_suites.yml`'s `nesting-unit`
+  suites (7 unit runmodes + the I5 2x2 case) are now `platform: linux`, not
+  `any` -- the same restriction the file already applies to the I1 baseline
+  suite and to omitting `mpi operators`/`processor boundaries` from
+  `supported-macos`, for the same underlying reason. Revisit once the runner
+  image or Homebrew's `open-mpi` fixes the launcher.
+- **ubuntu-latest Release, `TestI1NoOpSmallCase`**: failed with `AssertionError:
+  ... : with lnesting = .false. the branch changed the answer`, plus `the small
+  case is not bitwise reproducible against itself` comparing two runs of the
+  *baseline* (`origin/master`) binary to each other. Since both sides of that
+  second comparison are pre-branch code, nothing in this branch can be the
+  cause. `ipoiss` here selects the FFTW-based Poisson solver, which plans with
+  `FFTW_MEASURE` (`src/modpois.f90`) -- a wall-clock-timed benchmark with no
+  bitwise-reproducibility guarantee run to run, the same cause
+  `TestI1NoOpExistingCase` (case 526, right below it in
+  `tests/integration/nesting/test_nesting_cases.py`) already documents and
+  works around with a "no worse than the baseline's own run-to-run spread"
+  comparison instead of byte equality. `TestI1NoOpSmallCase` assumed this case
+  was small enough to always be bit-identical and asserted so directly; it is
+  now reworked to use the same tolerance-based comparison. Verified locally
+  with the `foss/2023a` gfortran 12.3.0 Debug build recipe above
+  (`build/gnu-cifix`): the small case is still bitwise-identical there (spread
+  0.0 on every field), so the loosened assertions do not mask anything on this
+  toolchain -- they only add headroom for the Release-build/busy-runner
+  variance actually observed in CI. All 9 `nesting-unit`
+  `NestingUnitRunmodes` tests also passed against that build (735 s).

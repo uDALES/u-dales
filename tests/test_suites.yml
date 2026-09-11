@@ -7,7 +7,12 @@ description: Run curated test selections by support level from tests/test_suites
 # - suite.class: execution policy (`supported` or `experimental`)
 # - suite.kind: validation scope (`unit`, `integration`, `reference`, `system`, `regression`)
 # - suite.component: subsystem or ownership area (`udbase`, `udgeom`, `udprep`, `ibm`, etc.)
-# - suite.platform: expected runtime target (`linux`, `macos`, `hpc`, `any`)
+# - suite.platform: where the suite can run (`any`, `linux`, `macos`, `hpc`).
+#   `hpc` means TOO LARGE FOR A CI RUNNER: run_tests.py skips it (visibly, as
+#   SKIP in the summary) unless invoked with --platform hpc on the target
+#   machine. It is NOT a marker for "needs MPI" -- CI runners have MPI, and a
+#   suite that finishes in seconds there belongs under `any`, or it silently
+#   drops out of the merge gate the moment the label is honoured.
 # - suite.cost: rough runtime tier (`fast`, `medium`, `slow`)
 # - suite.command: argv list executed by tests/run_tests.py
 # - suite.env_<NAME>: optional per-suite environment override exposed as <NAME>
@@ -83,9 +88,32 @@ groups:
           - "{python}"
           - "{tests_dir}/integration/python_preproc_against_matlab/test_python_preproc_against_matlab.py"
 
+  # Compiler warnings are a class of defect CI catches and local testing did
+  # not: CI builds with gfortran, most development here is Intel, and the two
+  # disagree about both errors and warnings. This group closes that gap before
+  # a push. It parses a build log rather than building (a full Debug build is
+  # minutes; parsing is instant) and fails loudly when there is no usable log.
+  # The baseline records the gfortran major it was measured with; the gate
+  # fails on a log from a recorded major and is report-only (saying so) on
+  # any other, so it is safe in `supported-macos` too -- Homebrew's gfortran
+  # gates while its major is recorded and reports once it moves on.
+  lint:
+    suites:
+      - label: "lint: compiler warnings against the recorded baseline"
+        class: supported
+        kind: unit
+        component: build
+        platform: any
+        cost: fast
+        command:
+          - "{python}"
+          - "{tests_dir}/lint/check_build_warnings.py"
+
   supported:
     includes:
       - python-library
+      - lint
+      - nesting-unit
     suites:
       - label: "supported: regression"
         class: supported
@@ -103,7 +131,7 @@ groups:
         class: supported
         kind: integration
         component: ibm
-        platform: hpc
+        platform: any
         cost: medium
         env_UDALES_BUILD: "{repo_root}/build/{build_type_lower}/u-dales"
         command:
@@ -113,7 +141,7 @@ groups:
         class: supported
         kind: integration
         component: solver
-        platform: hpc
+        platform: any
         cost: medium
         env_UDALES_BUILD: "{repo_root}/build/{build_type_lower}/u-dales"
         command:
@@ -123,22 +151,664 @@ groups:
         class: supported
         kind: integration
         component: solver
-        platform: hpc
+        platform: any
         cost: medium
         env_UDALES_BUILD: "{repo_root}/build/{build_type_lower}/u-dales"
         command:
           - "{python}"
           - "{tests_dir}/integration/processor_boundaries/test_processor_boundaries.py"
+      # The no-op guarantee on a small periodic case, against a baseline the
+      # driver builds itself from origin/master with the compiler, build type
+      # and libraries of the build under test (tests/integration/nesting/
+      # _baseline.py) -- the same idea as the regression harness above, in a
+      # detached worktree rather than an in-place checkout. ~1 min of extra
+      # build on a runner. platform: linux for the same reason as the
+      # regression suite: master does not yet configure under Homebrew's CMake.
+      - label: "nesting: I1 no-op guarantee (small case, baseline built from origin/master)"
+        class: supported
+        kind: integration
+        component: nesting
+        platform: linux
+        cost: medium
+        env_UDALES_BUILD: "{repo_root}/build/{build_type_lower}/u-dales"
+        env_UDALES_REQUIRE_LAUNCHER: "1"
+        command:
+          - "{python}"
+          - "{tests_dir}/integration/nesting/test_nesting_cases.py"
+          - "TestI1NoOpSmallCase"
+
+  # The in-solver unit runmodes are class: supported and cost: fast, and they
+  # need only what CI already builds, so they belong in the merge gate. They
+  # sat in `nesting` -- reachable only from `all` -- which meant CI compiled
+  # nesting and then ran none of it.
+  #
+  # UDALES_REQUIRE_LAUNCHER=1 on every suite here: in the merge gate an MPI
+  # launcher that cannot start a one-rank job is a FAILURE. Without it the
+  # drivers raise SkipTest, a skip-only run exits 0, and run_tests.py prints
+  # PASS for a suite that never ran. Ad-hoc runs (no variable) keep the skip.
+  #
+  # platform: linux, not any: every suite here calls launch.require_launcher(),
+  # which runs `mpiexec --oversubscribe -n 1 /bin/true` to prove a one-rank job
+  # can start before trusting the real run. On the macos-latest runner this
+  # probe itself fails -- Homebrew Open MPI 5's prterun reports
+  # "unable to launch the specified application as it could not access an
+  # executable: Executable: /bin/true" -- so under UDALES_REQUIRE_LAUNCHER=1
+  # every suite here would hard-fail on macOS even though nothing in this repo
+  # is at fault (a fresh `mpiexec -n 1 /bin/true` fails the same way with no
+  # uDALES build involved). That mirrors why "supported: mpi operators
+  # integration", "supported: processor boundaries integration" and the I1
+  # baseline suite above are already absent from/restricted on macOS. Revisit
+  # once the runner image or Homebrew's open-mpi fixes this upstream.
+  nesting-unit:
+    suites:
+      - label: "nesting: weights unit runmode 1006 (U1-U7)"
+        class: supported
+        kind: unit
+        component: nesting
+        platform: linux
+        cost: fast
+        env_UDALES_BUILD: "{repo_root}/build/{build_type_lower}/u-dales"
+        env_UDALES_REQUIRE_LAUNCHER: "1"
+        command:
+          - "{python}"
+          - "{tests_dir}/integration/nesting/test_nesting.py"
+          - "NestingUnitRunmodes.test_runmode_1006_weights"
+      - label: "nesting: geometry unit runmode 1007 (U8-U14)"
+        class: supported
+        kind: unit
+        component: nesting
+        platform: linux
+        cost: fast
+        env_UDALES_BUILD: "{repo_root}/build/{build_type_lower}/u-dales"
+        env_UDALES_REQUIRE_LAUNCHER: "1"
+        command:
+          - "{python}"
+          - "{tests_dir}/integration/nesting/test_nesting.py"
+          - "NestingUnitRunmodes.test_runmode_1007_geometry"
+      - label: "nesting: io unit runmode 1008 (U15-U19, U21-U22, U44, U46-U47)"
+        class: supported
+        kind: unit
+        component: nesting
+        platform: linux
+        cost: fast
+        env_UDALES_BUILD: "{repo_root}/build/{build_type_lower}/u-dales"
+        env_UDALES_REQUIRE_LAUNCHER: "1"
+        command:
+          - "{python}"
+          - "{tests_dir}/integration/nesting/test_nesting.py"
+          - "NestingUnitRunmodes.test_runmode_1008_io"
+      - label: "nesting: flux unit runmode 1009 (U23-U28, U35-U39, U48)"
+        class: supported
+        kind: unit
+        component: nesting
+        platform: linux
+        cost: fast
+        env_UDALES_BUILD: "{repo_root}/build/{build_type_lower}/u-dales"
+        env_UDALES_REQUIRE_LAUNCHER: "1"
+        command:
+          - "{python}"
+          - "{tests_dir}/integration/nesting/test_nesting.py"
+          - "NestingUnitRunmodes.test_runmode_1009_flux"
+      - label: "nesting: update unit runmode 1010 (U29-U34, U45, U49)"
+        class: supported
+        kind: unit
+        component: nesting
+        platform: linux
+        cost: fast
+        env_UDALES_BUILD: "{repo_root}/build/{build_type_lower}/u-dales"
+        env_UDALES_REQUIRE_LAUNCHER: "1"
+        command:
+          - "{python}"
+          - "{tests_dir}/integration/nesting/test_nesting.py"
+          - "NestingUnitRunmodes.test_runmode_1010_update"
+      - label: "nesting: cold-start init unit runmode 1011 (U40-U43)"
+        class: supported
+        kind: unit
+        component: nesting
+        platform: linux
+        cost: fast
+        env_UDALES_BUILD: "{repo_root}/build/{build_type_lower}/u-dales"
+        env_UDALES_REQUIRE_LAUNCHER: "1"
+        command:
+          - "{python}"
+          - "{tests_dir}/integration/nesting/test_nesting.py"
+          - "NestingUnitRunmodes.test_runmode_1011_init"
+      - label: "nesting: abort cases (U13, U22, U27, F3, F4, F5, schema 2)"
+        class: supported
+        kind: unit
+        component: nesting
+        platform: linux
+        cost: fast
+        env_UDALES_BUILD: "{repo_root}/build/{build_type_lower}/u-dales"
+        env_UDALES_REQUIRE_LAUNCHER: "1"
+        command:
+          - "{python}"
+          - "{tests_dir}/integration/nesting/test_nesting.py"
+          - "NestingUnitRunmodes.test_abort_cases"
+      - label: "nesting: reported diagnostics (U14, schema 2 paths)"
+        class: supported
+        kind: unit
+        component: nesting
+        platform: linux
+        cost: fast
+        env_UDALES_BUILD: "{repo_root}/build/{build_type_lower}/u-dales"
+        env_UDALES_REQUIRE_LAUNCHER: "1"
+        command:
+          - "{python}"
+          - "{tests_dir}/integration/nesting/test_nesting.py"
+          - "NestingUnitRunmodes.test_reported_messages"
+
+      # The one multi-rank nesting case in CI: tests/cases/064 (a cube) with a
+      # 3 m guard, a 20 m ramp and tau = 4 s, on 1x1 and 2x2 -- oversubscribed
+      # on a 2-4 core runner; the driver adds --oversubscribe for Open MPI,
+      # which is what both runner images install. ~30 s on a Debug build.
+      - label: "nesting: I5 decomposition parity on 2x2 with a ramp, tau > 0 and a cube"
+        class: supported
+        kind: integration
+        component: nesting
+        platform: linux
+        cost: medium
+        env_UDALES_BUILD: "{repo_root}/build/{build_type_lower}/u-dales"
+        env_UDALES_REQUIRE_LAUNCHER: "1"
+        command:
+          - "{python}"
+          - "{tests_dir}/integration/nesting/test_nesting_cases.py"
+          - "TestI5CubeParity2x2"
+
+      # Not a nesting feature: it lives alongside the nesting suites because it
+      # shares their launch harness (tests/integration/nesting/_launch.py) and
+      # because idriver was touched preparing the nesting branch's GMD 2024
+      # indoor-outdoor precursor. Regression for a warm-started driver writer
+      # continuing its inflow-plane record instead of overwriting it from
+      # record 1 (src/moddriver.f90, src/modstartup.f90). Three solver runs on
+      # 1x1 and 1x2 ranks each, all on a tiny 32x32x32 grid -- a few seconds.
+      - label: "driver: warm-started writer continues its record (1x1, 1x2)"
+        class: supported
+        kind: integration
+        component: driver
+        platform: linux
+        cost: fast
+        env_UDALES_BUILD: "{repo_root}/build/{build_type_lower}/u-dales"
+        env_UDALES_REQUIRE_LAUNCHER: "1"
+        command:
+          - "{python}"
+          - "{tests_dir}/integration/driver_restart/test_driver_restart.py"
+
+  nesting:
+    includes:
+      - nesting-unit
+    suites:
+      # The small-case half of I1 runs in CI (see `supported`); this is the
+      # heavy half, tests/cases/526 on 4 ranks with IBM, trees and statistics,
+      # against the same self-built baseline.
+      - label: "nesting: I1 no-op guarantee (existing case 526, 4 ranks)"
+        class: experimental
+        kind: integration
+        component: nesting
+        platform: hpc
+        cost: medium
+        env_UDALES_BUILD: "{repo_root}/build/{build_type_lower}/u-dales"
+        command:
+          - "{python}"
+          - "{tests_dir}/integration/nesting/test_nesting_cases.py"
+          - "TestI1NoOpExistingCase"
+      - label: "nesting: I2 face imposition survives projection"
+        class: experimental
+        kind: integration
+        component: nesting
+        platform: hpc
+        cost: fast
+        env_UDALES_BUILD: "{repo_root}/build/{build_type_lower}/u-dales"
+        command:
+          - "{python}"
+          - "{tests_dir}/integration/nesting/test_nesting_cases.py"
+          - "TestI2FaceImposition"
+      - label: "nesting: I3 uniform flow"
+        class: experimental
+        kind: integration
+        component: nesting
+        platform: hpc
+        cost: fast
+        env_UDALES_BUILD: "{repo_root}/build/{build_type_lower}/u-dales"
+        command:
+          - "{python}"
+          - "{tests_dir}/integration/nesting/test_nesting_cases.py"
+          - "TestI3UniformFlow"
+      - label: "nesting: I4 manufactured solenoidal field"
+        class: experimental
+        kind: integration
+        component: nesting
+        platform: hpc
+        cost: medium
+        env_UDALES_BUILD: "{repo_root}/build/{build_type_lower}/u-dales"
+        command:
+          - "{python}"
+          - "{tests_dir}/integration/nesting/test_nesting_cases.py"
+          - "TestI4ManufacturedSolenoidal"
+      - label: "nesting: I5 decomposition parity"
+        class: experimental
+        kind: integration
+        component: nesting
+        platform: hpc
+        cost: medium
+        env_UDALES_BUILD: "{repo_root}/build/{build_type_lower}/u-dales"
+        command:
+          - "{python}"
+          - "{tests_dir}/integration/nesting/test_nesting_cases.py"
+          - "TestI5DecompositionParity"
+      - label: "nesting: I6 restart parity"
+        class: experimental
+        kind: integration
+        component: nesting
+        platform: hpc
+        cost: medium
+        env_UDALES_BUILD: "{repo_root}/build/{build_type_lower}/u-dales"
+        command:
+          - "{python}"
+          - "{tests_dir}/integration/nesting/test_nesting_cases.py"
+          - "TestI6RestartParity"
+      - label: "nesting: I6 restart parity on 2x2 with a cube"
+        class: experimental
+        kind: integration
+        component: nesting
+        platform: hpc
+        cost: medium
+        env_UDALES_BUILD: "{repo_root}/build/{build_type_lower}/u-dales"
+        command:
+          - "{python}"
+          - "{tests_dir}/integration/nesting/test_nesting_cases.py"
+          - "TestI6CubeRestartParity2x2"
+      - label: "nesting: I7 zone isolation"
+        class: experimental
+        kind: integration
+        component: nesting
+        platform: hpc
+        cost: fast
+        env_UDALES_BUILD: "{repo_root}/build/{build_type_lower}/u-dales"
+        command:
+          - "{python}"
+          - "{tests_dir}/integration/nesting/test_nesting_cases.py"
+          - "TestI7ZoneIsolation"
+      - label: "nesting: I8 IBM interaction"
+        class: experimental
+        kind: integration
+        component: nesting
+        platform: hpc
+        cost: medium
+        env_UDALES_BUILD: "{repo_root}/build/{build_type_lower}/u-dales"
+        command:
+          - "{python}"
+          - "{tests_dir}/integration/nesting/test_nesting_cases.py"
+          - "TestI8IbmInteraction"
+      - label: "nesting: I9 cold start from the parent"
+        class: experimental
+        kind: integration
+        component: nesting
+        platform: hpc
+        cost: fast
+        env_UDALES_BUILD: "{repo_root}/build/{build_type_lower}/u-dales"
+        command:
+          - "{python}"
+          - "{tests_dir}/integration/nesting/test_nesting_cases.py"
+          - "TestI9ColdStartFromParent"
+      - label: "nesting: I10 leaky lid (BCtopm_pressure)"
+        class: experimental
+        kind: integration
+        component: nesting
+        platform: hpc
+        cost: fast
+        env_UDALES_BUILD: "{repo_root}/build/{build_type_lower}/u-dales"
+        command:
+          - "{python}"
+          - "{tests_dir}/integration/nesting/test_nesting_cases.py"
+          - "TestI10LeakyLid"
+      - label: "nesting: unit runmodes on 1x1/2x1/1x2/2x2"
+        class: experimental
+        kind: integration
+        component: nesting
+        platform: hpc
+        cost: medium
+        env_UDALES_BUILD: "{repo_root}/build/{build_type_lower}/u-dales"
+        command:
+          - "{python}"
+          - "{tests_dir}/integration/nesting/test_nesting.py"
+          - "NestingUnitRunmodes.test_runmodes_on_all_decompositions"
+
+  # V1 "Big Brother" nesting validation (docs/udales-nesting-design.md 10.4).
+  # An on-demand campaign, NOT a gate: this group is deliberately not included
+  # by `all`, `supported` or `nesting`, and must be asked for by name.
+  nesting-validation:
+    suites:
+      - label: "nesting-validation: V1 tiny end-to-end (harness smoke test)"
+        class: experimental
+        kind: system
+        component: nesting
+        platform: hpc
+        cost: fast
+        env_UDALES_BUILD: "{repo_root}/build/{build_type_lower}/u-dales"
+        command:
+          - "{python}"
+          - "{tests_dir}/validation/nesting/test_v1_tiny.py"
+      - label: "nesting-validation: V1 Big Brother production campaign"
+        class: experimental
+        kind: system
+        component: nesting
+        platform: hpc
+        cost: slow
+        env_UDALES_BUILD: "{repo_root}/build/{build_type_lower}/u-dales"
+        env_UDALES_V1_RUNDIR: "{repo_root}/build/nesting-validation-v1"
+        command:
+          - "{python}"
+          - "{tests_dir}/validation/nesting/run_v1.py"
+          - "{repo_root}/build/nesting-validation-v1"
+          - "--preset"
+          - "production"
+          - "--yes"
+      - label: "nesting-validation: V2 tiny sweep (harness smoke test)"
+        class: experimental
+        kind: system
+        component: nesting
+        platform: hpc
+        cost: medium
+        env_UDALES_BUILD: "{repo_root}/build/{build_type_lower}/u-dales"
+        command:
+          - "{python}"
+          - "{tests_dir}/validation/nesting/test_v2_tiny.py"
+      # Reuses the V1 parent and the V1 child rather than running them, so the
+      # V1 production entry above has to have run first -- --parent-dir and
+      # --reuse-dir below point into its run directory.  On CX3 submit
+      # tests/validation/nesting/submit_cx3_v2.pbs instead: it defaults to the
+      # 'converged' V1 run in $EPHEMERAL and is sized against its measured
+      # stage times.
+      - label: "nesting-validation: V2 falsification sweep (production)"
+        class: experimental
+        kind: system
+        component: nesting
+        platform: hpc
+        cost: slow
+        env_UDALES_BUILD: "{repo_root}/build/{build_type_lower}/u-dales"
+        command:
+          - "{python}"
+          - "{tests_dir}/validation/nesting/run_v2.py"
+          - "{repo_root}/build/nesting-validation-v2"
+          - "--sweep"
+          - "v2"
+          - "--parent-dir"
+          - "{repo_root}/build/nesting-validation-v1/903"
+          - "--reuse-dir"
+          - "{repo_root}/build/nesting-validation-v1/904"
+          - "--yes"
+      - label: "nesting-validation: C0 tiny cadence sweeps (harness smoke test)"
+        class: experimental
+        kind: system
+        component: nesting
+        platform: hpc
+        cost: medium
+        env_UDALES_BUILD: "{repo_root}/build/{build_type_lower}/u-dales"
+        command:
+          - "{python}"
+          - "{tests_dir}/validation/nesting/test_c0_tiny.py"
+      # C0a: the V1 child at 6 s and 9 s boundary cadence (and Catmull-Rom at
+      # 3 s), sliced from the V1 parent's existing dumps, against the reused V1
+      # child -- so the V1 production entry has to have run first.  On CX3:
+      #   qsub -v UDALES_V2_SWEEP=c0,UDALES_V2_RUNDIR=$EPHEMERAL/nesting-c0a \
+      #        -l walltime=03:00:00 tests/validation/nesting/submit_cx3_v2.pbs
+      - label: "nesting-validation: C0a cadence sweep off the existing dumps (production)"
+        class: experimental
+        kind: system
+        component: nesting
+        platform: hpc
+        cost: slow
+        env_UDALES_BUILD: "{repo_root}/build/{build_type_lower}/u-dales"
+        command:
+          - "{python}"
+          - "{tests_dir}/validation/nesting/run_v2.py"
+          - "{repo_root}/build/nesting-validation-c0a"
+          - "--sweep"
+          - "c0"
+          - "--parent-dir"
+          - "{repo_root}/build/nesting-validation-v1/903"
+          - "--reuse-dir"
+          - "{repo_root}/build/nesting-validation-v1/904"
+          - "--yes"
+      # C0b: a parent warm-started from the V1 parent's end-of-spin-up restart,
+      # dumping every 0.5 s, and six children sliced from it at 0.5-9 s.  On CX3
+      # submit tests/validation/nesting/submit_cx3_c0b.pbs instead.
+      - label: "nesting-validation: C0b fine-cadence ladder (production)"
+        class: experimental
+        kind: system
+        component: nesting
+        platform: hpc
+        cost: slow
+        env_UDALES_BUILD: "{repo_root}/build/{build_type_lower}/u-dales"
+        command:
+          - "{python}"
+          - "{tests_dir}/validation/nesting/run_v2.py"
+          - "{repo_root}/build/nesting-validation-c0b"
+          - "--sweep"
+          - "c0b"
+          - "--parent-restart-dir"
+          - "{repo_root}/build/nesting-validation-v1/903"
+          - "--yes"
+      - label: "nesting-validation: V0 tiny refinement suite (harness smoke test)"
+        class: experimental
+        kind: system
+        component: nesting
+        platform: hpc
+        cost: medium
+        env_UDALES_BUILD: "{repo_root}/build/{build_type_lower}/u-dales"
+        command:
+          - "{python}"
+          - "{tests_dir}/validation/nesting/test_v0_tiny.py"
+      # V0 measures every child against a fine, unnested reference and drives the
+      # 'filtered' arm from that same reference's dumps, so the V1 production
+      # entry above has to have run first -- --reference-dir points at it.  On
+      # CX3 submit tests/validation/nesting/submit_cx3_v0.pbs instead: it
+      # defaults to the 'converged' V1 run in $EPHEMERAL and is sized against
+      # its measured stage times.
+      - label: "nesting-validation: V0 refinement validation (production)"
+        class: experimental
+        kind: system
+        component: nesting
+        platform: hpc
+        cost: slow
+        env_UDALES_BUILD: "{repo_root}/build/{build_type_lower}/u-dales"
+        command:
+          - "{python}"
+          - "{tests_dir}/validation/nesting/run_v0.py"
+          - "{repo_root}/build/nesting-validation-v0"
+          - "--suite"
+          - "v0"
+          - "--reference-dir"
+          - "{repo_root}/build/nesting-validation-v1/903"
+          - "--yes"
+      # V0b -- which tangential prolongation ships (plan section 7, finding
+      # R2): constant vs. linear, at r = 2 and r = 4, driven by a box-filtered
+      # fine parent, at the final cadence (0.5 s) and interpolant
+      # (Catmull-Rom).  Production is submitted by hand
+      # (tests/validation/nesting/submit_cx3_v0b.pbs) because it reads the C0b
+      # fine parent from an external, cluster-specific $EPHEMERAL path (960,
+      # $EPHEMERAL/nesting-c0b/960) rather than a case this harness builds
+      # itself; only the tiny smoke test -- which builds and runs its own tiny
+      # fine parent -- runs here.
+      - label: "nesting-validation: V0b tiny prolongation suite (harness smoke test)"
+        class: experimental
+        kind: system
+        component: nesting
+        platform: hpc
+        cost: medium
+        env_UDALES_BUILD: "{repo_root}/build/{build_type_lower}/u-dales"
+        command:
+          - "{python}"
+          - "{tests_dir}/validation/nesting/test_v0b_tiny.py"
+      # V0c -- is criterion A genuinely violated at r > 1, or is the 1800 s
+      # window V0b used too short to tell from sampling noise (design plan
+      # review, finding 1)?  A matched-resolution control (r = 1) plus r = 2, 4,
+      # all against one fresh fine truth, at ~6x V0b's window.  Production is
+      # submitted by hand (tests/validation/nesting/submit_cx3_v0c.pbs)
+      # because it builds and runs its own ~1 TB fine-truth parent on CX3;
+      # only the tiny smoke test -- which builds and runs its own tiny fine
+      # parent -- runs here.
+      - label: "nesting-validation: V0c tiny matched-control suite (harness smoke test)"
+        class: experimental
+        kind: system
+        component: nesting
+        platform: hpc
+        cost: medium
+        env_UDALES_BUILD: "{repo_root}/build/{build_type_lower}/u-dales"
+        command:
+          - "{python}"
+          - "{tests_dir}/validation/nesting/test_v0c_tiny.py"
+      # V0c16 -- V0c's own suite, decomposed for CX3's 16-core queues (job
+      # 4004496, ncpus=64:mem=300gb, sat queued in v1_medium24 for hours; the
+      # 16-core queues turn over far better).  A separate preset/suite/expnr
+      # block (992-997), not a mutation of V0c's own objects, so 4004496 keeps
+      # working if it ever starts.  Production is submitted by hand
+      # (tests/validation/nesting/submit_cx3_v0c16.pbs) from its own
+      # $EPHEMERAL directory; only the tiny smoke test runs here, at the real
+      # 4x4/16-rank decomposition.
+      - label: "nesting-validation: V0c16 tiny matched-control suite (harness smoke test)"
+        class: experimental
+        kind: system
+        component: nesting
+        platform: hpc
+        cost: medium
+        env_UDALES_BUILD: "{repo_root}/build/{build_type_lower}/u-dales"
+        command:
+          - "{python}"
+          - "{tests_dir}/validation/nesting/test_v0c16_tiny.py"
+      # V3 and V4 -- the two experiments where parent and child geometry differ
+      # (design section 9.4).  The tiny entry drives both end to end and also
+      # checks the production experiments' configuration, including that V4's
+      # child really is the V1 converged child.
+      - label: "nesting-validation: V3/V4 geometry-mismatch tiny end-to-end (harness smoke test)"
+        class: experimental
+        kind: system
+        component: nesting
+        platform: hpc
+        cost: medium
+        env_UDALES_BUILD: "{repo_root}/build/{build_type_lower}/u-dales"
+        command:
+          - "{python}"
+          - "{tests_dir}/validation/nesting/test_v34_tiny.py"
+      # V3 runs its own two periodic runs (an equilibrium reference and a flat
+      # parent) and needs nothing from V1.  On CX3 submit
+      # tests/validation/nesting/submit_cx3_v3.pbs instead.
+      - label: "nesting-validation: V3 parent without buildings (production)"
+        class: experimental
+        kind: system
+        component: nesting
+        platform: hpc
+        cost: slow
+        env_UDALES_BUILD: "{repo_root}/build/{build_type_lower}/u-dales"
+        command:
+          - "{python}"
+          - "{tests_dir}/validation/nesting/run_geometry.py"
+          - "{repo_root}/build/nesting-validation-v3"
+          - "--experiment"
+          - "v3"
+          - "--yes"
+      # V4 is measured as a difference from the V1 converged child, so the V1
+      # production entry above has to have run first -- --baseline-dir points at
+      # it.  On CX3 submit tests/validation/nesting/submit_cx3_v4.pbs instead: it
+      # defaults to the 'converged' V1 run in $EPHEMERAL.
+      - label: "nesting-validation: V4 different parent geometry (production)"
+        class: experimental
+        kind: system
+        component: nesting
+        platform: hpc
+        cost: slow
+        env_UDALES_BUILD: "{repo_root}/build/{build_type_lower}/u-dales"
+        command:
+          - "{python}"
+          - "{tests_dir}/validation/nesting/run_geometry.py"
+          - "{repo_root}/build/nesting-validation-v4"
+          - "--experiment"
+          - "v4"
+          - "--baseline-dir"
+          - "{repo_root}/build/nesting-validation-v1/904"
+          - "--yes"
+      - label: "nesting-validation: D1 parent-side zone dump, tiny (bit identity, size ratio, refined build, parent restart)"
+        class: experimental
+        kind: system
+        component: nesting
+        platform: hpc
+        cost: fast
+        env_UDALES_BUILD: "{repo_root}/build/{build_type_lower}/u-dales"
+        command:
+          - "{python}"
+          - "{tests_dir}/validation/nesting/test_nestparent_tiny.py"
+      # The GMD 2024 indoor-outdoor enclosure, parametrised on wall thickness
+      # (tests/validation/nesting/indoor_geometry.py).  Pure geometry, no
+      # solver: it pins the cavity as the invariant and reproduces every
+      # structural plane of the published STL.  The two tests that compare
+      # against the published file skip with a reason unless
+      # UDALES_GMD2024_INPUTS points at the extracted inputs; the hard-coded
+      # plane checks run either way, so the entry is not vacuous offline.
+      - label: "nesting-validation: GMD 2024 indoor-outdoor geometry (no solver)"
+        class: experimental
+        kind: unit
+        component: nesting
+        platform: any
+        cost: fast
+        command:
+          - "{python}"
+          - "{tests_dir}/validation/nesting/test_indoor_geometry.py"
+      # The GMD 2024 indoor-outdoor CHILD case builder
+      # (tests/validation/nesting/make_gmd_child_case.py): grid nesting,
+      # geometry translation, check_wall at this case's own resolution and the
+      # namelist transform, all against a synthetic stand-in parent -- no
+      # solver, no parent run. The &NESTPARENT box cross-check and the full
+      # end-to-end build additionally need the real parent case directory
+      # (env UDALES_GMD_PARENT_DIR) and skip with a reason without it.
+      - label: "nesting-validation: GMD 2024 indoor-outdoor child case builder (no solver)"
+        class: experimental
+        kind: unit
+        component: nesting
+        platform: any
+        cost: fast
+        command:
+          - "{python}"
+          - "{tests_dir}/validation/nesting/test_gmd_child_case.py"
+      - label: "nesting-validation: driving-parent TKE estimator (R1 regression, no solver)"
+        class: experimental
+        kind: unit
+        component: nesting
+        platform: any
+        cost: fast
+        command:
+          - "{python}"
+          - "{tests_dir}/validation/nesting/test_tke_estimator.py"
+      # V6 -- does mass drift over long nested runs? (design section 10.4 row
+      # V6).  Needs no other production entry to have run first: it builds its
+      # own short parent record from scratch, same as the tiny run below, only
+      # further past it (nest_lendabort = .false.).  Production is submitted
+      # by hand (tests/validation/nesting/submit_cx3_v6.pbs) because it targets
+      # ~1e5 steps -- hours of wall time on its own 4-rank job, sized from a
+      # measured step rate in the PBS script's header, not something this
+      # harness should run as part of an automated suite.
+      - label: "nesting-validation: V6 mass-drift tiny end-to-end (harness smoke test)"
+        class: experimental
+        kind: system
+        component: nesting
+        platform: hpc
+        cost: medium
+        env_UDALES_BUILD: "{repo_root}/build/{build_type_lower}/u-dales"
+        command:
+          - "{python}"
+          - "{tests_dir}/validation/nesting/test_v6_tiny.py"
 
   supported-macos:
     includes:
       - python-library
+      - lint
+      - nesting-unit
     suites:
       - label: "supported: ibm sparse input integration"
         class: supported
         kind: integration
         component: ibm
-        platform: hpc
+        platform: any
         cost: medium
         env_UDALES_BUILD: "{repo_root}/build/{build_type_lower}/u-dales"
         command:
@@ -217,3 +887,4 @@ groups:
     includes:
       - supported
       - experimental
+      - nesting
