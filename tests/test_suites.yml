@@ -754,6 +754,22 @@ groups:
         command:
           - "{python}"
           - "{tests_dir}/validation/nesting/test_indoor_geometry.py"
+      # The GMD 2024 indoor-outdoor CHILD case builder
+      # (tests/validation/nesting/make_gmd_child_case.py): grid nesting,
+      # geometry translation, check_wall at this case's own resolution and the
+      # namelist transform, all against a synthetic stand-in parent -- no
+      # solver, no parent run. The &NESTPARENT box cross-check and the full
+      # end-to-end build additionally need the real parent case directory
+      # (env UDALES_GMD_PARENT_DIR) and skip with a reason without it.
+      - label: "nesting-validation: GMD 2024 indoor-outdoor child case builder (no solver)"
+        class: experimental
+        kind: unit
+        component: nesting
+        platform: any
+        cost: fast
+        command:
+          - "{python}"
+          - "{tests_dir}/validation/nesting/test_gmd_child_case.py"
       - label: "nesting-validation: driving-parent TKE estimator (R1 regression, no solver)"
         class: experimental
         kind: unit

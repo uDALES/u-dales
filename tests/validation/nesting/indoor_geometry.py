@@ -167,13 +167,26 @@ _QUADS = ((0, 3, 2, 1), (4, 5, 6, 7), (0, 1, 5, 4),
 
 
 def write_stl(path: Path, t: float, ground: bool = False,
-              domain: Sequence[float] = (3.42, 1.80)) -> Path:
-    """Write the shell (optionally with a ground plane) as an ascii STL."""
+              domain: Sequence[float] = (3.42, 1.80),
+              origin: Tuple[float, float] = (0.0, 0.0)) -> Path:
+    """Write the shell (optionally with a ground plane) as an ascii STL.
+
+    ``origin`` is subtracted from every shell vertex's ``(x, y)`` -- ``z`` is
+    untouched, since the vertical is never re-based -- so a child whose own
+    domain starts at ``(x0, y0)`` in the parent's coordinates gets the
+    enclosure in its OWN coordinates without duplicating the box geometry
+    above.  The ground plane (already given in the caller's own local
+    ``domain`` extent, not the module's absolute constants) is unaffected:
+    default ``(0.0, 0.0)`` reproduces the previous behaviour exactly.
+    """
     path = Path(path)
+    ox, oy = float(origin[0]), float(origin[1])
     tris: List[Tuple[Tuple[float, float, float], ...]] = []
     for (x0, x1, y0, y1, z0, z1) in boxes(t):
-        c = [(x0, y0, z0), (x1, y0, z0), (x1, y1, z0), (x0, y1, z0),
-             (x0, y0, z1), (x1, y0, z1), (x1, y1, z1), (x0, y1, z1)]
+        c = [(x0 - ox, y0 - oy, z0), (x1 - ox, y0 - oy, z0),
+             (x1 - ox, y1 - oy, z0), (x0 - ox, y1 - oy, z0),
+             (x0 - ox, y0 - oy, z1), (x1 - ox, y0 - oy, z1),
+             (x1 - ox, y1 - oy, z1), (x0 - ox, y1 - oy, z1)]
         for a, b, d, e in _QUADS:
             tris += [(c[a], c[b], c[d]), (c[a], c[d], c[e])]
     if ground:
