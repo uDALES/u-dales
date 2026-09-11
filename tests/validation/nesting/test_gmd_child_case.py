@@ -307,7 +307,11 @@ class TestChildSections(unittest.TestCase):
         self.assertIs(sec["NESTING"]["nest_lendabort"], True)
         self.assertEqual(sec["NESTING"]["nest_shape"], 1)
         self.assertEqual(sec["NESTING"]["nest_timeinterp"], 2)
-        self.assertEqual(sec["NESTING"]["nest_tau"], gc.NEST_TAU)
+        # tau = n_tau dt with n_tau = 2, the campaign's ratio (1.0 s at 0.5 s),
+        # not the campaign's 1.0 s itself: here dt is 0.8 ms at r = 1.
+        self.assertAlmostEqual(sec["NESTING"]["nest_tau"],
+                               gc.N_TAU_STEPS * sec["RUN"]["dtmax"], places=12)
+        self.assertAlmostEqual(sec["NESTING"]["nest_tau"], 2 * 0.0008, places=12)
 
     def test_itot_jtot_dtmax_and_zone_widths(self):
         for r in (1, 2):

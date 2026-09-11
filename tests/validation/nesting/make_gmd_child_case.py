@@ -96,15 +96,19 @@ GUARD_CELLS = 4
 ZONE_CELLS = 8
 NZONE_CHILD = GUARD_CELLS + ZONE_CELLS
 
-#: This case's relaxation timescale [s].  Borrowed verbatim from
-#: ``tests/validation/nesting/config.py``'s ``PRODUCTION`` preset
-#: (``PRODUCTION.tau == 1.0``) rather than invented afresh: that preset uses
-#: the same guard(6)+ramp(18) design-section-1.4 split in spirit -- ``nzone``
-#: here is a shorter 4+8 -- and its ``tau = 1.0 s`` is the value the campaign
-#: has actually exercised end to end (V1-V6). Re-deriving one from scratch for
-#: a case that otherwise reuses this codebase's nesting machinery wholesale
-#: would be a second, unvalidated number to defend for no benefit.
-NEST_TAU = 1.0
+#: Relaxation time in TIMESTEPS.  The design (docs/udales-nesting-design.md,
+#: "tau = n_tau dt") makes tau a multiple of the timestep, and the campaign's
+#: PRODUCTION preset ran tau = 1.0 s at dtmax = 0.5 s, i.e. n_tau = 2, for
+#: V1-V6.  The number that transfers between cases is n_tau, not the second:
+#: this case's timestep is 0.4-0.8 ms and its zone is 40 mm wide, crossed by
+#: the flow in ~8 ms, so a literal 1.0 s would leave the zone essentially
+#: unforced.
+N_TAU_STEPS = 2
+
+
+def nest_tau(dtmax_child: float) -> float:
+    """``nest_tau`` [s] for a child with timestep ``dtmax_child``: n_tau = 2."""
+    return N_TAU_STEPS * float(dtmax_child)
 
 
 def parent_dx(itot: int = PARENT_ITOT, xlen: float = PARENT_XLEN) -> float:
@@ -369,7 +373,7 @@ def child_sections(
         ("lnesting", True),
         ("nest_guardwidth", GUARD_CELLS * dx_child),
         ("nest_zonewidth", ZONE_CELLS * dx_child),
-        ("nest_tau", NEST_TAU),
+        ("nest_tau", nest_tau(dtmax_child)),
         ("nest_shape", 1),
         ("nest_timeinterp", 2),
         ("nest_nwall", 1),
@@ -584,7 +588,8 @@ def build_from_parent_run(parent_dir: Path, case: ChildCase, *,
         "nzone_child_cells": NZONE_CHILD,
         "nest_guardwidth_m": GUARD_CELLS * dx_child,
         "nest_zonewidth_m": ZONE_CELLS * dx_child,
-        "nest_tau_s": NEST_TAU,
+        "nest_tau_s": nest_tau(case.dtmax),
+        "n_tau_steps": N_TAU_STEPS,
         "prolongation": prolongation if r > 1 else None,
         "n_parent_levels": int(times.size),
         "t_offset": t_offset,
