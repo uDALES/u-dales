@@ -16,6 +16,8 @@ from udprep.synthetic_inflow import (
     _autocorr_1d,
     _integral_scale_to_first_zero,
     assemble_driver_plane,
+    centres_from_prof,
+    edges_from_prof,
     integral_length_scale_periodic,
     integral_time_scale,
     jh_kh_for_advection,
@@ -28,6 +30,14 @@ from udprep.synthetic_inflow import (
     uniform_zf_zh,
     write_length_time_scales_file,
     write_reynolds_stress_file,
+)
+
+# The real GMD 2024 indoor-outdoor prof.inp this fix targets: 128 levels,
+# dz = 3.5 mm near the wall, exponentially stretched up to zsize = 0.96 m.
+# Skipped if not present on the current machine (it lives on ephemeral
+# scratch, not in the repo).
+_GMD_PROF_INP = Path(
+    "/rds/general/ephemeral/user/mvr/ephemeral/gmd-indoor/prod567/prof.inp.567"
 )
 
 
@@ -383,6 +393,181 @@ class TestDriverFilePath(unittest.TestCase):
         for name in ("u", "v", "w"):
             sc = np.loadtxt(out_dir / f"length_time_scales_{name}.txt", skiprows=1)
             self.assertEqual(sc.shape, (self.ktot + 1, 4))
+
+
+class TestEdgesFromProf(unittest.TestCase):
+    def test_reproduces_gmd_grid(self):
+        if not _GMD_PROF_INP.is_file():
+            self.skipTest(f"{_GMD_PROF_INP} not available on this machine")
+
+        zf = centres_from_prof(_GMD_PROF_INP)
+        zh = edges_from_prof(_GMD_PROF_INP)
+
+        self.assertEqual(len(zf), 128)
+        self.assertEqual(len(zh), 129)
+        # dz = 3.5mm near the wall: zf[0] = dz/2, zf[1] = 3*dz/2.
+        self.assertAlmostEqual(zf[0], 0.00175, places=6)
+        self.assertAlmostEqual(zf[1], 0.00525, places=6)
+        # bottom edge is exactly 0, top edge is the file's own zsize (0.96),
+        # to within round-off from the recursive zh(k+1)=zh(k)+2*(zf(k)-zh(k))
+        # construction.
+        self.assertEqual(zh[0], 0.0)
+        self.assertAlmostEqual(zh[-1], 0.96, places=9)
+        self.assertTrue(np.all(np.diff(zh) > 0.0))
+
+
+class TestStretchedGridDriverPath(unittest.TestCase):
+    """Reproduces the GMD-style stretched vertical grid (linear near the wall,
+    then exponential stretching), on which the generator's input files must be
+    placed on the target's real prof.inp edges, not on a uniform grid.
+    """
+
+    def setUp(self):
+        self.expnr = 555
+        self.nprocy = 2
+        self.jtot = 20
+        self.ktot = 8
+        self.jh, self.kh = 1, 1
+        self.zsize = 6.0
+        self.ylen = 20.0
+        self.dt = 0.1
+        self.nt = 3
+
+        # stretched edges: zh = zsize * (k/ktot)**1.5 (same recipe as the GMD
+        # case's exponential stretching, simplified to a single power law for
+        # a compact, deterministic test grid).
+        k = np.arange(self.ktot + 1)
+        self.zh = self.zsize * (k / self.ktot) ** 1.5
+        self.zf = 0.5 * (self.zh[:-1] + self.zh[1:])  # native u/v cell centres
+        self.zh_native = self.zh[:-1]  # native w edges
+
+        self.u_true = lambda z: 0.3 * z  # known, exactly-linear mean profile
+
+        # no turbulence: an exactly-known mean with zero variance keeps the
+        # Reynolds-stress validation trivially satisfied and isolates the
+        # umean check from interpolation noise unrelated to the z-grid bug.
+        u_native = self.u_true(self.zf)
+        u = np.broadcast_to(u_native[None, None, :], (self.nt, self.jtot, self.ktot)).copy()
+        v = np.zeros_like(u)
+        w = np.zeros_like(u)
+
+        self.tmpdir = tempfile.TemporaryDirectory()
+        self.directory = Path(self.tmpdir.name)
+        t = np.arange(self.nt) * self.dt
+        _write_driver_binary(
+            self.directory, self.expnr, self.nprocy, self.jtot, self.ktot, self.jh, self.kh, t, u, v, w
+        )
+
+    def tearDown(self):
+        self.tmpdir.cleanup()
+
+    def test_zh_argument_is_required_and_recovers_true_profile(self):
+        # Without zh, profile_from_driver_files resynthesises a *uniform*
+        # ktot+1 edge grid from zsize/ktot and assumes the driver planes'
+        # native data sit on that same uniform grid -- but the fixture above
+        # recorded its values at the real *stretched* zf/zh positions, so the
+        # two disagree and the recovered profile is wrong (this is exactly
+        # the bug: the generator reads these files by index against its own
+        # prof.inp-derived stretched grid, not a uniform one).
+        stale_profile = profile_from_driver_files(
+            self.directory, self.expnr, self.nprocy, self.jtot, self.ktot, self.zsize, self.jh, self.kh
+        )
+        with self.assertRaises(AssertionError):
+            np.testing.assert_allclose(
+                stale_profile.umean, self.u_true(stale_profile.z), atol=1e-6
+            )
+
+        # With the real zh supplied, both the native source grid (zf/zh from
+        # zh) and the output target grid are the true stretched grid, so a
+        # piecewise-linear interpolation of an exactly-linear function is
+        # exact (up to floating point) everywhere, including the
+        # linearly-extrapolated top edge.
+        profile = profile_from_driver_files(
+            self.directory,
+            self.expnr,
+            self.nprocy,
+            self.jtot,
+            self.ktot,
+            self.zsize,
+            self.jh,
+            self.kh,
+            zh=self.zh,
+        )
+        profile.validate()
+        np.testing.assert_allclose(profile.z, self.zh)
+        np.testing.assert_allclose(profile.umean, self.u_true(profile.z), atol=1e-8)
+
+
+class TestCLIFromDriverWithProf(unittest.TestCase):
+    def test_from_driver_with_prof_flag_uses_prof_grid_and_derives_zsize(self):
+        from udprep.synthetic_inflow import main
+
+        expnr = 777
+        nprocy = 1
+        jtot = 10
+        ktot = 5
+        jh, kh = 1, 1
+        zsize = 5.0
+        ylen = 10.0
+        dt = 0.1
+        nt = 8
+
+        k = np.arange(ktot + 1)
+        zh = zsize * (k / ktot) ** 1.5
+        zf = 0.5 * (zh[:-1] + zh[1:])
+
+        # A small travelling-wave fluctuation (period = jtot in y, varying
+        # with t) gives length/time_scales_from_driver_files something
+        # non-degenerate to estimate (a flat, zero-variance field trips its
+        # "t_scale must be > 0" validation) -- its mean over one full y
+        # period is exactly 0 to float round-off, so it does not perturb the
+        # mean-profile check below.
+        j = np.arange(jtot)
+        tt = np.arange(nt)
+        fluct = 0.05 * np.cos(2.0 * np.pi * (j[None, :, None] + tt[:, None, None]) / jtot)
+
+        u = np.broadcast_to((0.2 * zf)[None, None, :], (nt, jtot, ktot)).copy() + fluct
+        v = np.zeros((nt, jtot, ktot)) + fluct
+        w = np.zeros((nt, jtot, ktot)) + fluct
+
+        with tempfile.TemporaryDirectory() as d:
+            directory = Path(d)
+            t = np.arange(nt) * dt
+            _write_driver_binary(directory, expnr, nprocy, jtot, ktot, jh, kh, t, u, v, w)
+
+            # Minimal fake prof.inp.<expnr>: two header lines (content is
+            # irrelevant, only the count matters, matching the Fortran and
+            # centres_from_prof), then one row per level with column 1 = zf.
+            prof_path = directory / f"prof.inp.{expnr}"
+            with prof_path.open("w") as f:
+                f.write("# SDBL flow\n")
+                f.write("# z thl qt u v tke\n")
+                for zfk in zf:
+                    f.write(f"{zfk:.10f} 288.000000 0.000000 0.000000 0.000000 0.000000\n")
+
+            out_dir = directory / "syntheticInflow_inputs"
+            rc = main(
+                [
+                    "from-driver",
+                    str(directory),
+                    "--expnr", str(expnr),
+                    "--nprocy", str(nprocy),
+                    "--jtot", str(jtot),
+                    "--ktot", str(ktot),
+                    "--ylen", str(ylen),
+                    "--dt", str(dt),
+                    "--jh", str(jh),
+                    "--kh", str(kh),
+                    "--prof", str(prof_path),
+                    "--output", str(out_dir),
+                ]
+            )
+            self.assertEqual(rc, 0)
+
+            rs = np.loadtxt(out_dir / "Reynolds_stress_profiles_velocity.txt", skiprows=1)
+            self.assertEqual(rs.shape, (ktot + 1, 8))
+            np.testing.assert_allclose(rs[:, 0], zh, atol=1e-8)
+            np.testing.assert_allclose(rs[1:, 1], 0.2 * zh[1:], atol=1e-6)
 
 
 class TestAutocorrelationHelpers(unittest.TestCase):

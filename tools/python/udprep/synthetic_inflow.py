@@ -37,7 +37,17 @@ around lines 480-600) is:
     them (for the ``.FALSE.`` case, or simply for inspection/QA).
 
 Both input paths write cell-edge profiles ``k = 0..nz`` (``nz = ktot``,
-``ktot + 1`` rows), matching what ``read_synInflow_inputs`` expects.
+``ktot + 1`` rows), matching what ``read_synInflow_inputs`` expects. The
+generator itself reads these rows by index against the *target's own*
+``prof.inp.<expnr>`` z grid (``read_namelist``, ~lines 292-311): edges
+``zh(kb) = 0``, ``zh(k+1) = zh(k) + 2*(zf(k) - zh(k))``, which is uniform
+only if the target's grid is. :func:`edges_from_prof` recovers this exact
+grid from a ``prof.inp``; :func:`profile_from_tdump`,
+:func:`profile_from_driver_files` and :func:`scales_from_driver_files` all
+accept it as an optional ``zh`` argument (replacing their default of a
+*uniform* ``ktot + 1``-point grid from ``zsize``/``ktot``, via
+:func:`uniform_edges`) so that a stretched target grid gets its input
+profiles at the heights the generator will actually index them at.
 """
 
 from __future__ import annotations
@@ -327,6 +337,97 @@ def uniform_zf_zh(zsize: float, ktot: int) -> Tuple[np.ndarray, np.ndarray]:
     return zf, zh
 
 
+def centres_from_prof(path: Path | str) -> np.ndarray:
+    """Cell centres ``zf`` (length ``ktot``) read from a ``prof.inp.<expnr>`` file.
+
+    ``prof.inp`` has two header lines (skipped, matching both
+    ``modSyntheticInflow.f90``'s ``READ(ifinput, '(A72)') chmess`` x2 and
+    ``udprep``'s own ``write_prof``/``load_prof``), then one row per level
+    with column 1 = ``zf`` (cell centre height, m).
+    """
+    data = np.loadtxt(path, skiprows=2)
+    if data.ndim == 1:
+        data = data.reshape(1, -1)
+    if data.shape[0] < 1:
+        raise DataFormatError(f"{path}: no data rows after the two header lines")
+    return data[:, 0].astype(float)
+
+
+def edges_from_prof(path: Path | str) -> np.ndarray:
+    """Cell edges ``zh`` (length ``ktot + 1``) read from a ``prof.inp.<expnr>`` file.
+
+    Reproduces the ``zh``/``zdriver`` construction in ``read_namelist``
+    (``tools/syntheticInflow/modSyntheticInflow.f90``, ~lines 292-311): the
+    file only stores cell centres ``zf``; edges are recovered from
+    ``zh(kb) = 0`` and ``zh(k+1) = zh(k) + 2*(zf(k) - zh(k))`` for the
+    bottom ``ktot`` edges, with the top edge (``zdriver(nz)``, i.e.
+    ``z = zsize``) extrapolated the same way from the last cell:
+    ``zh(ktot) + 2*(zf(ktot) - zh(ktot))``. This is the grid the generator
+    actually reads the ``k = 0..nz`` input-file rows against -- for a
+    stretched grid it differs from :func:`uniform_edges`.
+    """
+    zf = centres_from_prof(path)
+    ktot = len(zf)
+    if ktot < 1:
+        raise DataFormatError(f"{path}: need at least 1 level to build edges")
+    zh_bottom = np.empty(ktot, dtype=float)
+    zh_bottom[0] = 0.0
+    for k in range(ktot - 1):
+        zh_bottom[k + 1] = zh_bottom[k] + 2.0 * (zf[k] - zh_bottom[k])
+    top = zh_bottom[-1] + 2.0 * (zf[-1] - zh_bottom[-1])
+    return np.concatenate([zh_bottom, [top]])
+
+
+def _resolve_target_edges(zsize: float, ktot: int, zh: Optional[np.ndarray]) -> np.ndarray:
+    """Resolve the ``ktot + 1`` output edge grid, honouring an explicit ``zh``.
+
+    ``zh``, when given, must have length ``ktot + 1`` and its top edge must
+    agree with ``zsize`` (to round-off); it then replaces the uniform edges
+    that would otherwise be synthesised from ``zsize``/``ktot``. Raises
+    :class:`ConfigurationError` on a shape mismatch or a ``zh``/``zsize``
+    disagreement.
+    """
+    if zh is None:
+        return uniform_edges(zsize, ktot)
+    zh = np.asarray(zh, dtype=float)
+    if zh.shape != (ktot + 1,):
+        raise ConfigurationError(f"zh must have length ktot + 1 = {ktot + 1}, got shape {zh.shape}")
+    tol = 1.0e-6 * max(1.0, abs(zsize))
+    if abs(zh[-1] - zsize) > tol:
+        raise ConfigurationError(f"zh[-1]={zh[-1]!r} does not match zsize={zsize!r}")
+    return zh
+
+
+def _resolve_driver_zgrid(
+    zsize: float, ktot: int, zh: Optional[np.ndarray]
+) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+    """Resolve the target edges and the driver planes' native z grids.
+
+    Returns ``(z_target, zf, zh_bottom)``: ``z_target`` is the ``ktot + 1``
+    output edge grid (see :func:`_resolve_target_edges`); ``zf`` (length
+    ``ktot``) is where the ``u``/``v`` driver planes natively live (cell
+    centres); ``zh_bottom`` (length ``ktot``) is where the ``w`` plane
+    natively lives (the bottom ``ktot`` edges, i.e. ``z_target`` without its
+    top entry).
+
+    When ``zh`` is ``None`` these all come from the uniform ``zsize``/``ktot``
+    grid (:func:`uniform_edges`, :func:`uniform_zf_zh`). When ``zh`` is
+    given, ``zf``/``zh_bottom`` are derived from it directly instead of being
+    resynthesised from ``zsize``/``ktot``: ``zh_bottom = zh[:-1]`` and
+    ``zf = 0.5 * (zh[:-1] + zh[1:])`` (the true cell centres of a grid whose
+    edges are ``zh``), matching how ``u0``/``v0`` are built from a
+    ``dz``-weighted average of the bracketing edge values in
+    ``modSyntheticInflow.f90``'s ``bilinear_interp``.
+    """
+    z_target = _resolve_target_edges(zsize, ktot, zh)
+    if zh is None:
+        zf, zh_bottom = uniform_zf_zh(zsize, ktot)
+    else:
+        zh_bottom = z_target[:-1]
+        zf = 0.5 * (z_target[:-1] + z_target[1:])
+    return z_target, zf, zh_bottom
+
+
 def _interp_to_edges_like_matlab(z_source: np.ndarray, values: np.ndarray, z_target: np.ndarray) -> np.ndarray:
     """Interpolate a profile from its native z grid onto ``z_target`` edges.
 
@@ -424,6 +525,7 @@ def profile_from_tdump(
     iplane: int,
     zsize: float,
     ktot: int,
+    zh: Optional[np.ndarray] = None,
 ) -> ReynoldsStressProfile:
     """Build a :class:`ReynoldsStressProfile` from a tdump.<expnr>.nc file.
 
@@ -443,16 +545,21 @@ def profile_from_tdump(
         ``iplane`` is 1-based; adjust by one when porting a value from an
         existing ``.m`` script).
     zsize, ktot:
-        Target simulation's domain height and number of z cells; the output
-        profile is on the ``ktot + 1``-point edge grid from
-        :func:`uniform_edges`.
+        Target simulation's domain height and number of z cells; unless
+        ``zh`` is given, the output profile is on the uniform ``ktot + 1``
+        -point edge grid from :func:`uniform_edges`.
+    zh:
+        Optional explicit ``ktot + 1`` target edges (e.g. from
+        :func:`edges_from_prof`), for a target with a stretched vertical
+        grid. When given it replaces the uniform edges; its top entry must
+        agree with ``zsize`` (see :func:`_resolve_target_edges`).
     """
     try:
         from netCDF4 import Dataset
     except ImportError as exc:  # pragma: no cover - exercised only without netCDF4
         raise DependencyError("profile_from_tdump requires the 'netCDF4' package") from exc
 
-    z_target = uniform_edges(zsize, ktot)
+    z_target = _resolve_target_edges(zsize, ktot, zh)
 
     with Dataset(nc_path, "r") as ds:
         z_u, u = _profile_at_iplane(ds, "ut", iplane)
@@ -709,6 +816,7 @@ def profile_from_driver_files(
     zsize: float,
     jh: int,
     kh: int,
+    zh: Optional[np.ndarray] = None,
 ) -> ReynoldsStressProfile:
     """Build a :class:`ReynoldsStressProfile` from a precursor's own driver files.
 
@@ -723,9 +831,15 @@ def profile_from_driver_files(
     ``modSyntheticInflow.f90``, which builds ``u0``/``v0`` from a
     ``dz``-weighted average of the two edge values bracketing ``zf(k)``,
     while ``w0(k) = wdriver(k-1)``, i.e. exactly the edge value.
+
+    ``zh``, when given (e.g. from :func:`edges_from_prof`), is the target's
+    real, possibly-stretched ``ktot + 1`` cell edges: it replaces the
+    uniform grid both for the output ``z_target`` *and* for the native
+    ``zf``/``zh`` the driver planes are interpolated *from* (see
+    :func:`_resolve_driver_zgrid`) -- the driver files are written on the
+    same grid as the target's own ``prof.inp``, uniform or not.
     """
-    zf, zh = uniform_zf_zh(zsize, ktot)
-    z_target = uniform_edges(zsize, ktot)
+    z_target, zf, zh_native = _resolve_driver_zgrid(zsize, ktot, zh)
 
     _, u = assemble_driver_plane(directory, expnr, "u", nprocy, jtot, ktot, jh, kh)
     _, v = assemble_driver_plane(directory, expnr, "v", nprocy, jtot, ktot, jh, kh)
@@ -750,9 +864,9 @@ def profile_from_driver_files(
     R11 = _interp_to_edges_like_matlab(zf, R11_native, z_target)
     R22 = _interp_to_edges_like_matlab(zf, R22_native, z_target)
     R21 = _interp_to_edges_like_matlab(zf, R21_native, z_target)
-    R33 = _interp_to_edges_like_matlab(zh, R33_native, z_target)
-    R31 = _interp_to_edges_like_matlab(zh, R31_native, z_target)
-    R32 = _interp_to_edges_like_matlab(zh, R32_native, z_target)
+    R33 = _interp_to_edges_like_matlab(zh_native, R33_native, z_target)
+    R31 = _interp_to_edges_like_matlab(zh_native, R31_native, z_target)
+    R32 = _interp_to_edges_like_matlab(zh_native, R32_native, z_target)
 
     profile = ReynoldsStressProfile(
         z=z_target, umean=umean, R11=R11, R21=R21, R22=R22, R31=R31, R32=R32, R33=R33
@@ -772,6 +886,7 @@ def scales_from_driver_files(
     dt: float,
     jh: int,
     kh: int,
+    zh: Optional[np.ndarray] = None,
 ) -> Tuple[LengthTimeScales, LengthTimeScales, LengthTimeScales]:
     """Estimate the per-component length/time scale files from driver files.
 
@@ -784,11 +899,18 @@ def scales_from_driver_files(
     mirroring the truncating ``INT()`` used in ``calc_time_and_length_scale``.
     Returns ``(scales_u, scales_v, scales_w)``, each interpolated onto the
     ``ktot + 1`` target edges like the Reynolds-stress profile.
+
+    ``zh``, when given, replaces the uniform target/native grids exactly as
+    in :func:`profile_from_driver_files` (see :func:`_resolve_driver_zgrid`).
+    The scalar ``dz`` used below to convert an estimated integral length
+    scale (metres) to a grid-point count is the grid-mean spacing
+    (``mean(diff(z_target))``); for a stretched grid this is an
+    approximation (the true local spacing varies by level), unchanged from
+    the previous uniform-grid behaviour where it is exact.
     """
-    zf, zh = uniform_zf_zh(zsize, ktot)
-    z_target = uniform_edges(zsize, ktot)
+    z_target, zf, zh_native = _resolve_driver_zgrid(zsize, ktot, zh)
     dy = ylen / jtot
-    dz = zsize / ktot
+    dz = float(np.mean(np.diff(z_target)))
 
     def _scales_for(component: str, z_native: np.ndarray) -> LengthTimeScales:
         _, field = assemble_driver_plane(directory, expnr, component, nprocy, jtot, ktot, jh, kh)
@@ -824,7 +946,7 @@ def scales_from_driver_files(
     return (
         _scales_for("u", zf),
         _scales_for("v", zf),
-        _scales_for("w", zh),
+        _scales_for("w", zh_native),
     )
 
 
@@ -833,8 +955,25 @@ def scales_from_driver_files(
 # ---------------------------------------------------------------------------
 
 
+def _zh_and_zsize_from_args(args: argparse.Namespace) -> Tuple[Optional[np.ndarray], float]:
+    """Resolve ``(zh, zsize)`` from ``--prof``/``--zsize`` CLI arguments.
+
+    When ``--prof`` is given, ``zh`` comes from :func:`edges_from_prof` and
+    ``zsize`` (if not also given explicitly) is derived as ``zh[-1]``.
+    Raises :class:`ConfigurationError` if neither is given.
+    """
+    if args.prof is None:
+        if args.zsize is None:
+            raise ConfigurationError("either --zsize or --prof must be given")
+        return None, args.zsize
+    zh = edges_from_prof(args.prof)
+    zsize = args.zsize if args.zsize is not None else float(zh[-1])
+    return zh, zsize
+
+
 def _cli_from_tdump(args: argparse.Namespace) -> None:
-    profile = profile_from_tdump(args.tdump, args.iplane, args.zsize, args.ktot)
+    zh, zsize = _zh_and_zsize_from_args(args)
+    profile = profile_from_tdump(args.tdump, args.iplane, zsize, args.ktot, zh=zh)
     out_dir = Path(args.output)
     out_dir.mkdir(parents=True, exist_ok=True)
     write_reynolds_stress_file(out_dir / "Reynolds_stress_profiles_velocity.txt", profile)
@@ -851,8 +990,9 @@ def _cli_from_tdump(args: argparse.Namespace) -> None:
 
 def _cli_from_driver(args: argparse.Namespace) -> None:
     jh, kh = args.jh, args.kh
+    zh, zsize = _zh_and_zsize_from_args(args)
     profile = profile_from_driver_files(
-        args.directory, args.expnr, args.nprocy, args.jtot, args.ktot, args.zsize, jh, kh
+        args.directory, args.expnr, args.nprocy, args.jtot, args.ktot, zsize, jh, kh, zh=zh
     )
     out_dir = Path(args.output)
     scales_u, scales_v, scales_w = scales_from_driver_files(
@@ -861,11 +1001,12 @@ def _cli_from_driver(args: argparse.Namespace) -> None:
         args.nprocy,
         args.jtot,
         args.ktot,
-        args.zsize,
+        zsize,
         args.ylen,
         args.dt,
         jh,
         kh,
+        zh=zh,
     )
     write_reynolds_stress_and_scales(out_dir, profile, scales_u, scales_v, scales_w)
     print(f"Wrote synthetic-inflow input files to {out_dir}")
@@ -885,8 +1026,19 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     p_tdump = sub.add_parser("from-tdump", help="from a tdump.<expnr>.nc precursor statistics file")
     p_tdump.add_argument("tdump", type=Path, help="path to tdump.<expnr>.nc")
     p_tdump.add_argument("--iplane", type=int, required=True, help="zero-based x-index of the precursor plane")
-    p_tdump.add_argument("--zsize", type=float, required=True)
+    p_tdump.add_argument(
+        "--zsize", type=float, default=None,
+        help="target domain height; optional (derived from --prof) if --prof is given"
+    )
     p_tdump.add_argument("--ktot", type=int, required=True)
+    p_tdump.add_argument(
+        "--prof", type=Path, default=None,
+        help=(
+            "path to the target's prof.inp.<expnr>; when given, the output "
+            "profile is written on its (possibly stretched) cell edges "
+            "instead of a uniform grid, and --zsize may be omitted"
+        ),
+    )
     p_tdump.add_argument("--output", type=Path, required=True, help="syntheticInflow_inputs directory to write")
     p_tdump.set_defaults(func=_cli_from_tdump)
 
@@ -896,11 +1048,23 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     p_driver.add_argument("--nprocy", type=int, required=True)
     p_driver.add_argument("--jtot", type=int, required=True)
     p_driver.add_argument("--ktot", type=int, required=True)
-    p_driver.add_argument("--zsize", type=float, required=True)
+    p_driver.add_argument(
+        "--zsize", type=float, default=None,
+        help="target domain height; optional (derived from --prof) if --prof is given"
+    )
     p_driver.add_argument("--ylen", type=float, required=True)
     p_driver.add_argument("--dt", type=float, required=True, help="dtdriver, seconds between records")
     p_driver.add_argument("--jh", type=int, default=1)
     p_driver.add_argument("--kh", type=int, default=1)
+    p_driver.add_argument(
+        "--prof", type=Path, default=None,
+        help=(
+            "path to the target's prof.inp.<expnr>; when given, the output "
+            "profiles (and the native grid the driver planes are "
+            "interpolated from) use its (possibly stretched) cell edges "
+            "instead of a uniform grid, and --zsize may be omitted"
+        ),
+    )
     p_driver.add_argument("--output", type=Path, required=True, help="syntheticInflow_inputs directory to write")
     p_driver.set_defaults(func=_cli_from_driver)
 
