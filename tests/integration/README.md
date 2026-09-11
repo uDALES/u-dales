@@ -24,6 +24,15 @@ Current contents:
 - `ibm_sparse_input/` for MPI validation of the sparse IBM input reader on committed case `101`
 - `mpi_operators/` for direct MPI validation of `avexy_ibm`, `avey_ibm`,
   `sumx_ibm`, and `sumy_ibm` on committed case `100`
+- `poisson/` for validation of both Poisson solvers (`ipoiss` 0 and 3) against
+  an exact discrete solution on 1 x 1, 2 x 1, 1 x 2 and 2 x 2 decompositions,
+  on the CPU build and, with `UDALES_GPU=1`, on the GPU build (runmode 1019 on
+  case `103`)
+- `poisson/run_solver_equivalence.py` for the cross-solver check: short
+  perturbed runs of case `103` with `ipoiss=0` on the CPU build are the
+  reference for `ipoiss=3` on the CPU build and, with `--gpu-executable`, on
+  the GPU build, on the same decompositions; every dump and the
+  double-precision restart files must agree within a tolerance (default 1e-9)
 - `processor_boundaries/` for MPI decomposition parity diagnostics
   The no-tree variant now uses committed case `100` as the Xie/Castro-style reference fixture, while the tree-forcing variant still uses case `526`.
 - `udbase_against_matlab/` for Python-vs-MATLAB `UDBase` parity checks against
@@ -55,6 +64,7 @@ Current supported status:
 - `directshortwave/`: supported preprocessing/tooling integration coverage on Linux
 - `ibm_sparse_input/`: supported solver-facing integration coverage
 - `mpi_operators/`: supported solver-facing integration coverage
+- `poisson/`: supported solver-facing integration coverage
 - `processor_boundaries/`: supported solver-facing integration coverage
 - `udprep/`: supported preprocessing/tooling integration coverage
 - `udbase_against_matlab/`: supported Python/MATLAB parity integration coverage

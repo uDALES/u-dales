@@ -192,6 +192,27 @@ groups:
         command:
           - "bash"
           - "{tests_dir}/integration/masscorr/run_test.sh"
+      - label: "supported: poisson solver integration"
+        class: supported
+        kind: integration
+        component: solver
+        platform: hpc
+        cost: medium
+        env_UDALES_BUILD: "{repo_root}/build/cpu/{build_type_lower}/u-dales"
+        command:
+          - "bash"
+          - "{tests_dir}/integration/poisson/run_test.sh"
+      - label: "supported: poisson solver equivalence (ipoiss 0 vs 3, CPU, up to 4 ranks)"
+        class: supported
+        kind: integration
+        component: solver
+        platform: hpc
+        cost: medium
+        command:
+          - "{python}"
+          - "{tests_dir}/integration/poisson/run_solver_equivalence.py"
+          - "--cpu-executable"
+          - "{repo_root}/build/cpu/{build_type_lower}/u-dales"
       - label: "supported: ibm normal velocity integration"
         class: supported
         kind: integration
@@ -434,6 +455,33 @@ groups:
           - "{python}"
           - "{tests_dir}/integration/gpu/run_restart_roundtrip.py"
           - "--require-debug-selftest"
+      - label: "gpu: Poisson solver self-test on the Debug GPU build (single rank)"
+        class: experimental
+        kind: integration
+        component: gpu
+        platform: gpu
+        cost: medium
+        env_UDALES_BUILD: "{repo_root}/build/gpu/debug/u-dales"
+        env_UDALES_GPU: "1"
+        env_UDALES_MAX_RANKS: "1"
+        command:
+          - "bash"
+          - "{tests_dir}/integration/poisson/run_test.sh"
+      - label: "gpu: poisson solver equivalence, ipoiss=0 CPU vs ipoiss=3 on the Debug GPU build (single rank)"
+        class: experimental
+        kind: integration
+        component: gpu
+        platform: gpu
+        cost: medium
+        command:
+          - "{python}"
+          - "{tests_dir}/integration/poisson/run_solver_equivalence.py"
+          - "--cpu-executable"
+          - "{repo_root}/build/cpu/debug/u-dales"
+          - "--gpu-executable"
+          - "{repo_root}/build/gpu/debug/u-dales"
+          - "--max-ranks"
+          - "1"
 
   gpu-nightly:
     suites:
@@ -470,6 +518,33 @@ groups:
         command:
           - "{python}"
           - "{tests_dir}/integration/gpu/run_restart_roundtrip.py"
+      - label: "gpu: Poisson solver self-test on the Release GPU build (single rank)"
+        class: heavy
+        kind: integration
+        component: gpu
+        platform: gpu
+        cost: medium
+        env_UDALES_BUILD: "{repo_root}/build/gpu/release/u-dales"
+        env_UDALES_GPU: "1"
+        env_UDALES_MAX_RANKS: "1"
+        command:
+          - "bash"
+          - "{tests_dir}/integration/poisson/run_test.sh"
+      - label: "gpu: poisson solver equivalence, ipoiss=0 CPU vs ipoiss=3 on the Release GPU build (single rank)"
+        class: heavy
+        kind: integration
+        component: gpu
+        platform: gpu
+        cost: medium
+        command:
+          - "{python}"
+          - "{tests_dir}/integration/poisson/run_solver_equivalence.py"
+          - "--cpu-executable"
+          - "{repo_root}/build/cpu/release/u-dales"
+          - "--gpu-executable"
+          - "{repo_root}/build/gpu/release/u-dales"
+          - "--max-ranks"
+          - "1"
 
   gpu-mpi:
     suites:
@@ -496,6 +571,33 @@ groups:
           - "{tests_dir}/integration/gpu/run_gpu_tests.py"
           - "mpi"
           - "--require-debug-selftest"
+      - label: "gpu: Poisson solver self-test on the Debug GPU build (up to two ranks)"
+        class: experimental
+        kind: integration
+        component: gpu
+        platform: gpu
+        cost: medium
+        env_UDALES_BUILD: "{repo_root}/build/gpu/debug/u-dales"
+        env_UDALES_GPU: "1"
+        env_UDALES_MAX_RANKS: "2"
+        command:
+          - "bash"
+          - "{tests_dir}/integration/poisson/run_test.sh"
+      - label: "gpu: poisson solver equivalence, ipoiss=0 CPU vs ipoiss=3 on the Debug GPU build (up to two ranks)"
+        class: experimental
+        kind: integration
+        component: gpu
+        platform: gpu
+        cost: medium
+        command:
+          - "{python}"
+          - "{tests_dir}/integration/poisson/run_solver_equivalence.py"
+          - "--cpu-executable"
+          - "{repo_root}/build/cpu/debug/u-dales"
+          - "--gpu-executable"
+          - "{repo_root}/build/gpu/debug/u-dales"
+          - "--max-ranks"
+          - "2"
 
   gpu-full:
     suites:
@@ -521,6 +623,33 @@ groups:
           - "{python}"
           - "{tests_dir}/integration/gpu/run_gpu_tests.py"
           - "full"
+      - label: "gpu: Poisson solver self-test on the Release GPU build (up to four ranks)"
+        class: heavy
+        kind: integration
+        component: gpu
+        platform: gpu
+        cost: medium
+        env_UDALES_BUILD: "{repo_root}/build/gpu/release/u-dales"
+        env_UDALES_GPU: "1"
+        env_UDALES_MAX_RANKS: "4"
+        command:
+          - "bash"
+          - "{tests_dir}/integration/poisson/run_test.sh"
+      - label: "gpu: poisson solver equivalence, ipoiss=0 CPU vs ipoiss=3 on the Release GPU build (up to four ranks)"
+        class: heavy
+        kind: integration
+        component: gpu
+        platform: gpu
+        cost: medium
+        command:
+          - "{python}"
+          - "{tests_dir}/integration/poisson/run_solver_equivalence.py"
+          - "--cpu-executable"
+          - "{repo_root}/build/cpu/release/u-dales"
+          - "--gpu-executable"
+          - "{repo_root}/build/gpu/release/u-dales"
+          - "--max-ranks"
+          - "4"
 
   all:
     includes:

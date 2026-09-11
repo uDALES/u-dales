@@ -41,7 +41,7 @@ program uDALES
                                 TEST_MPI_OPERATORS,TEST_IBM_CELL_LOOKUP,TEST_NUDGE,TEST_IBM_WALLFUN, &
                                 TEST_PERIODIC_EBCORR,TEST_MASSCORR,TEST_IBMNORM,TEST_EB, &
                                 TEST_VEGETATION,TEST_CHECKSIM,TEST_DRIVER_PLANES, &
-                                TEST_THERMODYNAMICS,TEST_TSTEP,TEST_TIMEDEP
+                                TEST_THERMODYNAMICS,TEST_TSTEP,TEST_TIMEDEP,TEST_POISSON
   use modstartup,        only : readnamelists,init2decomp,checkinitvalues,readinitfiles,exitmodules
   use modfields,         only : initfields
   use modsave,           only : writerestartfiles
@@ -80,7 +80,7 @@ program uDALES
   use tests,           only : tests_read_sparse_ijk,tests_2decomp_init_exit,tests_mpi_operators,tests_ibm_cell_lookup,tests_nudge,tests_ibm_wallfun, &
                             tests_periodic_ebcorr,tests_masscorr,tests_ibmnorm,tests_eb, &
                             tests_vegetation,tests_checksim,tests_driver_planes, &
-                            tests_thermodynamics,tests_tstep,tests_timedep
+                            tests_thermodynamics,tests_tstep,tests_timedep,tests_poisson
   implicit none
 
   real    :: stime
@@ -361,6 +361,8 @@ contains
         test_failed = .not. tests_tstep()
       case (TEST_TIMEDEP)
         test_failed = .not. tests_timedep()
+      case (TEST_POISSON)
+        test_failed = .not. tests_poisson()
       case (TEST_2DCOMP_INIT_EXIT)
         call tests_2decomp_init_exit
       case default

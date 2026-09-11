@@ -47,7 +47,7 @@ include "fftw3.f"
 external :: dfftw_plan_dft_r2c_1d, dfftw_plan_dft_c2r_1d, dfftw_plan_r2r_1d, dfftw_execute
 
 private
-public :: initpois,poisson,exitpois,p,rhs,dpupdx,dpvpdy,dpwpdz,xyzrt,sp,Fxy,Fxyz,pij
+public :: initpois,poisson,solve_poisson,exitpois,p,rhs,dpupdx,dpvpdy,dpwpdz,xyzrt,sp,Fxy,Fxyz,pij
 save
   real, allocatable, target :: rhs(:,:,:)   ! rhs of pressure solver
   real, allocatable, target :: dpupdx(:,:,:)
@@ -81,7 +81,12 @@ save
   type(DECOMP_INFO) :: sp
   real, allocatable :: pij(:)
 
-  integer :: sp_zst3, sp_zst2, sp_zst1, sp_zen3, sp_zen2, sp_zen1
+  !! Local z-pencil extents of the spectral decomposition sp. Every loop over
+  !! zz, dd, xyzrt and Fz runs 1..sp_zsz*: those arrays are allocated with the
+  !! local sizes, and the global start/end indices sp%zst/sp%zen coincide with
+  !! 1..sp_zsz* on rank 0 only. Global positions are needed solely for the
+  !! wavenumbers, and initpois adds sp%zst there explicitly.
+  integer :: sp_zsz1, sp_zsz2, sp_zsz3
 
 contains
   subroutine initpois
@@ -283,8 +288,7 @@ contains
       call alloc_z(pz, opt_levels=(/0,0,0/))
       allocate(Fz(sp%zsz(1),sp%zsz(2),sp%zsz(3)))
 
-      sp_zst1=sp%zst(1);sp_zst2=sp%zst(2);sp_zst3=sp%zst(3);
-      sp_zen1=sp%zen(1);sp_zen2=sp%zen(2);sp_zen3=sp%zen(3);
+      sp_zsz1 = sp%zsz(1); sp_zsz2 = sp%zsz(2); sp_zsz3 = sp%zsz(3)
 
       allocate(xrt(itot/2+1))
       allocate(yrt(jtot))
@@ -348,13 +352,13 @@ contains
       end do
       
       !! compute the coefficients necessary for the Gaussian elimination along z-direction
-      do k=1,ktot
-        do j=sp_zst2,sp_zen2
-          do i=sp_zst1,sp_zen1
+      do k=1,sp_zsz3
+        do j=1,sp_zsz2
+          do i=1,sp_zsz1
             if (k==1) then
               zz(i,j,k) = 1./( b(k) + xyzrt(i,j,k)                    )
               dd(i,j,k) = c(k)*zz(i,j,k)
-            elseif (k==ktot) then
+            elseif (k==sp_zsz3) then
               zz(i,j,k) =      b(k) + xyzrt(i,j,k) - a(k)*dd(i,j,k-1)
             else
               zz(i,j,k) = 1./( b(k) + xyzrt(i,j,k) - a(k)*dd(i,j,k-1) )
@@ -430,13 +434,24 @@ contains
   end subroutine initpois
 
   subroutine poisson
+    implicit none
+
+    call fillps
+    ! rhs = p(ib:ie,jb:je,kb:ke)   ! needs to be uncommented for fielddump to write correct value of rhs
+    call solve_poisson
+    call tderive
+
+  end subroutine poisson
+
+  !> Solve the pressure Poisson equation in place with the configured ipoiss:
+  !! on entry p (p_d on the GPU build) holds the right-hand side that fillps
+  !! assembled, on exit the pressure correction. Split out of poisson so that
+  !! tests_poisson can feed it a right-hand side of its own.
+  subroutine solve_poisson
     use modglobal, only: ib,ie,jb,je,kb,ke,itot,jtot,ktot
     implicit none
     real    :: fac
     integer :: i, j, k
-
-    call fillps
-    ! rhs = p(ib:ie,jb:je,kb:ke)   ! needs to be uncommented for fielddump to write correct value of rhs
 
     select case (ipoiss)
     case (POISS_FFT2D)
@@ -661,8 +676,8 @@ contains
 
       !!!! Solve system using Gaussian elimination
       !$acc kernels default(present)
-      do j=1,sp_zen2
-        do i=1,sp_zen1
+      do j=1,sp_zsz2
+        do i=1,sp_zsz1
 #if defined(_GPU)
           Fz(i,j,1) = Fz(i,j,1)*zz_d(i,j,1)
 #else
@@ -673,9 +688,9 @@ contains
       !$acc end kernels
 
       !$acc kernels default(present)
-      do k=2,sp_zen3-1
-        do j=1,sp_zen2
-          do i=1,sp_zen1
+      do k=2,sp_zsz3-1
+        do j=1,sp_zsz2
+          do i=1,sp_zsz1
 #if defined(_GPU)
             Fz(i,j,k) = (Fz(i,j,k)-a_d(k)*Fz(i,j,k-1))*zz_d(i,j,k)
 #else
@@ -687,19 +702,19 @@ contains
       !$acc end kernels
 
       !$acc kernels default(present)
-      do j=1,sp_zen2
-        do i=1,sp_zen1
+      do j=1,sp_zsz2
+        do i=1,sp_zsz1
 #if defined(_GPU)
-          if(zz_d(i,j,ktot)/=0.) then
-            Fz(i,j,ktot) = (Fz(i,j,ktot)-a_d(ktot)*Fz(i,j,ktot-1))/zz_d(i,j,ktot)
+          if(zz_d(i,j,sp_zsz3)/=0.) then
+            Fz(i,j,sp_zsz3) = (Fz(i,j,sp_zsz3)-a_d(sp_zsz3)*Fz(i,j,sp_zsz3-1))/zz_d(i,j,sp_zsz3)
           else
-            Fz(i,j,ktot) =0.
+            Fz(i,j,sp_zsz3) =0.
           end if
 #else
-          if(zz(i,j,ktot)/=0.) then
-            Fz(i,j,ktot) = (Fz(i,j,ktot)-a(ktot)*Fz(i,j,ktot-1))/zz(i,j,ktot)
+          if(zz(i,j,sp_zsz3)/=0.) then
+            Fz(i,j,sp_zsz3) = (Fz(i,j,sp_zsz3)-a(sp_zsz3)*Fz(i,j,sp_zsz3-1))/zz(i,j,sp_zsz3)
           else
-            Fz(i,j,ktot) =0.
+            Fz(i,j,sp_zsz3) =0.
           end if
 #endif
         end do
@@ -707,9 +722,9 @@ contains
       !$acc end kernels
 
       !$acc kernels default(present)
-      do k=sp_zen3-1,1,-1
-        do j=1,sp_zen2
-          do i=1,sp_zen1
+      do k=sp_zsz3-1,1,-1
+        do j=1,sp_zsz2
+          do i=1,sp_zsz1
 #if defined(_GPU)
             Fz(i,j,k) = Fz(i,j,k)-dd_d(i,j,k)*Fz(i,j,k+1)
 #else
@@ -770,9 +785,7 @@ contains
       stop 1
     end select
 
-    call tderive
-
-  end subroutine poisson
+  end subroutine solve_poisson
 
   subroutine exitpois
     implicit none

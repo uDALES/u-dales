@@ -51,7 +51,9 @@
       "dry-two-rank-x",
       "dry-two-rank-y",
       "scalar-point-two-rank-x",
-      "scalar-line-two-rank-y"
+      "scalar-line-two-rank-y",
+      "dry-poisson-fft-two-rank-x",
+      "dry-poisson-fft-two-rank-y"
     ],
     "full": [
       "dry-poisson-fft",
@@ -86,7 +88,10 @@
       "dry-two-rank-y",
       "scalar-point-two-rank-x",
       "scalar-line-two-rank-y",
-      "dry-four-rank-xy"
+      "dry-four-rank-xy",
+      "dry-poisson-fft-two-rank-x",
+      "dry-poisson-fft-two-rank-y",
+      "dry-poisson-fft-four-rank-xy"
     ]
   },
   "cases": [
@@ -551,6 +556,42 @@
       "coverage": ["multi-GPU", "MPI-X-and-Y-halos", "two-dimensional-decomposition", "ipoiss-0"],
       "namelist_assertions": {"nprocx": 2, "nprocy": 2},
       "timeout_seconds": 300
+    },
+    {
+      "name": "dry-poisson-fft-two-rank-x",
+      "case_id": 103,
+      "base_case": "tests/regression/david_tests/cases/103",
+      "namelist": "tests/integration/gpu/namelists/namoptions.103.poisson-mpi",
+      "nprocs": 2,
+      "minimum_gpus": 2,
+      "required_outputs": ["fielddump", "tdump", "xytdump"],
+      "coverage": ["multi-GPU", "X-decomposition", "ipoiss-3", "spectral-pencil-local-bounds"],
+      "namelist_assertions": {"ipoiss": 3, "nprocx": 2, "nprocy": 1},
+      "timeout_seconds": 300
+    },
+    {
+      "name": "dry-poisson-fft-two-rank-y",
+      "case_id": 103,
+      "base_case": "tests/regression/david_tests/cases/103",
+      "namelist": "tests/integration/gpu/namelists/namoptions.103.poisson-mpi-y",
+      "nprocs": 2,
+      "minimum_gpus": 2,
+      "required_outputs": ["fielddump", "tdump", "xytdump"],
+      "coverage": ["multi-GPU", "Y-decomposition", "ipoiss-3", "spectral-pencil-local-bounds"],
+      "namelist_assertions": {"ipoiss": 3, "nprocx": 1, "nprocy": 2},
+      "timeout_seconds": 300
+    },
+    {
+      "name": "dry-poisson-fft-four-rank-xy",
+      "case_id": 103,
+      "base_case": "tests/regression/david_tests/cases/103",
+      "namelist": "tests/integration/gpu/namelists/namoptions.103.poisson-mpi-xy",
+      "nprocs": 4,
+      "minimum_gpus": 4,
+      "required_outputs": ["fielddump", "tdump", "xytdump"],
+      "coverage": ["multi-GPU", "two-dimensional-decomposition", "ipoiss-3", "spectral-pencil-local-bounds"],
+      "namelist_assertions": {"ipoiss": 3, "nprocx": 2, "nprocy": 2},
+      "timeout_seconds": 300
     }
   ],
   "unsupported_gpu_options": {
@@ -665,7 +706,7 @@
       "src/modchecksim.f90:div_local": ["debug-device-selftests"],
       "src/modchem.f90:chem": ["chemistry"],
       "src/modforces.f90:fixuinf1": ["active-forcing"],
-      "src/modpois.f90:poisson": ["dry-poisson-fft", "thermo-scalar-wall"],
+      "src/modpois.f90:solve_poisson": ["dry-poisson-fft", "thermo-scalar-wall"],
       "src/modpois.f90:tderive": ["dry-poisson-fft", "thermo-scalar-wall"],
       "src/modcuda.f90:avexy_ibm_device": ["debug-device-selftests", "surface-energy-balance", "ibm-scalar-wall"],
       "src/modcuda.f90:sumy_ibm_column_device": ["debug-device-selftests"],

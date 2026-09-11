@@ -11,20 +11,28 @@ been stable for a suitable period.
 
 ## What is implemented
 
-`case_matrix.json` defines 31 deterministic cases and five selections:
+`case_matrix.json` defines 34 deterministic cases and five selections:
 
 | Selection | Cases | Intended use |
 | --- | --- | --- |
 | `smoke` | four 8 x 8 x 8 cases | Debug development and trusted pull requests |
 | `scalar-sources` | two serial and two two-rank cases | scalar-source parity and global positioning |
 | `nightly` | 26 serial cases | single-GPU scheduled regression |
-| `mpi` | dry and scalar-source two-rank X/Y cases | manually dispatched two-GPU check |
-| `full` | nightly plus X, Y, and 2 x 2 MPI | manual four-GPU validation |
+| `mpi` | dry (`ipoiss` 0 and 3) and scalar-source two-rank X/Y cases | manually dispatched two-GPU check |
+| `full` | nightly plus X, Y, and 2 x 2 MPI with both Poisson solvers | manual four-GPU validation |
 
 The current coverage is:
 
 - dry momentum, second-order advection, Vreman closure, and neutral bottom wall
-- both `ipoiss=0` and `ipoiss=3`
+- both `ipoiss=0` and `ipoiss=3`, the latter also on two-rank X, two-rank Y
+  and 2 x 2 decompositions. The `ipoiss=3` solver keeps its coefficient and
+  elimination arrays in local spectral-pencil sizes; a loop over the global
+  pencil bounds instead is invisible on rank 0 and corrupts memory on every
+  other rank, which is exactly what these three cases exercise. The same
+  solver is checked against an exact discrete solution, on every rank and on
+  both builds, by `tests/integration/poisson/run_test.sh` (runmode 1019), and
+  `ipoiss=3` on the CPU and GPU builds is compared with `ipoiss=0` on the CPU
+  build to 1e-9 by `tests/integration/poisson/run_solver_equivalence.py`
 - temperature and moisture with second-order advection
 - Kappa temperature and scalar advection, including the temperature tendency
   conversion kernels

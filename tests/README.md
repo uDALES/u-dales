@@ -180,6 +180,10 @@ between multiple components rather than one isolated API.
 - `ibm_sparse_input/`: MPI validation for `read_sparse_ijk()` using `runmode = 1004`
 - `mpi_operators/`: direct MPI operator validation for `runmode = 1005` on
   the Xie/Castro case `100` across `1x1`, `2x1`, `1x2`, and `2x2`
+- `poisson/`: Poisson solver validation for `runmode = 1019` on case `103`:
+  both solvers, four decompositions, CPU or GPU build, exact-solution check on
+  every rank, plus `run_solver_equivalence.py`, which compares `ipoiss=3` on CPU
+  and GPU builds against `ipoiss=0` on the CPU build within a tolerance
 - `processor_boundaries/`: MPI decomposition parity checks on the Xie/Castro
   no-tree case `100` and the vegetation case `526`
 - `python_preproc_against_matlab/`: preprocessing parity test between the

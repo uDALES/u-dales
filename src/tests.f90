@@ -23,7 +23,7 @@ module tests
             tests_ibm_cell_lookup, tests_nudge, tests_ibm_wallfun, &
             tests_periodic_ebcorr, tests_masscorr, tests_ibmnorm, tests_eb, &
             tests_vegetation, tests_checksim, tests_driver_planes, &
-            tests_thermodynamics, tests_tstep, tests_timedep
+            tests_thermodynamics, tests_tstep, tests_timedep, tests_poisson
 
 contains
 
@@ -6155,5 +6155,185 @@ contains
 
   end function tests_timedep
 
+
+  !> Poisson solver check against an exact discrete solution, on every rank.
+  !!
+  !! A smooth field phi is chosen on the global grid, and the solver's own
+  !! finite-difference operator is applied to it analytically, through global
+  !! coordinates rather than halo exchange: periodic three-point differences
+  !! in x and y, and the density-weighted vertical operator with the Neumann
+  !! folding initpois uses at the bottom and the top. That product is fed to
+  !! poisson as the right-hand side, so the solver must return phi exactly (up
+  !! to the constant the Neumann-Neumann problem leaves free) to round-off.
+  !!
+  !! Why it exists: the ipoiss=3 solver once looped over the global pencil
+  !! bounds sp%zst..sp%zen on arrays allocated with the local sizes. Rank 0
+  !! never noticed, because there the two coincide; every other rank wrote
+  !! past its arrays. Nothing with more than one rank ran ipoiss=3, so it
+  !! reached production. This test is decomposition-independent by
+  !! construction and reports the error per rank, so it must pass unchanged
+  !! for 1 x 1, 2 x 1, 1 x 2 and 2 x 2, with ipoiss 0 and 3, and on both the
+  !! CPU and the GPU build (the GPU build solves on the device copy p_d).
+  !!
+  !! Returns .true. when the largest error on any rank is within tolerance.
+  logical function tests_poisson()
+    use mpi
+    use modglobal, only : runmode, ib, ie, jb, je, kb, ke, imax, jmax, itot, jtot, ktot, &
+                          dx, dy, dxi, dyi, dzf, dzh, zf, zh, pi, ipoiss, &
+                          POISS_FFT2D, POISS_FFT2D_2DECOMP
+    use modfields, only : initfields, rhobf, rhobh
+    use modpois,   only : initpois, solve_poisson, p
+    use modmpi,    only : myidx, myidy, nprocs
+#if defined(_GPU)
+    use modcuda,   only : p_d
+#endif
+    implicit none
+
+    ! Relative to max|phi| = 1. The discrete problem is tiny and well
+    ! conditioned; a correct solve lands near 1e-13, an indexing fault gives
+    ! O(1) garbage or a crash.
+    real, parameter :: tol = 1.0e-8
+    integer, parameter :: mx = 1, my = 2, mz = 1   ! modes in x, y, z
+
+    integer :: i, j, k, ig, jg, ierr
+    real    :: xlen, ylen, ztop, ak, bk, ck
+    real    :: err_local, err_global, shift_local, shift_global, resid_local, resid_global
+    real, allocatable :: phi(:,:,:), rhs(:,:,:)
+    logical :: ok
+
+    if (myid == 0) then
+      write(*, '(A)') '================================================'
+      write(*, '(A, I8)') 'runmode = ', runmode
+      write(*, '(A)') 'tests_poisson: POISSON SOLVER EXACT DISCRETE SOLUTION TEST'
+      write(*, '(A, I3, A, I3, A, I3)') 'ipoiss = ', ipoiss, '   ranks = ', nprocs, &
+                                          '   ktot = ', ktot
+      write(*, '(A)') '------------------------------------------------'
+    end if
+
+    tests_poisson = .false.
+    if (ipoiss /= POISS_FFT2D .and. ipoiss /= POISS_FFT2D_2DECOMP) then
+      if (myid == 0) write(*, '(A, I3)') 'FAIL: tests_poisson supports ipoiss 0 and 3, got ', ipoiss
+      return
+    end if
+
+    ! initfields gives rhobf/rhobh (unity here); initpois allocates p (and p_d)
+    ! and builds the solver for the configured ipoiss.
+    call initfields
+    call initpois
+
+    xlen = itot*dx
+    ylen = jtot*dy
+    ztop = zh(ke+1)
+
+    allocate(phi(ib:ie, jb:je, kb:ke), rhs(ib:ie, jb:je, kb:ke))
+
+    ! phi on this rank's cells, through global indices.
+    do k = kb, ke
+      do j = jb, je
+        jg = j + jmax*myidy
+        do i = ib, ie
+          ig = i + imax*myidx
+          phi(i,j,k) = exact(ig, jg, k)
+        end do
+      end do
+    end do
+
+    ! rhs = L_h phi, with L_h exactly the operator initpois diagonalises:
+    ! rhobf(k) * (periodic d2/dx2 + periodic d2/dy2) + vertical a/b/c stencil
+    ! with a(1) = 0 and c(ktot) = 0 folded into b (Neumann: phi(0) = phi(1),
+    ! phi(ktot+1) = phi(ktot)).
+    do k = kb, ke
+      ak = rhobh(k)  /(dzf(k)*dzh(k))
+      ck = rhobh(k+1)/(dzf(k)*dzh(k+1))
+      bk = -(ak + ck)
+      if (k == kb) then
+        bk = bk + ak; ak = 0.
+      end if
+      if (k == ke) then
+        bk = bk + ck; ck = 0.
+      end if
+      do j = jb, je
+        jg = j + jmax*myidy
+        do i = ib, ie
+          ig = i + imax*myidx
+          rhs(i,j,k) = rhobf(k)*( (exact(ig+1,jg,k) - 2.*phi(i,j,k) + exact(ig-1,jg,k))*dxi*dxi &
+                                + (exact(ig,jg+1,k) - 2.*phi(i,j,k) + exact(ig,jg-1,k))*dyi*dyi ) &
+                       + bk*phi(i,j,k)
+          if (k > kb) rhs(i,j,k) = rhs(i,j,k) + ak*exact(ig,jg,k-1)
+          if (k < ke) rhs(i,j,k) = rhs(i,j,k) + ck*exact(ig,jg,k+1)
+        end do
+      end do
+    end do
+
+    ! Solve. solve_poisson reads and overwrites the interior of p (p_d on the
+    ! GPU build); the halos play no part.
+    p = 0.
+    p(ib:ie, jb:je, kb:ke) = rhs
+#if defined(_GPU)
+    p_d = 0.
+    p_d(ib:ie, jb:je, kb:ke) = rhs
+#endif
+    call solve_poisson
+#if defined(_GPU)
+    p(ib:ie, jb:je, kb:ke) = p_d(ib:ie, jb:je, kb:ke)
+#endif
+
+    ! The solution is unique up to a constant; remove the global mean of
+    ! (p - phi) before measuring the error.
+    shift_local = sum(p(ib:ie, jb:je, kb:ke) - phi)
+    call MPI_ALLREDUCE(shift_local, shift_global, 1, MY_REAL, MPI_SUM, comm3d, mpierr)
+    shift_global = shift_global/(real(itot)*real(jtot)*real(ktot))
+
+    err_local = maxval(abs(p(ib:ie, jb:je, kb:ke) - phi - shift_global))
+    call MPI_ALLREDUCE(err_local, err_global, 1, MY_REAL, MPI_MAX, comm3d, mpierr)
+
+    ! Also report the largest right-hand side, so the numbers have a scale.
+    resid_local = maxval(abs(rhs))
+    call MPI_ALLREDUCE(resid_local, resid_global, 1, MY_REAL, MPI_MAX, comm3d, mpierr)
+
+    ! Per-rank line, in rank order, so a fault on a non-root rank is visible.
+    do i = 0, nprocs-1
+      call MPI_BARRIER(comm3d, mpierr)
+      if (i == myid) then
+        write(*, '(A, I4, A, I3, A, I3, A, ES12.4)') 'rank ', myid, ' (myidx ', myidx, &
+              ', myidy ', myidy, '): max |p - phi - mean| = ', err_local
+        flush(6)
+      end if
+    end do
+    call MPI_BARRIER(comm3d, mpierr)
+
+    ok = (err_global <= tol) .and. (err_global == err_global)   ! NaN fails
+    if (myid == 0) then
+      write(*, '(A, ES12.4, A, ES12.4, A, ES12.4)') 'max |rhs| = ', resid_global, &
+            '   max error over all ranks = ', err_global, '   tolerance = ', tol
+      if (ok) then
+        write(*, '(A)') 'ALL TESTS PASSED: tests_poisson'
+      else
+        write(*, '(A)') 'FAIL: tests_poisson: solver does not reproduce the exact discrete solution'
+      end if
+      write(*, '(A)') '================================================'
+    end if
+    tests_poisson = ok
+
+    deallocate(phi, rhs)
+
+  contains
+
+    !> The chosen field at global cell (ig, jg, k): periodic cosines in x and
+    !! y, so ig and jg may run one past either end, and a vertical cosine that
+    !! is even about z = 0 and z = ztop. The vertical ghost values mirror the
+    !! adjacent interior cell, which is the Neumann folding the solver applies.
+    real function exact(ig, jg, k)
+      integer, intent(in) :: ig, jg, k
+      integer :: kk
+      real :: x, y
+      kk = min(max(k, kb), ke)
+      x = (real(ig) - 0.5)*dx
+      y = (real(jg) - 0.5)*dy
+      exact = cos(2.*pi*real(mx)*x/xlen) * cos(2.*pi*real(my)*y/ylen) &
+            * cos(pi*real(mz)*zf(kk)/ztop)
+    end function exact
+
+  end function tests_poisson
 
 end module tests
