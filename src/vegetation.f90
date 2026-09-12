@@ -108,8 +108,12 @@ contains
   subroutine init_vegetation
     use modglobal,  only : ltrees,ltreedump,itree_mode,TREE_MODE_SVEG,TREE_MODE_LEGACY_SEB,ib,ie,jb,je,kb,ke,ih,jh,kh,cexpnr,nsv
     use modmpi,     only : myid,comm3d,mpierr,MY_REAL
-    use readinput,  only : read_sparse_ijk, read_sparse_real
+#if defined(_GPU)
+    use modmpi,     only : halo_exchange_device
+#else
     use m_halo,     only : halo_exchange
+#endif
+    use readinput,  only : read_sparse_ijk, read_sparse_real
     implicit none
     integer :: i,j,k,m
     integer :: npts
@@ -290,8 +294,8 @@ contains
     allocate(dcoef_3d_d(ib-ih:ie+ih, jb-jh:je+jh, kb-kh:ke+kh))
     lad_3d_d = lad_3d
     dcoef_3d_d = dcoef_3d
-    call halo_exchange(lad_3d_d, 3)
-    call halo_exchange(dcoef_3d_d, 3)
+    call halo_exchange_device(lad_3d_d, ih, jh)
+    call halo_exchange_device(dcoef_3d_d, ih, jh)
     lad_3d = lad_3d_d
     dcoef_3d = dcoef_3d_d
     deallocate(lad_3d_d, dcoef_3d_d)

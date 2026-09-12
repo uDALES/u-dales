@@ -292,8 +292,12 @@ module modibm
      use modglobal, only : libm, xhat, yhat, zhat, vec0, &
                            ib, ie, ih, jb, je, jh, kb, ke, kh, nsv, &
                            iwallmom, lmoist, ltempeq, cexpnr, nfcts, lwritefac
-     use m_halo, only : halo_exchange
      use modmpi,    only : myid
+#if defined(_GPU)
+     use modmpi,    only : halo_exchange_device
+#else
+     use m_halo,    only : halo_exchange
+#endif
      use modstat_nc,only: open_nc, define_nc, ncinfo, writestat_dims_nc
 
      real, allocatable :: rhs(:,:,:)
@@ -322,13 +326,23 @@ module modibm
      call solid(solid_info_u, mask_u, rhs, 0., ih, jh, kh)
      call solid(solid_info_v, mask_v, rhs, 0., ih, jh, kh)
      call solid(solid_info_w, mask_w, rhs, 0., ih, jh, kh)
-!$acc data create(mask_u, mask_v, mask_w)
-!$acc update device(mask_u, mask_v, mask_w)
-     call halo_exchange(mask_u, 3)!, opt_zlevel=(/ih,jh,0/))
-     call halo_exchange(mask_v, 3)!, opt_zlevel=(/ih,jh,0/))
-     call halo_exchange(mask_w, 3)!, opt_zlevel=(/ih,jh,0/))
-!$acc update host(mask_u, mask_v, mask_w)
-!$acc end data
+#if defined(_GPU)
+     ! Exchanged on the device through the packed routine (see modmpi); the
+     ! 2DECOMP datatype exchange cost ~3 s per mask on a 256^3 case split in x.
+     !$acc data create(mask_u, mask_v, mask_w)
+     !$acc update device(mask_u, mask_v, mask_w)
+     !$acc host_data use_device(mask_u, mask_v, mask_w)
+     call halo_exchange_device(mask_u, ih, jh)
+     call halo_exchange_device(mask_v, ih, jh)
+     call halo_exchange_device(mask_w, ih, jh)
+     !$acc end host_data
+     !$acc update host(mask_u, mask_v, mask_w)
+     !$acc end data
+#else
+     call halo_exchange(mask_u, 3)
+     call halo_exchange(mask_v, 3)
+     call halo_exchange(mask_w, 3)
+#endif
 
 #if !defined(_GPU) || defined(UDALES_DEBUG)
      if (iwallmom > 1) allocate(fac_tau_raw(1:nfcts))
@@ -361,11 +375,17 @@ module modibm
        allocate(mask_c(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh)); mask_c = 1.
        mask_c(:,:,kb-kh) = 0.
        call solid(solid_info_c, mask_c, rhs, 0., ih, jh, kh)
-!$acc data create(mask_c)
-!$acc update device(mask_c)
-       call halo_exchange(mask_c, 3)!, opt_zlevel=(/ih,jh,0/))
-!$acc update host(mask_c)
-!$acc end data
+#if defined(_GPU)
+       !$acc data create(mask_c)
+       !$acc update device(mask_c)
+       !$acc host_data use_device(mask_c)
+       call halo_exchange_device(mask_c, ih, jh)
+       !$acc end host_data
+       !$acc update host(mask_c)
+       !$acc end data
+#else
+       call halo_exchange(mask_c, 3)
+#endif
      end if
 
      deallocate(rhs)
@@ -2626,7 +2646,6 @@ module modibm
                              thl0_d, qt0_d, sv0_d
 #else
      use modfields,   only : um, vm, wm, thlm, qtm, svm, up, vp, wp, thlp, qtp, svp, thl0, qt0, sv0
-     use modboundary, only : halos
 #endif
 
      integer n
@@ -4357,7 +4376,7 @@ module modibm
                             IIcs, IIus, IIvs, IIws, IIuws, IIvws, IIuvs, &
                             IIct, IIut, IIvt, IIwt, IIuwt
       use modmpi,    only : comm3d, mpierr
-      use m_halo,    only : halo_exchange
+      ! use m_halo,    only : halo_exchange
 
       integer :: IIcl(kb:ke + khc), IIul(kb:ke + khc), IIvl(kb:ke + khc), IIwl(kb:ke + khc), IIuwl(kb:ke + khc), IIvwl(kb:ke + khc), IIuvl(kb:ke + khc)
       integer :: IIcd(ib:ie, kb:ke)

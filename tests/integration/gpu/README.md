@@ -11,14 +11,14 @@ been stable for a suitable period.
 
 ## What is implemented
 
-`case_matrix.json` defines 34 deterministic cases and five selections:
+`case_matrix.json` defines 40 deterministic cases and five selections:
 
 | Selection | Cases | Intended use |
 | --- | --- | --- |
 | `smoke` | four 8 x 8 x 8 cases | Debug development and trusted pull requests |
 | `scalar-sources` | two serial and two two-rank cases | scalar-source parity and global positioning |
-| `nightly` | 26 serial cases | single-GPU scheduled regression |
-| `mpi` | dry (`ipoiss` 0 and 3) and scalar-source two-rank X/Y cases | manually dispatched two-GPU check |
+| `nightly` | 29 serial cases | single-GPU scheduled regression |
+| `mpi` | dry (`ipoiss` 0 and 3), scalar-source, IBM, TKE-statistics and vegetation two-rank cases | manually dispatched two-GPU check |
 | `full` | nightly plus X, Y, and 2 x 2 MPI with both Poisson solvers | manual four-GPU validation |
 
 The current coverage is:
@@ -54,6 +54,14 @@ The current coverage is:
 - vegetation forcing and tree output
 - surface energy balance, sparse view factors, and periodic EB correction
 - two-rank X and Y decompositions and a four-rank 2 x 2 decomposition
+- every halo exchange the GPU build performs, on a two-rank X split: the
+  prognostic fields each substep (the dry and scalar cases), the IBM masks at
+  start-up (`ibm-scalar-wall-two-rank-x`), the TKE-budget statistics arrays
+  (`statsdump-tke-two-rank-x`, with `statsdump-tke` as its serial reference)
+  and the vegetation fields (`vegetation-sveg-two-rank-x`). These exchanges
+  go through `modmpi::halo_exchange_device`, which packs the halo slabs into
+  contiguous device buffers; handing device memory to 2DECOMP's datatype
+  exchange made an x split about 800 times slower per step
 - the `fielddump` variables no other case requests: the wall stresses `tau_x`,
   `tau_y` and `tau_z`, the heat flux `thl_flux`, and the post-correction
   divergence `div`. Without this case those four transfers could be dropped

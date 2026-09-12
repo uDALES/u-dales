@@ -85,18 +85,43 @@ contains
                             BCym_periodic, BCyT_periodic, BCyq_periodic, BCys_periodic, &
                             ibrank, ierank, jbrank, jerank
       use modfields, only : u0, v0, w0, um, vm, wm, thl0, thlm, qt0, qtm, sv0, svm, thl0c
+#if defined(_GPU)
+      use modglobal, only : ih, jh
+      use modmpi,    only : halo_exchange_device
+#else
       use m_halo, only : halo_exchange
+#endif
       implicit none
       integer n
 
 #if defined(_GPU)
-      ! The GPU build of 2DECOMP accepts device arrays. During startup, before
-      ! initCUDA allocates the persistent CUDA arrays, use temporary OpenACC
-      ! mappings for the host fields and copy the exchanged halos back.
+      ! During startup, before initCUDA allocates the persistent CUDA arrays,
+      ! map the host fields to the device temporarily, exchange there with the
+      ! packed device routine (2DECOMP's datatype exchange on device memory
+      ! costs ~35 s here on a 256^3 case split in x), and copy the exchanged
+      ! halos back.
       !$acc data create(u0, v0, w0, um, vm, wm, thl0, thlm, thl0c, qt0, qtm, sv0, svm)
       !$acc update device(u0, v0, w0, um, vm, wm, thl0, thlm, thl0c, qt0, qtm, sv0, svm)
       !$acc host_data use_device(u0, v0, w0, um, vm, wm, thl0, thlm, thl0c, qt0, qtm, sv0, svm)
-#endif
+      call halo_exchange_device(u0, ih, jh)
+      call halo_exchange_device(v0, ih, jh)
+      call halo_exchange_device(w0, ih, jh)
+      call halo_exchange_device(um, ih, jh)
+      call halo_exchange_device(vm, ih, jh)
+      call halo_exchange_device(wm, ih, jh)
+      call halo_exchange_device(thl0, ih, jh)
+      call halo_exchange_device(thlm, ih, jh)
+      call halo_exchange_device(thl0c, ihc, jhc)
+      call halo_exchange_device(qt0, ih, jh)
+      call halo_exchange_device(qtm, ih, jh)
+      do n = 1, nsv
+         call halo_exchange_device(sv0(:, :, :, n), ihc, jhc)
+         call halo_exchange_device(svm(:, :, :, n), ihc, jhc)
+      enddo
+      !$acc end host_data
+      !$acc update host(u0, v0, w0, um, vm, wm, thl0, thlm, thl0c, qt0, qtm, sv0, svm)
+      !$acc end data
+#else
       call halo_exchange(u0, 3)
       call halo_exchange(v0, 3)
       call halo_exchange(w0, 3)
@@ -112,10 +137,6 @@ contains
          call halo_exchange(sv0(:, :, :, n), 3, opt_levels=(/ihc,jhc,khc/))
          call halo_exchange(svm(:, :, :, n), 3, opt_levels=(/ihc,jhc,khc/))
       enddo
-#if defined(_GPU)
-      !$acc end host_data
-      !$acc update host(u0, v0, w0, um, vm, wm, thl0, thlm, thl0c, qt0, qtm, sv0, svm)
-      !$acc end data
 #endif
 
       if (ibrank .and. ierank) then ! not parallelized in x
@@ -140,33 +161,33 @@ contains
                             BCxm_periodic, BCxT_periodic, BCxq_periodic, BCxs_periodic, &
                             BCym_periodic, BCyT_periodic, BCyq_periodic, BCys_periodic, &
                             ibrank, ierank, jbrank, jerank, &
-                            ltempeq, lmoist, iadv_thl, iadv_kappa
-      use m_halo,    only : halo_exchange
+                            ltempeq, lmoist, iadv_thl, iadv_kappa, ih, jh
+      use modmpi,    only : halo_exchange_device
       use modcuda,   only : u0_d, v0_d, w0_d, um_d, vm_d, wm_d, &
                             thl0_d, thlm_d, qt0_d, qtm_d, sv0_d, svm_d, thl0c_d
       implicit none
       integer n
 
-      call halo_exchange(u0_d, 3)
-      call halo_exchange(v0_d, 3)
-      call halo_exchange(w0_d, 3)
-      call halo_exchange(um_d, 3)
-      call halo_exchange(vm_d, 3)
-      call halo_exchange(wm_d, 3)
+      call halo_exchange_device(u0_d, ih, jh)
+      call halo_exchange_device(v0_d, ih, jh)
+      call halo_exchange_device(w0_d, ih, jh)
+      call halo_exchange_device(um_d, ih, jh)
+      call halo_exchange_device(vm_d, ih, jh)
+      call halo_exchange_device(wm_d, ih, jh)
       if (ltempeq) then
-        call halo_exchange(thl0_d, 3)
-        call halo_exchange(thlm_d, 3)
+        call halo_exchange_device(thl0_d, ih, jh)
+        call halo_exchange_device(thlm_d, ih, jh)
         if (iadv_thl == iadv_kappa) then
-          call halo_exchange(thl0c_d, 3, opt_levels=(/ihc,jhc,khc/))
+          call halo_exchange_device(thl0c_d, ihc, jhc)
         end if
       end if
       if (lmoist) then
-        call halo_exchange(qt0_d, 3)
-        call halo_exchange(qtm_d, 3)
+        call halo_exchange_device(qt0_d, ih, jh)
+        call halo_exchange_device(qtm_d, ih, jh)
       end if
       do n = 1, nsv
-         call halo_exchange(sv0_d(:, :, :, n), 3, opt_levels=(/ihc,jhc,khc/))
-         call halo_exchange(svm_d(:, :, :, n), 3, opt_levels=(/ihc,jhc,khc/))
+         call halo_exchange_device(sv0_d(:, :, :, n), ihc, jhc)
+         call halo_exchange_device(svm_d(:, :, :, n), ihc, jhc)
       enddo
 
       if (ibrank .and. ierank) then ! not parallelized in x
@@ -812,17 +833,19 @@ contains
                                 ibrank, ierank, jbrank, jerank, BCtopm, BCxm, BCym, &
                                 BCtopm_freeslip, BCtopm_noslip, BCtopm_pressure, &
                                 BCxm_periodic, BCym_periodic
-     use m_halo,         only : halo_exchange
 #if defined(_GPU)
+     use modglobal,      only : ih, jh
+     use modmpi,         only : halo_exchange_device
      use modcuda,        only : ekm_d, ekh_d
 #else
      use modsubgriddata, only : ekm, ekh
+     use m_halo,         only : halo_exchange
 #endif
      integer :: i, j
 
 #if defined(_GPU)
-     call halo_exchange(ekm_d, 3)
-     call halo_exchange(ekh_d, 3)
+     call halo_exchange_device(ekm_d, ih, jh)
+     call halo_exchange_device(ekh_d, ih, jh)
 #else
      call halo_exchange(ekm, 3)
      call halo_exchange(ekh, 3)
@@ -2631,23 +2654,24 @@ contains
                               BCym_periodic, BCym_profile
      use modfields,    only : uouttot, vouttot, pres0, pres0, IIc, IIcs
      use modmpi,       only : avexy_ibm
-     use m_halo,       only : halo_exchange
 #if defined(_GPU)
      use cudafor
+     use modmpi,       only : halo_exchange_device
      use modcuda,      only : pup_d, pvp_d, pwp_d, griddim, blockdim, checkCUDA, &
                               pres0_d, IIc_d, avexy_ibm_device
 #else
      use modfields,    only : pup, pvp, pwp, up, vp, wp, um, vm, wm, u0, v0, uprof, vprof
      use modinletdata, only : u0driver
+     use m_halo,       only : halo_exchange
 #endif
      implicit none
      real, dimension(kb:ke+kh) :: pres0ij
      integer :: i, j, k
 
 #if defined(_GPU)
-     call halo_exchange(pup_d, 3, opt_levels=(/ih,jh,0/))
-     call halo_exchange(pvp_d, 3, opt_levels=(/ih,jh,0/))
-     call halo_exchange(pwp_d, 3, opt_levels=(/ih,jh,0/))
+     call halo_exchange_device(pup_d, ih, jh)
+     call halo_exchange_device(pvp_d, ih, jh)
+     call halo_exchange_device(pwp_d, ih, jh)
 #else
      call halo_exchange(pup, 3, opt_levels=(/ih,jh,0/))
      call halo_exchange(pvp, 3, opt_levels=(/ih,jh,0/))
@@ -2822,19 +2846,21 @@ contains
    subroutine bcp
      use modglobal, only : ib, ie, jb, je, kb, ke, &
                            ibrank, ierank, jbrank, jerank, BCxm, BCym, BCxm_periodic, BCym_periodic
-     use m_halo,    only : halo_exchange
 #if defined(_GPU)
      use cudafor
+     use modglobal, only : ih, jh
+     use modmpi,    only : halo_exchange_device
      use modcuda,   only : p_d, pres0_d
 #else
      use modfields, only : p, pres0
+     use m_halo,    only : halo_exchange
 #endif
      implicit none
      integer :: i, j, k
 
 #if defined(_GPU)
-     call halo_exchange(p_d, 3)
-     call halo_exchange(pres0_d, 3)
+     call halo_exchange_device(p_d, ih, jh)
+     call halo_exchange_device(pres0_d, ih, jh)
 #else
      call halo_exchange(p, 3)
      call halo_exchange(pres0, 3)

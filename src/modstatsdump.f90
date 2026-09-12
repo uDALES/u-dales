@@ -1823,8 +1823,12 @@ contains
   use modglobal,        only : ib,ie,ih,jb,je,jh,ke,kb,kh,&
                                dzfi,dzhi,dxfi,dyi,dxhi,dy2i,grav,numol,ierank,jerank
   use modmpi,           only : avey_ibm,excjs,avexy_ibm
-  use modsurfdata,      only : thls
+#if defined(_GPU)
+  use modmpi,           only : halo_exchange_device
+#else
   use m_halo,           only : halo_exchange
+#endif
+  use modsurfdata,      only : thls
   implicit none
 
   real, dimension(ib:ie,jb:je,kb:ke)  :: disssgsfl     ! average subgrid visc. * average rate of strain squared : 2*<nu_t>*<Sij>*<Sij>
@@ -1948,8 +1952,28 @@ contains
       ! call excjs( dummyy,  ib,ie,jb,je,kb,ke,0,1)   ! jb-1 is not used
       ! call excjs( ttmy   , ib,ie,jb,je,kb,ke,0,1)   ! jb-1 is not used
 
-!$acc data create(tvmx, tsgsmx1, tsgsmx2, dummyx, ttmx, tvmy, tsgsmy1, tsgsmy2, dummyy, ttmy)
-!$acc update device(tvmx, tsgsmx1, tsgsmx2, dummyx, ttmx, tvmy, tsgsmy1, tsgsmy2, dummyy, ttmy)
+#if defined(_GPU)
+      ! Host arrays: map them to the device for the exchange and use the packed
+      ! device routine. Handing them to 2DECOMP's device interface instead made
+      ! the compiler copy each whole array to a device temporary and back around
+      ! a datatype exchange that cost ~3 s per array on a 256^3 case split in x.
+      !$acc data create(tvmx, tsgsmx1, tsgsmx2, dummyx, ttmx, tvmy, tsgsmy1, tsgsmy2, dummyy, ttmy)
+      !$acc update device(tvmx, tsgsmx1, tsgsmx2, dummyx, ttmx, tvmy, tsgsmy1, tsgsmy2, dummyy, ttmy)
+      !$acc host_data use_device(tvmx, tsgsmx1, tsgsmx2, dummyx, ttmx, tvmy, tsgsmy1, tsgsmy2, dummyy, ttmy)
+      call halo_exchange_device(tvmx, ih, jh)
+      call halo_exchange_device(tsgsmx1, ih, jh)
+      call halo_exchange_device(tsgsmx2, ih, jh)
+      call halo_exchange_device(dummyx, ih, jh)
+      call halo_exchange_device(ttmx, ih, jh)
+      call halo_exchange_device(tvmy, ih, jh)
+      call halo_exchange_device(tsgsmy1, ih, jh)
+      call halo_exchange_device(tsgsmy2, ih, jh)
+      call halo_exchange_device(dummyy, ih, jh)
+      call halo_exchange_device(ttmy, ih, jh)
+      !$acc end host_data
+      !$acc update host(tvmx, tsgsmx1, tsgsmx2, dummyx, ttmx, tvmy, tsgsmy1, tsgsmy2, dummyy, ttmy)
+      !$acc end data
+#else
       call halo_exchange(tvmx, 3, opt_levels=(/ih,jh,0/))
       call halo_exchange(tsgsmx1, 3, opt_levels=(/ih,jh,0/))
       call halo_exchange(tsgsmx2, 3, opt_levels=(/ih,jh,0/))
@@ -1961,8 +1985,7 @@ contains
       call halo_exchange(tsgsmy2, 3, opt_levels=(/ih,jh,0/))
       call halo_exchange(dummyy, 3, opt_levels=(/ih,jh,0/))
       call halo_exchange(ttmy, 3, opt_levels=(/ih,jh,0/))
-!$acc update host(tvmx, tsgsmx1, tsgsmx2, dummyx, ttmx, tvmy, tsgsmy1, tsgsmy2, dummyy, ttmy)
-!$acc end data
+#endif
 
       ! BC's
       if (ierank) then

@@ -56,6 +56,15 @@ save
   character(3) :: cmyidx
   character(3) :: cmyidy
 
+#if defined(_GPU)
+  !! Device buffers for halo_exchange_device (see there). Grown on demand and
+  !! kept for the run: a cudaMalloc per exchange would cost more than the
+  !! exchange itself.
+  real, device, allocatable, private :: hx_send_e(:), hx_send_w(:), hx_recv_e(:), hx_recv_w(:)
+  real, device, allocatable, private :: hy_send_n(:), hy_send_s(:), hy_recv_n(:), hy_recv_s(:)
+  integer, private :: hx_capacity = 0, hy_capacity = 0
+#endif
+
 contains
   subroutine initmpi
     use decomp_2d_mpi, only : nrank, nproc
@@ -798,5 +807,112 @@ subroutine excjs(a,sx,ex,sy,ey,sz,ez,ih,jh)
      call sum_ibm_reduce(sumx, sumproc, (ke-kb+1)*(je-jb+1))
 
      end subroutine sumx_ibm
+
+#if defined(_GPU)
+  !> Halo exchange for a device field, packed through contiguous device buffers.
+  !!
+  !! The GPU build used to hand its device fields to 2DECOMP's halo_exchange,
+  !! which describes the halo slabs with MPI vector datatypes. OpenMPI's CUDA
+  !! support has no device-side packing for such datatypes: for the x slabs of
+  !! a z pencil, whose contiguous pieces are only ih values long, it copied
+  !! every piece through the host on its own (24 million copies per step on a
+  !! 256^3 case split in x, 120 s per step against 0.2 s on one GPU). Here the
+  !! slabs are packed and unpacked on the device with OpenACC loops and the
+  !! buffers cross MPI as single contiguous device messages, which CUDA-aware
+  !! OpenMPI moves with one transfer each.
+  !!
+  !! Same contract as 2DECOMP's halo_exchange(a, 3) with levels (ihl, jhl, .):
+  !! a is a z-pencil field with ihl halo columns in x and jhl halo rows in y;
+  !! every k of the array takes part; x is exchanged first over the full y
+  !! extent, then y over the full x extent so the corners are filled. With one
+  !! rank in a direction nothing is sent: the periodic copies in modboundary
+  !! cover that case, as before. At a non-periodic edge the neighbour is
+  !! MPI_PROC_NULL and the halo is left alone, also as before.
+  subroutine halo_exchange_device(a, ihl, jhl)
+    implicit none
+    real, device, intent(inout) :: a(:,:,:)
+    integer, intent(in) :: ihl, jhl
+    integer :: n1, n2, n3, i, j, k, m, ii, ewsize, nssize
+    integer :: req(4), statuses(MPI_STATUS_SIZE, 4)
+
+    n1 = size(a, 1); n2 = size(a, 2); n3 = size(a, 3)
+
+    if (nprocx > 1) then
+      ewsize = ihl*n2*n3
+      if (ewsize > hx_capacity) then
+        if (allocated(hx_send_e)) deallocate(hx_send_e, hx_send_w, hx_recv_e, hx_recv_w)
+        allocate(hx_send_e(ewsize), hx_send_w(ewsize), hx_recv_e(ewsize), hx_recv_w(ewsize))
+        hx_capacity = ewsize
+      end if
+      ! Interior columns ihl+1..n1-ihl. The last ihl go east, the first ihl west.
+      !$acc parallel loop collapse(3) default(present) private(ii)
+      do m = 1, ihl
+        do k = 1, n3
+          do j = 1, n2
+            ii = ((m - 1)*n3 + (k - 1))*n2 + j
+            hx_send_e(ii) = a(n1 - ihl - m + 1, j, k)
+            hx_send_w(ii) = a(ihl + m, j, k)
+          end do
+        end do
+      end do
+      !$acc end parallel loop
+      call MPI_IRECV(hx_recv_w, ewsize, MY_REAL, nbrwest, 6, comm3d, req(1), mpierr)
+      call MPI_IRECV(hx_recv_e, ewsize, MY_REAL, nbreast, 7, comm3d, req(2), mpierr)
+      call MPI_ISEND(hx_send_e, ewsize, MY_REAL, nbreast, 6, comm3d, req(3), mpierr)
+      call MPI_ISEND(hx_send_w, ewsize, MY_REAL, nbrwest, 7, comm3d, req(4), mpierr)
+      call MPI_WAITALL(4, req, statuses, mpierr)
+      !$acc parallel loop collapse(3) default(present) private(ii)
+      do m = 1, ihl
+        do k = 1, n3
+          do j = 1, n2
+            ii = ((m - 1)*n3 + (k - 1))*n2 + j
+            a(ihl + 1 - m, j, k) = hx_recv_w(ii)
+            a(n1 - ihl + m, j, k) = hx_recv_e(ii)
+          end do
+        end do
+      end do
+      !$acc end parallel loop
+    end if
+
+    if (nprocy > 1) then
+      nssize = jhl*n1*n3
+      if (nssize > hy_capacity) then
+        if (allocated(hy_send_n)) deallocate(hy_send_n, hy_send_s, hy_recv_n, hy_recv_s)
+        allocate(hy_send_n(nssize), hy_send_s(nssize), hy_recv_n(nssize), hy_recv_s(nssize))
+        hy_capacity = nssize
+      end if
+      ! Interior rows jhl+1..n2-jhl, over the full x extent including the
+      ! x halos just received.
+      !$acc parallel loop collapse(3) default(present) private(ii)
+      do m = 1, jhl
+        do k = 1, n3
+          do i = 1, n1
+            ii = ((m - 1)*n3 + (k - 1))*n1 + i
+            hy_send_n(ii) = a(i, n2 - jhl - m + 1, k)
+            hy_send_s(ii) = a(i, jhl + m, k)
+          end do
+        end do
+      end do
+      !$acc end parallel loop
+      call MPI_IRECV(hy_recv_s, nssize, MY_REAL, nbrsouth, 4, comm3d, req(1), mpierr)
+      call MPI_IRECV(hy_recv_n, nssize, MY_REAL, nbrnorth, 5, comm3d, req(2), mpierr)
+      call MPI_ISEND(hy_send_n, nssize, MY_REAL, nbrnorth, 4, comm3d, req(3), mpierr)
+      call MPI_ISEND(hy_send_s, nssize, MY_REAL, nbrsouth, 5, comm3d, req(4), mpierr)
+      call MPI_WAITALL(4, req, statuses, mpierr)
+      !$acc parallel loop collapse(3) default(present) private(ii)
+      do m = 1, jhl
+        do k = 1, n3
+          do i = 1, n1
+            ii = ((m - 1)*n3 + (k - 1))*n1 + i
+            a(i, jhl + 1 - m, k) = hy_recv_s(ii)
+            a(i, n2 - jhl + m, k) = hy_recv_n(ii)
+          end do
+        end do
+      end do
+      !$acc end parallel loop
+    end if
+
+  end subroutine halo_exchange_device
+#endif
 
 end module
