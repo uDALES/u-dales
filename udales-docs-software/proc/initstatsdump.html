@@ -1,0 +1,1390 @@
+<!-- -*- mode: jinja2 -*- -->
+
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+      <meta name="description" content="API documentation of the Fortran source code of uDALES, the open-source multi-physics large-eddy simulation model for urban environments.">
+    <meta name="author" content="The uDALES Team" >
+    <link rel="icon" href="../favicon.png">
+
+    <title>initstatsdump &ndash; uDALES</title>
+
+    <!-- Bootstrap -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet"
+          integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"
+            integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
+    <!-- Font Awesome -->
+    <link href="../css/fontawesome.min.css" rel="stylesheet">
+    <link href="../css/brands.min.css" rel="stylesheet">
+    <link href="../css/regular.min.css" rel="stylesheet">
+    <link href="../css/solid.min.css" rel="stylesheet">
+    <link href="../css/v4-font-face.min.css" rel="stylesheet">
+    <link href="../css/v4-shims.min.css" rel="stylesheet">
+    <!-- MathJax -->
+    <script type="text/x-mathjax-config">
+      MathJax.Hub.Config({
+        TeX: { equationNumbers: { autoNumber: "AMS" } }
+      });
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/mathjax@2.7.9/MathJax.js?config=TeX-AMS-MML_HTMLorMML" async
+            integrity="sha256-DViIOMYdwlM/axqoGDPeUyf0urLoHMN4QACBKyB58Uw=" crossorigin="anonymous"></script>
+    <!-- Other scripts and stylesheets -->
+    <link href="../css/local.css" rel="stylesheet">
+    <link href="../css/pygments.css" rel="stylesheet">
+    <script src="../js/svg-pan-zoom.min.js"></script>
+  </head>
+
+  <body>
+
+    <!-- Fixed navbar -->
+    <div class="container-fluid mb-sm-4 mb-xl-2">
+      <nav class="navbar navbar-expand-lg navbar-dark bg-dark fixed-top">
+        <div class="container">
+          <a class="navbar-brand" href="../index.html">uDALES </a>
+          <button type="button" class="navbar-toggler" data-bs-toggle="collapse" data-bs-target="#navbar"
+                  aria-expanded="false" aria-controls="navbar" aria-label="Toggle navigation">
+                  <span class="navbar-toggler-icon">
+          </button>
+
+          <div id="navbar" class="navbar-collapse collapse">
+            <ul class="navbar-nav">
+                  <li class="nav-item">
+                    <a class="nav-link" href="../lists/files.html">Source Files</a>
+                  </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="../lists/modules.html">Modules</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="../lists/procedures.html">Procedures</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="../lists/absint.html">Abstract Interfaces</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="../lists/types.html">Derived Types</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="../lists/namelists.html">Namelists</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="../program/udales.html">Program</a>
+                </li>
+            </ul>
+              <div class="d-flex align-items-end flex-grow-1">
+                <form action="../search.html" role="search" class="ms-auto">
+                  <input type="text" class="form-control" aria-label="Search" placeholder="Search" name="q" id="tipue_search_input" autocomplete="off" required>
+                </form>
+              </div>
+          </div><!--/.nav-collapse -->
+        </div>
+      </nav>
+    </div>
+
+    <div class="container">
+  <div class="row">
+    <h1>initstatsdump
+      <small>Subroutine</small>
+      
+    </h1>
+      <div class="container p-2 mb-4 bg-light border rounded-3">
+    <div class="row align-items-center justify-content-between" id="info-bar">
+      <div class="col">
+        <ul class="list-inline" style="margin-bottom:0px;display:inline">
+
+            <li class="list-inline-item" id="statements"><i class="fa fa-list-ol"></i>
+              <a data-bs-toggle="tooltip" data-bs-placement="bottom" data-bs-html="true"
+                 title=" 2.4% of total for procedures.">328 statements</a>
+            </li>
+
+            <li class="list-inline-item" id="source-file">
+              <i class="fa fa-code"></i>
+              <a href="../src/modstatsdump.f90"> Source File</a>
+            </li>
+        </ul>
+      </div>
+      <div class="col">
+        <nav aria-label="breadcrumb">
+          <ol class="breadcrumb justify-content-end mb-0">
+                <li class="breadcrumb-item"><a href='../sourcefile/modstatsdump.f90.html'>modstatsdump.f90</a></li>
+                <li class="breadcrumb-item"><a href='../module/modstatsdump.html'>modstatsdump</a></li>
+            <li class="breadcrumb-item active" aria-current="page">initstatsdump</li>
+          </ol>
+        </nav>
+      </div>
+    </div>
+  </div>
+  <script>
+    // Enable Bootstrap tooltips
+    (function () {
+      const tooltipTriggerList = document.querySelectorAll('[data-bs-toggle="tooltip"]')
+      const tooltipList = [...tooltipTriggerList].map(tooltipTriggerEl => new bootstrap.Tooltip(tooltipTriggerEl))
+    })();
+  </script>
+
+  </div>
+  
+  <div class="row">
+    <div class="col-md-3 hidden-xs hidden-sm visible-md visible-lg">
+      <div id="sidebar">
+      <h3>Contents</h3>
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+    <div class="card card-primary">
+      <div class="card-header text-left"><h3 class="card-title">Source Code</h3></div>
+      <div class="list-group">
+        <a class="list-group-item" href="../proc/initstatsdump.html#src">initstatsdump</a>
+      </div>
+    </div>
+
+
+  </div>
+
+    </div>
+    
+    <div class="col-md-9" id='text'>
+    <h2>public  subroutine initstatsdump()  
+</h2>
+        <div class="card mb-4">
+      <h3 class="card-header card-title bg-light">Uses</h3>
+      <div class="card-body">
+        <ul class="list-group list-group-flush">
+            <li class="list-group-item">
+              <ul class="list-inline">
+                  <li class="list-inline-item">decomp_2d</li>
+                  <li class="list-inline-item"><a href='../module/modstat_nc.html'>modstat_nc</a></li>
+                  <li class="list-inline-item"><a href='../module/modfields.html'>modfields</a></li>
+                  <li class="list-inline-item"><a href='../module/modmpi.html'>modmpi</a></li>
+                  <li class="list-inline-item"><a href='../module/modglobal.html'>modglobal</a></li>
+              </ul>
+            </li>
+            <li class="list-group-item">
+              <div class="depgraph"><?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
+ "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<!-- Generated by graphviz version 14.1.3 (0)
+ -->
+<!-- Title: proc~~initstatsdump~~UsesGraph Pages: 1 -->
+<svg id="procinitstatsdumpUsesGraph" width="400pt" height="176pt"
+ viewBox="0.00 0.00 400.00 176.00" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<g id="proc~~initstatsdump~~UsesGraph" class="graph" transform="scale(1 1) rotate(0) translate(4 172.27)">
+<title>proc~~initstatsdump~~UsesGraph</title>
+<polygon fill="white" stroke="none" points="-4,4 -4,-172.27 396.31,-172.27 396.31,4 -4,4"/>
+<!-- proc~initstatsdump -->
+<g id="proc~~initstatsdump~~UsesGraph_node1" class="node">
+<title>proc~initstatsdump</title>
+<polygon fill="none" stroke="black" points="392.31,-106.27 308.79,-106.27 308.79,-82 392.31,-82 392.31,-106.27"/>
+<text xml:space="preserve" text-anchor="middle" x="350.55" y="-90.54" font-family="Helvetica,sans-Serif" font-size="10.50">initstatsdump</text>
+</g>
+<!-- decomp_2d -->
+<g id="proc~~initstatsdump~~UsesGraph_node2" class="node">
+<title>decomp_2d</title>
+<polygon fill="#337ab7" stroke="#337ab7" points="163.77,-168.27 90,-168.27 90,-144 163.77,-144 163.77,-168.27"/>
+<text xml:space="preserve" text-anchor="middle" x="126.88" y="-152.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">decomp_2d</text>
+</g>
+<!-- proc~initstatsdump&#45;&gt;decomp_2d -->
+<g id="proc~~initstatsdump~~UsesGraph_edge1" class="edge">
+<title>proc~initstatsdump&#45;&gt;decomp_2d</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M339.43,-106.54C326.05,-121.85 300.87,-147.09 272.79,-157.13 241.63,-168.28 204.24,-167.71 175.24,-164.52"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="176.03,-161.09 165.67,-163.32 175.16,-168.04 176.03,-161.09"/>
+</g>
+<!-- module~modfields -->
+<g id="proc~~initstatsdump~~UsesGraph_node3" class="node">
+<title>module~modfields</title>
+<g id="a_proc~~initstatsdump~~UsesGraph_node3"><a xlink:href="../module/modfields.html" xlink:title="modfields">
+<polygon fill="#337ab7" stroke="#337ab7" points="268.29,-148.27 204.27,-148.27 204.27,-124 268.29,-124 268.29,-148.27"/>
+<text xml:space="preserve" text-anchor="middle" x="236.28" y="-132.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">modfields</text>
+</a>
+</g>
+</g>
+<!-- proc~initstatsdump&#45;&gt;module~modfields -->
+<g id="proc~~initstatsdump~~UsesGraph_edge2" class="edge">
+<title>proc~initstatsdump&#45;&gt;module~modfields</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M315.87,-106.74C304.39,-111.03 291.42,-115.88 279.37,-120.39"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="278.19,-117.09 270.05,-123.87 280.65,-123.65 278.19,-117.09"/>
+</g>
+<!-- module~modglobal -->
+<g id="proc~~initstatsdump~~UsesGraph_node4" class="node">
+<title>module~modglobal</title>
+<g id="a_proc~~initstatsdump~~UsesGraph_node4"><a xlink:href="../module/modglobal.html" xlink:title="modglobal">
+<polygon fill="#337ab7" stroke="#337ab7" points="270.54,-106.27 202.02,-106.27 202.02,-82 270.54,-82 270.54,-106.27"/>
+<text xml:space="preserve" text-anchor="middle" x="236.28" y="-90.54" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">modglobal</text>
+</a>
+</g>
+</g>
+<!-- proc~initstatsdump&#45;&gt;module~modglobal -->
+<g id="proc~~initstatsdump~~UsesGraph_edge3" class="edge">
+<title>proc~initstatsdump&#45;&gt;module~modglobal</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M308.38,-94.14C299.86,-94.14 290.85,-94.14 282.2,-94.14"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="282.24,-90.64 272.24,-94.14 282.24,-97.64 282.24,-90.64"/>
+</g>
+<!-- module~modmpi -->
+<g id="proc~~initstatsdump~~UsesGraph_node5" class="node">
+<title>module~modmpi</title>
+<g id="a_proc~~initstatsdump~~UsesGraph_node5"><a xlink:href="../module/modmpi.html" xlink:title="modmpi">
+<polygon fill="#337ab7" stroke="#337ab7" points="154.77,-66.27 99,-66.27 99,-42 154.77,-42 154.77,-66.27"/>
+<text xml:space="preserve" text-anchor="middle" x="126.88" y="-50.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">modmpi</text>
+</a>
+</g>
+</g>
+<!-- proc~initstatsdump&#45;&gt;module~modmpi -->
+<g id="proc~~initstatsdump~~UsesGraph_edge4" class="edge">
+<title>proc~initstatsdump&#45;&gt;module~modmpi</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M308.37,-81.76C296.92,-78.62 284.44,-75.48 272.79,-73.14 237.05,-65.94 195.77,-60.83 166.44,-57.74"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="166.85,-54.26 156.55,-56.73 166.14,-61.23 166.85,-54.26"/>
+</g>
+<!-- module~modstat_nc -->
+<g id="proc~~initstatsdump~~UsesGraph_node6" class="node">
+<title>module~modstat_nc</title>
+<g id="a_proc~~initstatsdump~~UsesGraph_node6"><a xlink:href="../module/modstat_nc.html" xlink:title="modstat_nc">
+<polygon fill="#337ab7" stroke="#337ab7" points="272.79,-26.27 199.77,-26.27 199.77,-2 272.79,-2 272.79,-26.27"/>
+<text xml:space="preserve" text-anchor="middle" x="236.28" y="-10.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">modstat_nc</text>
+</a>
+</g>
+</g>
+<!-- proc~initstatsdump&#45;&gt;module~modstat_nc -->
+<g id="proc~~initstatsdump~~UsesGraph_edge5" class="edge">
+<title>proc~initstatsdump&#45;&gt;module~modstat_nc</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M332.01,-81.64C313.8,-68.66 285.09,-48.2 264.05,-33.21"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="266.11,-30.38 255.93,-27.43 262.04,-36.08 266.11,-30.38"/>
+</g>
+<!-- module~modfields&#45;&gt;decomp_2d -->
+<g id="proc~~initstatsdump~~UsesGraph_edge6" class="edge">
+<title>module~modfields&#45;&gt;decomp_2d</title>
+<path fill="none" stroke="#cbff00" stroke-dasharray="5,2" d="M203.93,-141.97C194.94,-143.65 184.93,-145.51 175.21,-147.32"/>
+<polygon fill="#cbff00" stroke="#cbff00" points="174.68,-143.86 165.49,-149.13 175.96,-150.74 174.68,-143.86"/>
+</g>
+<!-- mpi -->
+<g id="proc~~initstatsdump~~UsesGraph_node7" class="node">
+<title>mpi</title>
+<g id="a_proc~~initstatsdump~~UsesGraph_node7"><a xlink:href="http://www.mpi-forum.org/docs/mpi-3.1/mpi31-report/node410.htm" xlink:title="mpi">
+<polygon fill="#337ab7" stroke="#337ab7" points="54,-66.27 0,-66.27 0,-42 54,-42 54,-66.27"/>
+<text xml:space="preserve" text-anchor="middle" x="27" y="-50.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">mpi</text>
+</a>
+</g>
+</g>
+<!-- module~modmpi&#45;&gt;mpi -->
+<g id="proc~~initstatsdump~~UsesGraph_edge7" class="edge">
+<title>module~modmpi&#45;&gt;mpi</title>
+<path fill="none" stroke="#0066ff" stroke-dasharray="5,2" d="M98.62,-54.13C88.48,-54.13 76.79,-54.13 65.88,-54.13"/>
+<polygon fill="#0066ff" stroke="#0066ff" points="65.96,-50.64 55.96,-54.14 65.96,-57.64 65.96,-50.64"/>
+</g>
+<!-- module~modstat_nc&#45;&gt;module~modmpi -->
+<g id="proc~~initstatsdump~~UsesGraph_edge8" class="edge">
+<title>module~modstat_nc&#45;&gt;module~modmpi</title>
+<path fill="none" stroke="#cc00ff" stroke-dasharray="5,2" d="M201.59,-26.68C190.22,-30.92 177.45,-35.68 165.77,-40.02"/>
+<polygon fill="#cc00ff" stroke="#cc00ff" points="164.56,-36.74 156.41,-43.51 167,-43.3 164.56,-36.74"/>
+</g>
+<!-- netcdf -->
+<g id="proc~~initstatsdump~~UsesGraph_node8" class="node">
+<title>netcdf</title>
+<polygon fill="#337ab7" stroke="#337ab7" points="153.88,-24.27 99.88,-24.27 99.88,0 153.88,0 153.88,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="126.88" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">netcdf</text>
+</g>
+<!-- module~modstat_nc&#45;&gt;netcdf -->
+<g id="proc~~initstatsdump~~UsesGraph_edge9" class="edge">
+<title>module~modstat_nc&#45;&gt;netcdf</title>
+<path fill="none" stroke="#cc00ff" stroke-dasharray="5,2" d="M199.52,-13.47C188.67,-13.27 176.73,-13.04 165.75,-12.84"/>
+<polygon fill="#cc00ff" stroke="#cc00ff" points="165.89,-9.34 155.83,-12.66 165.76,-16.34 165.89,-9.34"/>
+</g>
+</g>
+</svg>
+</div>          <div>
+            <a type="button" class="graph-help" data-bs-toggle="modal" href="#UsesGraph-help-text">Help</a>
+          </div>
+          <div class="modal fade" id="UsesGraph-help-text" tabindex="-1" role="dialog">
+            <div class="modal-dialog modal-lg" role="document">
+              <div class="modal-content">
+                <div class="modal-header">
+                  <h4 class="modal-title" id="-graph-help-label">Graph Key</h4>
+                  <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+<p>Nodes of different colours represent the following: </p>
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
+ "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<!-- Generated by graphviz version 14.1.3 (0)
+ -->
+<!-- Title: Graph Key Pages: 1 -->
+<svg width="511pt" height="32pt"
+ viewBox="0.00 0.00 511.00 32.00" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<g id="graph0" class="graph" transform="scale(1 1) rotate(0) translate(4 28.27)">
+<title>Graph Key</title>
+<polygon fill="white" stroke="none" points="-4,4 -4,-28.27 506.88,-28.27 506.88,4 -4,4"/>
+<!-- Module -->
+<g id="node1" class="node">
+<title>Module</title>
+<polygon fill="#337ab7" stroke="#337ab7" points="54,-24.27 0,-24.27 0,0 54,0 54,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="27" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Module</text>
+</g>
+<!-- Submodule -->
+<g id="node2" class="node">
+<title>Submodule</title>
+<polygon fill="#5bc0de" stroke="#5bc0de" points="144.13,-24.27 71.87,-24.27 71.87,0 144.13,0 144.13,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="108" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Submodule</text>
+</g>
+<!-- Subroutine -->
+<g id="node3" class="node">
+<title>Subroutine</title>
+<polygon fill="#d9534f" stroke="#d9534f" points="231.63,-24.27 162.37,-24.27 162.37,0 231.63,0 231.63,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="197" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Subroutine</text>
+</g>
+<!-- Function -->
+<g id="node4" class="node">
+<title>Function</title>
+<polygon fill="#d94e8f" stroke="#d94e8f" points="306.26,-24.27 249.74,-24.27 249.74,0 306.26,0 306.26,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="278" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Function</text>
+</g>
+<!-- Program -->
+<g id="node5" class="node">
+<title>Program</title>
+<polygon fill="#f0ad4e" stroke="#f0ad4e" points="381.26,-24.27 324.74,-24.27 324.74,0 381.26,0 381.26,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="353" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Program</text>
+</g>
+<!-- This Page&#39;s Entity -->
+<g id="node6" class="node">
+<title>This Page&#39;s Entity</title>
+<polygon fill="none" stroke="black" points="502.88,-24.27 399.12,-24.27 399.12,0 502.88,0 502.88,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="451" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50">This Page&#39;s Entity</text>
+</g>
+</g>
+</svg>
+
+<p>Solid arrows point from a submodule to the (sub)module which it is
+descended from. Dashed arrows point from a module or program unit to 
+modules which it uses.
+</p>
+ Where possible, edges connecting nodes are
+given different colours to make them easier to distinguish in
+large graphs.</div>
+            </div>
+          </div>
+        </div>
+            </li>
+        </ul>
+      </div>
+    </div>
+
+
+
+
+    <h3>Arguments</h3>
+    <em>None</em>
+    <br>
+    <br>
+    <div class="card">
+      <div class="card-header">
+  <h3 class="card-title">Calls</h3>
+      </div>
+      <div class="card-body">
+  <div class="depgraph"><?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
+ "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<!-- Generated by graphviz version 14.1.3 (0)
+ -->
+<!-- Title: proc~~initstatsdump~~CallsGraph Pages: 1 -->
+<svg id="procinitstatsdumpCallsGraph" width="524pt" height="620pt"
+ viewBox="0.00 0.00 524.00 620.00" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<g id="proc~~initstatsdump~~CallsGraph" class="graph" transform="scale(1 1) rotate(0) translate(4 616.27)">
+<title>proc~~initstatsdump~~CallsGraph</title>
+<polygon fill="white" stroke="none" points="-4,4 -4,-616.27 519.58,-616.27 519.58,4 -4,4"/>
+<!-- proc~initstatsdump -->
+<g id="proc~~initstatsdump~~CallsGraph_node1" class="node">
+<title>proc~initstatsdump</title>
+<polygon fill="none" stroke="black" points="83.52,-276.27 0,-276.27 0,-252 83.52,-252 83.52,-276.27"/>
+<text xml:space="preserve" text-anchor="middle" x="41.76" y="-260.53" font-family="Helvetica,sans-Serif" font-size="10.50">initstatsdump</text>
+</g>
+<!-- proc~define_nc -->
+<g id="proc~~initstatsdump~~CallsGraph_node2" class="node">
+<title>proc~define_nc</title>
+<g id="a_proc~~initstatsdump~~CallsGraph_node2"><a xlink:href="../proc/define_nc.html" xlink:title="define_nc">
+<polygon fill="#d9534f" stroke="#d9534f" points="204.17,-465.27 140.9,-465.27 140.9,-441 204.17,-441 204.17,-465.27"/>
+<text xml:space="preserve" text-anchor="middle" x="172.53" y="-449.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">define_nc</text>
+</a>
+</g>
+</g>
+<!-- proc~initstatsdump&#45;&gt;proc~define_nc -->
+<g id="proc~~initstatsdump~~CallsGraph_edge1" class="edge">
+<title>proc~initstatsdump&#45;&gt;proc~define_nc</title>
+<path fill="none" stroke="#ff0000" d="M51.21,-276.54C72.72,-308.11 129.79,-391.87 156.87,-431.62"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="153.84,-433.39 162.37,-439.68 159.63,-429.45 153.84,-433.39"/>
+</g>
+<!-- proc~ncinfo -->
+<g id="proc~~initstatsdump~~CallsGraph_node3" class="node">
+<title>proc~ncinfo</title>
+<g id="a_proc~~initstatsdump~~CallsGraph_node3"><a xlink:href="../proc/ncinfo.html" xlink:title="ncinfo">
+<polygon fill="#d9534f" stroke="#d9534f" points="199.53,-339.27 145.53,-339.27 145.53,-315 199.53,-315 199.53,-339.27"/>
+<text xml:space="preserve" text-anchor="middle" x="172.53" y="-323.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">ncinfo</text>
+</a>
+</g>
+</g>
+<!-- proc~initstatsdump&#45;&gt;proc~ncinfo -->
+<g id="proc~~initstatsdump~~CallsGraph_edge2" class="edge">
+<title>proc~initstatsdump&#45;&gt;proc~ncinfo</title>
+<path fill="none" stroke="#ff0000" d="M63.92,-276.58C79.14,-285.33 100.3,-297.03 119.52,-306.13 124.38,-308.44 129.56,-310.72 134.7,-312.89"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="133.1,-316.02 143.68,-316.57 135.76,-309.54 133.1,-316.02"/>
+</g>
+<!-- proc~open_nc -->
+<g id="proc~~initstatsdump~~CallsGraph_node4" class="node">
+<title>proc~open_nc</title>
+<g id="a_proc~~initstatsdump~~CallsGraph_node4"><a xlink:href="../proc/open_nc.html" xlink:title="open_nc">
+<polygon fill="#d9534f" stroke="#d9534f" points="200.79,-297.27 144.27,-297.27 144.27,-273 200.79,-273 200.79,-297.27"/>
+<text xml:space="preserve" text-anchor="middle" x="172.53" y="-281.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">open_nc</text>
+</a>
+</g>
+</g>
+<!-- proc~initstatsdump&#45;&gt;proc~open_nc -->
+<g id="proc~~initstatsdump~~CallsGraph_edge3" class="edge">
+<title>proc~initstatsdump&#45;&gt;proc~open_nc</title>
+<path fill="none" stroke="#ff0000" d="M83.86,-270.84C99.46,-273.38 117.17,-276.27 132.57,-278.78"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="131.89,-282.22 142.33,-280.37 133.02,-275.31 131.89,-282.22"/>
+</g>
+<!-- proc~writestat_dims_nc -->
+<g id="proc~~initstatsdump~~CallsGraph_node5" class="node">
+<title>proc~writestat_dims_nc</title>
+<g id="a_proc~~initstatsdump~~CallsGraph_node5"><a xlink:href="../proc/writestat_dims_nc.html" xlink:title="writestat_dims_nc">
+<polygon fill="#d9534f" stroke="#d9534f" points="225.54,-255.27 119.52,-255.27 119.52,-231 225.54,-231 225.54,-255.27"/>
+<text xml:space="preserve" text-anchor="middle" x="172.53" y="-239.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">writestat_dims_nc</text>
+</a>
+</g>
+</g>
+<!-- proc~initstatsdump&#45;&gt;proc~writestat_dims_nc -->
+<g id="proc~~initstatsdump~~CallsGraph_edge4" class="edge">
+<title>proc~initstatsdump&#45;&gt;proc~writestat_dims_nc</title>
+<path fill="none" stroke="#ff0000" d="M83.86,-257.43C91.55,-256.18 99.75,-254.84 107.94,-253.51"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="108.24,-257 117.55,-251.94 107.12,-250.09 108.24,-257"/>
+</g>
+<!-- zend -->
+<g id="proc~~initstatsdump~~CallsGraph_node6" class="node">
+<title>zend</title>
+<polygon fill="#777777" stroke="#777777" points="199.53,-213.27 145.53,-213.27 145.53,-189 199.53,-189 199.53,-213.27"/>
+<text xml:space="preserve" text-anchor="middle" x="172.53" y="-197.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">zend</text>
+</g>
+<!-- proc~initstatsdump&#45;&gt;zend -->
+<g id="proc~~initstatsdump~~CallsGraph_edge5" class="edge">
+<title>proc~initstatsdump&#45;&gt;zend</title>
+<path fill="none" stroke="#ff0000" d="M63.92,-251.69C79.14,-242.94 100.3,-231.24 119.52,-222.13 124.38,-219.83 129.56,-217.55 134.7,-215.38"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="135.76,-218.73 143.68,-211.7 133.1,-212.25 135.76,-218.73"/>
+</g>
+<!-- zstart -->
+<g id="proc~~initstatsdump~~CallsGraph_node7" class="node">
+<title>zstart</title>
+<polygon fill="#777777" stroke="#777777" points="199.53,-171.27 145.53,-171.27 145.53,-147 199.53,-147 199.53,-171.27"/>
+<text xml:space="preserve" text-anchor="middle" x="172.53" y="-155.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">zstart</text>
+</g>
+<!-- proc~initstatsdump&#45;&gt;zstart -->
+<g id="proc~~initstatsdump~~CallsGraph_edge6" class="edge">
+<title>proc~initstatsdump&#45;&gt;zstart</title>
+<path fill="none" stroke="#ff0000" d="M51.32,-251.68C64.23,-233.71 90.31,-200.42 119.52,-180.13 124.25,-176.85 129.56,-173.96 134.95,-171.47"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="135.98,-174.83 143.85,-167.73 133.27,-168.37 135.98,-174.83"/>
+</g>
+<!-- nf90_def_var -->
+<g id="proc~~initstatsdump~~CallsGraph_node10" class="node">
+<title>nf90_def_var</title>
+<polygon fill="#777777" stroke="#777777" points="370.94,-402.27 290.42,-402.27 290.42,-378 370.94,-378 370.94,-402.27"/>
+<text xml:space="preserve" text-anchor="middle" x="330.68" y="-386.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">nf90_def_var</text>
+</g>
+<!-- proc~define_nc&#45;&gt;nf90_def_var -->
+<g id="proc~~initstatsdump~~CallsGraph_edge7" class="edge">
+<title>proc~define_nc&#45;&gt;nf90_def_var</title>
+<path fill="none" stroke="#ff0000" d="M197.39,-440.58C214.86,-431.67 239.3,-419.81 261.54,-411.13 267.23,-408.91 273.27,-406.77 279.29,-404.75"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="280.18,-408.14 288.62,-401.74 278.03,-401.48 280.18,-408.14"/>
+</g>
+<!-- nf90_enddef -->
+<g id="proc~~initstatsdump~~CallsGraph_node11" class="node">
+<title>nf90_enddef</title>
+<polygon fill="#777777" stroke="#777777" points="369.81,-528.27 291.54,-528.27 291.54,-504 369.81,-504 369.81,-528.27"/>
+<text xml:space="preserve" text-anchor="middle" x="330.68" y="-512.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">nf90_enddef</text>
+</g>
+<!-- proc~define_nc&#45;&gt;nf90_enddef -->
+<g id="proc~~initstatsdump~~CallsGraph_edge8" class="edge">
+<title>proc~define_nc&#45;&gt;nf90_enddef</title>
+<path fill="none" stroke="#ff0000" d="M197.39,-465.69C214.86,-474.6 239.3,-486.46 261.54,-495.13 267.6,-497.5 274.04,-499.78 280.45,-501.91"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="279.11,-505.15 289.7,-504.87 281.24,-498.48 279.11,-505.15"/>
+</g>
+<!-- nf90_inq_dimid -->
+<g id="proc~~initstatsdump~~CallsGraph_node13" class="node">
+<title>nf90_inq_dimid</title>
+<polygon fill="#777777" stroke="#777777" points="376.94,-486.27 284.42,-486.27 284.42,-462 376.94,-462 376.94,-486.27"/>
+<text xml:space="preserve" text-anchor="middle" x="330.68" y="-470.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">nf90_inq_dimid</text>
+</g>
+<!-- proc~define_nc&#45;&gt;nf90_inq_dimid -->
+<g id="proc~~initstatsdump~~CallsGraph_edge9" class="edge">
+<title>proc~define_nc&#45;&gt;nf90_inq_dimid</title>
+<path fill="none" stroke="#ff0000" d="M204.38,-457.28C223.93,-459.91 249.82,-463.39 272.98,-466.51"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="272.21,-469.94 282.59,-467.8 273.15,-463 272.21,-469.94"/>
+</g>
+<!-- nf90_inq_varid -->
+<g id="proc~~initstatsdump~~CallsGraph_node14" class="node">
+<title>nf90_inq_varid</title>
+<polygon fill="#777777" stroke="#777777" points="375.44,-276.27 285.92,-276.27 285.92,-252 375.44,-252 375.44,-276.27"/>
+<text xml:space="preserve" text-anchor="middle" x="330.68" y="-260.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">nf90_inq_varid</text>
+</g>
+<!-- proc~define_nc&#45;&gt;nf90_inq_varid -->
+<g id="proc~~initstatsdump~~CallsGraph_edge10" class="edge">
+<title>proc~define_nc&#45;&gt;nf90_inq_varid</title>
+<path fill="none" stroke="#ff0000" d="M179.71,-440.72C198.61,-402.79 254.81,-290.73 261.54,-285.13 265.67,-281.71 270.35,-278.83 275.28,-276.43"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="276.36,-279.77 284.25,-272.71 273.68,-273.31 276.36,-279.77"/>
+</g>
+<!-- nf90_put_att -->
+<g id="proc~~initstatsdump~~CallsGraph_node18" class="node">
+<title>nf90_put_att</title>
+<polygon fill="#777777" stroke="#777777" points="369.44,-444.27 291.92,-444.27 291.92,-420 369.44,-420 369.44,-444.27"/>
+<text xml:space="preserve" text-anchor="middle" x="330.68" y="-428.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">nf90_put_att</text>
+</g>
+<!-- proc~define_nc&#45;&gt;nf90_put_att -->
+<g id="proc~~initstatsdump~~CallsGraph_edge11" class="edge">
+<title>proc~define_nc&#45;&gt;nf90_put_att</title>
+<path fill="none" stroke="#ff0000" d="M204.38,-448.99C225.94,-446.09 255.2,-442.15 280.02,-438.81"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="280.48,-442.28 289.93,-437.48 279.55,-435.35 280.48,-442.28"/>
+</g>
+<!-- nf90_redef -->
+<g id="proc~~initstatsdump~~CallsGraph_node20" class="node">
+<title>nf90_redef</title>
+<polygon fill="#777777" stroke="#777777" points="364.94,-570.27 296.42,-570.27 296.42,-546 364.94,-546 364.94,-570.27"/>
+<text xml:space="preserve" text-anchor="middle" x="330.68" y="-554.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">nf90_redef</text>
+</g>
+<!-- proc~define_nc&#45;&gt;nf90_redef -->
+<g id="proc~~initstatsdump~~CallsGraph_edge12" class="edge">
+<title>proc~define_nc&#45;&gt;nf90_redef</title>
+<path fill="none" stroke="#ff0000" d="M183.27,-465.56C198.22,-483.81 228.56,-517.79 261.54,-537.13 268.81,-541.4 277.03,-544.88 285.18,-547.69"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="284.12,-551.03 294.71,-550.67 286.21,-544.35 284.12,-551.03"/>
+</g>
+<!-- proc~nchandle_error -->
+<g id="proc~~initstatsdump~~CallsGraph_node22" class="node">
+<title>proc~nchandle_error</title>
+<g id="a_proc~~initstatsdump~~CallsGraph_node22"><a xlink:href="../proc/nchandle_error.html" xlink:title="nchandle_error">
+<polygon fill="#d9534f" stroke="#d9534f" points="376.94,-612.27 284.42,-612.27 284.42,-588 376.94,-588 376.94,-612.27"/>
+<text xml:space="preserve" text-anchor="middle" x="330.68" y="-596.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">nchandle_error</text>
+</a>
+</g>
+</g>
+<!-- proc~define_nc&#45;&gt;proc~nchandle_error -->
+<g id="proc~~initstatsdump~~CallsGraph_edge13" class="edge">
+<title>proc~define_nc&#45;&gt;proc~nchandle_error</title>
+<path fill="none" stroke="#ff0000" d="M178.8,-465.58C190.14,-490.83 219.28,-548.32 261.54,-579.13 265.31,-581.88 269.45,-584.28 273.76,-586.36"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="272.09,-589.46 282.66,-590.1 274.8,-583 272.09,-589.46"/>
+</g>
+<!-- nf90_create -->
+<g id="proc~~initstatsdump~~CallsGraph_node8" class="node">
+<title>nf90_create</title>
+<polygon fill="#777777" stroke="#777777" points="367.94,-234.27 293.42,-234.27 293.42,-210 367.94,-210 367.94,-234.27"/>
+<text xml:space="preserve" text-anchor="middle" x="330.68" y="-218.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">nf90_create</text>
+</g>
+<!-- proc~open_nc&#45;&gt;nf90_create -->
+<g id="proc~~initstatsdump~~CallsGraph_edge14" class="edge">
+<title>proc~open_nc&#45;&gt;nf90_create</title>
+<path fill="none" stroke="#00ff00" d="M201.12,-274.86C209.1,-271.65 217.76,-267.95 225.54,-264.13 242.17,-255.98 244.58,-250.58 261.54,-243.13 268.09,-240.26 275.15,-237.62 282.15,-235.24"/>
+<polygon fill="#00ff00" stroke="#00ff00" points="283.16,-238.6 291.6,-232.2 281.01,-231.93 283.16,-238.6"/>
+</g>
+<!-- nf90_def_dim -->
+<g id="proc~~initstatsdump~~CallsGraph_node9" class="node">
+<title>nf90_def_dim</title>
+<polygon fill="#777777" stroke="#777777" points="372.44,-192.27 288.92,-192.27 288.92,-168 372.44,-168 372.44,-192.27"/>
+<text xml:space="preserve" text-anchor="middle" x="330.68" y="-176.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">nf90_def_dim</text>
+</g>
+<!-- proc~open_nc&#45;&gt;nf90_def_dim -->
+<g id="proc~~initstatsdump~~CallsGraph_edge15" class="edge">
+<title>proc~open_nc&#45;&gt;nf90_def_dim</title>
+<path fill="none" stroke="#00ff00" d="M201.1,-277.88C209.61,-274.68 218.57,-270.22 225.54,-264.13 249.83,-242.93 236.37,-221.3 261.54,-201.13 266.43,-197.22 272.05,-194.03 277.92,-191.43"/>
+<polygon fill="#00ff00" stroke="#00ff00" points="279.13,-194.72 287.24,-187.91 276.65,-188.17 279.13,-194.72"/>
+</g>
+<!-- proc~open_nc&#45;&gt;nf90_def_var -->
+<g id="proc~~initstatsdump~~CallsGraph_edge16" class="edge">
+<title>proc~open_nc&#45;&gt;nf90_def_var</title>
+<path fill="none" stroke="#00ff00" d="M201.1,-292.39C209.61,-295.59 218.57,-300.05 225.54,-306.13 249.83,-327.34 236.37,-348.97 261.54,-369.13 266.8,-373.35 272.91,-376.72 279.26,-379.42"/>
+<polygon fill="#00ff00" stroke="#00ff00" points="278.06,-382.71 288.66,-382.83 280.45,-376.13 278.06,-382.71"/>
+</g>
+<!-- proc~open_nc&#45;&gt;nf90_enddef -->
+<g id="proc~~initstatsdump~~CallsGraph_edge17" class="edge">
+<title>proc~open_nc&#45;&gt;nf90_enddef</title>
+<path fill="none" stroke="#00ff00" d="M201.05,-290.64C210.07,-293.76 219.36,-298.61 225.54,-306.13 279.81,-372.21 204.51,-431.42 261.54,-495.13 266.7,-500.9 273.4,-505.1 280.58,-508.16"/>
+<polygon fill="#00ff00" stroke="#00ff00" points="279.29,-511.42 289.89,-511.37 281.58,-504.8 279.29,-511.42"/>
+</g>
+<!-- nf90_get_var -->
+<g id="proc~~initstatsdump~~CallsGraph_node12" class="node">
+<title>nf90_get_var</title>
+<polygon fill="#777777" stroke="#777777" points="370.94,-150.27 290.42,-150.27 290.42,-126 370.94,-126 370.94,-150.27"/>
+<text xml:space="preserve" text-anchor="middle" x="330.68" y="-134.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">nf90_get_var</text>
+</g>
+<!-- proc~open_nc&#45;&gt;nf90_get_var -->
+<g id="proc~~initstatsdump~~CallsGraph_edge18" class="edge">
+<title>proc~open_nc&#45;&gt;nf90_get_var</title>
+<path fill="none" stroke="#00ff00" d="M201.28,-278.83C210,-275.67 219.04,-270.99 225.54,-264.13 259.48,-228.33 226.11,-193.47 261.54,-159.13 266.67,-154.16 272.96,-150.36 279.61,-147.46"/>
+<polygon fill="#00ff00" stroke="#00ff00" points="280.63,-150.81 288.84,-144.12 278.25,-144.23 280.63,-150.81"/>
+</g>
+<!-- proc~open_nc&#45;&gt;nf90_inq_dimid -->
+<g id="proc~~initstatsdump~~CallsGraph_edge19" class="edge">
+<title>proc~open_nc&#45;&gt;nf90_inq_dimid</title>
+<path fill="none" stroke="#00ff00" d="M201.1,-290.92C210.02,-294.06 219.23,-298.85 225.54,-306.13 269.57,-356.99 215.4,-404.19 261.54,-453.13 265.07,-456.88 269.26,-459.97 273.79,-462.51"/>
+<polygon fill="#00ff00" stroke="#00ff00" points="272.22,-465.64 282.78,-466.61 275.13,-459.27 272.22,-465.64"/>
+</g>
+<!-- proc~open_nc&#45;&gt;nf90_inq_varid -->
+<g id="proc~~initstatsdump~~CallsGraph_edge20" class="edge">
+<title>proc~open_nc&#45;&gt;nf90_inq_varid</title>
+<path fill="none" stroke="#00ff00" d="M201.09,-281.43C221.36,-278.7 249.59,-274.91 274.44,-271.56"/>
+<polygon fill="#00ff00" stroke="#00ff00" points="274.64,-275.07 284.08,-270.27 273.7,-268.13 274.64,-275.07"/>
+</g>
+<!-- nf90_inquire -->
+<g id="proc~~initstatsdump~~CallsGraph_node15" class="node">
+<title>nf90_inquire</title>
+<polygon fill="#777777" stroke="#777777" points="369.44,-108.27 291.92,-108.27 291.92,-84 369.44,-84 369.44,-108.27"/>
+<text xml:space="preserve" text-anchor="middle" x="330.68" y="-92.54" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">nf90_inquire</text>
+</g>
+<!-- proc~open_nc&#45;&gt;nf90_inquire -->
+<g id="proc~~initstatsdump~~CallsGraph_edge21" class="edge">
+<title>proc~open_nc&#45;&gt;nf90_inquire</title>
+<path fill="none" stroke="#00ff00" d="M201.1,-279.35C210.02,-276.21 219.23,-271.42 225.54,-264.13 269.57,-213.28 215.4,-166.08 261.54,-117.14 266.85,-111.51 273.62,-107.38 280.83,-104.35"/>
+<polygon fill="#00ff00" stroke="#00ff00" points="281.84,-107.7 290.16,-101.14 279.56,-101.08 281.84,-107.7"/>
+</g>
+<!-- nf90_inquire_dimension -->
+<g id="proc~~initstatsdump~~CallsGraph_node16" class="node">
+<title>nf90_inquire_dimension</title>
+<polygon fill="#777777" stroke="#777777" points="399.81,-66.27 261.54,-66.27 261.54,-42 399.81,-42 399.81,-66.27"/>
+<text xml:space="preserve" text-anchor="middle" x="330.68" y="-50.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">nf90_inquire_dimension</text>
+</g>
+<!-- proc~open_nc&#45;&gt;nf90_inquire_dimension -->
+<g id="proc~~initstatsdump~~CallsGraph_edge22" class="edge">
+<title>proc~open_nc&#45;&gt;nf90_inquire_dimension</title>
+<path fill="none" stroke="#00ff00" d="M201.05,-279.63C210.07,-276.51 219.36,-271.66 225.54,-264.13 279.81,-198.06 204.51,-138.85 261.54,-75.14 262,-74.62 262.48,-74.11 262.97,-73.62"/>
+<polygon fill="#00ff00" stroke="#00ff00" points="264.92,-76.53 270.6,-67.59 260.58,-71.04 264.92,-76.53"/>
+</g>
+<!-- nf90_open -->
+<g id="proc~~initstatsdump~~CallsGraph_node17" class="node">
+<title>nf90_open</title>
+<polygon fill="#777777" stroke="#777777" points="364.56,-360.27 296.79,-360.27 296.79,-336 364.56,-336 364.56,-360.27"/>
+<text xml:space="preserve" text-anchor="middle" x="330.68" y="-344.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">nf90_open</text>
+</g>
+<!-- proc~open_nc&#45;&gt;nf90_open -->
+<g id="proc~~initstatsdump~~CallsGraph_edge23" class="edge">
+<title>proc~open_nc&#45;&gt;nf90_open</title>
+<path fill="none" stroke="#00ff00" d="M201.12,-295.41C209.1,-298.62 217.76,-302.32 225.54,-306.13 242.17,-314.29 244.58,-319.69 261.54,-327.13 269.18,-330.49 277.51,-333.53 285.65,-336.19"/>
+<polygon fill="#00ff00" stroke="#00ff00" points="284.51,-339.5 295.1,-339.13 286.59,-332.82 284.51,-339.5"/>
+</g>
+<!-- proc~open_nc&#45;&gt;nf90_put_att -->
+<g id="proc~~initstatsdump~~CallsGraph_edge24" class="edge">
+<title>proc~open_nc&#45;&gt;nf90_put_att</title>
+<path fill="none" stroke="#00ff00" d="M201.28,-291.44C210,-294.6 219.04,-299.28 225.54,-306.13 259.48,-341.94 226.11,-376.8 261.54,-411.13 267.03,-416.46 273.85,-420.44 281.02,-423.41"/>
+<polygon fill="#00ff00" stroke="#00ff00" points="279.66,-426.64 290.25,-426.59 281.94,-420.02 279.66,-426.64"/>
+</g>
+<!-- nf90_sync -->
+<g id="proc~~initstatsdump~~CallsGraph_node21" class="node">
+<title>nf90_sync</title>
+<polygon fill="#777777" stroke="#777777" points="363.06,-318.27 298.29,-318.27 298.29,-294 363.06,-294 363.06,-318.27"/>
+<text xml:space="preserve" text-anchor="middle" x="330.68" y="-302.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">nf90_sync</text>
+</g>
+<!-- proc~open_nc&#45;&gt;nf90_sync -->
+<g id="proc~~initstatsdump~~CallsGraph_edge25" class="edge">
+<title>proc~open_nc&#45;&gt;nf90_sync</title>
+<path fill="none" stroke="#00ff00" d="M201.09,-288.84C224.76,-292.02 259.29,-296.67 286.61,-300.34"/>
+<polygon fill="#00ff00" stroke="#00ff00" points="285.94,-303.78 296.32,-301.65 286.88,-296.85 285.94,-303.78"/>
+</g>
+<!-- proc~writestat_dims_nc&#45;&gt;nf90_inq_varid -->
+<g id="proc~~initstatsdump~~CallsGraph_edge26" class="edge">
+<title>proc~writestat_dims_nc&#45;&gt;nf90_inq_varid</title>
+<path fill="none" stroke="#00ffff" d="M225.96,-250.19C241.5,-252.28 258.57,-254.57 274.29,-256.69"/>
+<polygon fill="#00ffff" stroke="#00ffff" points="273.58,-260.12 283.96,-257.99 274.52,-253.19 273.58,-260.12"/>
+</g>
+<!-- proc~writestat_dims_nc&#45;&gt;nf90_inquire_dimension -->
+<g id="proc~~initstatsdump~~CallsGraph_edge27" class="edge">
+<title>proc~writestat_dims_nc&#45;&gt;nf90_inquire_dimension</title>
+<path fill="none" stroke="#00ffff" d="M215.44,-230.61C219.2,-228.24 222.67,-225.45 225.54,-222.13 269.57,-171.28 215.4,-124.08 261.54,-75.14 262.13,-74.51 262.74,-73.9 263.36,-73.32"/>
+<polygon fill="#00ffff" stroke="#00ffff" points="265.17,-76.33 271.08,-67.54 260.98,-70.72 265.17,-76.33"/>
+</g>
+<!-- nf90_put_var -->
+<g id="proc~~initstatsdump~~CallsGraph_node19" class="node">
+<title>nf90_put_var</title>
+<polygon fill="#777777" stroke="#777777" points="370.94,-24.27 290.42,-24.27 290.42,0 370.94,0 370.94,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="330.68" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">nf90_put_var</text>
+</g>
+<!-- proc~writestat_dims_nc&#45;&gt;nf90_put_var -->
+<g id="proc~~initstatsdump~~CallsGraph_edge28" class="edge">
+<title>proc~writestat_dims_nc&#45;&gt;nf90_put_var</title>
+<path fill="none" stroke="#00ffff" d="M215.86,-230.59C219.5,-228.24 222.82,-225.45 225.54,-222.13 279.81,-156.06 204.51,-96.85 261.54,-33.13 266.53,-27.56 272.97,-23.44 279.88,-20.41"/>
+<polygon fill="#00ffff" stroke="#00ffff" points="280.59,-23.88 288.83,-17.21 278.23,-17.29 280.59,-23.88"/>
+</g>
+<!-- nf90_strerror -->
+<g id="proc~~initstatsdump~~CallsGraph_node23" class="node">
+<title>nf90_strerror</title>
+<polygon fill="#777777" stroke="#777777" points="515.58,-612.27 435.81,-612.27 435.81,-588 515.58,-588 515.58,-612.27"/>
+<text xml:space="preserve" text-anchor="middle" x="475.7" y="-596.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">nf90_strerror</text>
+</g>
+<!-- proc~nchandle_error&#45;&gt;nf90_strerror -->
+<g id="proc~~initstatsdump~~CallsGraph_edge29" class="edge">
+<title>proc~nchandle_error&#45;&gt;nf90_strerror</title>
+<path fill="none" stroke="#ff0066" d="M377.32,-600.13C392.3,-600.13 409.04,-600.13 424.35,-600.13"/>
+<polygon fill="#ff0066" stroke="#ff0066" points="424.21,-603.64 434.21,-600.14 424.21,-596.64 424.21,-603.64"/>
+</g>
+</g>
+</svg>
+</div>          <div>
+            <a type="button" class="graph-help" data-bs-toggle="modal" href="#CallsGraph-help-text">Help</a>
+          </div>
+          <div class="modal fade" id="CallsGraph-help-text" tabindex="-1" role="dialog">
+            <div class="modal-dialog modal-lg" role="document">
+              <div class="modal-content">
+                <div class="modal-header">
+                  <h4 class="modal-title" id="-graph-help-label">Graph Key</h4>
+                  <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+<p>Nodes of different colours represent the following: </p>
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
+ "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<!-- Generated by graphviz version 14.1.3 (0)
+ -->
+<!-- Title: Graph Key Pages: 1 -->
+<svg width="641pt" height="28pt"
+ viewBox="0.00 0.00 641.00 28.00" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<g id="graph0" class="graph" transform="scale(0.873868 0.873868) rotate(0) translate(4 28.27)">
+<title>Graph Key</title>
+<polygon fill="white" stroke="none" points="-4,4 -4,-28.27 729.52,-28.27 729.52,4 -4,4"/>
+<!-- Subroutine -->
+<g id="node1" class="node">
+<title>Subroutine</title>
+<polygon fill="#d9534f" stroke="#d9534f" points="69.27,-24.27 0,-24.27 0,0 69.27,0 69.27,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="34.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Subroutine</text>
+</g>
+<!-- Function -->
+<g id="node2" class="node">
+<title>Function</title>
+<polygon fill="#d94e8f" stroke="#d94e8f" points="143.89,-24.27 87.38,-24.27 87.38,0 143.89,0 143.89,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="115.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Function</text>
+</g>
+<!-- Interface -->
+<g id="node3" class="node">
+<title>Interface</title>
+<polygon fill="#a7506f" stroke="#a7506f" points="221.39,-24.27 161.88,-24.27 161.88,0 221.39,0 221.39,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="191.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Interface</text>
+</g>
+<!-- Type Bound Procedure -->
+<g id="node4" class="node">
+<title>Type Bound Procedure</title>
+<polygon fill="#a7506f" stroke="#a7506f" points="368.27,-24.27 239,-24.27 239,0 368.27,0 368.27,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="303.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Type Bound Procedure</text>
+</g>
+<!-- Unknown Procedure Type -->
+<g id="node5" class="node">
+<title>Unknown Procedure Type</title>
+<polygon fill="#777777" stroke="#777777" points="529.39,-24.27 385.88,-24.27 385.88,0 529.39,0 529.39,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="457.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Unknown Procedure Type</text>
+</g>
+<!-- Program -->
+<g id="node6" class="node">
+<title>Program</title>
+<polygon fill="#f0ad4e" stroke="#f0ad4e" points="603.89,-24.27 547.38,-24.27 547.38,0 603.89,0 603.89,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="575.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Program</text>
+</g>
+<!-- This Page&#39;s Entity -->
+<g id="node7" class="node">
+<title>This Page&#39;s Entity</title>
+<polygon fill="none" stroke="black" points="725.52,-24.27 621.75,-24.27 621.75,0 725.52,0 725.52,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="673.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50">This Page&#39;s Entity</text>
+</g>
+</g>
+</svg>
+
+<p>Solid arrows point from a procedure to one which it calls. Dashed 
+arrows point from an interface to procedures which implement that interface.
+This could include the module procedures in a generic interface or the
+implementation in a submodule of an interface in a parent module.
+</p>
+ Where possible, edges connecting nodes are
+given different colours to make them easier to distinguish in
+large graphs.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-header">
+  <h3 class="card-title">Called by</h3>
+      </div>
+      <div class="card-body">
+  <div class="depgraph"><?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
+ "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<!-- Generated by graphviz version 14.1.3 (0)
+ -->
+<!-- Title: proc~~initstatsdump~~CalledByGraph Pages: 1 -->
+<svg id="procinitstatsdumpCalledByGraph" width="182pt" height="32pt"
+ viewBox="0.00 0.00 182.00 32.00" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<g id="proc~~initstatsdump~~CalledByGraph" class="graph" transform="scale(1 1) rotate(0) translate(4 28.27)">
+<title>proc~~initstatsdump~~CalledByGraph</title>
+<polygon fill="white" stroke="none" points="-4,4 -4,-28.27 177.52,-28.27 177.52,4 -4,4"/>
+<!-- proc~initstatsdump -->
+<g id="proc~~initstatsdump~~CalledByGraph_node1" class="node">
+<title>proc~initstatsdump</title>
+<polygon fill="none" stroke="black" points="173.52,-24.27 90,-24.27 90,0 173.52,0 173.52,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="131.76" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50">initstatsdump</text>
+</g>
+<!-- program~udales -->
+<g id="proc~~initstatsdump~~CalledByGraph_node2" class="node">
+<title>program~udales</title>
+<g id="a_proc~~initstatsdump~~CalledByGraph_node2"><a xlink:href="../program/udales.html" xlink:title="uDALES">
+<polygon fill="#f0ad4e" stroke="#f0ad4e" points="54,-24.27 0,-24.27 0,0 54,0 54,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="27" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">uDALES</text>
+</a>
+</g>
+</g>
+<!-- program~udales&#45;&gt;proc~initstatsdump -->
+<g id="proc~~initstatsdump~~CalledByGraph_edge1" class="edge">
+<title>program~udales&#45;&gt;proc~initstatsdump</title>
+<path fill="none" stroke="#ff0000" d="M54.46,-12.13C61.82,-12.13 70.08,-12.13 78.37,-12.13"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="78.11,-15.64 88.11,-12.14 78.11,-8.64 78.11,-15.64"/>
+</g>
+</g>
+</svg>
+</div>          <div>
+            <a type="button" class="graph-help" data-bs-toggle="modal" href="#CalledByGraph-help-text">Help</a>
+          </div>
+          <div class="modal fade" id="CalledByGraph-help-text" tabindex="-1" role="dialog">
+            <div class="modal-dialog modal-lg" role="document">
+              <div class="modal-content">
+                <div class="modal-header">
+                  <h4 class="modal-title" id="-graph-help-label">Graph Key</h4>
+                  <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+<p>Nodes of different colours represent the following: </p>
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
+ "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<!-- Generated by graphviz version 14.1.3 (0)
+ -->
+<!-- Title: Graph Key Pages: 1 -->
+<svg width="641pt" height="28pt"
+ viewBox="0.00 0.00 641.00 28.00" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<g id="graph0" class="graph" transform="scale(0.873868 0.873868) rotate(0) translate(4 28.27)">
+<title>Graph Key</title>
+<polygon fill="white" stroke="none" points="-4,4 -4,-28.27 729.52,-28.27 729.52,4 -4,4"/>
+<!-- Subroutine -->
+<g id="node1" class="node">
+<title>Subroutine</title>
+<polygon fill="#d9534f" stroke="#d9534f" points="69.27,-24.27 0,-24.27 0,0 69.27,0 69.27,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="34.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Subroutine</text>
+</g>
+<!-- Function -->
+<g id="node2" class="node">
+<title>Function</title>
+<polygon fill="#d94e8f" stroke="#d94e8f" points="143.89,-24.27 87.38,-24.27 87.38,0 143.89,0 143.89,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="115.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Function</text>
+</g>
+<!-- Interface -->
+<g id="node3" class="node">
+<title>Interface</title>
+<polygon fill="#a7506f" stroke="#a7506f" points="221.39,-24.27 161.88,-24.27 161.88,0 221.39,0 221.39,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="191.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Interface</text>
+</g>
+<!-- Type Bound Procedure -->
+<g id="node4" class="node">
+<title>Type Bound Procedure</title>
+<polygon fill="#a7506f" stroke="#a7506f" points="368.27,-24.27 239,-24.27 239,0 368.27,0 368.27,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="303.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Type Bound Procedure</text>
+</g>
+<!-- Unknown Procedure Type -->
+<g id="node5" class="node">
+<title>Unknown Procedure Type</title>
+<polygon fill="#777777" stroke="#777777" points="529.39,-24.27 385.88,-24.27 385.88,0 529.39,0 529.39,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="457.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Unknown Procedure Type</text>
+</g>
+<!-- Program -->
+<g id="node6" class="node">
+<title>Program</title>
+<polygon fill="#f0ad4e" stroke="#f0ad4e" points="603.89,-24.27 547.38,-24.27 547.38,0 603.89,0 603.89,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="575.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Program</text>
+</g>
+<!-- This Page&#39;s Entity -->
+<g id="node7" class="node">
+<title>This Page&#39;s Entity</title>
+<polygon fill="none" stroke="black" points="725.52,-24.27 621.75,-24.27 621.75,0 725.52,0 725.52,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="673.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50">This Page&#39;s Entity</text>
+</g>
+</g>
+</svg>
+
+<p>Solid arrows point from a procedure to one which it calls. Dashed 
+arrows point from an interface to procedures which implement that interface.
+This could include the module procedures in a generic interface or the
+implementation in a submodule of an interface in a parent module.
+</p>
+ Where possible, edges connecting nodes are
+given different colours to make them easier to distinguish in
+large graphs.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <br>
+
+
+    
+    
+
+    
+    
+
+
+
+    
+    <section>
+    <h2><span class="anchor" id="src"></span>Source Code</h2>
+    <div class="hl codehilite"><pre><span></span><span class="w">  </span><span class="k">subroutine </span><span class="n">initstatsdump</span>
+<span class="w">    </span><span class="k">use </span><span class="n">modmpi</span><span class="p">,</span><span class="w">   </span><span class="k">only</span><span class="w"> </span><span class="p">:</span><span class="w"> </span><span class="n">cmyidx</span><span class="p">,</span><span class="n">cmyidy</span>
+<span class="w">    </span><span class="k">use </span><span class="n">modglobal</span><span class="p">,</span><span class="k">only</span><span class="w"> </span><span class="p">:</span><span class="w"> </span><span class="n">imax</span><span class="p">,</span><span class="n">jmax</span><span class="p">,</span><span class="n">cexpnr</span><span class="p">,</span><span class="n">kb</span><span class="p">,</span><span class="n">ke</span><span class="p">,&amp;</span>
+<span class="w">                         </span><span class="n">lkslicedump</span><span class="p">,</span><span class="n">lislicedump</span><span class="p">,</span><span class="n">ljslicedump</span><span class="p">,</span><span class="n">ltreedump</span><span class="p">,</span><span class="n">islice</span><span class="p">,</span><span class="n">islicerank</span><span class="p">,</span><span class="n">isliceloc</span><span class="p">,</span><span class="n">jslice</span><span class="p">,</span><span class="n">jslicerank</span><span class="p">,</span><span class="n">jsliceloc</span>
+<span class="w">    </span><span class="k">use </span><span class="n">modstat_nc</span><span class="p">,</span><span class="k">only</span><span class="p">:</span><span class="w"> </span><span class="n">open_nc</span><span class="p">,</span><span class="w"> </span><span class="n">define_nc</span><span class="p">,</span><span class="n">ncinfo</span><span class="p">,</span><span class="n">writestat_dims_nc</span>
+<span class="w">    </span><span class="k">use </span><span class="n">modfields</span><span class="p">,</span><span class="w"> </span><span class="k">only</span><span class="w"> </span><span class="p">:</span><span class="w"> </span><span class="n">ncstaty</span><span class="p">,</span><span class="n">ncstatyt</span><span class="p">,</span><span class="n">ncstattke</span><span class="p">,</span><span class="n">ncstatxy</span><span class="p">,</span><span class="n">ncstatkslice</span><span class="p">,</span><span class="n">ncstatislice</span><span class="p">,</span><span class="n">ncstatjslice</span><span class="p">,</span><span class="n">ncstatxyt</span><span class="p">,</span><span class="n">ncstatt</span><span class="p">,</span><span class="n">ncstattr</span><span class="p">,</span><span class="n">ncstatmint</span>
+<span class="w">    </span><span class="k">use </span><span class="n">decomp_2d</span><span class="p">,</span><span class="w"> </span><span class="k">only</span><span class="w"> </span><span class="p">:</span><span class="w"> </span><span class="n">zstart</span><span class="p">,</span><span class="w"> </span><span class="n">zend</span>
+<span class="w">    </span><span class="k">implicit none</span>
+
+<span class="k">    allocate</span><span class="p">(</span><span class="n">ncstaty</span><span class="p">(</span><span class="n">nstaty</span><span class="p">,</span><span class="mi">4</span><span class="p">))</span>
+<span class="w">    </span><span class="k">allocate</span><span class="p">(</span><span class="n">ncstatyt</span><span class="p">(</span><span class="n">nstatyt</span><span class="p">,</span><span class="mi">4</span><span class="p">))</span>
+<span class="w">    </span><span class="k">allocate</span><span class="p">(</span><span class="n">ncstattke</span><span class="p">(</span><span class="n">nstattke</span><span class="p">,</span><span class="mi">4</span><span class="p">))</span>
+<span class="w">    </span><span class="k">allocate</span><span class="p">(</span><span class="n">ncstatxy</span><span class="p">(</span><span class="n">nstatxy</span><span class="p">,</span><span class="mi">4</span><span class="p">))</span>
+<span class="w">    </span><span class="k">allocate</span><span class="p">(</span><span class="n">ncstatkslice</span><span class="p">(</span><span class="n">nstatkslice</span><span class="p">,</span><span class="mi">4</span><span class="p">))</span>
+<span class="w">    </span><span class="k">allocate</span><span class="p">(</span><span class="n">ncstatislice</span><span class="p">(</span><span class="n">nstatislice</span><span class="p">,</span><span class="mi">4</span><span class="p">))</span>
+<span class="w">    </span><span class="k">allocate</span><span class="p">(</span><span class="n">ncstatjslice</span><span class="p">(</span><span class="n">nstatjslice</span><span class="p">,</span><span class="mi">4</span><span class="p">))</span>
+<span class="w">    </span><span class="k">allocate</span><span class="p">(</span><span class="n">ncstatxyt</span><span class="p">(</span><span class="n">nstatxyt</span><span class="p">,</span><span class="mi">4</span><span class="p">))</span>
+<span class="w">    </span><span class="k">allocate</span><span class="p">(</span><span class="n">ncstatt</span><span class="p">(</span><span class="n">nstatt</span><span class="p">,</span><span class="mi">4</span><span class="p">))</span>
+<span class="w">    </span><span class="k">allocate</span><span class="p">(</span><span class="n">ncstattr</span><span class="p">(</span><span class="n">nstattr</span><span class="p">,</span><span class="mi">4</span><span class="p">))</span>
+<span class="w">    </span><span class="k">allocate</span><span class="p">(</span><span class="n">ncstatmint</span><span class="p">(</span><span class="n">nstatmint</span><span class="p">,</span><span class="mi">4</span><span class="p">))</span>
+
+<span class="w">    </span><span class="n">klow</span><span class="o">=</span><span class="n">kb</span>
+<span class="w">    </span><span class="n">khigh</span><span class="o">=</span><span class="n">ke</span>
+
+<span class="w">    </span><span class="c">!&gt; Generate y-averaged NetCDF: ydump.xxx.nc</span>
+<span class="w">    </span><span class="k">if</span><span class="p">(</span><span class="n">lydump</span><span class="p">)</span><span class="w"> </span><span class="k">then</span>
+
+<span class="k">      </span><span class="n">yname</span><span class="p">(</span><span class="mi">7</span><span class="p">:</span><span class="mi">9</span><span class="p">)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">cexpnr</span>
+<span class="w">      </span><span class="k">call </span><span class="n">ncinfo</span><span class="p">(</span><span class="n">tncstaty</span><span class="p">(</span><span class="mi">1</span><span class="p">,:),</span><span class="s1">&#39;time&#39;</span><span class="w">      </span><span class="p">,</span><span class="s1">&#39;Time&#39;</span><span class="w">                         </span><span class="p">,</span><span class="s1">&#39;s&#39;</span><span class="w">      </span><span class="p">,</span><span class="s1">&#39;time&#39;</span><span class="p">)</span>
+<span class="w">      </span><span class="k">call </span><span class="n">ncinfo</span><span class="p">(</span><span class="n">ncstaty</span><span class="p">(</span><span class="w"> </span><span class="mi">1</span><span class="p">,:),</span><span class="s1">&#39;uy&#39;</span><span class="w">        </span><span class="p">,</span><span class="s1">&#39;Streamwise velocity&#39;</span><span class="w">          </span><span class="p">,</span><span class="s1">&#39;m/s&#39;</span><span class="w">    </span><span class="p">,</span><span class="s1">&#39;m0tt&#39;</span><span class="p">)</span>
+<span class="w">      </span><span class="k">call </span><span class="n">ncinfo</span><span class="p">(</span><span class="n">ncstaty</span><span class="p">(</span><span class="w"> </span><span class="mi">2</span><span class="p">,:),</span><span class="s1">&#39;vy&#39;</span><span class="w">        </span><span class="p">,</span><span class="s1">&#39;Spanwise velocity&#39;</span><span class="w">            </span><span class="p">,</span><span class="s1">&#39;m/s&#39;</span><span class="w">    </span><span class="p">,</span><span class="s1">&#39;t0tt&#39;</span><span class="p">)</span>
+<span class="w">      </span><span class="k">call </span><span class="n">ncinfo</span><span class="p">(</span><span class="n">ncstaty</span><span class="p">(</span><span class="w"> </span><span class="mi">3</span><span class="p">,:),</span><span class="s1">&#39;wy&#39;</span><span class="w">        </span><span class="p">,</span><span class="s1">&#39;Vertical velocity&#39;</span><span class="w">            </span><span class="p">,</span><span class="s1">&#39;m/s&#39;</span><span class="w">    </span><span class="p">,</span><span class="s1">&#39;t0mt&#39;</span><span class="p">)</span>
+<span class="w">      </span><span class="k">call </span><span class="n">ncinfo</span><span class="p">(</span><span class="n">ncstaty</span><span class="p">(</span><span class="w"> </span><span class="mi">4</span><span class="p">,:),</span><span class="s1">&#39;thly&#39;</span><span class="w">      </span><span class="p">,</span><span class="s1">&#39;Temperature&#39;</span><span class="w">                  </span><span class="p">,</span><span class="s1">&#39;K&#39;</span><span class="w">      </span><span class="p">,</span><span class="s1">&#39;t0tt&#39;</span><span class="p">)</span>
+<span class="w">      </span><span class="k">call </span><span class="n">ncinfo</span><span class="p">(</span><span class="n">ncstaty</span><span class="p">(</span><span class="w"> </span><span class="mi">5</span><span class="p">,:),</span><span class="s1">&#39;qty&#39;</span><span class="w">       </span><span class="p">,</span><span class="s1">&#39;Moisture&#39;</span><span class="w">                     </span><span class="p">,</span><span class="s1">&#39;kg/kg&#39;</span><span class="w">  </span><span class="p">,</span><span class="s1">&#39;t0tt&#39;</span><span class="p">)</span>
+<span class="w">      </span><span class="k">call </span><span class="n">ncinfo</span><span class="p">(</span><span class="n">ncstaty</span><span class="p">(</span><span class="w"> </span><span class="mi">6</span><span class="p">,:),</span><span class="s1">&#39;sca1y&#39;</span><span class="w">     </span><span class="p">,</span><span class="s1">&#39;Scalar field 1&#39;</span><span class="w">               </span><span class="p">,</span><span class="s1">&#39;kg/m^3&#39;</span><span class="w"> </span><span class="p">,</span><span class="s1">&#39;t0tt&#39;</span><span class="p">)</span>
+<span class="w">      </span><span class="k">call </span><span class="n">ncinfo</span><span class="p">(</span><span class="n">ncstaty</span><span class="p">(</span><span class="w"> </span><span class="mi">7</span><span class="p">,:),</span><span class="s1">&#39;sca2y&#39;</span><span class="w">     </span><span class="p">,</span><span class="s1">&#39;Scalar field 2&#39;</span><span class="w">               </span><span class="p">,</span><span class="s1">&#39;kg/m^3&#39;</span><span class="w"> </span><span class="p">,</span><span class="s1">&#39;t0tt&#39;</span><span class="p">)</span>
+<span class="w">      </span><span class="k">call </span><span class="n">ncinfo</span><span class="p">(</span><span class="n">ncstaty</span><span class="p">(</span><span class="w"> </span><span class="mi">8</span><span class="p">,:),</span><span class="s1">&#39;sca3y&#39;</span><span class="w">     </span><span class="p">,</span><span class="s1">&#39;Scalar field 3&#39;</span><span class="w">               </span><span class="p">,</span><span class="s1">&#39;kg/m^3&#39;</span><span class="w"> </span><span class="p">,</span><span class="s1">&#39;t0tt&#39;</span><span class="p">)</span>
+<span class="w">      </span><span class="k">call </span><span class="n">ncinfo</span><span class="p">(</span><span class="n">ncstaty</span><span class="p">(</span><span class="w"> </span><span class="mi">9</span><span class="p">,:),</span><span class="s1">&#39;upwpy&#39;</span><span class="w">     </span><span class="p">,</span><span class="s1">&#39;Turbulent mom. flux&#39;</span><span class="w">          </span><span class="p">,</span><span class="s1">&#39;m^2/s^2&#39;</span><span class="p">,</span><span class="s1">&#39;m0mt&#39;</span><span class="p">)</span>
+<span class="w">      </span><span class="k">call </span><span class="n">ncinfo</span><span class="p">(</span><span class="n">ncstaty</span><span class="p">(</span><span class="mi">10</span><span class="p">,:),</span><span class="s1">&#39;wpthlpy&#39;</span><span class="w">   </span><span class="p">,</span><span class="s1">&#39;Turbulent heat flux&#39;</span><span class="w">          </span><span class="p">,</span><span class="s1">&#39;K m/s&#39;</span><span class="w">  </span><span class="p">,</span><span class="s1">&#39;t0mt&#39;</span><span class="p">)</span>
+<span class="w">      </span><span class="k">call </span><span class="n">ncinfo</span><span class="p">(</span><span class="n">ncstaty</span><span class="p">(</span><span class="mi">11</span><span class="p">,:),</span><span class="s1">&#39;usgsy&#39;</span><span class="w">     </span><span class="p">,</span><span class="s1">&#39;SGS mom. flux&#39;</span><span class="w">                </span><span class="p">,</span><span class="s1">&#39;m^2/s^2&#39;</span><span class="p">,</span><span class="s1">&#39;m0mt&#39;</span><span class="p">)</span>
+<span class="w">      </span><span class="k">call </span><span class="n">ncinfo</span><span class="p">(</span><span class="n">ncstaty</span><span class="p">(</span><span class="mi">12</span><span class="p">,:),</span><span class="s1">&#39;thlsgsy&#39;</span><span class="w">   </span><span class="p">,</span><span class="s1">&#39;SGS heat flux&#39;</span><span class="w">                </span><span class="p">,</span><span class="s1">&#39;K m/s&#39;</span><span class="w">  </span><span class="p">,</span><span class="s1">&#39;t0mt&#39;</span><span class="p">)</span>
+<span class="w">      </span><span class="k">call </span><span class="n">ncinfo</span><span class="p">(</span><span class="n">ncstaty</span><span class="p">(</span><span class="mi">13</span><span class="p">,:),</span><span class="s1">&#39;uwyik&#39;</span><span class="w">     </span><span class="p">,</span><span class="s1">&#39;Advective mom. flux&#39;</span><span class="w">          </span><span class="p">,</span><span class="s1">&#39;m^2/s^2&#39;</span><span class="p">,</span><span class="s1">&#39;m0mt&#39;</span><span class="p">)</span>
+<span class="w">      </span><span class="k">call </span><span class="n">ncinfo</span><span class="p">(</span><span class="n">ncstaty</span><span class="p">(</span><span class="mi">14</span><span class="p">,:),</span><span class="s1">&#39;wthlyk&#39;</span><span class="w">    </span><span class="p">,</span><span class="s1">&#39;Advective heat flux&#39;</span><span class="w">          </span><span class="p">,</span><span class="s1">&#39;K m/s&#39;</span><span class="w">  </span><span class="p">,</span><span class="s1">&#39;t0mt&#39;</span><span class="p">)</span>
+
+<span class="w">      </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">myid</span><span class="o">==</span><span class="mi">0</span><span class="p">)</span><span class="w"> </span><span class="k">then</span>
+<span class="k">        call </span><span class="n">open_nc</span><span class="p">(</span><span class="n">yname</span><span class="p">,</span><span class="w"> </span><span class="n">ncidy</span><span class="p">,</span><span class="w"> </span><span class="n">nrecy</span><span class="p">,</span><span class="w"> </span><span class="n">n1</span><span class="o">=</span><span class="n">imax</span><span class="p">,</span><span class="w"> </span><span class="n">n3</span><span class="o">=</span><span class="n">khigh</span><span class="o">-</span><span class="n">klow</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span>
+<span class="w">        </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">nrecy</span><span class="o">==</span><span class="mi">0</span><span class="p">)</span><span class="w"> </span><span class="k">then</span>
+<span class="k">          call </span><span class="n">define_nc</span><span class="p">(</span><span class="w"> </span><span class="n">ncidy</span><span class="p">,</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="n">tncstaty</span><span class="p">)</span>
+<span class="w">          </span><span class="k">call </span><span class="n">writestat_dims_nc</span><span class="p">(</span><span class="n">ncidy</span><span class="p">)</span>
+<span class="w">        </span><span class="k">end if</span>
+<span class="k">      call </span><span class="n">define_nc</span><span class="p">(</span><span class="w"> </span><span class="n">ncidy</span><span class="p">,</span><span class="w"> </span><span class="n">nstaty</span><span class="p">,</span><span class="w"> </span><span class="n">ncstaty</span><span class="p">)</span>
+<span class="w">      </span><span class="k">endif</span><span class="w"> </span><span class="c">!myid==0</span>
+<span class="w">    </span><span class="k">endif</span>
+
+<span class="w">    </span><span class="c">!&gt; Generate time and y averaged NetCDF: ytdump.xxx.nc</span>
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">lytdump</span><span class="p">)</span><span class="w"> </span><span class="k">then</span>
+
+<span class="k">      </span><span class="n">ytname</span><span class="p">(</span><span class="mi">8</span><span class="p">:</span><span class="mi">10</span><span class="p">)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">cexpnr</span>
+<span class="w">      </span><span class="k">call </span><span class="n">ncinfo</span><span class="p">(</span><span class="n">tncstatyt</span><span class="p">(</span><span class="mi">1</span><span class="p">,:),</span><span class="s1">&#39;time&#39;</span><span class="w">       </span><span class="p">,</span><span class="s1">&#39;Sampling time&#39;</span><span class="w">             </span><span class="p">,</span><span class="s1">&#39;s&#39;</span><span class="w">       </span><span class="p">,</span><span class="s1">&#39;time&#39;</span><span class="p">)</span>
+<span class="w">      </span><span class="k">call </span><span class="n">ncinfo</span><span class="p">(</span><span class="n">ncstatyt</span><span class="p">(</span><span class="w"> </span><span class="mi">1</span><span class="p">,:),</span><span class="s1">&#39;uyt&#39;</span><span class="w">        </span><span class="p">,</span><span class="s1">&#39;Streamwise velocity&#39;</span><span class="w">       </span><span class="p">,</span><span class="s1">&#39;m/s&#39;</span><span class="w">     </span><span class="p">,</span><span class="s1">&#39;m0tt&#39;</span><span class="p">)</span>
+<span class="w">      </span><span class="k">call </span><span class="n">ncinfo</span><span class="p">(</span><span class="n">ncstatyt</span><span class="p">(</span><span class="w"> </span><span class="mi">2</span><span class="p">,:),</span><span class="s1">&#39;vyt&#39;</span><span class="w">        </span><span class="p">,</span><span class="s1">&#39;Spanwise velocity&#39;</span><span class="w">         </span><span class="p">,</span><span class="s1">&#39;m/s&#39;</span><span class="w">     </span><span class="p">,</span><span class="s1">&#39;t0tt&#39;</span><span class="p">)</span>
+<span class="w">      </span><span class="k">call </span><span class="n">ncinfo</span><span class="p">(</span><span class="n">ncstatyt</span><span class="p">(</span><span class="w"> </span><span class="mi">3</span><span class="p">,:),</span><span class="s1">&#39;wyt&#39;</span><span class="w">        </span><span class="p">,</span><span class="s1">&#39;Vertical velocity&#39;</span><span class="w">         </span><span class="p">,</span><span class="s1">&#39;m/s&#39;</span><span class="w">     </span><span class="p">,</span><span class="s1">&#39;t0mt&#39;</span><span class="p">)</span>
+<span class="w">      </span><span class="k">call </span><span class="n">ncinfo</span><span class="p">(</span><span class="n">ncstatyt</span><span class="p">(</span><span class="w"> </span><span class="mi">4</span><span class="p">,:),</span><span class="s1">&#39;thlyt&#39;</span><span class="w">      </span><span class="p">,</span><span class="s1">&#39;Temperature&#39;</span><span class="w">               </span><span class="p">,</span><span class="s1">&#39;K&#39;</span><span class="w">       </span><span class="p">,</span><span class="s1">&#39;t0tt&#39;</span><span class="p">)</span>
+<span class="w">      </span><span class="k">call </span><span class="n">ncinfo</span><span class="p">(</span><span class="n">ncstatyt</span><span class="p">(</span><span class="w"> </span><span class="mi">5</span><span class="p">,:),</span><span class="s1">&#39;qtyt&#39;</span><span class="w">       </span><span class="p">,</span><span class="s1">&#39;Moisture&#39;</span><span class="w">                  </span><span class="p">,</span><span class="s1">&#39;kg/kg&#39;</span><span class="w">   </span><span class="p">,</span><span class="s1">&#39;t0tt&#39;</span><span class="p">)</span>
+<span class="w">      </span><span class="k">call </span><span class="n">ncinfo</span><span class="p">(</span><span class="n">ncstatyt</span><span class="p">(</span><span class="w"> </span><span class="mi">6</span><span class="p">,:),</span><span class="s1">&#39;sca1yt&#39;</span><span class="w">     </span><span class="p">,</span><span class="s1">&#39;Scalar field 1&#39;</span><span class="w">            </span><span class="p">,</span><span class="s1">&#39;kg/m^3&#39;</span><span class="w">  </span><span class="p">,</span><span class="s1">&#39;t0tt&#39;</span><span class="p">)</span>
+<span class="w">      </span><span class="k">call </span><span class="n">ncinfo</span><span class="p">(</span><span class="n">ncstatyt</span><span class="p">(</span><span class="w"> </span><span class="mi">7</span><span class="p">,:),</span><span class="s1">&#39;sca2yt&#39;</span><span class="w">     </span><span class="p">,</span><span class="s1">&#39;Scalar field 2&#39;</span><span class="w">            </span><span class="p">,</span><span class="s1">&#39;kg/m^3&#39;</span><span class="w">  </span><span class="p">,</span><span class="s1">&#39;t0tt&#39;</span><span class="p">)</span>
+<span class="w">      </span><span class="k">call </span><span class="n">ncinfo</span><span class="p">(</span><span class="n">ncstatyt</span><span class="p">(</span><span class="w"> </span><span class="mi">8</span><span class="p">,:),</span><span class="s1">&#39;sca3yt&#39;</span><span class="w">     </span><span class="p">,</span><span class="s1">&#39;Scalar field 3&#39;</span><span class="w">            </span><span class="p">,</span><span class="s1">&#39;kg/m^3&#39;</span><span class="w">  </span><span class="p">,</span><span class="s1">&#39;t0tt&#39;</span><span class="p">)</span>
+
+<span class="w">      </span><span class="k">call </span><span class="n">ncinfo</span><span class="p">(</span><span class="n">ncstatyt</span><span class="p">(</span><span class="w"> </span><span class="mi">9</span><span class="p">,:),</span><span class="s1">&#39;upwpyt&#39;</span><span class="w">     </span><span class="p">,</span><span class="s1">&#39;Turbulent mom. flux&#39;</span><span class="w">       </span><span class="p">,</span><span class="s1">&#39;m^2/s^2&#39;</span><span class="w"> </span><span class="p">,</span><span class="s1">&#39;m0mt&#39;</span><span class="p">)</span>
+<span class="w">      </span><span class="k">call </span><span class="n">ncinfo</span><span class="p">(</span><span class="n">ncstatyt</span><span class="p">(</span><span class="w"> </span><span class="mi">10</span><span class="p">,:),</span><span class="s1">&#39;wpthlpyt&#39;</span><span class="w">   </span><span class="p">,</span><span class="s1">&#39;Turbulent heat flux&#39;</span><span class="w">       </span><span class="p">,</span><span class="s1">&#39;K m/s&#39;</span><span class="w">   </span><span class="p">,</span><span class="s1">&#39;t0mt&#39;</span><span class="p">)</span>
+<span class="w">      </span><span class="k">call </span><span class="n">ncinfo</span><span class="p">(</span><span class="n">ncstatyt</span><span class="p">(</span><span class="w"> </span><span class="mi">11</span><span class="p">,:),</span><span class="s1">&#39;wpqtpyt&#39;</span><span class="w">   </span><span class="p">,</span><span class="s1">&#39;Turbulent moisture flux&#39;</span><span class="w">   </span><span class="p">,</span><span class="s1">&#39;kg/kg m/s&#39;</span><span class="p">,</span><span class="s1">&#39;t0mt&#39;</span><span class="p">)</span>
+<span class="w">      </span><span class="k">call </span><span class="n">ncinfo</span><span class="p">(</span><span class="n">ncstatyt</span><span class="p">(</span><span class="w"> </span><span class="mi">12</span><span class="p">,:),</span><span class="s1">&#39;wpsca1tpyt&#39;</span><span class="p">,</span><span class="s1">&#39;Turbulent scalar flux&#39;</span><span class="w">     </span><span class="p">,</span><span class="s1">&#39;M m/s&#39;</span><span class="w">   </span><span class="p">,</span><span class="s1">&#39;t0mt&#39;</span><span class="p">)</span>
+<span class="w">      </span><span class="k">call </span><span class="n">ncinfo</span><span class="p">(</span><span class="n">ncstatyt</span><span class="p">(</span><span class="w"> </span><span class="mi">13</span><span class="p">,:),</span><span class="s1">&#39;wpsca2tpyt&#39;</span><span class="p">,</span><span class="s1">&#39;Turbulent scalar flux&#39;</span><span class="w">     </span><span class="p">,</span><span class="s1">&#39;M m/s&#39;</span><span class="w">   </span><span class="p">,</span><span class="s1">&#39;t0mt&#39;</span><span class="p">)</span>
+<span class="w">      </span><span class="k">call </span><span class="n">ncinfo</span><span class="p">(</span><span class="n">ncstatyt</span><span class="p">(</span><span class="w"> </span><span class="mi">14</span><span class="p">,:),</span><span class="s1">&#39;wpsca3tpyt&#39;</span><span class="p">,</span><span class="s1">&#39;Turbulent scalar flux&#39;</span><span class="w">     </span><span class="p">,</span><span class="s1">&#39;M m/s&#39;</span><span class="w">   </span><span class="p">,</span><span class="s1">&#39;t0mt&#39;</span><span class="p">)</span>
+
+<span class="w">      </span><span class="k">call </span><span class="n">ncinfo</span><span class="p">(</span><span class="n">ncstatyt</span><span class="p">(</span><span class="w"> </span><span class="mi">15</span><span class="p">,:),</span><span class="s1">&#39;uwyt&#39;</span><span class="w">      </span><span class="p">,</span><span class="s1">&#39;Kinematic mom. flux&#39;</span><span class="w">       </span><span class="p">,</span><span class="s1">&#39;m^2/s^2&#39;</span><span class="w"> </span><span class="p">,</span><span class="s1">&#39;m0mt&#39;</span><span class="p">)</span>
+<span class="w">      </span><span class="k">call </span><span class="n">ncinfo</span><span class="p">(</span><span class="n">ncstatyt</span><span class="p">(</span><span class="w"> </span><span class="mi">16</span><span class="p">,:),</span><span class="s1">&#39;wthlyt&#39;</span><span class="w">    </span><span class="p">,</span><span class="s1">&#39;Kinematic heat flux&#39;</span><span class="w">       </span><span class="p">,</span><span class="s1">&#39;K m/s&#39;</span><span class="w">   </span><span class="p">,</span><span class="s1">&#39;t0mt&#39;</span><span class="p">)</span>
+<span class="w">      </span><span class="k">call </span><span class="n">ncinfo</span><span class="p">(</span><span class="n">ncstatyt</span><span class="p">(</span><span class="w"> </span><span class="mi">17</span><span class="p">,:),</span><span class="s1">&#39;wqtyt&#39;</span><span class="w">     </span><span class="p">,</span><span class="s1">&#39;Kinematic moisture flux&#39;</span><span class="w">   </span><span class="p">,</span><span class="s1">&#39;K m/s&#39;</span><span class="w">   </span><span class="p">,</span><span class="s1">&#39;t0mt&#39;</span><span class="p">)</span>
+<span class="w">      </span><span class="k">call </span><span class="n">ncinfo</span><span class="p">(</span><span class="n">ncstatyt</span><span class="p">(</span><span class="w"> </span><span class="mi">18</span><span class="p">,:),</span><span class="s1">&#39;wsca1yt&#39;</span><span class="w">   </span><span class="p">,</span><span class="s1">&#39;Kinematic scalar flux&#39;</span><span class="w">     </span><span class="p">,</span><span class="s1">&#39;K m/s&#39;</span><span class="w">   </span><span class="p">,</span><span class="s1">&#39;t0mt&#39;</span><span class="p">)</span>
+<span class="w">      </span><span class="k">call </span><span class="n">ncinfo</span><span class="p">(</span><span class="n">ncstatyt</span><span class="p">(</span><span class="w"> </span><span class="mi">19</span><span class="p">,:),</span><span class="s1">&#39;wsca2yt&#39;</span><span class="w">   </span><span class="p">,</span><span class="s1">&#39;Kinematic scalar flux&#39;</span><span class="w">     </span><span class="p">,</span><span class="s1">&#39;K m/s&#39;</span><span class="w">   </span><span class="p">,</span><span class="s1">&#39;t0mt&#39;</span><span class="p">)</span>
+<span class="w">      </span><span class="k">call </span><span class="n">ncinfo</span><span class="p">(</span><span class="n">ncstatyt</span><span class="p">(</span><span class="w"> </span><span class="mi">20</span><span class="p">,:),</span><span class="s1">&#39;wsca3yt&#39;</span><span class="w">   </span><span class="p">,</span><span class="s1">&#39;Kinematic scalar flux&#39;</span><span class="w">     </span><span class="p">,</span><span class="s1">&#39;K m/s&#39;</span><span class="w">   </span><span class="p">,</span><span class="s1">&#39;t0mt&#39;</span><span class="p">)</span>
+
+<span class="w">      </span><span class="k">call </span><span class="n">ncinfo</span><span class="p">(</span><span class="n">ncstatyt</span><span class="p">(</span><span class="w"> </span><span class="mi">21</span><span class="p">,:),</span><span class="s1">&#39;upupyt&#39;</span><span class="w">     </span><span class="p">,</span><span class="s1">&#39;mom. variance&#39;</span><span class="w">            </span><span class="p">,</span><span class="s1">&#39;m^2/s^2&#39;</span><span class="w"> </span><span class="p">,</span><span class="s1">&#39;t0tt&#39;</span><span class="p">)</span>
+<span class="w">      </span><span class="k">call </span><span class="n">ncinfo</span><span class="p">(</span><span class="n">ncstatyt</span><span class="p">(</span><span class="w"> </span><span class="mi">22</span><span class="p">,:),</span><span class="s1">&#39;wpwpyt&#39;</span><span class="w">     </span><span class="p">,</span><span class="s1">&#39;mom. variance&#39;</span><span class="w">            </span><span class="p">,</span><span class="s1">&#39;m^2/s^2&#39;</span><span class="w"> </span><span class="p">,</span><span class="s1">&#39;t0tt&#39;</span><span class="p">)</span>
+<span class="w">      </span><span class="k">call </span><span class="n">ncinfo</span><span class="p">(</span><span class="n">ncstatyt</span><span class="p">(</span><span class="w"> </span><span class="mi">23</span><span class="p">,:),</span><span class="s1">&#39;thlpthlpyt&#39;</span><span class="w"> </span><span class="p">,</span><span class="s1">&#39;temp. variance&#39;</span><span class="w">           </span><span class="p">,</span><span class="s1">&#39;K^2&#39;</span><span class="w">     </span><span class="p">,</span><span class="s1">&#39;t0tt&#39;</span><span class="p">)</span>
+<span class="w">      </span><span class="k">call </span><span class="n">ncinfo</span><span class="p">(</span><span class="n">ncstatyt</span><span class="p">(</span><span class="w"> </span><span class="mi">24</span><span class="p">,:),</span><span class="s1">&#39;qtpqtpyt&#39;</span><span class="w">   </span><span class="p">,</span><span class="s1">&#39;moisture. variance&#39;</span><span class="w">       </span><span class="p">,</span><span class="s1">&#39;kg^2/kg^2&#39;</span><span class="p">,</span><span class="s1">&#39;t0tt&#39;</span><span class="p">)</span>
+<span class="w">      </span><span class="k">call </span><span class="n">ncinfo</span><span class="p">(</span><span class="n">ncstatyt</span><span class="p">(</span><span class="w"> </span><span class="mi">25</span><span class="p">,:),</span><span class="s1">&#39;sca1tpsca1pyt&#39;</span><span class="p">,</span><span class="s1">&#39;scalar. variance&#39;</span><span class="w">       </span><span class="p">,</span><span class="s1">&#39;M^2&#39;</span><span class="w">     </span><span class="p">,</span><span class="s1">&#39;t0tt&#39;</span><span class="p">)</span>
+<span class="w">      </span><span class="k">call </span><span class="n">ncinfo</span><span class="p">(</span><span class="n">ncstatyt</span><span class="p">(</span><span class="w"> </span><span class="mi">26</span><span class="p">,:),</span><span class="s1">&#39;sca2tpsca2pyt&#39;</span><span class="p">,</span><span class="s1">&#39;scalar. variance&#39;</span><span class="w">       </span><span class="p">,</span><span class="s1">&#39;M^2&#39;</span><span class="w">     </span><span class="p">,</span><span class="s1">&#39;t0tt&#39;</span><span class="p">)</span>
+<span class="w">      </span><span class="k">call </span><span class="n">ncinfo</span><span class="p">(</span><span class="n">ncstatyt</span><span class="p">(</span><span class="w"> </span><span class="mi">27</span><span class="p">,:),</span><span class="s1">&#39;sca3tpsca3pyt&#39;</span><span class="p">,</span><span class="s1">&#39;scalar. variance&#39;</span><span class="w">       </span><span class="p">,</span><span class="s1">&#39;M^2&#39;</span><span class="w">     </span><span class="p">,</span><span class="s1">&#39;t0tt&#39;</span><span class="p">)</span>
+
+<span class="w">      </span><span class="k">call </span><span class="n">ncinfo</span><span class="p">(</span><span class="n">ncstatyt</span><span class="p">(</span><span class="w"> </span><span class="mi">28</span><span class="p">,:),</span><span class="s1">&#39;usgsyt&#39;</span><span class="w">    </span><span class="p">,</span><span class="s1">&#39;SGS mom. flux&#39;</span><span class="w">             </span><span class="p">,</span><span class="s1">&#39;m^2/s^2&#39;</span><span class="w"> </span><span class="p">,</span><span class="s1">&#39;m0mt&#39;</span><span class="p">)</span>
+<span class="w">      </span><span class="k">call </span><span class="n">ncinfo</span><span class="p">(</span><span class="n">ncstatyt</span><span class="p">(</span><span class="w"> </span><span class="mi">29</span><span class="p">,:),</span><span class="s1">&#39;wsgsyt&#39;</span><span class="w">    </span><span class="p">,</span><span class="s1">&#39;SGS mom. flux&#39;</span><span class="w">             </span><span class="p">,</span><span class="s1">&#39;m^2/s^2&#39;</span><span class="w"> </span><span class="p">,</span><span class="s1">&#39;t0mt&#39;</span><span class="p">)</span>
+<span class="w">      </span><span class="k">call </span><span class="n">ncinfo</span><span class="p">(</span><span class="n">ncstatyt</span><span class="p">(</span><span class="w"> </span><span class="mi">30</span><span class="p">,:),</span><span class="s1">&#39;thlsgsyt&#39;</span><span class="w">  </span><span class="p">,</span><span class="s1">&#39;SGS heat flux&#39;</span><span class="w">             </span><span class="p">,</span><span class="s1">&#39;K m/s&#39;</span><span class="w">   </span><span class="p">,</span><span class="s1">&#39;t0mt&#39;</span><span class="p">)</span>
+<span class="w">      </span><span class="k">call </span><span class="n">ncinfo</span><span class="p">(</span><span class="n">ncstatyt</span><span class="p">(</span><span class="w"> </span><span class="mi">31</span><span class="p">,:),</span><span class="s1">&#39;qtsgsyt&#39;</span><span class="w">   </span><span class="p">,</span><span class="s1">&#39;SGS moisture flux&#39;</span><span class="w">         </span><span class="p">,</span><span class="s1">&#39;kg/kg m/s&#39;</span><span class="p">,</span><span class="s1">&#39;t0mt&#39;</span><span class="p">)</span>
+<span class="w">      </span><span class="k">call </span><span class="n">ncinfo</span><span class="p">(</span><span class="n">ncstatyt</span><span class="p">(</span><span class="w"> </span><span class="mi">32</span><span class="p">,:),</span><span class="s1">&#39;sca1sgsyt&#39;</span><span class="w"> </span><span class="p">,</span><span class="s1">&#39;SGS scalar flux&#39;</span><span class="w">           </span><span class="p">,</span><span class="s1">&#39;M m/s&#39;</span><span class="w">   </span><span class="p">,</span><span class="s1">&#39;t0mt&#39;</span><span class="p">)</span>
+<span class="w">      </span><span class="k">call </span><span class="n">ncinfo</span><span class="p">(</span><span class="n">ncstatyt</span><span class="p">(</span><span class="w"> </span><span class="mi">33</span><span class="p">,:),</span><span class="s1">&#39;sca2sgsyt&#39;</span><span class="w"> </span><span class="p">,</span><span class="s1">&#39;SGS scalar flux&#39;</span><span class="w">           </span><span class="p">,</span><span class="s1">&#39;M m/s&#39;</span><span class="w">   </span><span class="p">,</span><span class="s1">&#39;t0mt&#39;</span><span class="p">)</span>
+<span class="w">      </span><span class="k">call </span><span class="n">ncinfo</span><span class="p">(</span><span class="n">ncstatyt</span><span class="p">(</span><span class="w"> </span><span class="mi">34</span><span class="p">,:),</span><span class="s1">&#39;sca3sgsyt&#39;</span><span class="w"> </span><span class="p">,</span><span class="s1">&#39;SGS scalar flux&#39;</span><span class="w">           </span><span class="p">,</span><span class="s1">&#39;M m/s&#39;</span><span class="w">   </span><span class="p">,</span><span class="s1">&#39;t0mt&#39;</span><span class="p">)</span>
+
+<span class="w">      </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">myid</span><span class="o">==</span><span class="mi">0</span><span class="p">)</span><span class="w"> </span><span class="k">then</span>
+<span class="k">        call </span><span class="n">open_nc</span><span class="p">(</span><span class="n">ytname</span><span class="p">,</span><span class="w"> </span><span class="n">ncidyt</span><span class="p">,</span><span class="w"> </span><span class="n">nrecyt</span><span class="p">,</span><span class="w"> </span><span class="n">n1</span><span class="o">=</span><span class="n">imax</span><span class="p">,</span><span class="w"> </span><span class="n">n3</span><span class="o">=</span><span class="n">khigh</span><span class="o">-</span><span class="n">klow</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span>
+<span class="w">        </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">nrecyt</span><span class="o">==</span><span class="mi">0</span><span class="p">)</span><span class="w"> </span><span class="k">then</span>
+<span class="k">          call </span><span class="n">define_nc</span><span class="p">(</span><span class="w"> </span><span class="n">ncidyt</span><span class="p">,</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="n">tncstatyt</span><span class="p">)</span>
+<span class="w">          </span><span class="k">call </span><span class="n">writestat_dims_nc</span><span class="p">(</span><span class="n">ncidyt</span><span class="p">)</span>
+<span class="w">        </span><span class="k">end if</span>
+<span class="k">        call </span><span class="n">define_nc</span><span class="p">(</span><span class="w"> </span><span class="n">ncidyt</span><span class="p">,</span><span class="w"> </span><span class="n">nstatyt</span><span class="p">,</span><span class="w"> </span><span class="n">ncstatyt</span><span class="p">)</span>
+<span class="w">      </span><span class="k">endif</span><span class="w"> </span><span class="c">!myid==0</span>
+<span class="w">    </span><span class="k">endif</span>
+
+<span class="w">    </span><span class="c">!&gt; Generate y and x averaged NetCDF: xydump.xxx.nc</span>
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">lxydump</span><span class="p">)</span><span class="w"> </span><span class="k">then</span>
+
+<span class="k">      </span><span class="n">xyname</span><span class="p">(</span><span class="mi">8</span><span class="p">:</span><span class="mi">10</span><span class="p">)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">cexpnr</span>
+<span class="w">      </span><span class="k">call </span><span class="n">ncinfo</span><span class="p">(</span><span class="n">tncstatxy</span><span class="p">(</span><span class="mi">1</span><span class="p">,:),</span><span class="s1">&#39;time&#39;</span><span class="w">    </span><span class="p">,</span><span class="s1">&#39;Time&#39;</span><span class="w">                        </span><span class="p">,</span><span class="s1">&#39;s&#39;</span><span class="w">      </span><span class="p">,</span><span class="s1">&#39;time&#39;</span><span class="p">)</span>
+<span class="w">      </span><span class="k">call </span><span class="n">ncinfo</span><span class="p">(</span><span class="n">ncstatxy</span><span class="p">(</span><span class="w"> </span><span class="mi">1</span><span class="p">,:),</span><span class="s1">&#39;uxy&#39;</span><span class="w">     </span><span class="p">,</span><span class="s1">&#39;Streamwise velocity&#39;</span><span class="w">         </span><span class="p">,</span><span class="s1">&#39;m/s&#39;</span><span class="w">    </span><span class="p">,</span><span class="s1">&#39;tt&#39;</span><span class="w">  </span><span class="p">)</span>
+<span class="w">      </span><span class="k">call </span><span class="n">ncinfo</span><span class="p">(</span><span class="n">ncstatxy</span><span class="p">(</span><span class="w"> </span><span class="mi">2</span><span class="p">,:),</span><span class="s1">&#39;vxy&#39;</span><span class="w">     </span><span class="p">,</span><span class="s1">&#39;Spanwise velocity&#39;</span><span class="w">           </span><span class="p">,</span><span class="s1">&#39;m/s&#39;</span><span class="w">    </span><span class="p">,</span><span class="s1">&#39;tt&#39;</span><span class="w">  </span><span class="p">)</span>
+<span class="w">      </span><span class="k">call </span><span class="n">ncinfo</span><span class="p">(</span><span class="n">ncstatxy</span><span class="p">(</span><span class="w"> </span><span class="mi">3</span><span class="p">,:),</span><span class="s1">&#39;wxy&#39;</span><span class="w">     </span><span class="p">,</span><span class="s1">&#39;Vertical velocity&#39;</span><span class="w">           </span><span class="p">,</span><span class="s1">&#39;m/s&#39;</span><span class="w">    </span><span class="p">,</span><span class="s1">&#39;mt&#39;</span><span class="w">  </span><span class="p">)</span>
+<span class="w">      </span><span class="k">call </span><span class="n">ncinfo</span><span class="p">(</span><span class="n">ncstatxy</span><span class="p">(</span><span class="w"> </span><span class="mi">4</span><span class="p">,:),</span><span class="s1">&#39;thlxy&#39;</span><span class="w">   </span><span class="p">,</span><span class="s1">&#39;Temperature&#39;</span><span class="w">                 </span><span class="p">,</span><span class="s1">&#39;K&#39;</span><span class="w">      </span><span class="p">,</span><span class="s1">&#39;tt&#39;</span><span class="w">  </span><span class="p">)</span>
+<span class="w">      </span><span class="k">call </span><span class="n">ncinfo</span><span class="p">(</span><span class="n">ncstatxy</span><span class="p">(</span><span class="w"> </span><span class="mi">5</span><span class="p">,:),</span><span class="s1">&#39;qtxy&#39;</span><span class="w">    </span><span class="p">,</span><span class="s1">&#39;Moisture&#39;</span><span class="w">                    </span><span class="p">,</span><span class="s1">&#39;kg/kg&#39;</span><span class="w">  </span><span class="p">,</span><span class="s1">&#39;tt&#39;</span><span class="w">  </span><span class="p">)</span>
+<span class="w">      </span><span class="k">call </span><span class="n">ncinfo</span><span class="p">(</span><span class="n">ncstatxy</span><span class="p">(</span><span class="w"> </span><span class="mi">6</span><span class="p">,:),</span><span class="s1">&#39;pxy&#39;</span><span class="w">     </span><span class="p">,</span><span class="s1">&#39;Pressure&#39;</span><span class="w">                    </span><span class="p">,</span><span class="s1">&#39;m^2/s^2&#39;</span><span class="p">,</span><span class="s1">&#39;tt&#39;</span><span class="w">  </span><span class="p">)</span>
+<span class="w">      </span><span class="k">call </span><span class="n">ncinfo</span><span class="p">(</span><span class="n">ncstatxy</span><span class="p">(</span><span class="w"> </span><span class="mi">7</span><span class="p">,:),</span><span class="s1">&#39;upwpxy&#39;</span><span class="w">  </span><span class="p">,</span><span class="s1">&#39;Mom. flux&#39;</span><span class="w">                   </span><span class="p">,</span><span class="s1">&#39;m^2/s^2&#39;</span><span class="p">,</span><span class="s1">&#39;mt&#39;</span><span class="w">  </span><span class="p">)</span>
+<span class="w">      </span><span class="k">call </span><span class="n">ncinfo</span><span class="p">(</span><span class="n">ncstatxy</span><span class="p">(</span><span class="w"> </span><span class="mi">8</span><span class="p">,:),</span><span class="s1">&#39;wpthlpxy&#39;</span><span class="p">,</span><span class="s1">&#39;Heat flux&#39;</span><span class="w">                   </span><span class="p">,</span><span class="s1">&#39;Km/s&#39;</span><span class="w">   </span><span class="p">,</span><span class="s1">&#39;mt&#39;</span><span class="w">  </span><span class="p">)</span>
+<span class="w">      </span><span class="k">call </span><span class="n">ncinfo</span><span class="p">(</span><span class="n">ncstatxy</span><span class="p">(</span><span class="w"> </span><span class="mi">9</span><span class="p">,:),</span><span class="s1">&#39;vpwpxy&#39;</span><span class="w">  </span><span class="p">,</span><span class="s1">&#39;Mom. flux&#39;</span><span class="w">                   </span><span class="p">,</span><span class="s1">&#39;Km/s&#39;</span><span class="w">   </span><span class="p">,</span><span class="s1">&#39;mt&#39;</span><span class="w">  </span><span class="p">)</span>
+<span class="w">      </span><span class="k">call </span><span class="n">ncinfo</span><span class="p">(</span><span class="n">ncstatxy</span><span class="p">(</span><span class="mi">10</span><span class="p">,:),</span><span class="s1">&#39;usgsxy&#39;</span><span class="w">  </span><span class="p">,</span><span class="s1">&#39;SGS mom. flux&#39;</span><span class="w">               </span><span class="p">,</span><span class="s1">&#39;m^2/s^2&#39;</span><span class="p">,</span><span class="s1">&#39;mt&#39;</span><span class="w">  </span><span class="p">)</span>
+<span class="w">      </span><span class="k">call </span><span class="n">ncinfo</span><span class="p">(</span><span class="n">ncstatxy</span><span class="p">(</span><span class="mi">11</span><span class="p">,:),</span><span class="s1">&#39;thlsgsxy&#39;</span><span class="p">,</span><span class="s1">&#39;SGS heat flux&#39;</span><span class="w">               </span><span class="p">,</span><span class="s1">&#39;Km/s&#39;</span><span class="w">   </span><span class="p">,</span><span class="s1">&#39;mt&#39;</span><span class="w">  </span><span class="p">)</span>
+<span class="w">      </span><span class="k">call </span><span class="n">ncinfo</span><span class="p">(</span><span class="n">ncstatxy</span><span class="p">(</span><span class="mi">12</span><span class="p">,:),</span><span class="s1">&#39;vsgsxy&#39;</span><span class="w">  </span><span class="p">,</span><span class="s1">&#39;SGS mom. flux&#39;</span><span class="w">               </span><span class="p">,</span><span class="s1">&#39;m^2/s^2&#39;</span><span class="p">,</span><span class="s1">&#39;mt&#39;</span><span class="w">  </span><span class="p">)</span>
+<span class="w">      </span><span class="k">call </span><span class="n">ncinfo</span><span class="p">(</span><span class="n">ncstatxy</span><span class="p">(</span><span class="mi">13</span><span class="p">,:),</span><span class="s1">&#39;uwxyik&#39;</span><span class="w">  </span><span class="p">,</span><span class="s1">&#39;Advective mom. flux&#39;</span><span class="w">         </span><span class="p">,</span><span class="s1">&#39;m^2/s^2&#39;</span><span class="p">,</span><span class="s1">&#39;mt&#39;</span><span class="w">  </span><span class="p">)</span>
+<span class="w">      </span><span class="k">call </span><span class="n">ncinfo</span><span class="p">(</span><span class="n">ncstatxy</span><span class="p">(</span><span class="mi">14</span><span class="p">,:),</span><span class="s1">&#39;wthlxy&#39;</span><span class="w">  </span><span class="p">,</span><span class="s1">&#39;Advective heat flux&#39;</span><span class="w">         </span><span class="p">,</span><span class="s1">&#39;K m/s&#39;</span><span class="w">  </span><span class="p">,</span><span class="s1">&#39;mt&#39;</span><span class="w">  </span><span class="p">)</span>
+<span class="w">      </span><span class="k">call </span><span class="n">ncinfo</span><span class="p">(</span><span class="n">ncstatxy</span><span class="p">(</span><span class="mi">15</span><span class="p">,:),</span><span class="s1">&#39;vwxy&#39;</span><span class="w">    </span><span class="p">,</span><span class="s1">&#39;Advective mom. flux&#39;</span><span class="w">         </span><span class="p">,</span><span class="s1">&#39;m^2/s^2&#39;</span><span class="p">,</span><span class="s1">&#39;mt&#39;</span><span class="w">  </span><span class="p">)</span>
+<span class="w">      </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">myid</span><span class="o">==</span><span class="mi">0</span><span class="p">)</span><span class="w"> </span><span class="k">then</span>
+<span class="k">        call </span><span class="n">open_nc</span><span class="p">(</span><span class="n">xyname</span><span class="p">,</span><span class="w"> </span><span class="n">ncidxy</span><span class="p">,</span><span class="w"> </span><span class="n">nrecxy</span><span class="p">,</span><span class="w"> </span><span class="n">n3</span><span class="o">=</span><span class="n">khigh</span><span class="o">-</span><span class="n">klow</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span>
+<span class="w">        </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">nrecxy</span><span class="o">==</span><span class="mi">0</span><span class="p">)</span><span class="w"> </span><span class="k">then</span>
+<span class="k">          call </span><span class="n">define_nc</span><span class="p">(</span><span class="w"> </span><span class="n">ncidxy</span><span class="p">,</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="n">tncstatxy</span><span class="p">)</span>
+<span class="w">          </span><span class="k">call </span><span class="n">writestat_dims_nc</span><span class="p">(</span><span class="n">ncidxy</span><span class="p">)</span>
+<span class="w">        </span><span class="k">end if</span>
+<span class="k">        call </span><span class="n">define_nc</span><span class="p">(</span><span class="w"> </span><span class="n">ncidxy</span><span class="p">,</span><span class="w"> </span><span class="n">nstatxy</span><span class="p">,</span><span class="w"> </span><span class="n">ncstatxy</span><span class="p">)</span>
+<span class="w">      </span><span class="k">end if</span>
+<span class="k">    end if</span>
+
+<span class="w">    </span><span class="c">!&gt; Generate time, y and x averaged NetCDF: xytdump.xxx.nc</span>
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">lxytdump</span><span class="p">)</span><span class="w"> </span><span class="k">then</span>
+
+<span class="k">      </span><span class="n">xytname</span><span class="p">(</span><span class="mi">9</span><span class="p">:</span><span class="mi">11</span><span class="p">)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">cexpnr</span>
+<span class="w">      </span><span class="k">call </span><span class="n">ncinfo</span><span class="p">(</span><span class="n">tncstatxyt</span><span class="p">(</span><span class="mi">1</span><span class="p">,:),</span><span class="s1">&#39;time&#39;</span><span class="w">      </span><span class="p">,</span><span class="s1">&#39;Time&#39;</span><span class="w">                        </span><span class="p">,</span><span class="s1">&#39;s&#39;</span><span class="w">      </span><span class="p">,</span><span class="s1">&#39;time&#39;</span><span class="p">)</span>
+<span class="w">      </span><span class="k">call </span><span class="n">ncinfo</span><span class="p">(</span><span class="n">ncstatxyt</span><span class="p">(</span><span class="w"> </span><span class="mi">1</span><span class="p">,:),</span><span class="s1">&#39;uxyt&#39;</span><span class="w">       </span><span class="p">,</span><span class="s1">&#39;Streamwise velocity&#39;</span><span class="w">         </span><span class="p">,</span><span class="s1">&#39;m/s&#39;</span><span class="w">    </span><span class="p">,</span><span class="s1">&#39;tt&#39;</span><span class="w">  </span><span class="p">)</span>
+<span class="w">      </span><span class="k">call </span><span class="n">ncinfo</span><span class="p">(</span><span class="n">ncstatxyt</span><span class="p">(</span><span class="w"> </span><span class="mi">2</span><span class="p">,:),</span><span class="s1">&#39;vxyt&#39;</span><span class="w">       </span><span class="p">,</span><span class="s1">&#39;Spanwise velocity&#39;</span><span class="w">           </span><span class="p">,</span><span class="s1">&#39;m/s&#39;</span><span class="w">    </span><span class="p">,</span><span class="s1">&#39;tt&#39;</span><span class="w">  </span><span class="p">)</span>
+<span class="w">      </span><span class="k">call </span><span class="n">ncinfo</span><span class="p">(</span><span class="n">ncstatxyt</span><span class="p">(</span><span class="w"> </span><span class="mi">3</span><span class="p">,:),</span><span class="s1">&#39;wxyt&#39;</span><span class="w">       </span><span class="p">,</span><span class="s1">&#39;Vertical velocity&#39;</span><span class="w">           </span><span class="p">,</span><span class="s1">&#39;m/s&#39;</span><span class="w">    </span><span class="p">,</span><span class="s1">&#39;mt&#39;</span><span class="w">  </span><span class="p">)</span>
+<span class="w">      </span><span class="k">call </span><span class="n">ncinfo</span><span class="p">(</span><span class="n">ncstatxyt</span><span class="p">(</span><span class="w"> </span><span class="mi">4</span><span class="p">,:),</span><span class="s1">&#39;thlxyt&#39;</span><span class="w">     </span><span class="p">,</span><span class="s1">&#39;Temperature&#39;</span><span class="w">                 </span><span class="p">,</span><span class="s1">&#39;K&#39;</span><span class="w">      </span><span class="p">,</span><span class="s1">&#39;tt&#39;</span><span class="w">  </span><span class="p">)</span>
+<span class="w">      </span><span class="k">call </span><span class="n">ncinfo</span><span class="p">(</span><span class="n">ncstatxyt</span><span class="p">(</span><span class="w"> </span><span class="mi">5</span><span class="p">,:),</span><span class="s1">&#39;qtxyt&#39;</span><span class="w">      </span><span class="p">,</span><span class="s1">&#39;Moisture&#39;</span><span class="w">                    </span><span class="p">,</span><span class="s1">&#39;kg/kg&#39;</span><span class="w">  </span><span class="p">,</span><span class="s1">&#39;tt&#39;</span><span class="w">  </span><span class="p">)</span>
+<span class="w">      </span><span class="k">call </span><span class="n">ncinfo</span><span class="p">(</span><span class="n">ncstatxyt</span><span class="p">(</span><span class="w"> </span><span class="mi">6</span><span class="p">,:),</span><span class="s1">&#39;pxyt&#39;</span><span class="w">       </span><span class="p">,</span><span class="s1">&#39;Pressure&#39;</span><span class="w">                    </span><span class="p">,</span><span class="s1">&#39;m^2/s^2&#39;</span><span class="p">,</span><span class="s1">&#39;tt&#39;</span><span class="w">  </span><span class="p">)</span>
+<span class="w">      </span><span class="k">call </span><span class="n">ncinfo</span><span class="p">(</span><span class="n">ncstatxyt</span><span class="p">(</span><span class="w"> </span><span class="mi">7</span><span class="p">,:),</span><span class="s1">&#39;upwpxyt&#39;</span><span class="w">    </span><span class="p">,</span><span class="s1">&#39;Turbulent mom. flux&#39;</span><span class="w">         </span><span class="p">,</span><span class="s1">&#39;m^2/s^2&#39;</span><span class="p">,</span><span class="s1">&#39;mt&#39;</span><span class="w">  </span><span class="p">)</span>
+<span class="w">      </span><span class="k">call </span><span class="n">ncinfo</span><span class="p">(</span><span class="n">ncstatxyt</span><span class="p">(</span><span class="w"> </span><span class="mi">8</span><span class="p">,:),</span><span class="s1">&#39;wpthlpxyt&#39;</span><span class="w">  </span><span class="p">,</span><span class="s1">&#39;Turbulent heat flux&#39;</span><span class="w">         </span><span class="p">,</span><span class="s1">&#39;K m/s&#39;</span><span class="w">  </span><span class="p">,</span><span class="s1">&#39;mt&#39;</span><span class="w">  </span><span class="p">)</span>
+<span class="w">      </span><span class="k">call </span><span class="n">ncinfo</span><span class="p">(</span><span class="n">ncstatxyt</span><span class="p">(</span><span class="w"> </span><span class="mi">9</span><span class="p">,:),</span><span class="s1">&#39;vpwpxyt&#39;</span><span class="w">    </span><span class="p">,</span><span class="s1">&#39;Turbulent mom. flux&#39;</span><span class="w">         </span><span class="p">,</span><span class="s1">&#39;m^2/s^2&#39;</span><span class="p">,</span><span class="s1">&#39;mt&#39;</span><span class="w">  </span><span class="p">)</span>
+<span class="w">      </span><span class="k">call </span><span class="n">ncinfo</span><span class="p">(</span><span class="n">ncstatxyt</span><span class="p">(</span><span class="w"> </span><span class="mi">10</span><span class="p">,:),</span><span class="s1">&#39;upvpxyt&#39;</span><span class="w">   </span><span class="p">,</span><span class="s1">&#39;Turbulent mom. flux&#39;</span><span class="w">         </span><span class="p">,</span><span class="s1">&#39;m^2/s^2&#39;</span><span class="p">,</span><span class="s1">&#39;mt&#39;</span><span class="w">  </span><span class="p">)</span>
+<span class="w">      </span><span class="k">call </span><span class="n">ncinfo</span><span class="p">(</span><span class="n">ncstatxyt</span><span class="p">(</span><span class="w"> </span><span class="mi">11</span><span class="p">,:),</span><span class="s1">&#39;uwxyt&#39;</span><span class="w">     </span><span class="p">,</span><span class="s1">&#39;Kinematic mom. flux&#39;</span><span class="w">         </span><span class="p">,</span><span class="s1">&#39;m^2/s^2&#39;</span><span class="p">,</span><span class="s1">&#39;mt&#39;</span><span class="w">  </span><span class="p">)</span>
+<span class="w">      </span><span class="k">call </span><span class="n">ncinfo</span><span class="p">(</span><span class="n">ncstatxyt</span><span class="p">(</span><span class="w"> </span><span class="mi">12</span><span class="p">,:),</span><span class="s1">&#39;wthlxyt&#39;</span><span class="w">   </span><span class="p">,</span><span class="s1">&#39;Kinematic heat flux&#39;</span><span class="w">         </span><span class="p">,</span><span class="s1">&#39;K m/s&#39;</span><span class="w">  </span><span class="p">,</span><span class="s1">&#39;mt&#39;</span><span class="w">  </span><span class="p">)</span>
+<span class="w">      </span><span class="k">call </span><span class="n">ncinfo</span><span class="p">(</span><span class="n">ncstatxyt</span><span class="p">(</span><span class="w"> </span><span class="mi">13</span><span class="p">,:),</span><span class="s1">&#39;uvxyt&#39;</span><span class="w">     </span><span class="p">,</span><span class="s1">&#39;Kinematic mom. flux&#39;</span><span class="w">         </span><span class="p">,</span><span class="s1">&#39;m^2/s^2&#39;</span><span class="p">,</span><span class="s1">&#39;mt&#39;</span><span class="w">  </span><span class="p">)</span>
+<span class="w">      </span><span class="k">call </span><span class="n">ncinfo</span><span class="p">(</span><span class="n">ncstatxyt</span><span class="p">(</span><span class="w"> </span><span class="mi">14</span><span class="p">,:),</span><span class="s1">&#39;vwxyt&#39;</span><span class="w">     </span><span class="p">,</span><span class="s1">&#39;Kinematic mom. flux&#39;</span><span class="w">         </span><span class="p">,</span><span class="s1">&#39;m^2/s^2&#39;</span><span class="p">,</span><span class="s1">&#39;mt&#39;</span><span class="w">  </span><span class="p">)</span>
+<span class="w">      </span><span class="k">call </span><span class="n">ncinfo</span><span class="p">(</span><span class="n">ncstatxyt</span><span class="p">(</span><span class="w"> </span><span class="mi">15</span><span class="p">,:),</span><span class="s1">&#39;wwxyt&#39;</span><span class="w">     </span><span class="p">,</span><span class="s1">&#39;Kinematic mom. flux&#39;</span><span class="w">         </span><span class="p">,</span><span class="s1">&#39;m^2/s^2&#39;</span><span class="p">,</span><span class="s1">&#39;mt&#39;</span><span class="w">  </span><span class="p">)</span>
+<span class="w">      </span><span class="k">call </span><span class="n">ncinfo</span><span class="p">(</span><span class="n">ncstatxyt</span><span class="p">(</span><span class="w"> </span><span class="mi">16</span><span class="p">,:),</span><span class="s1">&#39;usgsxyt&#39;</span><span class="w">   </span><span class="p">,</span><span class="s1">&#39;SGS mom. flux&#39;</span><span class="w">               </span><span class="p">,</span><span class="s1">&#39;m^2/s^2&#39;</span><span class="p">,</span><span class="s1">&#39;mt&#39;</span><span class="w">  </span><span class="p">)</span>
+<span class="w">      </span><span class="k">call </span><span class="n">ncinfo</span><span class="p">(</span><span class="n">ncstatxyt</span><span class="p">(</span><span class="w"> </span><span class="mi">17</span><span class="p">,:),</span><span class="s1">&#39;thlsgsxyt&#39;</span><span class="w"> </span><span class="p">,</span><span class="s1">&#39;SGS heat flux&#39;</span><span class="w">               </span><span class="p">,</span><span class="s1">&#39;K m/s&#39;</span><span class="w">  </span><span class="p">,</span><span class="s1">&#39;mt&#39;</span><span class="w">  </span><span class="p">)</span>
+<span class="w">      </span><span class="k">call </span><span class="n">ncinfo</span><span class="p">(</span><span class="n">ncstatxyt</span><span class="p">(</span><span class="w"> </span><span class="mi">18</span><span class="p">,:),</span><span class="s1">&#39;vsgsxyt&#39;</span><span class="w">   </span><span class="p">,</span><span class="s1">&#39;SGS mom. flux&#39;</span><span class="w">               </span><span class="p">,</span><span class="s1">&#39;K m/s&#39;</span><span class="w">  </span><span class="p">,</span><span class="s1">&#39;mt&#39;</span><span class="w">  </span><span class="p">)</span>
+<span class="w">      </span><span class="k">call </span><span class="n">ncinfo</span><span class="p">(</span><span class="n">ncstatxyt</span><span class="p">(</span><span class="w"> </span><span class="mi">19</span><span class="p">,:),</span><span class="s1">&#39;thlpthlptxy&#39;</span><span class="p">,</span><span class="s1">&#39;Temp. variance&#39;</span><span class="w">             </span><span class="p">,</span><span class="s1">&#39;K^2&#39;</span><span class="w">    </span><span class="p">,</span><span class="s1">&#39;tt&#39;</span><span class="w">  </span><span class="p">)</span>
+<span class="w">      </span><span class="k">call </span><span class="n">ncinfo</span><span class="p">(</span><span class="n">ncstatxyt</span><span class="p">(</span><span class="w"> </span><span class="mi">20</span><span class="p">,:),</span><span class="s1">&#39;upuptxyc&#39;</span><span class="w">  </span><span class="p">,</span><span class="s1">&#39;u variance&#39;</span><span class="w">                  </span><span class="p">,</span><span class="s1">&#39;m^2/s^2&#39;</span><span class="p">,</span><span class="s1">&#39;tt&#39;</span><span class="w">  </span><span class="p">)</span>
+<span class="w">      </span><span class="k">call </span><span class="n">ncinfo</span><span class="p">(</span><span class="n">ncstatxyt</span><span class="p">(</span><span class="w"> </span><span class="mi">21</span><span class="p">,:),</span><span class="s1">&#39;vpvptxyc&#39;</span><span class="w">  </span><span class="p">,</span><span class="s1">&#39;v variance&#39;</span><span class="w">                  </span><span class="p">,</span><span class="s1">&#39;m^2/s^2&#39;</span><span class="p">,</span><span class="s1">&#39;tt&#39;</span><span class="w">  </span><span class="p">)</span>
+<span class="w">      </span><span class="k">call </span><span class="n">ncinfo</span><span class="p">(</span><span class="n">ncstatxyt</span><span class="p">(</span><span class="w"> </span><span class="mi">22</span><span class="p">,:),</span><span class="s1">&#39;wpwptxyc&#39;</span><span class="w">  </span><span class="p">,</span><span class="s1">&#39;w variance&#39;</span><span class="w">                  </span><span class="p">,</span><span class="s1">&#39;m^2/s^2&#39;</span><span class="p">,</span><span class="s1">&#39;tt&#39;</span><span class="w">  </span><span class="p">)</span>
+<span class="w">      </span><span class="k">call </span><span class="n">ncinfo</span><span class="p">(</span><span class="n">ncstatxyt</span><span class="p">(</span><span class="w"> </span><span class="mi">23</span><span class="p">,:),</span><span class="s1">&#39;tketxyc&#39;</span><span class="w">   </span><span class="p">,</span><span class="s1">&#39;tke&#39;</span><span class="w">                         </span><span class="p">,</span><span class="s1">&#39;m^2/s^2&#39;</span><span class="p">,</span><span class="s1">&#39;tt&#39;</span><span class="w">  </span><span class="p">)</span>
+
+<span class="w">      </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">myid</span><span class="o">==</span><span class="mi">0</span><span class="p">)</span><span class="w"> </span><span class="k">then</span>
+<span class="k">        call </span><span class="n">open_nc</span><span class="p">(</span><span class="n">xytname</span><span class="p">,</span><span class="w"> </span><span class="n">ncidxyt</span><span class="p">,</span><span class="w"> </span><span class="n">nrecxyt</span><span class="p">,</span><span class="w"> </span><span class="n">n3</span><span class="o">=</span><span class="n">khigh</span><span class="o">-</span><span class="n">klow</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span>
+<span class="w">        </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">nrecxyt</span><span class="o">==</span><span class="mi">0</span><span class="p">)</span><span class="w"> </span><span class="k">then</span>
+<span class="k">          call </span><span class="n">define_nc</span><span class="p">(</span><span class="w"> </span><span class="n">ncidxyt</span><span class="p">,</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="n">tncstatxyt</span><span class="p">)</span>
+<span class="w">          </span><span class="k">call </span><span class="n">writestat_dims_nc</span><span class="p">(</span><span class="n">ncidxyt</span><span class="p">)</span>
+<span class="w">        </span><span class="k">end if</span>
+<span class="k">        call </span><span class="n">define_nc</span><span class="p">(</span><span class="w"> </span><span class="n">ncidxyt</span><span class="p">,</span><span class="w"> </span><span class="n">nstatxyt</span><span class="p">,</span><span class="w"> </span><span class="n">ncstatxyt</span><span class="p">)</span>
+<span class="w">      </span><span class="k">end if</span>
+<span class="k">    end if</span>
+
+<span class="w">    </span><span class="c">!&gt; Generate time averaged NetCDF: tdump.xxx.nc</span>
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">ltdump</span><span class="p">)</span><span class="w"> </span><span class="k">then</span>
+
+<span class="k">      </span><span class="n">tname</span><span class="p">(</span><span class="mi">7</span><span class="p">:</span><span class="mi">9</span><span class="p">)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">cmyidx</span>
+<span class="w">      </span><span class="n">tname</span><span class="p">(</span><span class="mi">11</span><span class="p">:</span><span class="mi">13</span><span class="p">)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">cmyidy</span>
+<span class="w">      </span><span class="n">tname</span><span class="p">(</span><span class="mi">15</span><span class="p">:</span><span class="mi">17</span><span class="p">)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">cexpnr</span>
+<span class="w">      </span><span class="k">call </span><span class="n">ncinfo</span><span class="p">(</span><span class="n">tncstatt</span><span class="p">(</span><span class="mi">1</span><span class="p">,:),</span><span class="s1">&#39;time&#39;</span><span class="w">      </span><span class="p">,</span><span class="s1">&#39;Time&#39;</span><span class="w">                        </span><span class="p">,</span><span class="s1">&#39;s&#39;</span><span class="w">      </span><span class="p">,</span><span class="s1">&#39;time&#39;</span><span class="p">)</span>
+<span class="w">      </span><span class="k">call </span><span class="n">ncinfo</span><span class="p">(</span><span class="n">ncstatt</span><span class="p">(</span><span class="w"> </span><span class="mi">1</span><span class="p">,:),</span><span class="s1">&#39;ut&#39;</span><span class="w">        </span><span class="p">,</span><span class="s1">&#39;Streamwise velocity&#39;</span><span class="w">         </span><span class="p">,</span><span class="s1">&#39;m/s&#39;</span><span class="w">    </span><span class="p">,</span><span class="s1">&#39;mttt&#39;</span><span class="w">  </span><span class="p">)</span>
+<span class="w">      </span><span class="k">call </span><span class="n">ncinfo</span><span class="p">(</span><span class="n">ncstatt</span><span class="p">(</span><span class="w"> </span><span class="mi">2</span><span class="p">,:),</span><span class="s1">&#39;vt&#39;</span><span class="w">        </span><span class="p">,</span><span class="s1">&#39;Spanwise velocity&#39;</span><span class="w">           </span><span class="p">,</span><span class="s1">&#39;m/s&#39;</span><span class="w">    </span><span class="p">,</span><span class="s1">&#39;tmtt&#39;</span><span class="w">  </span><span class="p">)</span>
+<span class="w">      </span><span class="k">call </span><span class="n">ncinfo</span><span class="p">(</span><span class="n">ncstatt</span><span class="p">(</span><span class="w"> </span><span class="mi">3</span><span class="p">,:),</span><span class="s1">&#39;wt&#39;</span><span class="w">        </span><span class="p">,</span><span class="s1">&#39;Vertical velocity&#39;</span><span class="w">           </span><span class="p">,</span><span class="s1">&#39;m/s&#39;</span><span class="w">    </span><span class="p">,</span><span class="s1">&#39;ttmt&#39;</span><span class="w">  </span><span class="p">)</span>
+<span class="w">      </span><span class="k">call </span><span class="n">ncinfo</span><span class="p">(</span><span class="n">ncstatt</span><span class="p">(</span><span class="w"> </span><span class="mi">4</span><span class="p">,:),</span><span class="s1">&#39;thlt&#39;</span><span class="w">      </span><span class="p">,</span><span class="s1">&#39;Temperature&#39;</span><span class="w">                 </span><span class="p">,</span><span class="s1">&#39;K&#39;</span><span class="w">      </span><span class="p">,</span><span class="s1">&#39;tttt&#39;</span><span class="w">  </span><span class="p">)</span>
+<span class="w">      </span><span class="k">call </span><span class="n">ncinfo</span><span class="p">(</span><span class="n">ncstatt</span><span class="p">(</span><span class="w"> </span><span class="mi">5</span><span class="p">,:),</span><span class="s1">&#39;qtt&#39;</span><span class="w">       </span><span class="p">,</span><span class="s1">&#39;Moisture&#39;</span><span class="w">                    </span><span class="p">,</span><span class="s1">&#39;kg/kg&#39;</span><span class="w">  </span><span class="p">,</span><span class="s1">&#39;tttt&#39;</span><span class="w">  </span><span class="p">)</span>
+<span class="w">      </span><span class="k">call </span><span class="n">ncinfo</span><span class="p">(</span><span class="n">ncstatt</span><span class="p">(</span><span class="w"> </span><span class="mi">6</span><span class="p">,:),</span><span class="s1">&#39;pt&#39;</span><span class="w">        </span><span class="p">,</span><span class="s1">&#39;Pressure&#39;</span><span class="w">                    </span><span class="p">,</span><span class="s1">&#39;m^2/s^2&#39;</span><span class="p">,</span><span class="s1">&#39;tttt&#39;</span><span class="w">  </span><span class="p">)</span>
+<span class="w">      </span><span class="k">call </span><span class="n">ncinfo</span><span class="p">(</span><span class="n">ncstatt</span><span class="p">(</span><span class="w"> </span><span class="mi">7</span><span class="p">,:),</span><span class="s1">&#39;sca1t&#39;</span><span class="w">     </span><span class="p">,</span><span class="s1">&#39;Concentration field 1&#39;</span><span class="w">       </span><span class="p">,</span><span class="s1">&#39;g/m^3&#39;</span><span class="w">  </span><span class="p">,</span><span class="s1">&#39;tttt&#39;</span><span class="w">  </span><span class="p">)</span>
+<span class="w">      </span><span class="k">call </span><span class="n">ncinfo</span><span class="p">(</span><span class="n">ncstatt</span><span class="p">(</span><span class="w"> </span><span class="mi">8</span><span class="p">,:),</span><span class="s1">&#39;sca2t&#39;</span><span class="w">     </span><span class="p">,</span><span class="s1">&#39;Concentration field 2&#39;</span><span class="w">       </span><span class="p">,</span><span class="s1">&#39;g/m^3&#39;</span><span class="w">  </span><span class="p">,</span><span class="s1">&#39;tttt&#39;</span><span class="w">  </span><span class="p">)</span>
+<span class="w">      </span><span class="k">call </span><span class="n">ncinfo</span><span class="p">(</span><span class="n">ncstatt</span><span class="p">(</span><span class="w"> </span><span class="mi">9</span><span class="p">,:),</span><span class="s1">&#39;sca3t&#39;</span><span class="w">     </span><span class="p">,</span><span class="s1">&#39;Concentration field 3&#39;</span><span class="w">       </span><span class="p">,</span><span class="s1">&#39;g/m^3&#39;</span><span class="w">  </span><span class="p">,</span><span class="s1">&#39;tttt&#39;</span><span class="w">  </span><span class="p">)</span>
+<span class="w">      </span><span class="k">call </span><span class="n">ncinfo</span><span class="p">(</span><span class="n">ncstatt</span><span class="p">(</span><span class="mi">10</span><span class="p">,:),</span><span class="s1">&#39;sca4t&#39;</span><span class="w">     </span><span class="p">,</span><span class="s1">&#39;Concentration field 4&#39;</span><span class="w">       </span><span class="p">,</span><span class="s1">&#39;g/m^3&#39;</span><span class="w">  </span><span class="p">,</span><span class="s1">&#39;tttt&#39;</span><span class="w">  </span><span class="p">)</span>
+<span class="w">      </span><span class="k">call </span><span class="n">ncinfo</span><span class="p">(</span><span class="n">ncstatt</span><span class="p">(</span><span class="mi">11</span><span class="p">,:),</span><span class="s1">&#39;PSS&#39;</span><span class="w">       </span><span class="p">,</span><span class="s1">&#39;PSS defect&#39;</span><span class="w">                  </span><span class="p">,</span><span class="s1">&#39;gm/s&#39;</span><span class="w">   </span><span class="p">,</span><span class="s1">&#39;tttt&#39;</span><span class="w">  </span><span class="p">)</span>
+
+<span class="w">      </span><span class="k">call </span><span class="n">ncinfo</span><span class="p">(</span><span class="n">ncstatt</span><span class="p">(</span><span class="mi">12</span><span class="p">,:),</span><span class="s1">&#39;upwpt&#39;</span><span class="w">     </span><span class="p">,</span><span class="s1">&#39;Turbulent momentum flux&#39;</span><span class="w">     </span><span class="p">,</span><span class="s1">&#39;m^2/s^2&#39;</span><span class="p">,</span><span class="s1">&#39;mtmt&#39;</span><span class="w">  </span><span class="p">)</span>
+<span class="w">      </span><span class="k">call </span><span class="n">ncinfo</span><span class="p">(</span><span class="n">ncstatt</span><span class="p">(</span><span class="mi">13</span><span class="p">,:),</span><span class="s1">&#39;vpwpt&#39;</span><span class="w">     </span><span class="p">,</span><span class="s1">&#39;Turbulent momentum flux&#39;</span><span class="w">     </span><span class="p">,</span><span class="s1">&#39;m^2/s^2&#39;</span><span class="p">,</span><span class="s1">&#39;tmmt&#39;</span><span class="w">  </span><span class="p">)</span>
+<span class="w">      </span><span class="k">call </span><span class="n">ncinfo</span><span class="p">(</span><span class="n">ncstatt</span><span class="p">(</span><span class="mi">14</span><span class="p">,:),</span><span class="s1">&#39;upvpt&#39;</span><span class="w">     </span><span class="p">,</span><span class="s1">&#39;Turbulent momentum flux&#39;</span><span class="w">     </span><span class="p">,</span><span class="s1">&#39;m^2/s^2&#39;</span><span class="p">,</span><span class="s1">&#39;mmtt&#39;</span><span class="w">  </span><span class="p">)</span>
+<span class="w">      </span><span class="k">call </span><span class="n">ncinfo</span><span class="p">(</span><span class="n">ncstatt</span><span class="p">(</span><span class="mi">15</span><span class="p">,:),</span><span class="s1">&#39;wpthlpt&#39;</span><span class="w">   </span><span class="p">,</span><span class="s1">&#39;Turbulent heat flux&#39;</span><span class="w">         </span><span class="p">,</span><span class="s1">&#39;K m/s&#39;</span><span class="w">  </span><span class="p">,</span><span class="s1">&#39;ttmt&#39;</span><span class="w">  </span><span class="p">)</span>
+<span class="w">      </span><span class="k">call </span><span class="n">ncinfo</span><span class="p">(</span><span class="n">ncstatt</span><span class="p">(</span><span class="mi">16</span><span class="p">,:),</span><span class="s1">&#39;wpsca1pt&#39;</span><span class="w">  </span><span class="p">,</span><span class="s1">&#39;Turbulent flux 1&#39;</span><span class="w">            </span><span class="p">,</span><span class="s1">&#39;gm/s&#39;</span><span class="w">   </span><span class="p">,</span><span class="s1">&#39;ttmt&#39;</span><span class="w">  </span><span class="p">)</span>
+<span class="w">      </span><span class="k">call </span><span class="n">ncinfo</span><span class="p">(</span><span class="n">ncstatt</span><span class="p">(</span><span class="mi">17</span><span class="p">,:),</span><span class="s1">&#39;wpsca2pt&#39;</span><span class="w">  </span><span class="p">,</span><span class="s1">&#39;Turbulent flux 2&#39;</span><span class="w">            </span><span class="p">,</span><span class="s1">&#39;gm/s&#39;</span><span class="w">   </span><span class="p">,</span><span class="s1">&#39;ttmt&#39;</span><span class="w">  </span><span class="p">)</span>
+<span class="w">      </span><span class="k">call </span><span class="n">ncinfo</span><span class="p">(</span><span class="n">ncstatt</span><span class="p">(</span><span class="mi">18</span><span class="p">,:),</span><span class="s1">&#39;wpsca3pt&#39;</span><span class="w"> </span><span class="p">,</span><span class="s1">&#39;Turbulent flux 3&#39;</span><span class="w">            </span><span class="p">,</span><span class="s1">&#39;gm/s&#39;</span><span class="w">   </span><span class="p">,</span><span class="s1">&#39;ttmt&#39;</span><span class="w">  </span><span class="p">)</span>
+<span class="w">      </span><span class="k">call </span><span class="n">ncinfo</span><span class="p">(</span><span class="n">ncstatt</span><span class="p">(</span><span class="mi">19</span><span class="p">,:),</span><span class="s1">&#39;wpsca4pt&#39;</span><span class="w">  </span><span class="p">,</span><span class="s1">&#39;Turbulent flux 4&#39;</span><span class="w">            </span><span class="p">,</span><span class="s1">&#39;gm/s&#39;</span><span class="w">   </span><span class="p">,</span><span class="s1">&#39;ttmt&#39;</span><span class="w">  </span><span class="p">)</span>
+
+<span class="w">      </span><span class="k">call </span><span class="n">ncinfo</span><span class="p">(</span><span class="n">ncstatt</span><span class="p">(</span><span class="mi">20</span><span class="p">,:),</span><span class="s1">&#39;thlpthlpt&#39;</span><span class="p">,</span><span class="s1">&#39;Temperature variance&#39;</span><span class="w">        </span><span class="p">,</span><span class="s1">&#39;K^2&#39;</span><span class="w">    </span><span class="p">,</span><span class="s1">&#39;tttt&#39;</span><span class="w">  </span><span class="p">)</span>
+<span class="w">      </span><span class="k">call </span><span class="n">ncinfo</span><span class="p">(</span><span class="n">ncstatt</span><span class="p">(</span><span class="mi">21</span><span class="p">,:),</span><span class="s1">&#39;upuptc&#39;</span><span class="w">   </span><span class="p">,</span><span class="s1">&#39;u variance&#39;</span><span class="w">                  </span><span class="p">,</span><span class="s1">&#39;m^2/s^2&#39;</span><span class="p">,</span><span class="s1">&#39;tttt&#39;</span><span class="w">  </span><span class="p">)</span>
+<span class="w">      </span><span class="k">call </span><span class="n">ncinfo</span><span class="p">(</span><span class="n">ncstatt</span><span class="p">(</span><span class="mi">22</span><span class="p">,:),</span><span class="s1">&#39;vpvptc&#39;</span><span class="w">   </span><span class="p">,</span><span class="s1">&#39;v variance&#39;</span><span class="w">                  </span><span class="p">,</span><span class="s1">&#39;m^2/s^2&#39;</span><span class="p">,</span><span class="s1">&#39;tttt&#39;</span><span class="w">  </span><span class="p">)</span>
+<span class="w">      </span><span class="k">call </span><span class="n">ncinfo</span><span class="p">(</span><span class="n">ncstatt</span><span class="p">(</span><span class="mi">23</span><span class="p">,:),</span><span class="s1">&#39;wpwptc&#39;</span><span class="w">   </span><span class="p">,</span><span class="s1">&#39;w variance&#39;</span><span class="w">                  </span><span class="p">,</span><span class="s1">&#39;m^2/s^2&#39;</span><span class="p">,</span><span class="s1">&#39;tttt&#39;</span><span class="w">  </span><span class="p">)</span>
+<span class="w">      </span><span class="k">call </span><span class="n">ncinfo</span><span class="p">(</span><span class="n">ncstatt</span><span class="p">(</span><span class="mi">24</span><span class="p">,:),</span><span class="s1">&#39;tketc&#39;</span><span class="w">    </span><span class="p">,</span><span class="s1">&#39;TKE&#39;</span><span class="w">                         </span><span class="p">,</span><span class="s1">&#39;m^2/s^2&#39;</span><span class="p">,</span><span class="s1">&#39;tttt&#39;</span><span class="w">  </span><span class="p">)</span>
+<span class="w">      </span><span class="k">call </span><span class="n">ncinfo</span><span class="p">(</span><span class="n">ncstatt</span><span class="p">(</span><span class="mi">25</span><span class="p">,:),</span><span class="s1">&#39;sca1psca1pt&#39;</span><span class="p">,</span><span class="s1">&#39;Concentration variance 1&#39;</span><span class="w">  </span><span class="p">,</span><span class="s1">&#39;g^2/m^6&#39;</span><span class="p">,</span><span class="s1">&#39;tttt&#39;</span><span class="w">  </span><span class="p">)</span>
+<span class="w">      </span><span class="k">call </span><span class="n">ncinfo</span><span class="p">(</span><span class="n">ncstatt</span><span class="p">(</span><span class="mi">26</span><span class="p">,:),</span><span class="s1">&#39;sca2psca2pt&#39;</span><span class="p">,</span><span class="s1">&#39;Concentration variance 2&#39;</span><span class="w">  </span><span class="p">,</span><span class="s1">&#39;g^2/m^6&#39;</span><span class="p">,</span><span class="s1">&#39;tttt&#39;</span><span class="w">  </span><span class="p">)</span>
+<span class="w">      </span><span class="k">call </span><span class="n">ncinfo</span><span class="p">(</span><span class="n">ncstatt</span><span class="p">(</span><span class="mi">27</span><span class="p">,:),</span><span class="s1">&#39;sca3psca3pt&#39;</span><span class="p">,</span><span class="s1">&#39;Concentration variance 3&#39;</span><span class="w">  </span><span class="p">,</span><span class="s1">&#39;g^2/m^6&#39;</span><span class="p">,</span><span class="s1">&#39;tttt&#39;</span><span class="w">  </span><span class="p">)</span>
+<span class="w">      </span><span class="k">call </span><span class="n">ncinfo</span><span class="p">(</span><span class="n">ncstatt</span><span class="p">(</span><span class="mi">28</span><span class="p">,:),</span><span class="s1">&#39;sca4psca4pt&#39;</span><span class="p">,</span><span class="s1">&#39;Concentration variance 4&#39;</span><span class="w">  </span><span class="p">,</span><span class="s1">&#39;g^2/m^6&#39;</span><span class="p">,</span><span class="s1">&#39;tttt&#39;</span><span class="w">  </span><span class="p">)</span>
+
+<span class="w">      </span><span class="k">call </span><span class="n">ncinfo</span><span class="p">(</span><span class="n">ncstatt</span><span class="p">(</span><span class="mi">29</span><span class="p">,:),</span><span class="s1">&#39;sv1sgs&#39;</span><span class="w">   </span><span class="p">,</span><span class="s1">&#39;SGS flux 1&#39;</span><span class="w">                  </span><span class="p">,</span><span class="s1">&#39;gm/s&#39;</span><span class="w">   </span><span class="p">,</span><span class="s1">&#39;ttmt&#39;</span><span class="w">  </span><span class="p">)</span>
+<span class="w">      </span><span class="k">call </span><span class="n">ncinfo</span><span class="p">(</span><span class="n">ncstatt</span><span class="p">(</span><span class="mi">30</span><span class="p">,:),</span><span class="s1">&#39;sv2sgs&#39;</span><span class="w">   </span><span class="p">,</span><span class="s1">&#39;SGS flux 2&#39;</span><span class="w">                  </span><span class="p">,</span><span class="s1">&#39;gm/s&#39;</span><span class="w">   </span><span class="p">,</span><span class="s1">&#39;ttmt&#39;</span><span class="w">  </span><span class="p">)</span>
+<span class="w">      </span><span class="k">call </span><span class="n">ncinfo</span><span class="p">(</span><span class="n">ncstatt</span><span class="p">(</span><span class="mi">31</span><span class="p">,:),</span><span class="s1">&#39;sv3sgs&#39;</span><span class="w">   </span><span class="p">,</span><span class="s1">&#39;SGS flux 3&#39;</span><span class="w">                  </span><span class="p">,</span><span class="s1">&#39;gm/s&#39;</span><span class="w">   </span><span class="p">,</span><span class="s1">&#39;ttmt&#39;</span><span class="w">  </span><span class="p">)</span>
+<span class="w">      </span><span class="k">call </span><span class="n">ncinfo</span><span class="p">(</span><span class="n">ncstatt</span><span class="p">(</span><span class="mi">32</span><span class="p">,:),</span><span class="s1">&#39;sv4sgs&#39;</span><span class="w">   </span><span class="p">,</span><span class="s1">&#39;SGS flux 4&#39;</span><span class="w">                  </span><span class="p">,</span><span class="s1">&#39;gm/s&#39;</span><span class="w">   </span><span class="p">,</span><span class="s1">&#39;ttmt&#39;</span><span class="w">  </span><span class="p">)</span>
+
+<span class="w">      </span><span class="c">! call ncinfo(ncstatt(33,:),&#39;sca1t_max&#39;,&#39;Max concentration field 1&#39;   ,&#39;g/m^3&#39;  ,&#39;tttt&#39;  )</span>
+<span class="w">      </span><span class="c">! call ncinfo(ncstatt(34,:),&#39;sca2t_max&#39;,&#39;Max concentration field 2&#39;   ,&#39;g/m^3&#39;  ,&#39;tttt&#39;  )</span>
+<span class="w">      </span><span class="c">! call ncinfo(ncstatt(35,:),&#39;sca3t_max&#39;,&#39;Max concentration field 3&#39;   ,&#39;g/m^3&#39;  ,&#39;tttt&#39;  )</span>
+<span class="w">      </span><span class="c">! call ncinfo(ncstatt(36,:),&#39;sca4t_max&#39;,&#39;Max concentration field 4&#39;   ,&#39;g/m^3&#39;  ,&#39;tttt&#39;  )</span>
+
+<span class="c">!      if (myid==0) then</span>
+<span class="w">        </span><span class="k">call </span><span class="n">open_nc</span><span class="p">(</span><span class="n">tname</span><span class="p">,</span><span class="w"> </span><span class="n">ncidt</span><span class="p">,</span><span class="w"> </span><span class="n">nrect</span><span class="p">,</span><span class="w"> </span><span class="n">n1</span><span class="o">=</span><span class="n">imax</span><span class="p">,</span><span class="w"> </span><span class="n">n2</span><span class="o">=</span><span class="n">jmax</span><span class="p">,</span><span class="w"> </span><span class="n">n3</span><span class="o">=</span><span class="n">khigh</span><span class="o">-</span><span class="n">klow</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span>
+<span class="w">        </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">nrect</span><span class="o">==</span><span class="mi">0</span><span class="p">)</span><span class="w"> </span><span class="k">then</span>
+<span class="k">          call </span><span class="n">define_nc</span><span class="p">(</span><span class="w"> </span><span class="n">ncidt</span><span class="p">,</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="n">tncstatt</span><span class="p">)</span>
+<span class="w">          </span><span class="k">call </span><span class="n">writestat_dims_nc</span><span class="p">(</span><span class="n">ncidt</span><span class="p">)</span>
+<span class="w">        </span><span class="k">end if</span>
+<span class="k">        call </span><span class="n">define_nc</span><span class="p">(</span><span class="w"> </span><span class="n">ncidt</span><span class="p">,</span><span class="w"> </span><span class="n">nstatt</span><span class="p">,</span><span class="w"> </span><span class="n">ncstatt</span><span class="p">)</span>
+<span class="c">!      end if</span>
+<span class="w">    </span><span class="k">end if</span>
+
+<span class="k">    if</span><span class="w"> </span><span class="p">(</span><span class="n">lmintdump</span><span class="p">)</span><span class="w"> </span><span class="k">then</span>
+
+<span class="k">      </span><span class="n">mintname</span><span class="p">(</span><span class="mi">10</span><span class="p">:</span><span class="mi">12</span><span class="p">)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">cmyidx</span>
+<span class="w">      </span><span class="n">mintname</span><span class="p">(</span><span class="mi">14</span><span class="p">:</span><span class="mi">16</span><span class="p">)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">cmyidy</span>
+<span class="w">      </span><span class="n">mintname</span><span class="p">(</span><span class="mi">18</span><span class="p">:</span><span class="mi">20</span><span class="p">)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">cexpnr</span>
+<span class="w">      </span><span class="k">call </span><span class="n">ncinfo</span><span class="p">(</span><span class="n">tncstatmint</span><span class="p">(</span><span class="mi">1</span><span class="p">,:),</span><span class="s1">&#39;time&#39;</span><span class="w">      </span><span class="p">,</span><span class="s1">&#39;Time&#39;</span><span class="w">                        </span><span class="p">,</span><span class="s1">&#39;s&#39;</span><span class="w">      </span><span class="p">,</span><span class="s1">&#39;time&#39;</span><span class="p">)</span>
+<span class="w">      </span><span class="k">call </span><span class="n">ncinfo</span><span class="p">(</span><span class="n">ncstatmint</span><span class="p">(</span><span class="w"> </span><span class="mi">1</span><span class="p">,:),</span><span class="s1">&#39;ut&#39;</span><span class="w">        </span><span class="p">,</span><span class="s1">&#39;Streamwise velocity&#39;</span><span class="w">         </span><span class="p">,</span><span class="s1">&#39;m/s&#39;</span><span class="w">    </span><span class="p">,</span><span class="s1">&#39;mttt&#39;</span><span class="w">  </span><span class="p">)</span>
+<span class="w">      </span><span class="k">call </span><span class="n">ncinfo</span><span class="p">(</span><span class="n">ncstatmint</span><span class="p">(</span><span class="w"> </span><span class="mi">2</span><span class="p">,:),</span><span class="s1">&#39;vt&#39;</span><span class="w">        </span><span class="p">,</span><span class="s1">&#39;Spanwise velocity&#39;</span><span class="w">           </span><span class="p">,</span><span class="s1">&#39;m/s&#39;</span><span class="w">    </span><span class="p">,</span><span class="s1">&#39;tmtt&#39;</span><span class="w">  </span><span class="p">)</span>
+<span class="w">      </span><span class="k">call </span><span class="n">ncinfo</span><span class="p">(</span><span class="n">ncstatmint</span><span class="p">(</span><span class="w"> </span><span class="mi">3</span><span class="p">,:),</span><span class="s1">&#39;wt&#39;</span><span class="w">        </span><span class="p">,</span><span class="s1">&#39;Vertical velocity&#39;</span><span class="w">           </span><span class="p">,</span><span class="s1">&#39;m/s&#39;</span><span class="w">    </span><span class="p">,</span><span class="s1">&#39;ttmt&#39;</span><span class="w">  </span><span class="p">)</span>
+<span class="w">      </span><span class="k">call </span><span class="n">ncinfo</span><span class="p">(</span><span class="n">ncstatmint</span><span class="p">(</span><span class="w"> </span><span class="mi">4</span><span class="p">,:),</span><span class="s1">&#39;thlt&#39;</span><span class="w">      </span><span class="p">,</span><span class="s1">&#39;Temperature&#39;</span><span class="w">                 </span><span class="p">,</span><span class="s1">&#39;K&#39;</span><span class="w">      </span><span class="p">,</span><span class="s1">&#39;tttt&#39;</span><span class="w">  </span><span class="p">)</span>
+<span class="w">      </span><span class="k">call </span><span class="n">ncinfo</span><span class="p">(</span><span class="n">ncstatmint</span><span class="p">(</span><span class="w"> </span><span class="mi">5</span><span class="p">,:),</span><span class="s1">&#39;qtt&#39;</span><span class="w">       </span><span class="p">,</span><span class="s1">&#39;Moisture&#39;</span><span class="w">                    </span><span class="p">,</span><span class="s1">&#39;kg/kg&#39;</span><span class="w">  </span><span class="p">,</span><span class="s1">&#39;tttt&#39;</span><span class="w">  </span><span class="p">)</span>
+<span class="w">      </span><span class="k">call </span><span class="n">ncinfo</span><span class="p">(</span><span class="n">ncstatmint</span><span class="p">(</span><span class="w"> </span><span class="mi">6</span><span class="p">,:),</span><span class="s1">&#39;pt&#39;</span><span class="w">        </span><span class="p">,</span><span class="s1">&#39;Pressure&#39;</span><span class="w">                    </span><span class="p">,</span><span class="s1">&#39;m^2/s^2&#39;</span><span class="p">,</span><span class="s1">&#39;tttt&#39;</span><span class="w">  </span><span class="p">)</span>
+
+<span class="w">    </span><span class="c">!      if (myid==0) then</span>
+<span class="w">        </span><span class="k">call </span><span class="n">open_nc</span><span class="p">(</span><span class="n">mintname</span><span class="p">,</span><span class="w"> </span><span class="n">ncidmint</span><span class="p">,</span><span class="w"> </span><span class="n">nrecmint</span><span class="p">,</span><span class="w"> </span><span class="n">n1</span><span class="o">=</span><span class="n">imax</span><span class="p">,</span><span class="w"> </span><span class="n">n2</span><span class="o">=</span><span class="n">jmax</span><span class="p">,</span><span class="w"> </span><span class="n">n3</span><span class="o">=</span><span class="n">khigh</span><span class="o">-</span><span class="n">klow</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span>
+<span class="w">        </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">nrecmint</span><span class="o">==</span><span class="mi">0</span><span class="p">)</span><span class="w"> </span><span class="k">then</span>
+<span class="k">          call </span><span class="n">define_nc</span><span class="p">(</span><span class="w"> </span><span class="n">ncidmint</span><span class="p">,</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="n">tncstatmint</span><span class="p">)</span>
+<span class="w">          </span><span class="k">call </span><span class="n">writestat_dims_nc</span><span class="p">(</span><span class="n">ncidmint</span><span class="p">)</span>
+<span class="w">        </span><span class="k">end if</span>
+<span class="k">        call </span><span class="n">define_nc</span><span class="p">(</span><span class="w"> </span><span class="n">ncidmint</span><span class="p">,</span><span class="w"> </span><span class="n">nstatmint</span><span class="p">,</span><span class="w"> </span><span class="n">ncstatmint</span><span class="p">)</span>
+<span class="w">    </span><span class="c">!      end if</span>
+<span class="w">    </span><span class="k">end if</span>
+
+<span class="w">    </span><span class="c">!&gt; Generate time averaged NetCDF: treedump.xxx.nc</span>
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">ltreedump</span><span class="p">)</span><span class="w"> </span><span class="k">then</span>
+
+<span class="k">      </span><span class="n">trname</span><span class="p">(</span><span class="mi">10</span><span class="p">:</span><span class="mi">12</span><span class="p">)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">cmyidx</span>
+<span class="w">      </span><span class="n">trname</span><span class="p">(</span><span class="mi">14</span><span class="p">:</span><span class="mi">16</span><span class="p">)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">cmyidy</span>
+<span class="w">      </span><span class="n">trname</span><span class="p">(</span><span class="mi">18</span><span class="p">:</span><span class="mi">20</span><span class="p">)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">cexpnr</span>
+<span class="w">      </span><span class="k">call </span><span class="n">ncinfo</span><span class="p">(</span><span class="n">tncstattr</span><span class="p">(</span><span class="mi">1</span><span class="p">,:),</span><span class="s1">&#39;time&#39;</span><span class="w">      </span><span class="p">,</span><span class="s1">&#39;Time&#39;</span><span class="w">                        </span><span class="p">,</span><span class="s1">&#39;s&#39;</span><span class="w">      </span><span class="p">,</span><span class="s1">&#39;time&#39;</span><span class="p">)</span>
+<span class="w">      </span><span class="k">call </span><span class="n">ncinfo</span><span class="p">(</span><span class="n">ncstattr</span><span class="p">(</span><span class="w"> </span><span class="mi">1</span><span class="p">,:),</span><span class="s1">&#39;tr_u&#39;</span><span class="w">      </span><span class="p">,</span><span class="s1">&#39;Drag in x&#39;</span><span class="w">                   </span><span class="p">,</span><span class="s1">&#39;m/s^2&#39;</span><span class="w">  </span><span class="p">,</span><span class="s1">&#39;tttt&#39;</span><span class="w">  </span><span class="p">)</span>
+<span class="w">      </span><span class="k">call </span><span class="n">ncinfo</span><span class="p">(</span><span class="n">ncstattr</span><span class="p">(</span><span class="w"> </span><span class="mi">2</span><span class="p">,:),</span><span class="s1">&#39;tr_v&#39;</span><span class="w">      </span><span class="p">,</span><span class="s1">&#39;Drag in y&#39;</span><span class="w">                   </span><span class="p">,</span><span class="s1">&#39;m/s^2&#39;</span><span class="w">  </span><span class="p">,</span><span class="s1">&#39;tttt&#39;</span><span class="w">  </span><span class="p">)</span>
+<span class="w">      </span><span class="k">call </span><span class="n">ncinfo</span><span class="p">(</span><span class="n">ncstattr</span><span class="p">(</span><span class="w"> </span><span class="mi">3</span><span class="p">,:),</span><span class="s1">&#39;tr_w&#39;</span><span class="w">      </span><span class="p">,</span><span class="s1">&#39;Drag in z&#39;</span><span class="w">                   </span><span class="p">,</span><span class="s1">&#39;m/s^2&#39;</span><span class="w">  </span><span class="p">,</span><span class="s1">&#39;ttmt&#39;</span><span class="w">  </span><span class="p">)</span>
+<span class="w">      </span><span class="k">call </span><span class="n">ncinfo</span><span class="p">(</span><span class="n">ncstattr</span><span class="p">(</span><span class="w"> </span><span class="mi">4</span><span class="p">,:),</span><span class="s1">&#39;tr_thl&#39;</span><span class="w">    </span><span class="p">,</span><span class="s1">&#39;Temp source/ sink&#39;</span><span class="w">           </span><span class="p">,</span><span class="s1">&#39;K/s&#39;</span><span class="w">    </span><span class="p">,</span><span class="s1">&#39;tttt&#39;</span><span class="w">  </span><span class="p">)</span>
+<span class="w">      </span><span class="k">call </span><span class="n">ncinfo</span><span class="p">(</span><span class="n">ncstattr</span><span class="p">(</span><span class="w"> </span><span class="mi">5</span><span class="p">,:),</span><span class="s1">&#39;tr_qt&#39;</span><span class="w">     </span><span class="p">,</span><span class="s1">&#39;Moisture source sink&#39;</span><span class="w">        </span><span class="p">,</span><span class="s1">&#39;1/s&#39;</span><span class="w">    </span><span class="p">,</span><span class="s1">&#39;tttt&#39;</span><span class="w">  </span><span class="p">)</span>
+<span class="w">      </span><span class="k">call </span><span class="n">ncinfo</span><span class="p">(</span><span class="n">ncstattr</span><span class="p">(</span><span class="w"> </span><span class="mi">6</span><span class="p">,:),</span><span class="s1">&#39;tr_qtR&#39;</span><span class="w">    </span><span class="p">,</span><span class="s1">&#39;Moisture source sink&#39;</span><span class="w">        </span><span class="p">,</span><span class="s1">&#39;1/s&#39;</span><span class="w">    </span><span class="p">,</span><span class="s1">&#39;tttt&#39;</span><span class="w">  </span><span class="p">)</span>
+<span class="w">      </span><span class="k">call </span><span class="n">ncinfo</span><span class="p">(</span><span class="n">ncstattr</span><span class="p">(</span><span class="w"> </span><span class="mi">7</span><span class="p">,:),</span><span class="s1">&#39;tr_qtA&#39;</span><span class="w">    </span><span class="p">,</span><span class="s1">&#39;Moisture source sink&#39;</span><span class="w">        </span><span class="p">,</span><span class="s1">&#39;1/s&#39;</span><span class="w">    </span><span class="p">,</span><span class="s1">&#39;tttt&#39;</span><span class="w">  </span><span class="p">)</span>
+<span class="w">      </span><span class="k">call </span><span class="n">ncinfo</span><span class="p">(</span><span class="n">ncstattr</span><span class="p">(</span><span class="w"> </span><span class="mi">8</span><span class="p">,:),</span><span class="s1">&#39;tr_sv1&#39;</span><span class="w">    </span><span class="p">,</span><span class="s1">&#39;Scalar source sink&#39;</span><span class="w">          </span><span class="p">,</span><span class="s1">&#39;kg/m^3s&#39;</span><span class="p">,</span><span class="s1">&#39;tttt&#39;</span><span class="w">  </span><span class="p">)</span>
+<span class="w">      </span><span class="k">call </span><span class="n">ncinfo</span><span class="p">(</span><span class="n">ncstattr</span><span class="p">(</span><span class="w"> </span><span class="mi">9</span><span class="p">,:),</span><span class="s1">&#39;tr_sv2&#39;</span><span class="w">    </span><span class="p">,</span><span class="s1">&#39;Scalar source sink&#39;</span><span class="w">          </span><span class="p">,</span><span class="s1">&#39;kg/m^3s&#39;</span><span class="p">,</span><span class="s1">&#39;tttt&#39;</span><span class="w">  </span><span class="p">)</span>
+<span class="w">      </span><span class="k">call </span><span class="n">ncinfo</span><span class="p">(</span><span class="n">ncstattr</span><span class="p">(</span><span class="mi">10</span><span class="p">,:),</span><span class="s1">&#39;tr_omega&#39;</span><span class="w">  </span><span class="p">,</span><span class="s1">&#39;Decoupling factor&#39;</span><span class="w">           </span><span class="p">,</span><span class="s1">&#39;-&#39;</span><span class="w">      </span><span class="p">,</span><span class="s1">&#39;tttt&#39;</span><span class="w">  </span><span class="p">)</span>
+
+<span class="c">!      if (myid==0) then</span>
+<span class="w">        </span><span class="k">call </span><span class="n">open_nc</span><span class="p">(</span><span class="n">trname</span><span class="p">,</span><span class="w"> </span><span class="n">ncidtr</span><span class="p">,</span><span class="w"> </span><span class="n">nrectr</span><span class="p">,</span><span class="w"> </span><span class="n">n1</span><span class="o">=</span><span class="n">imax</span><span class="p">,</span><span class="w"> </span><span class="n">n2</span><span class="o">=</span><span class="n">jmax</span><span class="p">,</span><span class="w"> </span><span class="n">n3</span><span class="o">=</span><span class="n">khigh</span><span class="o">-</span><span class="n">klow</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span>
+<span class="w">        </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">nrectr</span><span class="o">==</span><span class="mi">0</span><span class="p">)</span><span class="w"> </span><span class="k">then</span>
+<span class="k">          call </span><span class="n">define_nc</span><span class="p">(</span><span class="w"> </span><span class="n">ncidtr</span><span class="p">,</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="n">tncstattr</span><span class="p">)</span>
+<span class="w">          </span><span class="k">call </span><span class="n">writestat_dims_nc</span><span class="p">(</span><span class="n">ncidtr</span><span class="p">)</span>
+<span class="w">        </span><span class="k">end if</span>
+<span class="k">        call </span><span class="n">define_nc</span><span class="p">(</span><span class="w"> </span><span class="n">ncidtr</span><span class="p">,</span><span class="w"> </span><span class="n">nstattr</span><span class="p">,</span><span class="w"> </span><span class="n">ncstattr</span><span class="p">)</span>
+<span class="c">!      end if</span>
+<span class="w">    </span><span class="k">end if</span>
+
+<span class="w">    </span><span class="c">!&gt; Generate time, y and x averaged NetCDF for tke budget: tkedump.xxx.nc</span>
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">ltkedump</span><span class="p">)</span><span class="w"> </span><span class="k">then</span>
+
+<span class="k">      </span><span class="n">tkename</span><span class="p">(</span><span class="mi">9</span><span class="p">:</span><span class="mi">11</span><span class="p">)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">cexpnr</span>
+<span class="w">      </span><span class="k">call </span><span class="n">ncinfo</span><span class="p">(</span><span class="n">tncstattke</span><span class="p">(</span><span class="mi">1</span><span class="p">,:),</span><span class="s1">&#39;time&#39;</span><span class="w"> </span><span class="p">,</span><span class="s1">&#39;Time&#39;</span><span class="w">                                 </span><span class="p">,</span><span class="s1">&#39;s&#39;</span><span class="w">       </span><span class="p">,</span><span class="s1">&#39;time&#39;</span><span class="p">)</span>
+<span class="w">      </span><span class="k">call </span><span class="n">ncinfo</span><span class="p">(</span><span class="n">ncstattke</span><span class="p">(</span><span class="w"> </span><span class="mi">1</span><span class="p">,:),</span><span class="s1">&#39;p_b&#39;</span><span class="w">  </span><span class="p">,</span><span class="s1">&#39;p_bant production or consumption term&#39;</span><span class="p">,</span><span class="w"> </span><span class="s1">&#39;m^2/s^3&#39;</span><span class="p">,</span><span class="s1">&#39;tt&#39;</span><span class="w">  </span><span class="p">)</span>
+<span class="w">      </span><span class="k">call </span><span class="n">ncinfo</span><span class="p">(</span><span class="n">ncstattke</span><span class="p">(</span><span class="w"> </span><span class="mi">2</span><span class="p">,:),</span><span class="s1">&#39;t_p&#39;</span><span class="w">  </span><span class="p">,</span><span class="s1">&#39;total viscous transport (?)&#39;</span><span class="w">          </span><span class="p">,</span><span class="w"> </span><span class="s1">&#39;m^2/s^3&#39;</span><span class="p">,</span><span class="s1">&#39;tt&#39;</span><span class="w">  </span><span class="p">)</span>
+<span class="w">      </span><span class="k">call </span><span class="n">ncinfo</span><span class="p">(</span><span class="n">ncstattke</span><span class="p">(</span><span class="w"> </span><span class="mi">3</span><span class="p">,:),</span><span class="s1">&#39;adv&#39;</span><span class="w">  </span><span class="p">,</span><span class="s1">&#39;Advection by mean wind&#39;</span><span class="w">               </span><span class="p">,</span><span class="w"> </span><span class="s1">&#39;m^2/s^3&#39;</span><span class="p">,</span><span class="s1">&#39;tt&#39;</span><span class="w">  </span><span class="p">)</span>
+<span class="w">      </span><span class="k">call </span><span class="n">ncinfo</span><span class="p">(</span><span class="n">ncstattke</span><span class="p">(</span><span class="w"> </span><span class="mi">4</span><span class="p">,:),</span><span class="s1">&#39;t_t&#39;</span><span class="w">  </span><span class="p">,</span><span class="s1">&#39;Total turb???&#39;</span><span class="w">                        </span><span class="p">,</span><span class="w"> </span><span class="s1">&#39;m^2/s^3&#39;</span><span class="p">,</span><span class="s1">&#39;tt&#39;</span><span class="w">  </span><span class="p">)</span>
+<span class="w">      </span><span class="k">call </span><span class="n">ncinfo</span><span class="p">(</span><span class="n">ncstattke</span><span class="p">(</span><span class="w"> </span><span class="mi">5</span><span class="p">,:),</span><span class="s1">&#39;t_sgs&#39;</span><span class="p">,</span><span class="s1">&#39;total SGS  term&#39;</span><span class="w">                      </span><span class="p">,</span><span class="w"> </span><span class="s1">&#39;m^2/s^3&#39;</span><span class="p">,</span><span class="s1">&#39;tt&#39;</span><span class="w">  </span><span class="p">)</span>
+<span class="w">      </span><span class="k">call </span><span class="n">ncinfo</span><span class="p">(</span><span class="n">ncstattke</span><span class="p">(</span><span class="w"> </span><span class="mi">6</span><span class="p">,:),</span><span class="s1">&#39;p_t&#39;</span><span class="w">  </span><span class="p">,</span><span class="s1">&#39;Shear production term&#39;</span><span class="w">                </span><span class="p">,</span><span class="w"> </span><span class="s1">&#39;m^2/s^3&#39;</span><span class="p">,</span><span class="s1">&#39;tt&#39;</span><span class="w">  </span><span class="p">)</span>
+<span class="w">      </span><span class="k">call </span><span class="n">ncinfo</span><span class="p">(</span><span class="n">ncstattke</span><span class="p">(</span><span class="w"> </span><span class="mi">7</span><span class="p">,:),</span><span class="s1">&#39;t_v&#39;</span><span class="w">  </span><span class="p">,</span><span class="s1">&#39;Resolved viscous dissipation term&#39;</span><span class="w">    </span><span class="p">,</span><span class="w"> </span><span class="s1">&#39;m^2/s^3&#39;</span><span class="p">,</span><span class="s1">&#39;tt&#39;</span><span class="w">  </span><span class="p">)</span>
+<span class="w">      </span><span class="k">call </span><span class="n">ncinfo</span><span class="p">(</span><span class="n">ncstattke</span><span class="p">(</span><span class="w"> </span><span class="mi">8</span><span class="p">,:),</span><span class="s1">&#39;d_sgs&#39;</span><span class="p">,</span><span class="s1">&#39;SGS dissipation term&#39;</span><span class="w">                 </span><span class="p">,</span><span class="w"> </span><span class="s1">&#39;m^2/s^3&#39;</span><span class="p">,</span><span class="s1">&#39;tt&#39;</span><span class="w">  </span><span class="p">)</span>
+
+<span class="w">      </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">myid</span><span class="o">==</span><span class="mi">0</span><span class="p">)</span><span class="w"> </span><span class="k">then</span>
+<span class="k">        call </span><span class="n">open_nc</span><span class="p">(</span><span class="n">tkename</span><span class="p">,</span><span class="w"> </span><span class="n">ncidtke</span><span class="p">,</span><span class="w"> </span><span class="n">nrectke</span><span class="p">,</span><span class="w"> </span><span class="n">n3</span><span class="o">=</span><span class="n">khigh</span><span class="o">-</span><span class="n">klow</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span>
+<span class="w">        </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">nrectke</span><span class="o">==</span><span class="mi">0</span><span class="p">)</span><span class="w"> </span><span class="k">then</span>
+<span class="k">          call </span><span class="n">define_nc</span><span class="p">(</span><span class="w"> </span><span class="n">ncidtke</span><span class="p">,</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="n">tncstattke</span><span class="p">)</span>
+<span class="w">          </span><span class="k">call </span><span class="n">writestat_dims_nc</span><span class="p">(</span><span class="n">ncidtke</span><span class="p">)</span>
+<span class="w">        </span><span class="k">end if</span>
+<span class="k">        call </span><span class="n">define_nc</span><span class="p">(</span><span class="w"> </span><span class="n">ncidtke</span><span class="p">,</span><span class="w"> </span><span class="n">nstattke</span><span class="p">,</span><span class="w"> </span><span class="n">ncstattke</span><span class="p">)</span>
+<span class="w">      </span><span class="k">endif</span><span class="w"> </span><span class="c">!myid==0</span>
+
+<span class="w">    </span><span class="k">endif</span>
+
+<span class="w">    </span><span class="c">!&gt; Generate sliced NetCDF: slicedump.xxx.xxx.nc</span>
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">lkslicedump</span><span class="p">)</span><span class="w"> </span><span class="k">then</span>
+
+<span class="k">      </span><span class="n">kslicename</span><span class="p">(</span><span class="mi">12</span><span class="p">:</span><span class="mi">14</span><span class="p">)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">cmyidx</span>
+<span class="w">      </span><span class="n">kslicename</span><span class="p">(</span><span class="mi">16</span><span class="p">:</span><span class="mi">18</span><span class="p">)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">cmyidy</span>
+<span class="w">      </span><span class="n">kslicename</span><span class="p">(</span><span class="mi">20</span><span class="p">:</span><span class="mi">22</span><span class="p">)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">cexpnr</span>
+
+<span class="w">      </span><span class="k">call </span><span class="n">ncinfo</span><span class="p">(</span><span class="n">tncstatkslice</span><span class="p">(</span><span class="mi">1</span><span class="p">,:),</span><span class="s1">&#39;time&#39;</span><span class="w">     </span><span class="p">,</span><span class="s1">&#39;Time&#39;</span><span class="w">   </span><span class="p">,</span><span class="s1">&#39;s&#39;</span><span class="w">   </span><span class="p">,</span><span class="s1">&#39;time&#39;</span><span class="p">)</span>
+<span class="w">      </span><span class="k">call </span><span class="n">ncinfo</span><span class="p">(</span><span class="n">ncstatkslice</span><span class="p">(</span><span class="w"> </span><span class="mi">1</span><span class="p">,:),</span><span class="s1">&#39;u_kslice&#39;</span><span class="w">     </span><span class="p">,</span><span class="s1">&#39;Streamwise velocity at kslice&#39;</span><span class="p">,</span><span class="w"> </span><span class="s1">&#39;-&#39;</span><span class="p">,</span><span class="w"> </span><span class="s1">&#39;mt0t&#39;</span><span class="p">)</span>
+<span class="w">      </span><span class="k">call </span><span class="n">ncinfo</span><span class="p">(</span><span class="n">ncstatkslice</span><span class="p">(</span><span class="w"> </span><span class="mi">2</span><span class="p">,:),</span><span class="s1">&#39;v_kslice&#39;</span><span class="w">     </span><span class="p">,</span><span class="s1">&#39;Spanwise velocity at kslice&#39;</span><span class="p">,</span><span class="w"> </span><span class="s1">&#39;-&#39;</span><span class="p">,</span><span class="w"> </span><span class="s1">&#39;tm0t&#39;</span><span class="p">)</span>
+<span class="w">      </span><span class="k">call </span><span class="n">ncinfo</span><span class="p">(</span><span class="n">ncstatkslice</span><span class="p">(</span><span class="w"> </span><span class="mi">3</span><span class="p">,:),</span><span class="s1">&#39;w_kslice&#39;</span><span class="w">     </span><span class="p">,</span><span class="s1">&#39;Vertical velocity at kslice&#39;</span><span class="p">,</span><span class="w"> </span><span class="s1">&#39;-&#39;</span><span class="p">,</span><span class="w"> </span><span class="s1">&#39;tt0t&#39;</span><span class="p">)</span>
+<span class="w">      </span><span class="k">call </span><span class="n">ncinfo</span><span class="p">(</span><span class="n">ncstatkslice</span><span class="p">(</span><span class="w"> </span><span class="mi">4</span><span class="p">,:),</span><span class="s1">&#39;thl_kslice&#39;</span><span class="w">   </span><span class="p">,</span><span class="s1">&#39;Potential temperature at kslice&#39;</span><span class="p">,</span><span class="w"> </span><span class="s1">&#39;-&#39;</span><span class="p">,</span><span class="w"> </span><span class="s1">&#39;tt0t&#39;</span><span class="p">)</span>
+<span class="w">      </span><span class="k">call </span><span class="n">ncinfo</span><span class="p">(</span><span class="n">ncstatkslice</span><span class="p">(</span><span class="w"> </span><span class="mi">5</span><span class="p">,:),</span><span class="s1">&#39;qt_kslice&#39;</span><span class="w">    </span><span class="p">,</span><span class="s1">&#39;Specific humidity at kslice&#39;</span><span class="p">,</span><span class="w"> </span><span class="s1">&#39;-&#39;</span><span class="p">,</span><span class="w"> </span><span class="s1">&#39;tt0t&#39;</span><span class="p">)</span>
+
+<span class="w">      </span><span class="k">call </span><span class="n">open_nc</span><span class="p">(</span><span class="n">kslicename</span><span class="p">,</span><span class="w"> </span><span class="n">ncidkslice</span><span class="p">,</span><span class="w"> </span><span class="n">nreckslice</span><span class="p">,</span><span class="w"> </span><span class="n">n1</span><span class="o">=</span><span class="n">imax</span><span class="p">,</span><span class="w"> </span><span class="n">n2</span><span class="o">=</span><span class="n">jmax</span><span class="p">)</span>
+
+<span class="w">      </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">nreckslice</span><span class="o">==</span><span class="mi">0</span><span class="p">)</span><span class="w"> </span><span class="k">then</span>
+<span class="k">        call </span><span class="n">define_nc</span><span class="p">(</span><span class="w"> </span><span class="n">ncidkslice</span><span class="p">,</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="n">tncstatkslice</span><span class="p">)</span>
+<span class="w">        </span><span class="k">call </span><span class="n">writestat_dims_nc</span><span class="p">(</span><span class="n">ncidkslice</span><span class="p">)</span>
+<span class="w">      </span><span class="k">end if</span>
+
+<span class="k">      call </span><span class="n">define_nc</span><span class="p">(</span><span class="w"> </span><span class="n">ncidkslice</span><span class="p">,</span><span class="w"> </span><span class="n">nstatkslice</span><span class="p">,</span><span class="w"> </span><span class="n">ncstatkslice</span><span class="p">)</span>
+
+<span class="w">    </span><span class="k">end if</span>
+
+<span class="k">    if</span><span class="w"> </span><span class="p">(</span><span class="n">lislicedump</span><span class="p">)</span><span class="w"> </span><span class="k">then</span>
+
+<span class="k">      </span><span class="n">islicename</span><span class="p">(</span><span class="mi">12</span><span class="p">:</span><span class="mi">14</span><span class="p">)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">cmyidx</span>
+<span class="w">      </span><span class="n">islicename</span><span class="p">(</span><span class="mi">16</span><span class="p">:</span><span class="mi">18</span><span class="p">)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">cmyidy</span>
+<span class="w">      </span><span class="n">islicename</span><span class="p">(</span><span class="mi">20</span><span class="p">:</span><span class="mi">22</span><span class="p">)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">cexpnr</span>
+
+<span class="w">      </span><span class="k">call </span><span class="n">ncinfo</span><span class="p">(</span><span class="n">tncstatislice</span><span class="p">(</span><span class="mi">1</span><span class="p">,:),</span><span class="s1">&#39;time&#39;</span><span class="w">     </span><span class="p">,</span><span class="s1">&#39;Time&#39;</span><span class="w">   </span><span class="p">,</span><span class="s1">&#39;s&#39;</span><span class="w">   </span><span class="p">,</span><span class="s1">&#39;time&#39;</span><span class="p">)</span>
+<span class="w">      </span><span class="k">call </span><span class="n">ncinfo</span><span class="p">(</span><span class="n">ncstatislice</span><span class="p">(</span><span class="w"> </span><span class="mi">1</span><span class="p">,:),</span><span class="s1">&#39;u_islice&#39;</span><span class="w">     </span><span class="p">,</span><span class="s1">&#39;Streamwise velocity at islice&#39;</span><span class="p">,</span><span class="w"> </span><span class="s1">&#39;-&#39;</span><span class="p">,</span><span class="w"> </span><span class="s1">&#39;0ttt&#39;</span><span class="p">)</span>
+<span class="w">      </span><span class="k">call </span><span class="n">ncinfo</span><span class="p">(</span><span class="n">ncstatislice</span><span class="p">(</span><span class="w"> </span><span class="mi">2</span><span class="p">,:),</span><span class="s1">&#39;v_islice&#39;</span><span class="w">     </span><span class="p">,</span><span class="s1">&#39;Spanwise velocity at islice&#39;</span><span class="p">,</span><span class="w"> </span><span class="s1">&#39;-&#39;</span><span class="p">,</span><span class="w"> </span><span class="s1">&#39;0mtt&#39;</span><span class="p">)</span>
+<span class="w">      </span><span class="k">call </span><span class="n">ncinfo</span><span class="p">(</span><span class="n">ncstatislice</span><span class="p">(</span><span class="w"> </span><span class="mi">3</span><span class="p">,:),</span><span class="s1">&#39;w_islice&#39;</span><span class="w">     </span><span class="p">,</span><span class="s1">&#39;Vertical velocity at islice&#39;</span><span class="p">,</span><span class="w"> </span><span class="s1">&#39;-&#39;</span><span class="p">,</span><span class="w"> </span><span class="s1">&#39;0tmt&#39;</span><span class="p">)</span>
+<span class="w">      </span><span class="k">call </span><span class="n">ncinfo</span><span class="p">(</span><span class="n">ncstatislice</span><span class="p">(</span><span class="w"> </span><span class="mi">4</span><span class="p">,:),</span><span class="s1">&#39;thl_islice&#39;</span><span class="w">   </span><span class="p">,</span><span class="s1">&#39;Potential temperature at islice&#39;</span><span class="p">,</span><span class="w"> </span><span class="s1">&#39;-&#39;</span><span class="p">,</span><span class="w"> </span><span class="s1">&#39;0ttt&#39;</span><span class="p">)</span>
+<span class="w">      </span><span class="k">call </span><span class="n">ncinfo</span><span class="p">(</span><span class="n">ncstatislice</span><span class="p">(</span><span class="w"> </span><span class="mi">5</span><span class="p">,:),</span><span class="s1">&#39;qt_islice&#39;</span><span class="w">    </span><span class="p">,</span><span class="s1">&#39;Specific humidity at islice&#39;</span><span class="p">,</span><span class="w"> </span><span class="s1">&#39;-&#39;</span><span class="p">,</span><span class="w"> </span><span class="s1">&#39;0ttt&#39;</span><span class="p">)</span>
+
+<span class="w">      </span><span class="k">if</span><span class="w"> </span><span class="p">((</span><span class="n">islice</span><span class="w"> </span><span class="o">&gt;=</span><span class="w"> </span><span class="n">zstart</span><span class="p">(</span><span class="mi">1</span><span class="p">))</span><span class="w"> </span><span class="p">.</span><span class="nb">and</span><span class="p">.</span><span class="w"> </span><span class="p">(</span><span class="n">islice</span><span class="w"> </span><span class="o">&lt;=</span><span class="w"> </span><span class="n">zend</span><span class="p">(</span><span class="mi">1</span><span class="p">)))</span><span class="w"> </span><span class="k">then</span>
+<span class="k">        </span><span class="n">islicerank</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">.</span><span class="n">true</span><span class="p">.</span>
+<span class="w">        </span><span class="n">isliceloc</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">islice</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">zstart</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span>
+<span class="w">      </span><span class="k">else</span>
+<span class="k">        </span><span class="n">islicerank</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">.</span><span class="n">false</span><span class="p">.</span>
+<span class="w">      </span><span class="k">end if</span>
+
+<span class="k">      if</span><span class="w"> </span><span class="p">(</span><span class="n">islicerank</span><span class="p">)</span><span class="w"> </span><span class="k">then</span>
+<span class="k">        call </span><span class="n">open_nc</span><span class="p">(</span><span class="n">islicename</span><span class="p">,</span><span class="w"> </span><span class="n">ncidislice</span><span class="p">,</span><span class="w"> </span><span class="n">nrecislice</span><span class="p">,</span><span class="w"> </span><span class="n">n2</span><span class="o">=</span><span class="n">jmax</span><span class="p">,</span><span class="w"> </span><span class="n">n3</span><span class="o">=</span><span class="n">khigh</span><span class="o">-</span><span class="n">klow</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span>
+<span class="w">        </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">nrecislice</span><span class="o">==</span><span class="mi">0</span><span class="p">)</span><span class="w"> </span><span class="k">then</span>
+<span class="k">          call </span><span class="n">define_nc</span><span class="p">(</span><span class="w"> </span><span class="n">ncidislice</span><span class="p">,</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="n">tncstatislice</span><span class="p">)</span>
+<span class="w">          </span><span class="k">call </span><span class="n">writestat_dims_nc</span><span class="p">(</span><span class="n">ncidislice</span><span class="p">)</span>
+<span class="w">        </span><span class="k">end if</span>
+<span class="k">        call </span><span class="n">define_nc</span><span class="p">(</span><span class="w"> </span><span class="n">ncidislice</span><span class="p">,</span><span class="w"> </span><span class="n">nstatislice</span><span class="p">,</span><span class="w"> </span><span class="n">ncstatislice</span><span class="p">)</span>
+<span class="w">      </span><span class="k">end if</span>
+
+<span class="k">    end if</span>
+
+<span class="k">    if</span><span class="w"> </span><span class="p">(</span><span class="n">ljslicedump</span><span class="p">)</span><span class="w"> </span><span class="k">then</span>
+
+<span class="k">      </span><span class="n">jslicename</span><span class="p">(</span><span class="mi">12</span><span class="p">:</span><span class="mi">14</span><span class="p">)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">cmyidx</span>
+<span class="w">      </span><span class="n">jslicename</span><span class="p">(</span><span class="mi">16</span><span class="p">:</span><span class="mi">18</span><span class="p">)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">cmyidy</span>
+<span class="w">      </span><span class="n">jslicename</span><span class="p">(</span><span class="mi">20</span><span class="p">:</span><span class="mi">22</span><span class="p">)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">cexpnr</span>
+
+<span class="w">      </span><span class="k">call </span><span class="n">ncinfo</span><span class="p">(</span><span class="n">tncstatjslice</span><span class="p">(</span><span class="mi">1</span><span class="p">,:),</span><span class="s1">&#39;time&#39;</span><span class="w">     </span><span class="p">,</span><span class="s1">&#39;Time&#39;</span><span class="w">   </span><span class="p">,</span><span class="s1">&#39;s&#39;</span><span class="w">   </span><span class="p">,</span><span class="s1">&#39;time&#39;</span><span class="p">)</span>
+<span class="w">      </span><span class="k">call </span><span class="n">ncinfo</span><span class="p">(</span><span class="n">ncstatjslice</span><span class="p">(</span><span class="w"> </span><span class="mi">1</span><span class="p">,:),</span><span class="s1">&#39;u_jslice&#39;</span><span class="w">     </span><span class="p">,</span><span class="s1">&#39;Streamwise velocity at jslice&#39;</span><span class="p">,</span><span class="w"> </span><span class="s1">&#39;-&#39;</span><span class="p">,</span><span class="w"> </span><span class="s1">&#39;m0tt&#39;</span><span class="p">)</span>
+<span class="w">      </span><span class="k">call </span><span class="n">ncinfo</span><span class="p">(</span><span class="n">ncstatjslice</span><span class="p">(</span><span class="w"> </span><span class="mi">2</span><span class="p">,:),</span><span class="s1">&#39;v_jslice&#39;</span><span class="w">     </span><span class="p">,</span><span class="s1">&#39;Spanwise velocity at jslice&#39;</span><span class="p">,</span><span class="w"> </span><span class="s1">&#39;-&#39;</span><span class="p">,</span><span class="w"> </span><span class="s1">&#39;t0tt&#39;</span><span class="p">)</span>
+<span class="w">      </span><span class="k">call </span><span class="n">ncinfo</span><span class="p">(</span><span class="n">ncstatjslice</span><span class="p">(</span><span class="w"> </span><span class="mi">3</span><span class="p">,:),</span><span class="s1">&#39;w_jslice&#39;</span><span class="w">     </span><span class="p">,</span><span class="s1">&#39;Vertical velocity at jslice&#39;</span><span class="p">,</span><span class="w"> </span><span class="s1">&#39;-&#39;</span><span class="p">,</span><span class="w"> </span><span class="s1">&#39;t0mt&#39;</span><span class="p">)</span>
+<span class="w">      </span><span class="k">call </span><span class="n">ncinfo</span><span class="p">(</span><span class="n">ncstatjslice</span><span class="p">(</span><span class="w"> </span><span class="mi">4</span><span class="p">,:),</span><span class="s1">&#39;thl_jslice&#39;</span><span class="w">   </span><span class="p">,</span><span class="s1">&#39;Potential temperature at jslice&#39;</span><span class="p">,</span><span class="w"> </span><span class="s1">&#39;-&#39;</span><span class="p">,</span><span class="w"> </span><span class="s1">&#39;t0tt&#39;</span><span class="p">)</span>
+<span class="w">      </span><span class="k">call </span><span class="n">ncinfo</span><span class="p">(</span><span class="n">ncstatjslice</span><span class="p">(</span><span class="w"> </span><span class="mi">5</span><span class="p">,:),</span><span class="s1">&#39;qt_jslice&#39;</span><span class="w">    </span><span class="p">,</span><span class="s1">&#39;Specific humidity at jslice&#39;</span><span class="p">,</span><span class="w"> </span><span class="s1">&#39;-&#39;</span><span class="p">,</span><span class="w"> </span><span class="s1">&#39;t0tt&#39;</span><span class="p">)</span>
+
+<span class="w">      </span><span class="k">if</span><span class="w"> </span><span class="p">((</span><span class="n">jslice</span><span class="w"> </span><span class="o">&gt;=</span><span class="w"> </span><span class="n">zstart</span><span class="p">(</span><span class="mi">2</span><span class="p">))</span><span class="w"> </span><span class="p">.</span><span class="nb">and</span><span class="p">.</span><span class="w"> </span><span class="p">(</span><span class="n">jslice</span><span class="w"> </span><span class="o">&lt;=</span><span class="w"> </span><span class="n">zend</span><span class="p">(</span><span class="mi">2</span><span class="p">)))</span><span class="w"> </span><span class="k">then</span>
+<span class="k">        </span><span class="n">jslicerank</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">.</span><span class="n">true</span><span class="p">.</span>
+<span class="w">        </span><span class="n">jsliceloc</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">jslice</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">zstart</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span>
+<span class="w">      </span><span class="k">else</span>
+<span class="k">        </span><span class="n">jslicerank</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">.</span><span class="n">false</span><span class="p">.</span>
+<span class="w">      </span><span class="k">end if</span>
+
+<span class="k">      if</span><span class="w"> </span><span class="p">(</span><span class="n">jslicerank</span><span class="p">)</span><span class="w"> </span><span class="k">then</span>
+<span class="k">         call </span><span class="n">open_nc</span><span class="p">(</span><span class="n">jslicename</span><span class="p">,</span><span class="w"> </span><span class="n">ncidjslice</span><span class="p">,</span><span class="w"> </span><span class="n">nrecjslice</span><span class="p">,</span><span class="w"> </span><span class="n">n1</span><span class="o">=</span><span class="n">imax</span><span class="p">,</span><span class="w"> </span><span class="n">n3</span><span class="o">=</span><span class="n">khigh</span><span class="o">-</span><span class="n">klow</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span>
+<span class="w">         </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">nrecjslice</span><span class="o">==</span><span class="mi">0</span><span class="p">)</span><span class="w"> </span><span class="k">then</span>
+<span class="k">            call </span><span class="n">define_nc</span><span class="p">(</span><span class="w"> </span><span class="n">ncidjslice</span><span class="p">,</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="n">tncstatjslice</span><span class="p">)</span>
+<span class="w">            </span><span class="k">call </span><span class="n">writestat_dims_nc</span><span class="p">(</span><span class="n">ncidjslice</span><span class="p">)</span>
+<span class="w">         </span><span class="k">end if</span>
+<span class="k">         call </span><span class="n">define_nc</span><span class="p">(</span><span class="w"> </span><span class="n">ncidjslice</span><span class="p">,</span><span class="w"> </span><span class="n">nstatjslice</span><span class="p">,</span><span class="w"> </span><span class="n">ncstatjslice</span><span class="p">)</span>
+<span class="w">      </span><span class="k">end if</span>
+
+<span class="k">    end if</span>
+
+<span class="w">    </span><span class="c">!&gt; Set times to zero so works for warm starts... could have issues with warmstarts here...</span>
+<span class="w">    </span><span class="n">tsamplep</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">0.</span>
+<span class="w">    </span><span class="n">tstatsdumpp</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">0.</span>
+
+<span class="w">  </span><span class="k">end subroutine </span><span class="n">initstatsdump</span>
+</pre></div>
+
+    </section>
+    <br>
+    
+    </div>
+  </div>
+
+      <hr>
+    </div> <!-- /container -->
+    <footer>
+      <div class="container">
+        <div class="row justify-content-between">
+          <div class="col">
+            <p>
+              uDALES
+ was developed by The uDALES Team<br>              &copy; 2026 
+</p>
+          </div>
+          <div class="col">
+            <p class="text-end">
+              Documentation generated by
+              <a href="https://github.com/Fortran-FOSS-Programmers/ford">FORD</a>
+ on 2026-09-12 01:28 +0000             </p>
+          </div>
+        </div>
+        <br>
+      </div> <!-- /container -->
+    </footer>
+  </body>
+</html>
