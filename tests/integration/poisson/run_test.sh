@@ -122,7 +122,10 @@ run_mode() {
     local run_rc=0
     (
         cd "$run_dir" || exit 1
-        "$MPIEXEC" $MPI_LAUNCH_EXTRA_ARGS -n "$np" "${BIND[@]}" "$UDALES_BUILD" "$NAMELIST" > run.log 2>&1
+        # ${BIND[@]+"${BIND[@]}"}: an empty array under set -u is an error in
+        # bash 3.2 (macOS); this expands to nothing there and to the array
+        # elsewhere.
+        "$MPIEXEC" $MPI_LAUNCH_EXTRA_ARGS -n "$np" ${BIND[@]+"${BIND[@]}"} "$UDALES_BUILD" "$NAMELIST" > run.log 2>&1
     ) || run_rc=$?
 
     grep -E '^rank |^max \|rhs\|' "${run_dir}/run.log" || true
