@@ -194,7 +194,10 @@ fi
 ## node rather than expanding them here.
 case "$UDALES_SYSTEM:$UDALES_TARGET" in
     cx3:cpu)
-        job_modules='module load intel/2025a netCDF/4.9.2-iimpi-2023a netCDF-Fortran/4.6.1-iimpi-2023a FFTW/3.3.9-intel-2021a CMake/3.29.3-GCCcore-13.3.0 git/2.45.1-GCCcore-13.3.0'
+        # The self-consistent 2021a stack from the "icl" block of
+        # build_executable.sh; tools/prod makes it resolve from a clean shell.
+        job_modules='module load tools/prod
+module load intel/2021a netCDF/4.8.0-iimpi-2021a netCDF-Fortran/4.5.3-iimpi-2021a FFTW/3.3.9-intel-2021a CMake/3.20.1-GCCcore-10.3.0 git/2.32.0-GCCcore-10.3.0-nodocs'
         ;;
     hx1:cpu)
         # The runtime part of the "hx1" block of build_executable.sh.

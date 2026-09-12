@@ -113,3 +113,14 @@ python tests/run_tests.py supported --branch-a <branch_a> --branch-b <branch_b> 
 bash tests/integration/mpi_operators/run_test.sh
 ```
 ```
+
+### ICL (RDS/EPHEMERAL) — CX3 gather post-processing (2026-09-12)
+
+The gather job uses the GCC/OpenMPI-based NCO stack independently of the
+Intel solver stack. Load the production module tree explicitly so the job also
+works from a clean module environment:
+
+```bash
+module load tools/prod
+module load NCO/5.2.9-foss-2024a
+```

@@ -64,6 +64,7 @@ extra_cmake_args=()
 if [ $system == "icl" ]
 then
     # module load intel/2025a netCDF/4.9.2-iimpi-2023a netCDF-Fortran/4.6.1-iimpi-2023a FFTW/3.3.9-intel-2021a CMake/3.29.3-GCCcore-13.3.0 git/2.45.1-GCCcore-13.3.0
+    module load tools/prod
     module load intel/2021a netCDF/4.8.0-iimpi-2021a netCDF-Fortran/4.5.3-iimpi-2021a FFTW/3.3.9-intel-2021a CMake/3.20.1-GCCcore-10.3.0 git/2.32.0-GCCcore-10.3.0-nodocs
     FC=mpiifort
     NETCDF_DIR=/sw-eb/software/netCDF/4.8.0-iimpi-2021a

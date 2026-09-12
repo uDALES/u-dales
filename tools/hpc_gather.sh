@@ -121,7 +121,8 @@ echo "cluster: $UDALES_SYSTEM ($cluster_tell)"
 ## from NCO, plus ncdump from netCDF.
 case "$UDALES_SYSTEM" in
     cx3)
-        gather_modules='module load NCO/5.2.9-foss-2024a'
+        gather_modules='module load tools/prod
+module load NCO/5.2.9-foss-2024a'
         ;;
     hx1)
         # HX1 ships no NCO at all - no module, and no ncks anywhere under
