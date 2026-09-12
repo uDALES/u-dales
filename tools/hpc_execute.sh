@@ -120,7 +120,8 @@ echo "cluster: $UDALES_SYSTEM ($cluster_tell)"
 ## The runtime the executable was built against; keep in step with the
 ## matching block of tools/build_executable.sh.
 case "$UDALES_SYSTEM" in
-    cx3) job_modules='module load intel/2025a netCDF/4.9.2-iimpi-2023a netCDF-Fortran/4.6.1-iimpi-2023a FFTW/3.3.9-intel-2021a CMake/3.29.3-GCCcore-13.3.0 git/2.45.1-GCCcore-13.3.0' ;;
+    cx3) job_modules='module load tools/prod
+module load intel/2021a netCDF/4.8.0-iimpi-2021a netCDF-Fortran/4.5.3-iimpi-2021a FFTW/3.3.9-intel-2021a CMake/3.20.1-GCCcore-10.3.0 git/2.32.0-GCCcore-10.3.0-nodocs' ;;
     hx1) job_modules='module load intel/2023a netCDF/4.9.2-iimpi-2023a netCDF-Fortran/4.6.1-iimpi-2023a FFTW/3.3.10-intel-compilers-2023.1.0' ;;
 esac
 
@@ -129,7 +130,7 @@ esac
 ## same directive works on CX3 and HX1, both PBS Pro. Unset means the default,
 ## and on the shared small/medium pools that is a shared node.
 pbs_directives="#PBS -l walltime=${WALLTIME}
-#PBS -l select=${NNODE}:ncpus=${NCPU}:mpiprocs=$(( $NCPU * $NNODE )):mem=${MEM}"
+#PBS -l select=${NNODE}:ncpus=${NCPU}:mpiprocs=${NCPU}:mem=${MEM}"
 if [ -n "${PLACE:-}" ]; then
     pbs_directives="${pbs_directives}
 #PBS -l place=${PLACE}"
