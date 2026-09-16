@@ -32,13 +32,21 @@ module modthermodynamics
 
   implicit none
   !   private
-  public :: thermodynamics,calc_halflev
+  public :: thermodynamics,calc_halflev,air_temperature
   public :: lqlnr
   logical :: lqlnr    = .false. !< switch for ql calc. with Newton-Raphson (on/off)
   real, allocatable :: th0av(:)
   real :: chi_half=0.5  !< set wet, dry or intermediate (default) mixing over the cloud edge
   real, allocatable :: thv0(:,:,:)
 contains
+
+  pure elemental real function air_temperature(thl, ql, exner) result(temp)
+    use modglobal, only : rlvocp
+    implicit none
+    real, intent(in) :: thl, ql, exner
+
+    temp = thl*exner + rlvocp*ql
+  end function air_temperature
 
   !> Allocate and initialize arrays
   subroutine initthermodynamics

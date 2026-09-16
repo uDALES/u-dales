@@ -32,11 +32,12 @@ module instant
                          ib, ie, jb, je, kb, ke, ih, jh, kh, itot, jtot, ktot, &
                          tinstantstart, tinstantdump, dt, timee, btime, runtime, &
                          xf, yf, zf, xh, yh, zh
-  use modfields,  only : um, vm, wm, thlm, qtm, svm, ql0, pres0, &
+  use modfields,  only : um, vm, wm, thlm, qtm, svm, ql0, exnf, pres0, &
                          div, dudx, dvdy, dwdz, &
                          tau_x, tau_y, tau_z, thl_flux
   ! use modpois,    only : p, pup, pvp, pwp, rhs, dpupdx, dpvpdy, dpwpdz
   use modibm,     only : mask_u, mask_v, mask_w, mask_c
+  use modthermodynamics, only : air_temperature
   use modmpi,     only : myid, myidx, myidy, cmyidx, cmyidy, comm3d, mpierr, my_real, nprocx, nprocy
   use decomp_2d,  only : zstart, zend
   use modstat_nc, only : ncinfo, open_nc, define_nc, writestat_dims_nc, writestat_nc, writeoffset, writeoffset_1dx
@@ -50,6 +51,7 @@ module instant
   real    :: tnextinstantdump
   logical :: linstantdump
   logical :: linstantprepared = .false.  !< output files created (done lazily at the first dump instant)
+  logical :: lfieldtemp = .false., lslicetemp = .false.
 
   !! Field writing variables
   integer :: xdimfield, ydimfield, zdimfield
@@ -130,6 +132,15 @@ module instant
           stop 1
         end if
       end if
+
+      if (.not. ltempeq .and. ((lfielddump .and. index(fieldvars, 'ta') > 0) .or. &
+          ((lislicedump .or. ljslicedump .or. lkslicedump) .and. index(slicevars, 'ta') > 0) .or. &
+          (lprobedump .and. index(probevars, 'ta') > 0))) then
+        if (myid == 0) write(0,*) "ERROR: 'ta' output requires ltempeq=.true."
+        stop 1
+      end if
+      lfieldtemp = lfielddump .and. ltempeq .and. index(fieldvars, 'ta') > 0
+      lslicetemp = (lislicedump .or. ljslicedump .or. lkslicedump) .and. ltempeq .and. index(slicevars, 'ta') > 0
     end subroutine instant_init
 
     !> Create the NetCDF files (and read the probe points). Called from instant_main the
@@ -224,11 +235,13 @@ module instant
           case('th')
             call ncinfo(fldVars(n,:), 'thl', 'Liquid water potential temperature', 'K', 'tttt')
             pfields(n)%point => thlm(ib-ih:ie+ih, jb-jh:je+jh, kb-kh:ke+kh)
+          case('ta')
+            call ncinfo(fldVars(n,:), 'tha', 'Air temperature', 'K', 'tttt')
           case('ql')
             call ncinfo(fldVars(n,:), 'ql', 'Liquid water mixing ratio', 'kg/kg', 'tttt')
             pfields(n)%point => ql0(ib-ih:ie+ih, jb-jh:je+jh, kb-kh:ke+kh)
           case('qt')
-            call ncinfo(fldVars(n,:), 'qt', 'Total water mixing ratio', 'kg/kg', 'tttt')
+            call ncinfo(fldVars(n,:), 'qt', 'Total water specific humidity', 'kg/kg', 'tttt')
             pfields(n)%point => qtm(ib-ih:ie+ih, jb-jh:je+jh, kb-kh:ke+kh)
           case('s1')
             call ncinfo(fldVars(n,:), 's1', 'scalar concentration field 1', 'g/m^3', 'tttt')
@@ -262,7 +275,7 @@ module instant
           !   pfields(n)%point => dpwpdz(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh)
           case default
             print *, "Invalid field variables name. Check namoptions setting for 'fieldvars'. &
-                      &The variables can be only from the list: u0,v0,w0,p0,th,qt,ql,s1,s2,s3,s4,s5. &
+                      &The variables can be only from the list: u0,v0,w0,p0,th,ta,qt,ql,s1,s2,s3,s4,s5. &
                       &There should not be any space in the string."
             STOP 1
           end select
@@ -284,11 +297,13 @@ module instant
           case('th')
             call ncinfo(fldVars(n,:), 'thl', 'Liquid water potential temperature', 'K', 'tttt')
             pfields(n)%point => thlm(ib:ie, jb:je, kb:ke)
+          case('ta')
+            call ncinfo(fldVars(n,:), 'tha', 'Air temperature', 'K', 'tttt')
           case('ql')
             call ncinfo(fldVars(n,:), 'ql', 'Liquid water mixing ratio', 'kg/kg', 'tttt')
             pfields(n)%point => ql0(ib:ie, jb:je, kb:ke)
           case('qt')
-            call ncinfo(fldVars(n,:), 'qt', 'Total water mixing ratio', 'kg/kg', 'tttt')
+            call ncinfo(fldVars(n,:), 'qt', 'Total water specific humidity', 'kg/kg', 'tttt')
             pfields(n)%point => qtm(ib:ie, jb:je, kb:ke)
           case('s1')
             call ncinfo(fldVars(n,:), 's1', 'scalar concentration field 1', 'g/m^3', 'tttt')
@@ -370,7 +385,7 @@ module instant
           !   pfields(n)%point => dwdz(ib:ie,jb:je,kb:ke)
           case default
             print *, "Invalid field variables name. Check namoptions setting for 'fieldvars'. &
-                      &The variables can be only from the list: u0,v0,w0,p0,th,qt,ql,s1,s2,s3,s4,s5,tx,ty,tz,hf,mu,mv,mw,mc,di. &
+                      &The variables can be only from the list: u0,v0,w0,p0,th,ta,qt,ql,s1,s2,s3,s4,s5,tx,ty,tz,hf,mu,mv,mw,mc,di. &
                       &There should not be any space in the string."
             STOP 1
           end select
@@ -398,7 +413,8 @@ module instant
     subroutine instant_field_main
       ! use modglobal, only : dxfi, dyi, dzhi
       implicit none
-      integer :: n
+      integer :: n, k
+      real, allocatable :: tempfield(:,:,:)
       ! integer :: i, j, k
 
       if (.not. lfielddump) return
@@ -420,10 +436,21 @@ module instant
       ! Write time
       if (myidy == 0) call writestat_nc(ncidfield, 'time', timee, nrecfield, .true.)
 
+      if (lfieldtemp) then
+        allocate(tempfield(ib:ie,jb:je,kb:ke))
+        do k = kb, ke
+          tempfield(:,:,k) = air_temperature(thlm(ib:ie,jb:je,k), ql0(ib:ie,jb:je,k), exnf(k))
+        end do
+      end if
       ! Write each field variable using writeoffset
       do n = 1, nfieldvars
-        call writeoffset(ncidfield, trim(fldVars(n,1)), pfields(n)%point, nrecfield, xdimfield, ydimfield, zdimfield)
+        if (trim(fldVars(n,1)) == 'tha') then
+          call writeoffset(ncidfield, 'tha', tempfield, nrecfield, xdimfield, ydimfield, zdimfield)
+        else
+          call writeoffset(ncidfield, trim(fldVars(n,1)), pfields(n)%point, nrecfield, xdimfield, ydimfield, zdimfield)
+        end if
       end do
+      if (lfieldtemp) deallocate(tempfield)
     end subroutine instant_field_main
 
     subroutine instant_field_exit
@@ -496,9 +523,11 @@ module instant
           case('p0')
             call ncinfo( isliceVars(n,:), 'p' , 'Kinematic Pressure'  , 'm^2/s^2' , 'tttt' )
           case('th')
-            if (ltempeq) call ncinfo( isliceVars(n,:), 'thl' , 'Potential temperature' , 'K'     , 'tttt' )
+            if (ltempeq) call ncinfo( isliceVars(n,:), 'thl' , 'Liquid water potential temperature', 'K', 'tttt' )
+          case('ta')
+            if (ltempeq) call ncinfo( isliceVars(n,:), 'tha' , 'Air temperature', 'K', 'tttt' )
           case('qt')
-            if (lmoist)  call ncinfo( isliceVars(n,:), 'qt'  , 'Specific humidity'     , 'kg/kg' , 'tttt' )
+            if (lmoist)  call ncinfo( isliceVars(n,:), 'qt'  , 'Total water specific humidity', 'kg/kg' , 'tttt' )
           case('s1')
             if (nsv>0)   call ncinfo( isliceVars(n,:), 's1'  , 'Concentration field 1' , 'g/m^3' , 'tttt' )
           case('s2')
@@ -509,7 +538,7 @@ module instant
             if (nsv>3)   call ncinfo( isliceVars(n,:), 's4'  , 'Concentration field 4' , 'g/m^3' , 'tttt' )
           case default
             print *, "Invalid slice variables name. Check namoptions setting for 'slicevars'. &
-                      &The variables can be only from the list: u0,v0,w0,p0,th,qt,s1,s2,s3,s4. &
+                      &The variables can be only from the list: u0,v0,w0,p0,th,ta,qt,s1,s2,s3,s4. &
                       &There should not be any space in the string. "
             STOP 1
         end select
@@ -530,9 +559,11 @@ module instant
           case('p0')
             call ncinfo( jsliceVars(n,:), 'p' , 'Kinematic Pressure'  , 'm^2/s^2' , 'tttt' )
           case('th')
-            if (ltempeq) call ncinfo( jsliceVars(n,:), 'thl' , 'Potential temperature' , 'K'     , 'tttt' )
+            if (ltempeq) call ncinfo( jsliceVars(n,:), 'thl' , 'Liquid water potential temperature', 'K', 'tttt' )
+          case('ta')
+            if (ltempeq) call ncinfo( jsliceVars(n,:), 'tha' , 'Air temperature', 'K', 'tttt' )
           case('qt')
-            if (lmoist)  call ncinfo( jsliceVars(n,:), 'qt'  , 'Specific humidity'     , 'kg/kg' , 'tttt' )
+            if (lmoist)  call ncinfo( jsliceVars(n,:), 'qt'  , 'Total water specific humidity', 'kg/kg' , 'tttt' )
           case('s1')
             if (nsv>0)   call ncinfo( jsliceVars(n,:), 's1'  , 'Concentration field 1' , 'g/m^3' , 'tttt' )
           case('s2')
@@ -543,7 +574,7 @@ module instant
             if (nsv>3)   call ncinfo( jsliceVars(n,:), 's4'  , 'Concentration field 4' , 'g/m^3' , 'tttt' )
           case default
             print *, "Invalid slice variables name. Check namoptions setting for 'slicevars'. &
-                      &The variables can be only from the list: u0,v0,w0,p0,th,qt,s1,s2,s3,s4. &
+                      &The variables can be only from the list: u0,v0,w0,p0,th,ta,qt,s1,s2,s3,s4. &
                       &There should not be any space in the string."
             STOP 1
         end select
@@ -564,9 +595,11 @@ module instant
           case('p0')
             call ncinfo( ksliceVars(n,:), 'p' , 'Kinematic Pressure'  , 'm^2/s^2' , 'tttt' )
           case('th')
-            if (ltempeq) call ncinfo( ksliceVars( n,:), 'thl' , 'Potential temperature' , 'K'     , 'tttt' )
+            if (ltempeq) call ncinfo( ksliceVars( n,:), 'thl' , 'Liquid water potential temperature', 'K', 'tttt' )
+          case('ta')
+            if (ltempeq) call ncinfo( ksliceVars( n,:), 'tha' , 'Air temperature', 'K', 'tttt' )
           case('qt')
-            if (lmoist)  call ncinfo( ksliceVars( n,:), 'qt'  , 'Specific humidity'     , 'kg/kg' , 'tttt' )
+            if (lmoist)  call ncinfo( ksliceVars( n,:), 'qt'  , 'Total water specific humidity', 'kg/kg' , 'tttt' )
           case('s1')
             if (nsv>0)   call ncinfo( ksliceVars( n,:), 's1'  , 'Concentration field 1' , 'g/m^3' , 'tttt' )
           case('s2')
@@ -577,7 +610,7 @@ module instant
             if (nsv>3)   call ncinfo( ksliceVars( n,:), 's4'  , 'Concentration field 4' , 'g/m^3' , 'tttt' )
           case default
             print *, "Invalid slice variables name. Check namoptions setting for 'slicevars'. &
-                      &The variables can be only from the list: u0,v0,w0,p0,th,qt,s1,s2,s3,s4. &
+                      &The variables can be only from the list: u0,v0,w0,p0,th,ta,qt,s1,s2,s3,s4. &
                       &There should not be any space in the string."
             STOP 1
         end select
@@ -682,7 +715,7 @@ module instant
     subroutine instant_write_islice
       implicit none
       real, allocatable :: tmp_slice(:,:,:)
-      integer :: i, ii, ii_local, local_idx
+      integer :: i, ii, ii_local, local_idx, k
       
       if (nislice == 0) return
       if (local_nislice == 0) return  ! No islices on this processor
@@ -780,6 +813,20 @@ module instant
         end do
         call writeoffset(ncidislice, 'thl', tmp_slice, nrecislice, local_nislice, ydim, zdim)
       end if
+
+      if (lslicetemp .and. ltempeq) then
+        local_idx = 0
+        do i = 1, nislice
+          if (islice(i) >= zstart(1) .and. islice(i) <= zend(1)) then
+            local_idx = local_idx + 1
+            ii_local = islice(i) - zstart(1) + 1
+            do k = kb, ke
+              tmp_slice(local_idx,:,k) = air_temperature(thlm(ii_local,jb:je,k), ql0(ii_local,jb:je,k), exnf(k))
+            end do
+          end if
+        end do
+        call writeoffset(ncidislice, 'tha', tmp_slice, nrecislice, local_nislice, ydim, zdim)
+      end if
       
       ! moisture
       if (ispresent('qt') .and. lmoist) then
@@ -869,7 +916,7 @@ module instant
     subroutine instant_write_jslice
       implicit none
       real, allocatable :: tmp_slice(:,:,:)
-      integer :: j, jj, jj_local, local_idy
+      integer :: j, jj, jj_local, local_idy, k
       
       if (njslice == 0) return
       if (local_njslice == 0) return
@@ -965,6 +1012,20 @@ module instant
           end if
         end do
         call writeoffset_1dx(ncidjslice, 'thl', tmp_slice, nrecjslice, xdim, local_njslice, zdim)
+      end if
+
+      if (lslicetemp .and. ltempeq) then
+        local_idy = 0
+        do j = 1, njslice
+          if (jslice(j) >= zstart(2) .and. jslice(j) <= zend(2)) then
+            local_idy = local_idy + 1
+            jj_local = jslice(j) - zstart(2) + 1
+            do k = kb, ke
+              tmp_slice(:,local_idy,k) = air_temperature(thlm(ib:ie,jj_local,k), ql0(ib:ie,jj_local,k), exnf(k))
+            end do
+          end if
+        end do
+        call writeoffset_1dx(ncidjslice, 'tha', tmp_slice, nrecjslice, xdim, local_njslice, zdim)
       end if
 
       ! moisture
@@ -1248,6 +1309,14 @@ module instant
         end do
         call writeoffset(ncidkslice, 'thl', tmp_slice, nreckslice, xdim, ydim, kdim)
       end if
+
+      if (lslicetemp .and. ltempeq) then
+        do k = 1, nkslice
+          kk = kslice(k)
+          tmp_slice(:,:,k) = air_temperature(thlm(ib:ie,jb:je,kk), ql0(ib:ie,jb:je,kk), exnf(kk))
+        end do
+        call writeoffset(ncidkslice, 'tha', tmp_slice, nreckslice, xdim, ydim, kdim)
+      end if
       
       ! moisture
       if (ispresent('qt') .and. lmoist) then
@@ -1515,6 +1584,8 @@ module instant
                   buf(n) = pres0(li,lj,lk)
                case ('th')
                   if (ltempeq) buf(n) = thlm(li,lj,lk)
+               case ('ta')
+                  if (ltempeq) buf(n) = air_temperature(thlm(li,lj,lk), ql0(li,lj,lk), exnf(gk))
                case ('qt')
                   if (lmoist) buf(n) = qtm(li,lj,lk)
                case ('s1')
@@ -1545,6 +1616,8 @@ module instant
             ncname = 'p'
          case('th')
             ncname = 'thl'
+         case('ta')
+            ncname = 'tha'
          case('qt')
             ncname = 'qt'
          case('s1','s2','s3','s4')
@@ -1573,10 +1646,13 @@ module instant
              ierr = nf90_put_att(ncid, vid, 'long_name', 'Kinematic pressure')
              ierr = nf90_put_att(ncid, vid, 'units', 'm^2/s^2')
          case('th')
-             ierr = nf90_put_att(ncid, vid, 'long_name', 'Potential temperature')
+             ierr = nf90_put_att(ncid, vid, 'long_name', 'Liquid water potential temperature')
+             ierr = nf90_put_att(ncid, vid, 'units', 'K')
+         case('ta')
+             ierr = nf90_put_att(ncid, vid, 'long_name', 'Air temperature')
              ierr = nf90_put_att(ncid, vid, 'units', 'K')
          case('qt')
-             ierr = nf90_put_att(ncid, vid, 'long_name', 'Specific humidity')
+             ierr = nf90_put_att(ncid, vid, 'long_name', 'Total water specific humidity')
              ierr = nf90_put_att(ncid, vid, 'units', 'kg/kg')
          case('s1','s2','s3','s4')
              ierr = nf90_put_att(ncid, vid, 'long_name', 'Scalar concentration')
