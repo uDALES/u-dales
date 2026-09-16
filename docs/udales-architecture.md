@@ -29,8 +29,9 @@ Everything in `src/` compiles into a single executable whose entry point is `pro
 
 ### Startup and input
 
-- `modstartup.f90` — reads the `namoptions` namelists (`readnamelists`), initialises 2DECOMP (`init2decomp`), sanity-checks settings (`checkinitvalues`), and reads initial/restart fields and profiles (`readinitfiles`).
-- `readinput.f90` — generic readers for the sparse (i,j,k)-indexed input file formats.
+- `modstartup.f90` — starts input setup via `read_namelist_inputs`, initialises 2DECOMP (`init2decomp`), sanity-checks settings (`checkinitvalues`), and reads initial/restart fields and profiles (`readinitfiles`).
+- `in_readnamelists.f90` — reads and broadcasts the `namoptions` namelist inputs.
+- `in_readsparsefiles.f90` — generic readers for the sparse (i,j,k)-indexed input file formats.
 - `initfac.f90` — reads the facet input files (facet geometry, types, properties).
 
 ### Dynamics and numerics
@@ -73,7 +74,7 @@ Everything in `src/` compiles into a single executable whose entry point is `pro
 
 `program.f90` is short and readable; it is the best map of the solver. It has three phases.
 
-**Startup.** In order: `initmpi`, `readnamelists`, `init2decomp`, `checkinitvalues`, `initglobal`, then the `init*` routines of the other modules (`initfields`, `initboundary`, `initthermodynamics`, `initsubgrid`, `initdriver`, `initpois`), the IBM/facet setup (`readfacetfiles`, `initibm`, `createmasks`, `calcfluidvolumes`), the initial fields (`readinitfiles`, `createscals`), and finally the output and add-on modules (`initstatsdump`, `initEB`, `inittimedep`, `initfielddump`, `boundary`, `init_vegetation`, `createpurifiers`, `init_heatpump`).
+**Startup.** In order: `initmpi`, `read_namelist_inputs`, `init2decomp`, `checkinitvalues`, `initglobal`, then the `init*` routines of the other modules (`initfields`, `initboundary`, `initthermodynamics`, `initsubgrid`, `initdriver`, `initpois`), the IBM/facet setup (`readfacetfiles`, `initibm`, `createmasks`, `calcfluidvolumes`), the initial fields (`readinitfiles`, `createscals`), and finally the output and add-on modules (`initstatsdump`, `initEB`, `inittimedep`, `initfielddump`, `boundary`, `init_vegetation`, `createpurifiers`, `init_heatpump`).
 
 **Time loop.** The loop is `do while ((timeleft>0) .or. (rk3step < 3))`, and — important — **one pass through the loop is one RK3 substep**, not one full timestep. Each substep, every process adds its contribution to the tendency arrays (`up`, `vp`, `wp`, `thlp`, ...), and `tstep_integrate` applies them at the end. The ordered calls, with the module implementing each:
 

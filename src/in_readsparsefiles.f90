@@ -1,4 +1,4 @@
-module readinput
+module readsparsefiles
   !> Generic file input routines for uDALES
   !> Provides standardized reading of commonly-used input file formats
   use mpi
@@ -196,4 +196,4 @@ contains
     deallocate(values_glob)
   end subroutine read_sparse_real
 
-end module readinput
+end module readsparsefiles
