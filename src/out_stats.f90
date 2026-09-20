@@ -33,11 +33,11 @@ module stats
                          dxf, dzf, dzfi, dxhi, dzhi, dzh2i, dyi, dzhiq, &
                          timee, tstatsdump, tstatstart, tstatsgap, tsample, dt, runtime, btime, &
                          k1, JNO2
-  use modfields,  only : um, vm, wm, pres0, thlm, qtm, ql0, exnf, svm, &
+  use modfields,  only : um, vm, wm, pres0, presf, thlm, qtm, ql0, exnf, svm, &
                          IIu, IIus, IIut, IIv, IIvs, IIvt, IIw, IIws, IIwt, IIc, IIcs, IIct, &
                          IIuw, IIuws, IIuwt, IIvw, IIvws, IIuv, IIuvs
   use modsubgrid, only : ekh, ekm
-  use modthermodynamics, only : air_temperature
+  use modthermodynamics, only : air_temperature, relative_humidity
   use vegetation, only : veg, vegp, npts_u, npts_v, npts_w, ijk_u, ijk_v, ijk_w, veg_up, veg_vp, veg_wp
   use modmpi,     only : cmyidx, cmyidy, myid, myidx, myidy, spatial_avg
   use decomp_2d,  only : zstart, zend
@@ -52,7 +52,7 @@ module stats
   integer :: xdim, ydim, zdim
   real    :: tsamplep, tstatsdumpp, tstatsdumppi
 
-  logical :: lstatsdump, lstatstavgdump
+  logical :: lstatsdump, lstatstavgdump, lrh
   logical :: ltavgslice   !< any time-averaged slice output (ltislicedump, ltjslicedump, ltkslicedump)
   logical :: ltavg3d      !< any output built from the 3-D time-average accumulators (stats_t or slices)
   character(80) :: filenametis, filenametjs, filenametks
@@ -119,6 +119,7 @@ module stats
 
   real, allocatable :: thlt(:,:,:)
   real, allocatable :: tempnow(:,:,:), tempt(:,:,:)
+  real, allocatable :: rhnow(:,:,:), rht(:,:,:)
   real, allocatable :: thli(:,:,:)
   real, allocatable :: thlj(:,:,:)
   real, allocatable :: thlk(:,:,:)
@@ -189,6 +190,7 @@ module stats
 
   real, allocatable :: thlxyt(:)
   real, allocatable :: tempxyt(:)
+  real, allocatable :: rhxyt(:)
   real, allocatable :: wpthlpxytk(:)
   real, allocatable :: wthlxytk(:)
   real, allocatable :: thlpthlpxyt(:)
@@ -226,6 +228,7 @@ module stats
 
   real, allocatable :: thlxy(:)
   real, allocatable :: tempxy(:)
+  real, allocatable :: rhxy(:)
   real, allocatable :: wpthlpxyk(:)
   real, allocatable :: wthlxyk(:)
   real, allocatable :: thlxyk(:)
@@ -252,6 +255,7 @@ module stats
 
   real, allocatable :: thlyt(:,:)
   real, allocatable :: tempyt(:,:)
+  real, allocatable :: rhyt(:,:)
   real, allocatable :: wpthlpytk(:,:)
   real, allocatable :: wthlytk(:,:)
   real, allocatable :: thlpthlpyt(:,:)
@@ -288,6 +292,7 @@ module stats
 
   real, allocatable :: thly(:,:)
   real, allocatable :: tempy(:,:)
+  real, allocatable :: rhy(:,:)
   real, allocatable :: wpthlpyk(:,:)
   real, allocatable :: wthlyk(:,:)
   real, allocatable :: thlyk(:,:)
@@ -338,6 +343,7 @@ module stats
       ltavg3d    = ltdump .or. ltavgslice
       lstatsdump = ltavg3d .or. lxytdump .or. lxydump .or. lytdump .or. lydump
       lstatstavgdump = ltavg3d .or. lxytdump .or. lytdump
+      lrh = ltempeq .and. lmoist
 
       ! the time-averaged slices reuse the plane positions of the instantaneous slices
       call stats_validate_slice_inputs(ltislicedump, nislice, islice, 'islice')
@@ -401,6 +407,7 @@ module stats
         call stats_allocate_interp_and_sgs_vel
         if (ltempeq) call stats_allocate_interp_and_sgs_temp
         if (lmoist)  call stats_allocate_interp_and_sgs_moist
+        if (lrh)     call stats_allocate_relative_humidity
       end if
       if(ltavg3d .or. lytdump .or. lydump) then
         if (nsv>0)   call stats_allocate_interp_and_sgs_scalar
@@ -411,6 +418,7 @@ module stats
         call stats_allocate_tavg_vel
         if (ltempeq) call stats_allocate_tavg_temp
         if (lmoist)  call stats_allocate_tavg_moist
+        if (lrh)     call stats_allocate_tavg_relative_humidity
       end if
       if(ltavg3d .or. lytdump) then
         if (nsv>0)   call stats_allocate_tavg_scalar
@@ -423,6 +431,7 @@ module stats
         tVarsCount = 14
         if (ltempeq) tVarsCount = tVarsCount + 7
         if (lmoist)  tVarsCount = tVarsCount + 4
+        if (lrh)     tVarsCount = tVarsCount + 1
         if (nsv>0)   tVarsCount = tVarsCount + 6*nsv
         if ((lchem) .and. (nsv>2)) tVarsCount = tVarsCount + 1
 
@@ -431,6 +440,7 @@ module stats
         call stats_ncdescription_tavg_vel
         if (ltempeq) call stats_ncdescription_tavg_temp
         if (lmoist)  call stats_ncdescription_tavg_moist
+        if (lrh)     call stats_ncdescription_tavg_relative_humidity
         if (nsv>0)   call stats_ncdescription_tavg_scalar
         if ((lchem) .and. (nsv>2)) call stats_init_tavg_PSS
 
@@ -445,12 +455,14 @@ module stats
         xytVarsCount = 20
         if (ltempeq) xytVarsCount = xytVarsCount + 6
         if (lmoist)  xytVarsCount = xytVarsCount + 5
+        if (lrh)     xytVarsCount = xytVarsCount + 1
 
         allocate(xytVars(xytVarsCount,4))   !!> Array to store the variable description of the quantities to be written
         ctrxyt = 0
         call stats_init_xytavg_vel
         if (ltempeq) call stats_init_xytavg_temp
         if (lmoist)  call stats_init_xytavg_moist
+        if (lrh)     call stats_init_xytavg_relative_humidity
 
         call stats_createnc_xytavg
         
@@ -462,12 +474,14 @@ module stats
         xyVarsCount = 16
         if (ltempeq) xyVarsCount = xyVarsCount + 5
         if (lmoist)  xyVarsCount = xyVarsCount + 4
+        if (lrh)     xyVarsCount = xyVarsCount + 1
 
         allocate(xyVars(xyVarsCount,4))   !!> Array to store the variable description of the quantities to be written
         ctrxy = 0
         call stats_init_xyavg_vel
         if (ltempeq) call stats_init_xyavg_temp
         if (lmoist)  call stats_init_xyavg_moist
+        if (lrh)     call stats_init_xyavg_relative_humidity
 
         call stats_createnc_xyavg
         
@@ -479,6 +493,7 @@ module stats
         ytVarsCount = 11
         if (ltempeq) ytVarsCount = ytVarsCount + 6
         if (lmoist)  ytVarsCount = ytVarsCount + 5
+        if (lrh)     ytVarsCount = ytVarsCount + 1
         if (nsv>0)   ytVarsCount = ytVarsCount + 5*nsv
 
         allocate(ytVars(ytVarsCount,4))   !!> Array to store the variable description of the quantities to be written
@@ -486,6 +501,7 @@ module stats
         call stats_init_ytavg_vel
         if (ltempeq) call stats_init_ytavg_temp
         if (lmoist)  call stats_init_ytavg_moist
+        if (lrh)     call stats_init_ytavg_relative_humidity
         if (nsv>0)   call stats_init_ytavg_scalar
 
         call stats_createnc_ytavg
@@ -498,6 +514,7 @@ module stats
         yVarsCount = 8
         if (ltempeq) yVarsCount = yVarsCount + 5
         if (lmoist)  yVarsCount = yVarsCount + 4
+        if (lrh)     yVarsCount = yVarsCount + 1
         if (nsv>0)   yVarsCount = yVarsCount + 4*nsv
 
         allocate(yVars(yVarsCount,4))   !!> Array to store the variable description of the quantities to be written
@@ -505,6 +522,7 @@ module stats
         call stats_init_yavg_vel
         if (ltempeq) call stats_init_yavg_temp
         if (lmoist)  call stats_init_yavg_moist
+        if (lrh)     call stats_init_yavg_relative_humidity
         if (nsv>0)   call stats_init_yavg_scalar
 
         call stats_createnc_yavg
@@ -555,6 +573,7 @@ module stats
           if (ltempeq) call stats_interpolate_and_sgs_temp
           if (lmoist)  call stats_interpolate_and_sgs_moist
           if (ltempeq) call stats_calculate_air_temperature
+          if (lrh)     call stats_calculate_relative_humidity
         end if
         if(ltavg3d .or. lytdump .or. lydump) then
           if (nsv>0)   call stats_interpolate_and_sgs_scalar
@@ -564,6 +583,7 @@ module stats
           call stats_compute_tavg_vel
           if (ltempeq) call stats_compute_tavg_temp
           if (lmoist)  call stats_compute_tavg_moist
+          if (lrh)     call stats_compute_tavg_relative_humidity
         end if
         if(ltavg3d .or. lytdump) then
           if (nsv>0) call stats_compute_tavg_scalar
@@ -576,11 +596,13 @@ module stats
           call stats_compute_xyavg_vel
           if (ltempeq) call stats_compute_xyavg_temp
           if (lmoist)  call stats_compute_xyavg_moist
+          if (lrh)     call stats_compute_xyavg_relative_humidity
           if (myid==0) then
             call writestat_nc(ncidxy, 'time', timee, nrecxy, .true.)
             call stats_write_xyavg_vel
             if (ltempeq) call stats_write_xyavg_temp
             if (lmoist)  call stats_write_xyavg_moist
+            if (lrh)     call stats_write_xyavg_relative_humidity
           end if
         end if
 
@@ -588,12 +610,14 @@ module stats
           call stats_compute_yavg_vel
           if (ltempeq) call stats_compute_yavg_temp
           if (lmoist)  call stats_compute_yavg_moist
+          if (lrh)     call stats_compute_yavg_relative_humidity
           if (nsv>0)   call stats_compute_yavg_scalar
           if (myidy==0) then
             call writestat_nc(ncidy, 'time', timee, nrecy, .true.)
             call stats_write_yavg_vel
             if (ltempeq) call stats_write_yavg_temp
             if (lmoist)  call stats_write_yavg_moist
+            if (lrh)     call stats_write_yavg_relative_humidity
             if (nsv>0)   call stats_write_yavg_scalar
           end if
         end if
@@ -633,11 +657,13 @@ module stats
           call stats_compute_xytavg_vel
           if (ltempeq) call stats_compute_xytavg_temp
           if (lmoist)  call stats_compute_xytavg_moist
+          if (lrh)     call stats_compute_xytavg_relative_humidity
           if (myid==0) then
             call writestat_nc(ncidxyt, 'time', timee, nrecxyt, .true.)
             call stats_write_xytavg_vel
             if (ltempeq) call stats_write_xytavg_temp
             if (lmoist)  call stats_write_xytavg_moist
+            if (lrh)     call stats_write_xytavg_relative_humidity
           end if
         end if
 
@@ -645,12 +671,14 @@ module stats
           call stats_compute_ytavg_vel
           if (ltempeq) call stats_compute_ytavg_temp
           if (lmoist)  call stats_compute_ytavg_moist
+          if (lrh)     call stats_compute_ytavg_relative_humidity
           if (nsv>0)   call stats_compute_ytavg_scalar
           if (myidy==0) then
             call writestat_nc(ncidyt, 'time', timee, nrecyt, .true.)
             call stats_write_ytavg_vel
             if (ltempeq) call stats_write_ytavg_temp
             if (lmoist)  call stats_write_ytavg_moist
+            if (lrh)     call stats_write_ytavg_relative_humidity
             if (nsv>0)   call stats_write_ytavg_scalar
           end if
         end if
@@ -680,6 +708,7 @@ module stats
           call stats_reset_tavg_vel
           if (ltempeq) call stats_reset_tavg_temp
           if (lmoist)  call stats_reset_tavg_moist
+          if (lrh)     call stats_reset_tavg_relative_humidity
         end if
         if(ltavg3d .or. lytdump) then
           if (nsv>0)   call stats_reset_tavg_scalar
@@ -734,6 +763,19 @@ module stats
         tempnow(:,:,k) = air_temperature(thlm(ib:ie,jb:je,k), ql0(ib:ie,jb:je,k), exnf(k))
       end do
     end subroutine stats_calculate_air_temperature
+
+    subroutine stats_allocate_relative_humidity
+      implicit none
+      allocate(rhnow(ib:ie,jb:je,kb:ke+kh))
+    end subroutine stats_allocate_relative_humidity
+
+    subroutine stats_calculate_relative_humidity
+      implicit none
+      integer :: k
+      do k = kb, ke+kh
+        rhnow(:,:,k) = relative_humidity(qtm(ib:ie,jb:je,k), ql0(ib:ie,jb:je,k), tempnow(:,:,k), presf(k))
+      end do
+    end subroutine stats_calculate_relative_humidity
 
     subroutine stats_allocate_interp_and_sgs_moist
       implicit none
@@ -841,6 +883,17 @@ module stats
       ctrt = ctrt+4
     end subroutine stats_ncdescription_tavg_moist
 
+    subroutine stats_allocate_tavg_relative_humidity
+      implicit none
+      allocate(rht(ib:ie,jb:je,kb:ke+kh)); rht = 0.
+    end subroutine stats_allocate_tavg_relative_humidity
+
+    subroutine stats_ncdescription_tavg_relative_humidity
+      implicit none
+      call ncinfo(tVars(ctrt+1,:), 'rh', 'Relative humidity', '%', 'tttt')
+      ctrt = ctrt+1
+    end subroutine stats_ncdescription_tavg_relative_humidity
+
     subroutine stats_allocate_tavg_scalar
       implicit none
       allocate(svt(ib:ie,jb:je,kb:ke+kh,nsv))   ; svt    = 0.;
@@ -929,6 +982,11 @@ module stats
       implicit none
       qtt = 0.; qttk = 0.; wqttk = 0.; qtqtt = 0.; qtsgst = 0.
     end subroutine stats_reset_tavg_moist
+
+    subroutine stats_reset_tavg_relative_humidity
+      implicit none
+      rht = 0.
+    end subroutine stats_reset_tavg_relative_humidity
 
     subroutine stats_reset_tavg_scalar
       implicit none
@@ -1022,6 +1080,13 @@ module stats
       ctrxyt = ctrxyt+5
     end subroutine stats_init_xytavg_moist
 
+    subroutine stats_init_xytavg_relative_humidity
+      implicit none
+      allocate(rhxyt(kb:ke+kh))
+      call ncinfo(xytVars(ctrxyt+1,:), 'rh', 'Relative humidity', '%', 'tt')
+      ctrxyt = ctrxyt+1
+    end subroutine stats_init_xytavg_relative_humidity
+
     subroutine stats_createnc_xytavg
       implicit none
       filenamexyt = 'stats_xyt.xxx.nc'
@@ -1114,6 +1179,13 @@ module stats
       ctrxy = ctrxy+4
     end subroutine stats_init_xyavg_moist
 
+    subroutine stats_init_xyavg_relative_humidity
+      implicit none
+      allocate(rhxy(kb:ke+kh))
+      call ncinfo(xyVars(ctrxy+1,:), 'rh', 'Relative humidity', '%', 'tt')
+      ctrxy = ctrxy+1
+    end subroutine stats_init_xyavg_relative_humidity
+
     subroutine stats_createnc_xyavg
       implicit none
       filenamexy = 'stats_xy.xxx.nc'
@@ -1191,6 +1263,13 @@ module stats
       call ncinfo( ytVars(ctryt+ 5,:), 'qtsgs'    , 'SGS moisture flux'            , 'kg m/kg s' , 't0mt' )
       ctryt = ctryt+5
     end subroutine stats_init_ytavg_moist
+
+    subroutine stats_init_ytavg_relative_humidity
+      implicit none
+      allocate(rhyt(ib:ie,kb:ke))
+      call ncinfo(ytVars(ctryt+1,:), 'rh', 'Relative humidity', '%', 't0tt')
+      ctryt = ctryt+1
+    end subroutine stats_init_ytavg_relative_humidity
 
     subroutine stats_init_ytavg_scalar
       integer :: n
@@ -1292,6 +1371,13 @@ module stats
       call ncinfo( yVars(ctry+ 4,:), 'qtsgs'    , 'SGS moisture flux'            , 'kg m/kg s' , 't0mt' )
       ctry = ctry+4
     end subroutine stats_init_yavg_moist
+
+    subroutine stats_init_yavg_relative_humidity
+      implicit none
+      allocate(rhy(ib:ie,kb:ke))
+      call ncinfo(yVars(ctry+1,:), 'rh', 'Relative humidity', '%', 't0tt')
+      ctry = ctry+1
+    end subroutine stats_init_yavg_relative_humidity
 
     subroutine stats_init_yavg_scalar
       integer :: n
@@ -1607,6 +1693,11 @@ module stats
       call stats_compute_tavg(qtsgst, qtsgs)
     end subroutine stats_compute_tavg_moist
 
+    subroutine stats_compute_tavg_relative_humidity
+      implicit none
+      call stats_compute_tavg(rht, rhnow)
+    end subroutine stats_compute_tavg_relative_humidity
+
     subroutine stats_compute_tavg_scalar
       implicit none
       integer :: n
@@ -1706,6 +1797,11 @@ module stats
       call spatial_avg(qtsgsxyt,qtsgst(ib:ie,jb:je,kb:ke+kh),kb,ke,IIw(ib:ie,jb:je,kb:ke+kh),IIws(kb:ke+kh),.false.)
     end subroutine stats_compute_xytavg_moist
 
+    subroutine stats_compute_xytavg_relative_humidity
+      implicit none
+      call spatial_avg(rhxyt,rht(ib:ie,jb:je,kb:ke+kh),kb,ke,IIc(ib:ie,jb:je,kb:ke+kh),IIcs(kb:ke+kh),.false.)
+    end subroutine stats_compute_xytavg_relative_humidity
+
 
     !! ## %% y and x averaging computations routines
     subroutine stats_compute_xyavg_vel
@@ -1761,6 +1857,11 @@ module stats
       call spatial_avg(qtsgsxy,qtsgs(ib:ie,jb:je,kb:ke+kh),kb,ke,IIw(ib:ie,jb:je,kb:ke+kh),IIws(kb:ke+kh),.false.)
     end subroutine stats_compute_xyavg_moist
 
+    subroutine stats_compute_xyavg_relative_humidity
+      implicit none
+      call spatial_avg(rhxy,rhnow,kb,ke,IIc(ib:ie,jb:je,kb:ke+kh),IIcs(kb:ke+kh),.false.)
+    end subroutine stats_compute_xyavg_relative_humidity
+
 
     !! ## %% Time and y averaging computations routines
     subroutine stats_compute_ytavg_vel
@@ -1805,6 +1906,11 @@ module stats
       call spatial_avg(qtpqtpyt,qtqtt(ib:ie,jb:je,kb:ke)-qtt(ib:ie,jb:je,kb:ke)*qtt(ib:ie,jb:je,kb:ke),IIc(ib:ie,jb:je,kb:ke),IIct)
       call spatial_avg(qtsgsyt,qtsgst(ib:ie,jb:je,kb:ke),IIw(ib:ie,jb:je,kb:ke),IIwt)
     end subroutine stats_compute_ytavg_moist
+
+    subroutine stats_compute_ytavg_relative_humidity
+      implicit none
+      call spatial_avg(rhyt,rht(ib:ie,jb:je,kb:ke),IIc(ib:ie,jb:je,kb:ke),IIct)
+    end subroutine stats_compute_ytavg_relative_humidity
 
     subroutine stats_compute_ytavg_scalar
       implicit none
@@ -1872,6 +1978,11 @@ module stats
 
       call spatial_avg(qtsgsy,qtsgs(ib:ie,jb:je,kb:ke),IIw(ib:ie,jb:je,kb:ke),IIwt)
     end subroutine stats_compute_yavg_moist
+
+    subroutine stats_compute_yavg_relative_humidity
+      implicit none
+      call spatial_avg(rhy,rhnow(:,:,kb:ke),IIc(ib:ie,jb:je,kb:ke),IIct)
+    end subroutine stats_compute_yavg_relative_humidity
 
     subroutine stats_compute_yavg_scalar
       implicit none
@@ -2037,6 +2148,7 @@ module stats
       case ('thlpthlp'); fld = thlthlt(:,:,kb:ke) - thlt(:,:,kb:ke)*thlt(:,:,kb:ke)
       case ('thlsgs');   fld = thlsgst(:,:,kb:ke)
       case ('qt');       fld = qtt(:,:,kb:ke)
+      case ('rh');       fld = rht(:,:,kb:ke)
       case ('wpqtp');    fld = wqttk(:,:,kb:ke) - wt(:,:,kb:ke)*qttk(:,:,kb:ke)
       case ('qtpqtp');   fld = qtqtt(:,:,kb:ke) - qtt(:,:,kb:ke)*qtt(:,:,kb:ke)
       case ('qtsgs');    fld = qtsgst(:,:,kb:ke)
@@ -2349,6 +2461,11 @@ module stats
       call writestat_nc(ncidxyt, 'qtsgs'   , qtsgsxyt(kb:ke)   , nrecxyt, zdim)
     end subroutine stats_write_xytavg_moist
 
+    subroutine stats_write_xytavg_relative_humidity
+      implicit none
+      call writestat_nc(ncidxyt, 'rh', rhxyt(kb:ke), nrecxyt, zdim)
+    end subroutine stats_write_xytavg_relative_humidity
+
 
     !! ## %% y and x averaged statistics writing routines 
     subroutine stats_write_xyavg_vel
@@ -2388,6 +2505,11 @@ module stats
       call writestat_nc(ncidxy, 'qtsgs'   , qtsgsxy(kb:ke)   , nrecxy, zdim)
     end subroutine stats_write_xyavg_moist
 
+    subroutine stats_write_xyavg_relative_humidity
+      implicit none
+      call writestat_nc(ncidxy, 'rh', rhxy(kb:ke), nrecxy, zdim)
+    end subroutine stats_write_xyavg_relative_humidity
+
 
     !! ## %% Time and y averaged statistics writing routines 
     subroutine stats_write_ytavg_vel
@@ -2423,6 +2545,11 @@ module stats
       call writestat_nc(ncidyt, 'qtpqtp' , qtpqtpyt , nrecyt, xdim, zdim)
       call writestat_nc(ncidyt, 'qtsgs'  , qtsgsyt  , nrecyt, xdim, zdim)
     end subroutine stats_write_ytavg_moist
+
+    subroutine stats_write_ytavg_relative_humidity
+      implicit none
+      call writestat_nc(ncidyt, 'rh', rhyt, nrecyt, xdim, zdim)
+    end subroutine stats_write_ytavg_relative_humidity
 
     subroutine stats_write_ytavg_scalar
       implicit none
@@ -2466,6 +2593,11 @@ module stats
       call writestat_nc(ncidy, 'wqt'    , wqtyk   , nrecy, xdim, zdim)
       call writestat_nc(ncidy, 'qtsgs'  , qtsgsy  , nrecy, xdim, zdim)
     end subroutine stats_write_yavg_moist
+
+    subroutine stats_write_yavg_relative_humidity
+      implicit none
+      call writestat_nc(ncidy, 'rh', rhy, nrecy, xdim, zdim)
+    end subroutine stats_write_yavg_relative_humidity
 
     subroutine stats_write_yavg_scalar
       implicit none
@@ -2519,6 +2651,7 @@ module stats
         deallocate(uik,wik,vjk,wjk,uij,vij,uc,vc,wc,usgs,vsgs,wsgs)
         if (ltempeq) deallocate(tempnow,thli,thlj,thlk,thlsgs)
         if (lmoist)  deallocate(qtk,qtsgs)
+        if (lrh)     deallocate(rhnow)
       end if
       if (ltavg3d .or. lytdump .or. lydump) then
         if (nsv>0)   deallocate(svi,svj,svk,svsgs)
@@ -2531,6 +2664,7 @@ module stats
         deallocate(usgst,vsgst,wsgst)
         if (ltempeq) deallocate(tempt,thlt,thlti,thltj,thltk,uthlti,vthltj,wthltk,thlthlt,thlsgst)
         if (lmoist)  deallocate(qtt,qttk,wqttk,qtqtt,qtsgst)
+        if (lrh)     deallocate(rht)
       end if
       if (ltavg3d .or. lytdump) then
         if (nsv>0)   deallocate(svt,svti,svtj,svtk,usvti,vsvtj,wsvtk,svsvt,svsgst)
@@ -2554,6 +2688,7 @@ module stats
         deallocate(uwxytik,vwxytjk,uvxytij,uuxyti,vvxytj,wwxytk)
         if (ltempeq) deallocate(tempxyt,thlxyt,wpthlpxytk,wthlxytk,thlpthlpxyt,thlsgsxyt)
         if (lmoist)  deallocate(qtxyt,wpqtpxytk,wqtxytk,qtpqtpxyt,qtsgsxyt)
+        if (lrh)     deallocate(rhxyt)
         if (myid==0) call exitstat_nc(ncidxyt)
       end if
 
@@ -2563,6 +2698,7 @@ module stats
         deallocate(uwxyik,uxyik,wxyik,vwxyjk,vxyjk,wxyjk,uvxyij,uxyij,vxyij,uuxyi,vvxyj,wwxyk)
         if (ltempeq) deallocate(tempxy,thlxy,wpthlpxyk,wthlxyk,thlxyk,thlsgsxy)
         if (lmoist)  deallocate(qtxy,wpqtpxyk,wqtxyk,qtxyk,qtsgsxy)
+        if (lrh)     deallocate(rhxy)
         if (myid==0) call exitstat_nc(ncidxy)
       end if
 
@@ -2571,6 +2707,7 @@ module stats
         deallocate(upwpytik,uwytik,upupytc,vpvpytc,wpwpytc)
         if (ltempeq) deallocate(tempyt,thlyt,wpthlpytk,wthlytk,thlpthlpyt,thlsgsyt)
         if (lmoist)  deallocate(qtyt,wpqtpytk,wqtytk,qtpqtpyt,qtsgsyt)
+        if (lrh)     deallocate(rhyt)
         if (nsv>0)   deallocate(svytname,wpsvpytname,wsvytname,svpsvpytname,svsgsytname,svyt,wpsvpytk,wsvytk,svpsvpyt,svsgsyt)
         if (myidy==0) call exitstat_nc(ncidyt)
       end if
@@ -2580,6 +2717,7 @@ module stats
         deallocate(upwpyik,uwyik,uyik,wyik)
         if (ltempeq) deallocate(tempy,thly,wpthlpyk,wthlyk,thlyk,thlsgsy)
         if (lmoist)  deallocate(qty,wpqtpyk,wqtyk,qtyk,qtsgsy)
+        if (lrh)     deallocate(rhy)
         if (nsv>0)   deallocate(svyname,wpsvpyname,wsvyname,svsgsyname,svy,wpsvpyk,wsvyk,svyk,svsgsy)
         if (myidy==0) call exitstat_nc(ncidy)
       end if

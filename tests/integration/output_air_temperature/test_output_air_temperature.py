@@ -1,4 +1,4 @@
-"""Exercise air-temperature output in the moist NetCDF output paths."""
+"""Exercise air-temperature and relative-humidity NetCDF output paths."""
 
 from __future__ import annotations
 
@@ -23,7 +23,15 @@ EXECUTABLE = Path(os.environ.get("UDALES_EXE", ROOT / "bin" / "u-dales")).resolv
 
 class AirTemperatureOutputTest(unittest.TestCase):
     def _run_case(
-        self, case_dir: Path, fieldvars: str, slicevars: str, probevars: str, *, ltempeq: bool = True
+        self,
+        case_dir: Path,
+        fieldvars: str,
+        slicevars: str,
+        probevars: str,
+        *,
+        ltempeq: bool = True,
+        lmoist: bool = True,
+        expected_error: str | None = None,
     ) -> None:
         if not EXECUTABLE.is_file():
             self.skipTest(f"uDALES executable not found: {EXECUTABLE}")
@@ -37,6 +45,7 @@ class AirTemperatureOutputTest(unittest.TestCase):
         run = namelist["run"]
         run.update(runtime=3.0, dtmax=1.0)
         namelist["physics"]["ltempeq"] = ltempeq
+        namelist["physics"]["lmoist"] = lmoist
         output = namelist["output"]
         output.pop("tfielddump", None)
         output.update(
@@ -78,16 +87,16 @@ class AirTemperatureOutputTest(unittest.TestCase):
             command.append("--oversubscribe")
         command += ["-n", "8", str(EXECUTABLE), f"namoptions.{CASE}"]
         result = subprocess.run(command, cwd=case_dir, capture_output=True, text=True, timeout=120, check=False)
-        if ltempeq:
+        if expected_error is None:
             self.assertEqual(result.returncode, 0, result.stdout[-4000:] + result.stderr[-4000:])
         else:
             self.assertNotEqual(result.returncode, 0)
-            self.assertIn("'ta' output requires ltempeq=.true.", result.stdout + result.stderr)
+            self.assertIn(expected_error, result.stdout + result.stderr)
 
     def test_moist_output_families(self) -> None:
         with tempfile.TemporaryDirectory(prefix="udales_air_temp_") as tmp:
             case_dir = Path(tmp)
-            self._run_case(case_dir, "th,ta,qt,ql", "th,ta,qt", "th,ta,qt")
+            self._run_case(case_dir, "th,ta,rh,qt,ql", "th,ta,rh,qt", "th,ta,rh,qt")
 
             families = (
                 "ins_field", "ins_islice", "ins_jslice", "ins_kslice", "ins_probe",
@@ -103,23 +112,40 @@ class AirTemperatureOutputTest(unittest.TestCase):
                         with Dataset(path) as ds:
                             self.assertIn("thl", ds.variables)
                             self.assertIn("tha", ds.variables)
+                            self.assertIn("rh", ds.variables)
                             self.assertEqual(ds["tha"].getncattr("units"), "K")
+                            self.assertEqual(ds["rh"].getncattr("units"), "%")
                             values = np.asarray(ds["tha"][:])
+                            rh = np.asarray(ds["rh"][:])
                             self.assertTrue(np.isfinite(values).all())
+                            self.assertTrue(np.isfinite(rh).all())
                             self.assertGreater(values.min(), 150.0)
                             self.assertLess(values.max(), 350.0)
+                            self.assertGreaterEqual(rh.min(), 0.0)
+                            self.assertGreater(rh.max(), 0.0)
+                            self.assertLess(rh.max(), 110.0)
 
             field_file = next(case_dir.glob(f"ins_field.*.{CASE}.nc"))
             with Dataset(field_file) as ds:
                 thl = np.asarray(ds["thl"][:])
                 ql = np.asarray(ds["ql"][:])
                 temp = np.asarray(ds["tha"][:])
+                rh = np.asarray(ds["rh"][:])
+                qt = np.asarray(ds["qt"][:])
                 self.assertGreater(ds["qt"][:].max(), 0.0)
                 self.assertGreaterEqual(ql.min(), 0.0)
                 exner = (temp - (2.26e6 / 1004.0) * ql) / thl
                 self.assertTrue(np.isfinite(exner).all())
                 self.assertTrue(((exner > 0.9) & (exner < 1.1)).all())
                 self.assertLess(np.max(np.abs(exner - exner.mean(axis=(-2, -1), keepdims=True))), 2e-6)
+
+                pressure = 1.0e5 * exner ** (1004.0 / 287.04)
+                epsilon = 287.04 / 461.5
+                qv = qt - ql
+                vapor_pressure = qv * pressure / (epsilon + (1.0 - epsilon) * qv)
+                saturation_vapor_pressure = 610.78 * np.exp(17.27 * (temp - 273.16) / (temp - 35.86))
+                expected_rh = 100.0 * vapor_pressure / saturation_vapor_pressure
+                np.testing.assert_allclose(rh, expected_rh, rtol=2e-5, atol=2e-4)
 
             with (
                 Dataset(case_dir / f"ins_field.001.{CASE}.nc") as field,
@@ -134,6 +160,12 @@ class AirTemperatureOutputTest(unittest.TestCase):
                 self.assertAlmostEqual(float(kslice["tha"][0, 0, 15, 15]), expected, places=4)
                 self.assertAlmostEqual(float(probe["tha"][0, 0]), expected, places=4)
 
+                expected_rh = float(field["rh"][0, 11, 15, 15])
+                self.assertAlmostEqual(float(islice["rh"][0, 11, 15, 0]), expected_rh, places=4)
+                self.assertAlmostEqual(float(jslice["rh"][0, 11, 0, 31]), expected_rh, places=4)
+                self.assertAlmostEqual(float(kslice["rh"][0, 0, 15, 15]), expected_rh, places=4)
+                self.assertAlmostEqual(float(probe["rh"][0, 0]), expected_rh, places=4)
+
             with (
                 Dataset(case_dir / f"stats_t.001.{CASE}.nc") as full,
                 Dataset(case_dir / f"stats_islice.001.{CASE}.nc") as islice,
@@ -145,12 +177,18 @@ class AirTemperatureOutputTest(unittest.TestCase):
                 self.assertAlmostEqual(float(jslice["tha"][0, 11, 0, 31]), expected, places=4)
                 self.assertAlmostEqual(float(kslice["tha"][0, 0, 15, 15]), expected, places=4)
 
+                expected_rh = float(full["rh"][0, 11, 15, 15])
+                self.assertAlmostEqual(float(islice["rh"][0, 11, 15, 0]), expected_rh, places=4)
+                self.assertAlmostEqual(float(jslice["rh"][0, 11, 0, 31]), expected_rh, places=4)
+                self.assertAlmostEqual(float(kslice["rh"][0, 0, 15, 15]), expected_rh, places=4)
+
     def test_instantaneous_ta_selection_is_independent(self) -> None:
         baseline_thl = {}
         selections = (
-            ("th", ("thl",), ("tha",)),
-            ("th,ta", ("thl", "tha"), ()),
-            ("ta", ("tha",), ("thl",)),
+            ("th", ("thl",), ("tha", "rh")),
+            ("th,ta", ("thl", "tha"), ("rh",)),
+            ("ta", ("tha",), ("thl", "rh")),
+            ("rh", ("rh",), ("thl", "tha")),
         )
         for selected, present, absent in selections:
             with self.subTest(selected=selected), tempfile.TemporaryDirectory(prefix="udales_air_temp_") as tmp:
@@ -173,7 +211,22 @@ class AirTemperatureOutputTest(unittest.TestCase):
 
     def test_ta_requires_temperature_equation(self) -> None:
         with tempfile.TemporaryDirectory(prefix="udales_air_temp_") as tmp:
-            self._run_case(Path(tmp), "ta", "ta", "ta", ltempeq=False)
+            self._run_case(
+                Path(tmp), "ta", "ta", "ta", ltempeq=False,
+                expected_error="'ta' output requires ltempeq=.true.",
+            )
+
+    def test_rh_requires_temperature_and_moisture_equations(self) -> None:
+        configurations = (
+            {"ltempeq": False, "lmoist": True},
+            {"ltempeq": True, "lmoist": False},
+        )
+        for configuration in configurations:
+            with self.subTest(**configuration), tempfile.TemporaryDirectory(prefix="udales_rh_") as tmp:
+                self._run_case(
+                    Path(tmp), "rh", "rh", "rh", **configuration,
+                    expected_error="'rh' output requires ltempeq=.true. and lmoist=.true.",
+                )
 
 
 if __name__ == "__main__":

@@ -32,7 +32,7 @@ module modthermodynamics
 
   implicit none
   !   private
-  public :: thermodynamics,calc_halflev,air_temperature
+  public :: thermodynamics,calc_halflev,air_temperature,relative_humidity
   public :: lqlnr
   logical :: lqlnr    = .false. !< switch for ql calc. with Newton-Raphson (on/off)
   real, allocatable :: th0av(:)
@@ -47,6 +47,19 @@ contains
 
     temp = thl*exner + rlvocp*ql
   end function air_temperature
+
+  pure elemental real function relative_humidity(qt, ql, temp, pressure) result(rh)
+    use modglobal, only : rd, rv, es0, at, bt, tmelt
+    implicit none
+    real, intent(in) :: qt, ql, temp, pressure
+    real :: epsilon, qv, vapor_pressure, saturation_vapor_pressure
+
+    epsilon = rd/rv
+    qv = qt - ql
+    vapor_pressure = qv*pressure/(epsilon + (1.0-epsilon)*qv)
+    saturation_vapor_pressure = es0*exp(at*(temp-tmelt)/(temp-bt))
+    rh = 100.0*vapor_pressure/saturation_vapor_pressure
+  end function relative_humidity
 
   !> Allocate and initialize arrays
   subroutine initthermodynamics

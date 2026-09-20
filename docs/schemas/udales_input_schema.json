@@ -1123,7 +1123,7 @@
         "fieldvars": {
           "type": "string",
           "default": "",
-          "description": "Variable names of fields (u0,v0,w0,th,ql,qt,p0,s1,s2,s3,s4,s5)"
+          "description": "Variable names of fields (u0,v0,w0,th,ta,rh,ql,qt,p0,s1,s2,s3,s4,s5)"
         },
         "tsample": {
           "type": "number",
