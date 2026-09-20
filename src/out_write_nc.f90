@@ -581,6 +581,49 @@ subroutine writeoffset(ncid, ncname, var, nrec, dim1, dim2, dim3)
 
 end subroutine writeoffset
 
+! Gather a two-dimensional x-y field over the y decomposition and write one
+! time record. The x decomposition remains split across the usual per-x-rank
+! statistics files, matching writeoffset for three-dimensional fields.
+subroutine writeoffset_2d(ncid, ncname, var, nrec, dim1, dim2)
+  use mpi
+  use modmpi, only : MY_REAL
+  implicit none
+
+  integer,      intent(in) :: ncid, nrec, dim1, dim2
+  real,         intent(in) :: var(dim1,dim2)
+  character(*), intent(in) :: ncname
+
+  integer :: iret, VarID, ierr, status(MPI_STATUS_SIZE)
+  integer, dimension(3) :: startpos, countpos
+  integer :: step, src
+  real, dimension(dim1,dim2) :: bufin, bufout
+
+  call MPI_BARRIER(comm1dy, ierr)
+
+  bufin = var
+  iret = nf90_inq_varid(ncid, ncname, VarID)
+  countpos = (/ dim1, dim2, 1 /)
+
+  do step = 1, nprocy
+    if (myid1dy == 0) then
+      src = step - 1
+      startpos = (/ 1, 1 + src*dim2, nrec /)
+      iret = nf90_put_var(ncid, VarID, bufin, start=startpos, count=countpos)
+    end if
+
+    call MPI_SENDRECV( &
+         bufin,  size(bufin),  MY_REAL, nbrboty, 3000+step, &
+         bufout, size(bufout), MY_REAL, nbrtopy, 3000+step, &
+         comm1dy, status, ierr )
+
+    bufin = bufout
+  end do
+
+  if (myid1dy == 0) then
+    iret = nf90_sync(ncid)
+  end if
+end subroutine writeoffset_2d
+
 
 ! 1D ring writer along X-direction (comm1dx)
 subroutine writeoffset_1dx(ncid, ncname, var, nrec, dim1, dim2, dim3)

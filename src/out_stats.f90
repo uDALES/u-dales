@@ -41,7 +41,8 @@ module stats
   use vegetation, only : veg, vegp, npts_u, npts_v, npts_w, ijk_u, ijk_v, ijk_w, veg_up, veg_vp, veg_wp
   use modmpi,     only : cmyidx, cmyidy, myid, myidx, myidy, spatial_avg
   use decomp_2d,  only : zstart, zend
-  use modstat_nc, only : ncinfo, open_nc, define_nc, writestat_dims_nc, writestat_nc, writeoffset, writeoffset_1dx
+  use modstat_nc, only : ncinfo, open_nc, define_nc, writestat_dims_nc, writestat_nc, &
+                         writeoffset, writeoffset_2d, writeoffset_1dx, nc_fillvalue
   use netcdf
 
   implicit none
@@ -68,6 +69,7 @@ module stats
   character(80)              :: filenametree
   character(80)              :: timeVar(1,4)
   character(80), allocatable :: tVars(:,:), xytVars(:,:), xyVars(:,:), ytVars(:,:), yVars(:,:), treeVars(:,:)
+  character(80)              :: pedestrianWindVars(2,4)
   integer                    :: tVarsCount, xytVarsCount, xyVarsCount, ytVarsCount, yVarsCount, treeVarsCount
   logical                    :: lstatsprepared = .false.  !< accumulators allocated and files created (done lazily at tstatstart)
   integer                    :: ctrt,    ncidt,    nrect, &
@@ -116,6 +118,14 @@ module stats
   real, allocatable :: usgst(:,:,:)
   real, allocatable :: vsgst(:,:,:)
   real, allocatable :: wsgst(:,:,:)
+
+  real, parameter   :: pedestrian_height = 1.1
+  real, parameter   :: utci_wind_height  = 10.0
+  real, allocatable :: ws_1p1t(:,:), ws_10t(:,:), ws_now(:,:)
+  logical, allocatable :: ws_1p1_valid(:,:), ws_10_valid(:,:)
+  integer :: ws_1p1_klo, ws_1p1_khi, ws_10_klo, ws_10_khi
+  real    :: ws_1p1_weight, ws_10_weight
+  logical :: ws_1p1_available, ws_10_available
 
   real, allocatable :: thlt(:,:,:)
   real, allocatable :: tempnow(:,:,:), tempt(:,:,:)
@@ -334,6 +344,7 @@ module stats
 
   interface stats_compute_tavg
     module procedure stats_compute_tavg_1D
+    module procedure stats_compute_tavg_2D
     module procedure stats_compute_tavg_3D
   end interface stats_compute_tavg
 
@@ -421,6 +432,7 @@ module stats
       if(lstatstavgdump) then
         !> allocate variables to compute time-averaged quantities
         call stats_allocate_tavg_vel
+        if (ltdump)  call stats_allocate_tavg_pedestrian_wind
         if (ltempeq) call stats_allocate_tavg_temp
         if (lmoist)  call stats_allocate_tavg_moist
         if (lrh)     call stats_allocate_tavg_relative_humidity
@@ -586,6 +598,7 @@ module stats
 
         if(lstatstavgdump) then
           call stats_compute_tavg_vel
+          if (ltdump)  call stats_compute_tavg_pedestrian_wind
           if (ltempeq) call stats_compute_tavg_temp
           if (lmoist)  call stats_compute_tavg_moist
           if (lrh)     call stats_compute_tavg_relative_humidity
@@ -711,6 +724,7 @@ module stats
 
         if(lstatstavgdump) then
           call stats_reset_tavg_vel
+          if (ltdump)  call stats_reset_tavg_pedestrian_wind
           if (ltempeq) call stats_reset_tavg_temp
           if (lmoist)  call stats_reset_tavg_moist
           if (lrh)     call stats_reset_tavg_relative_humidity
@@ -823,6 +837,86 @@ module stats
       allocate(vsgst(ib:ie,jb:je,kb:ke+kh)); vsgst = 0.;
       allocate(wsgst(ib:ie,jb:je,kb:ke+kh)); wsgst = 0.;
     end subroutine stats_allocate_tavg_vel
+
+    subroutine stats_allocate_tavg_pedestrian_wind
+      implicit none
+
+      allocate(ws_1p1t(ib:ie,jb:je)); ws_1p1t = 0.
+      allocate(ws_10t  (ib:ie,jb:je)); ws_10t   = 0.
+      allocate(ws_now  (ib:ie,jb:je)); ws_now   = 0.
+      allocate(ws_1p1_valid(ib:ie,jb:je)); ws_1p1_valid = .false.
+      allocate(ws_10_valid  (ib:ie,jb:je)); ws_10_valid   = .false.
+
+      call stats_find_vertical_bracket(pedestrian_height, ws_1p1_klo, ws_1p1_khi, &
+                                       ws_1p1_weight, ws_1p1_available)
+      call stats_find_vertical_bracket(utci_wind_height, ws_10_klo, ws_10_khi, &
+                                       ws_10_weight, ws_10_available)
+
+      if (ws_1p1_available) then
+        if (ws_1p1_klo == ws_1p1_khi) then
+          ws_1p1_valid = IIc(ib:ie,jb:je,ws_1p1_klo) == 1
+        else
+          ws_1p1_valid = (IIc(ib:ie,jb:je,ws_1p1_klo) == 1) .and. &
+                          (IIc(ib:ie,jb:je,ws_1p1_khi) == 1)
+        end if
+      else if (myid == 0) then
+        write(0,*) 'WARNING: ws_1p1 cannot be sampled because z=1.1 m is outside the scalar-level range.'
+      end if
+
+      if (ws_10_available) then
+        if (ws_10_klo == ws_10_khi) then
+          ws_10_valid = IIc(ib:ie,jb:je,ws_10_klo) == 1
+        else
+          ws_10_valid = (IIc(ib:ie,jb:je,ws_10_klo) == 1) .and. &
+                        (IIc(ib:ie,jb:je,ws_10_khi) == 1)
+        end if
+      else if (myid == 0) then
+        write(0,*) 'WARNING: ws_10 cannot be sampled because z=10 m is outside the scalar-level range.'
+      end if
+
+      call ncinfo(pedestrianWindVars(1,:), 'ws_1p1', &
+                  'Time-mean horizontal wind speed at z=1.1 m above model ground', 'm/s', 'tt0t')
+      call ncinfo(pedestrianWindVars(2,:), 'ws_10', &
+                  'Time-mean horizontal wind speed at z=10 m above model ground', 'm/s', 'tt0t')
+    end subroutine stats_allocate_tavg_pedestrian_wind
+
+    subroutine stats_find_vertical_bracket(height, klo, khi, weight, available)
+      implicit none
+      real,    intent(in)  :: height
+      integer, intent(out) :: klo, khi
+      real,    intent(out) :: weight
+      logical, intent(out) :: available
+      integer :: k
+      real    :: tol
+
+      klo = kb
+      khi = kb
+      weight = 0.
+      available = .false.
+
+      if (height < zf(kb) .or. height > zf(ke)) return
+
+      do k = kb, ke
+        tol = 100.*epsilon(1.)*max(1., abs(height), abs(zf(k)))
+        if (abs(height-zf(k)) <= tol) then
+          klo = k
+          khi = k
+          available = .true.
+          return
+        end if
+      end do
+
+      do k = kb, ke-1
+        if (height > zf(k) .and. height < zf(k+1)) then
+          klo = k
+          khi = k+1
+          weight = (height-zf(k))/(zf(k+1)-zf(k))
+          available = .true.
+          return
+        end if
+      end do
+    end subroutine stats_find_vertical_bracket
+
     subroutine stats_ncdescription_tavg_vel
       implicit none
       !> Generate variable description for the quantities to be written in the time averaged NetCDF: stats.xxx.xxx.xxx.nc
@@ -964,6 +1058,7 @@ module stats
           call writestat_dims_nc(ncidt)
         end if
         call define_nc(ncidt, tVarsCount, tVars)
+        call define_nc(ncidt, size(pedestrianWindVars,1), pedestrianWindVars)
       end if
     end subroutine stats_createnc_tavg
 
@@ -977,6 +1072,12 @@ module stats
       uutc  = 0. ; vvtc  = 0. ; wwtc  = 0.
       usgst = 0. ; vsgst = 0. ; wsgst = 0.
     end subroutine stats_reset_tavg_vel
+
+    subroutine stats_reset_tavg_pedestrian_wind
+      implicit none
+      ws_1p1t = 0.
+      ws_10t = 0.
+    end subroutine stats_reset_tavg_pedestrian_wind
 
     subroutine stats_reset_tavg_temp
       implicit none
@@ -1690,6 +1791,47 @@ module stats
       call stats_compute_tavg(wsgst,  wsgs)
     end subroutine stats_compute_tavg_vel
 
+    subroutine stats_compute_tavg_pedestrian_wind
+      implicit none
+
+      if (ws_1p1_available) then
+        call stats_horizontal_speed_at_height(ws_1p1_klo, ws_1p1_khi, ws_1p1_weight, &
+                                              ws_1p1_valid, ws_now)
+        call stats_compute_tavg(ws_1p1t, ws_now)
+      end if
+
+      if (ws_10_available) then
+        call stats_horizontal_speed_at_height(ws_10_klo, ws_10_khi, ws_10_weight, &
+                                              ws_10_valid, ws_now)
+        call stats_compute_tavg(ws_10t, ws_now)
+      end if
+    end subroutine stats_compute_tavg_pedestrian_wind
+
+    subroutine stats_horizontal_speed_at_height(klo, khi, weight, valid, speed)
+      implicit none
+      integer, intent(in)  :: klo, khi
+      real,    intent(in)  :: weight
+      logical, intent(in)  :: valid(ib:ie,jb:je)
+      real,    intent(out) :: speed(ib:ie,jb:je)
+      integer :: i, j
+      real    :: uheight, vheight
+
+      speed = 0.
+      do j = jb, je
+        do i = ib, ie
+          if (.not. valid(i,j)) cycle
+          if (klo == khi) then
+            uheight = uc(i,j,klo)
+            vheight = vc(i,j,klo)
+          else
+            uheight = (1.-weight)*uc(i,j,klo) + weight*uc(i,j,khi)
+            vheight = (1.-weight)*vc(i,j,klo) + weight*vc(i,j,khi)
+          end if
+          speed(i,j) = sqrt(uheight*uheight + vheight*vheight)
+        end do
+      end do
+    end subroutine stats_horizontal_speed_at_height
+
     subroutine stats_compute_tavg_temp
       implicit none
       call stats_compute_tavg(thlt   , thlm(ib:ie,jb:je,kb:ke+kh))
@@ -1757,6 +1899,12 @@ module stats
       real, intent(in)    :: var(:)
       vart = ( vart*(tstatsdumpp-tsamplep) + var*tsamplep )*tstatsdumppi
     end subroutine stats_compute_tavg_1D
+    subroutine stats_compute_tavg_2D(vart,var)
+      implicit none
+      real, intent(inout) :: vart(:,:)
+      real, intent(in)    :: var(:,:)
+      vart = ( vart*(tstatsdumpp-tsamplep) + var*tsamplep )*tstatsdumppi
+    end subroutine stats_compute_tavg_2D
     subroutine stats_compute_tavg_3D(vart,var)
       implicit none
       real, intent(inout) :: vart(:,:,:)
@@ -2209,12 +2357,23 @@ module stats
       implicit none
       integer :: n
       real, allocatable :: fld(:,:,:)
+      real, allocatable :: fld2d(:,:)
       allocate(fld(ib:ie, jb:je, kb:ke))
       do n = 1, tVarsCount
         call stats_tavg_field(trim(tVars(n,1)), fld)
         call writeoffset(ncidt, trim(tVars(n,1)), fld, nrect, xdim, ydim, zdim)
       end do
       deallocate(fld)
+
+      allocate(fld2d(ib:ie,jb:je))
+      fld2d = ws_1p1t
+      where (.not. ws_1p1_valid) fld2d = nc_fillvalue
+      call writeoffset_2d(ncidt, 'ws_1p1', fld2d, nrect, xdim, ydim)
+
+      fld2d = ws_10t
+      where (.not. ws_10_valid) fld2d = nc_fillvalue
+      call writeoffset_2d(ncidt, 'ws_10', fld2d, nrect, xdim, ydim)
+      deallocate(fld2d)
     end subroutine stats_write_tavg
 
     !> Time averages on the yz-planes islice(1:nislice): stats_islice.xxx.xxx.nc, one file
@@ -2703,6 +2862,9 @@ module stats
         if (ltempeq) deallocate(tempt,thlt,thlti,thltj,thltk,uthlti,vthltj,wthltk,thlthlt,thlsgst)
         if (lmoist)  deallocate(qtt,qlt,qttk,wqttk,qtqtt,qtsgst)
         if (lrh)     deallocate(rht)
+      end if
+      if (ltdump) then
+        deallocate(ws_1p1t,ws_10t,ws_now,ws_1p1_valid,ws_10_valid)
       end if
       if (ltavg3d .or. lytdump) then
         if (nsv>0)   deallocate(svt,svti,svtj,svtk,usvti,vsvtj,wsvtk,svsvt,svsgst)

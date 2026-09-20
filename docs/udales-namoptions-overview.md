@@ -285,7 +285,7 @@ BCs at the bottom (BCbot; only effective if not covered with ground facets): 1 =
 | tstatsdump | 10000. | `REAL` | Output time for statistics. | [s] |
 | tstatstart | 0. | `REAL` | Time from which statistics computation or data sampling starts. | [s] |
 | tstatsgap | 0. | `REAL` | If > 0, time-averaged statistics are written on a fixed absolute schedule: dumps at `tstatstart + n*(tstatsdump + tstatsgap)` (n = 1, 2, ...), each averaging the `tstatsdump` seconds preceding it; no sampling during the gap. The schedule is kept across warm starts. E.g. `tstatstart = 21600`, `tstatsdump = 900`, `tstatsgap = 13500` gives 15-min means ending at t = 36000, 50400, ... | [s] |
-| ltdump | .false. | .true. or .false. | Switch to output time-averaged statistics. | - |
+| ltdump | .false. | .true. or .false. | Write time-averaged statistics to `stats_t.xxx.xxx.nc`, including 2D horizontal wind speed at z=1.1 m (`ws_1p1`) and z=10 m (`ws_10`). | - |
 | ltislicedump | .false. | .true. or .false. | Write the time-averaged statistics (same variables and schedule as `ltdump`) only on the yz-planes `islice(1:nislice)`, to `stats_islice.xxx.xxx.nc`. Can be used with or without `ltdump`. | - |
 | ltjslicedump | .false. | .true. or .false. | As `ltislicedump` for the xz-planes `jslice(1:njslice)`, to `stats_jslice.xxx.xxx.nc`. | - |
 | ltkslicedump | .false. | .true. or .false. | As `ltislicedump` for the xy-planes `kslice(1:nkslice)`, to `stats_kslice.xxx.xxx.nc`. | - |

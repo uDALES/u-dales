@@ -289,6 +289,39 @@ class AirTemperatureOutputTest(unittest.TestCase):
                         self.assertEqual(ds["pabs"].getncattr("units"), "Pa")
                         self.assertGreater(np.asarray(ds["pabs"][:]).min(), 5.0e4)
 
+    def test_pedestrian_wind_speed_is_stats_only(self) -> None:
+        with tempfile.TemporaryDirectory(prefix="udales_pedestrian_wind_") as tmp:
+            case_dir = Path(tmp)
+            self._run_case(case_dir, "u0,v0,w0", "u0,v0,w0", "u0,v0,w0")
+
+            stats_files = sorted(case_dir.glob(f"stats_t.*.{CASE}.nc"))
+            self.assertTrue(stats_files, "No stats_t files found")
+            found_fill_value = False
+            for path in stats_files:
+                with Dataset(path) as ds:
+                    for name in ("ws_1p1", "ws_10"):
+                        with self.subTest(file=path.name, variable=name):
+                            self.assertIn(name, ds.variables)
+                            variable = ds[name]
+                            self.assertEqual(variable.dimensions, ("time", "yt", "xt"))
+                            self.assertEqual(variable.getncattr("units"), "m/s")
+                            values = np.ma.asarray(variable[:])
+                            valid_values = values.compressed()
+                            self.assertGreater(valid_values.size, 0)
+                            self.assertTrue(np.isfinite(valid_values).all())
+                            self.assertGreaterEqual(valid_values.min(), 0.0)
+                            found_fill_value = found_fill_value or np.ma.getmaskarray(values).any()
+            self.assertTrue(found_fill_value, "Expected solid cells to use the NetCDF fill value")
+
+            for family in ("ins_field", "ins_islice", "ins_jslice", "ins_kslice", "ins_probe"):
+                files = list(case_dir.glob(f"{family}.*.{CASE}.nc"))
+                files += list(case_dir.glob(f"{family}.{CASE}.nc"))
+                self.assertTrue(files, f"No {family} files found")
+                for path in files:
+                    with Dataset(path) as ds:
+                        self.assertNotIn("ws_1p1", ds.variables)
+                        self.assertNotIn("ws_10", ds.variables)
+
 
 if __name__ == "__main__":
     unittest.main()
