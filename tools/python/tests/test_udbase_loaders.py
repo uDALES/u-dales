@@ -205,6 +205,18 @@ class TestNetCDFLoaders(_CaseBase):
 
 
 class TestRadiationInputLoaders(_CaseBase):
+    def test_shortwave_forcing_uses_existing_netcdf_reader(self):
+        _write_nc(
+            self.workdir / "shortwave_forcing.001.nc",
+            {"dni": (("time",), [0., 650.]),
+             "dsky": (("time",), [12., 90.])},
+            {"time": [0., 300.]},
+        )
+        sim = self._sim()
+        np.testing.assert_array_equal(sim.load_shortwave_forcing("dni"), [0., 650.])
+        with sim.load_shortwave_forcing() as archive:
+            self.assertIn("dsky", archive)
+
     def test_sdir_uses_existing_netcdf_reader(self):
         _write_nc(
             self.workdir / "Sdir.nc",

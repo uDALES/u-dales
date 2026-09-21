@@ -12,6 +12,7 @@ import unittest
 from unittest import mock
 
 import numpy as np
+from netCDF4 import Dataset
 
 from _common import PYTHON_DIR  # noqa: F401
 
@@ -184,7 +185,9 @@ class TestShortwaveWriters(unittest.TestCase):
             case_dir.mkdir()
             prep = types.SimpleNamespace(
                 sim=types.SimpleNamespace(path=case_dir, expnr="300"),
-                radiation=types.SimpleNamespace(),
+                radiation=types.SimpleNamespace(
+                    year=2023, month=8, day=21, hour=0, minute=0, second=0
+                ),
             )
             atmosphere = ShortwaveAtmosphere(
                 times=np.array([0.0, 10.0]),
@@ -217,6 +220,19 @@ class TestShortwaveWriters(unittest.TestCase):
                 )
 
             self.assertEqual(result.netsw_path, case_dir / "netsw.inp.300")
+            self.assertEqual(result.shortwave_forcing_path, case_dir / "shortwave_forcing.300.nc")
+            with Dataset(result.shortwave_forcing_path) as archive:
+                for name, expected in (
+                    ("time", atmosphere.times),
+                    ("ghi", atmosphere.ghi),
+                    ("dni", atmosphere.dni),
+                    ("dsky", atmosphere.dsky),
+                    ("solar_zenith", atmosphere.zenith),
+                    ("solar_azimuth_local", atmosphere.azimuth_local),
+                ):
+                    np.testing.assert_array_equal(archive.variables[name][:], expected)
+                self.assertEqual(archive.simulation_start, "2023-08-21T00:00:00")
+                self.assertIn("Erbs", archive.source)
             np.testing.assert_allclose(
                 np.loadtxt(result.netsw_path, skiprows=1), knet[:, 0]
             )
@@ -224,6 +240,7 @@ class TestShortwaveWriters(unittest.TestCase):
                 (case_dir / "benchmark.summary.json").read_text(encoding="ascii")
             )
             self.assertEqual(summary["status"], "completed")
+            self.assertEqual(summary["outputs"]["shortwave_forcing"], str(result.shortwave_forcing_path))
             self.assertIn("total_wall_seconds", summary)
 
 

@@ -1039,6 +1039,10 @@ class UDBase:
         """Load the facet direct-shortwave archive (Sdir and tSP)."""
         return self._load_ncdata(self.path / "Sdir.nc", var)
 
+    def load_shortwave_forcing(self, var: Optional[str] = None) -> Union[xr.Dataset, np.ndarray]:
+        """Load atmospheric DNI and diffuse sky irradiance saved by preprocessing."""
+        return self._load_ncdata(self.path / f"shortwave_forcing.{self.expnr}.nc", var)
+
     def load_timedepsw(
         self, *, facet_indices: Optional[np.ndarray] = None, time_index: Optional[int] = None
     ) -> Dict[str, np.ndarray]:

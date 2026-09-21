@@ -19,6 +19,7 @@ if TYPE_CHECKING:
     # module can be imported without triggering compilation.
     from .directshortwave import DirectShortwaveSolver
 from .solar import nsun_from_angles, solar_position_python, solar_state, solar_strength_ashrae
+from .shortwave_forcing import write_shortwave_forcing
 from udgeom.view3d import (
     ViewFactorRepairLimits,
     ViewFactorRepairReport,
@@ -757,6 +758,7 @@ class RadiationSection(Section):
 
         sdir_path = out_dir / "Sdir.txt"
         netsw_path = out_dir / f"netsw.inp.{sim.expnr}"
+        forcing_path = out_dir / f"shortwave_forcing.{sim.expnr}.nc"
         # P5 remainder: validate that existing outputs still match the current
         # inputs before skipping. The signature is computed defensively so a
         # minimal sim never crashes here; a MISSING sidecar counts as valid
@@ -769,6 +771,15 @@ class RadiationSection(Section):
             and netsw_path.exists()
             and (stored_sig is None or stored_sig == sw_sig)
         ):
+            if not forcing_path.exists():
+                start = datetime(self.year, self.month, self.day, self.hour, self.minute, self.second)
+                _, zenith, azimuth, irradiance, dsky = self._solar_state_time(start)
+                write_shortwave_forcing(
+                    forcing_path,
+                    np.array([0.0]), np.array([irradiance]), np.array([dsky]),
+                    np.array([zenith]), np.array([azimuth]),
+                    source=f"uDALES isolar={self.isolar}", start_time=start.isoformat(),
+                )
             legacy_vs3_path = out_dir / "facets.vs3"
             if legacy_vs3_path.exists() and (out_dir / f"facets.{sim.expnr}.vs3").exists():
                 legacy_vs3_path.unlink()
@@ -787,7 +798,7 @@ class RadiationSection(Section):
             self.minute,
             self.second,
         )
-        nsun, _, _, irradiance, dsky = self._solar_state_time(start)
+        nsun, zenith, azimuth, irradiance, dsky = self._solar_state_time(start)
 
         lscatter = self.lEB
         albedo = sim.assign_prop_to_fac("al")
@@ -815,6 +826,66 @@ class RadiationSection(Section):
         self.write_netsw(knet, s_veg=s_veg)
         np.savetxt(sdir_path, sdir, fmt="%8.2f")
         _write_sig(sdir_path, sw_sig)
+        write_shortwave_forcing(
+            forcing_path,
+            np.array([0.0]), np.array([irradiance]), np.array([dsky]),
+            np.array([zenith]), np.array([azimuth]),
+            source=f"uDALES isolar={self.isolar}", start_time=start.isoformat(),
+            overwrite=True,
+        )
+
+    def _timedep_shortwave_atmosphere(
+        self, times: np.ndarray
+    ) -> Tuple[datetime, np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+        """Evaluate the same solar inputs used by the timedep facet loop."""
+        start = datetime(self.year, self.month, self.day, self.hour, self.minute, self.second)
+        nt = times.size
+        nsun_all = np.zeros((nt, 3), dtype=float)
+        zenith_all = np.zeros(nt, dtype=float)
+        azimuth_all = np.zeros(nt, dtype=float)
+        irradiance_all = np.zeros(nt, dtype=float)
+        dsky_all = np.zeros(nt, dtype=float)
+
+        if self.isolar == 3:
+            weather = self._read_weather_table(Path(self.weatherfname))
+            date_val = int(start.strftime("%d%m%y"))
+            rows = weather["date"] == date_val
+            if not np.any(rows):
+                raise ValueError(f"No weather data for date {date_val} in {self.weatherfname}")
+
+            timedep_time = weather["TIME"][rows]
+            timedep_zenith = weather["SOLAR"][rows]
+            timedep_azimuth = weather["SOLAR_1"][rows] + 90.0
+            timedep_I = weather["HELIOM"][rows]
+            timedep_Dsky = weather["DIFSOLAR"][rows]
+
+            shift = -start.hour
+            timedep_zenith = np.roll(timedep_zenith, shift)
+            timedep_azimuth = np.roll(timedep_azimuth, shift)
+            timedep_I = np.roll(timedep_I, shift)
+            timedep_Dsky = np.roll(timedep_Dsky, shift)
+
+            x = np.concatenate([timedep_time, [86400.0]])
+            zenith_all[:] = self._interp_makima(x, np.concatenate([timedep_zenith, [timedep_zenith[0]]]), times)
+            azimuth_all[:] = self._interp_makima(x, np.concatenate([timedep_azimuth, [timedep_azimuth[0]]]), times) - self.xazimuth
+            irradiance_all[:] = self._interp_makima(x, np.concatenate([timedep_I, [timedep_I[0]]]), times)
+            dsky_all[:] = self._interp_makima(x, np.concatenate([timedep_Dsky, [timedep_Dsky[0]]]), times)
+
+            for n in range(nt):
+                if (zenith_all[n] < 90.0 and irradiance_all[n] > 0.0
+                        and abs(np.cos(np.radians(zenith_all[n]))) >= _MIN_SUN_VERTICAL):
+                    nsun_all[n] = nsun_from_angles(float(zenith_all[n]), float(azimuth_all[n]))
+        else:
+            for n, time_value in enumerate(times):
+                when = start + timedelta(seconds=float(time_value))
+                nsun, zenith, azimuth, irradiance, dsky = self._solar_state_time(when)
+                nsun_all[n] = nsun
+                zenith_all[n] = zenith
+                azimuth_all[n] = azimuth
+                irradiance_all[n] = irradiance
+                dsky_all[n] = dsky
+
+        return start, nsun_all, zenith_all, azimuth_all, irradiance_all, dsky_all
 
     def run_short_wave_timedep(self, force: bool = False) -> None:
         """
@@ -830,6 +901,7 @@ class RadiationSection(Section):
         sdir_nc_path = out_dir / "Sdir.nc"
         timedepsw_path = out_dir / f"timedepsw.inp.{sim.expnr}"
         timedepsveg_path = out_dir / f"timedepsveg.inp.{sim.expnr}"
+        forcing_path = out_dir / f"shortwave_forcing.{sim.expnr}.nc"
         # P5 remainder: validate the cached outputs against the current inputs
         # (defensive signature; missing sidecar = valid, mismatch = recompute).
         sw_sig = self._shortwave_output_signature(timedep=True)
@@ -841,11 +913,31 @@ class RadiationSection(Section):
             and (stored_sig is None or stored_sig == sw_sig)
         ):
             if timedepsveg_path.exists() or not sim.ltrees:
+                if not forcing_path.exists():
+                    cached_times = np.arange(0.0, self.runtime + 0.5 * self.dtSP, self.dtSP, dtype=float)
+                    with timedepsw_path.open(encoding="ascii") as cached_file:
+                        cached_file.readline()
+                        saved_times = np.fromstring(cached_file.readline(), sep=" ")
+                    if saved_times.shape != cached_times.shape or not np.allclose(
+                        saved_times, cached_times, rtol=0.0, atol=0.005
+                    ):
+                        raise ValueError(
+                            f"Cached {timedepsw_path.name} times do not match runtime/dtSP; "
+                            "cannot archive its original shortwave forcing"
+                        )
+                    start, _, zenith, azimuth, irradiance, dsky = self._timedep_shortwave_atmosphere(cached_times)
+                    write_shortwave_forcing(
+                        forcing_path, cached_times, irradiance, dsky, zenith, azimuth,
+                        source=f"uDALES isolar={self.isolar}", start_time=start.isoformat(),
+                    )
                 self._write_initial_netsw_from_timedepsw(timedepsw_path, timedepsveg_path)
                 return
 
         tSP = np.arange(0.0, self.runtime + 0.5 * self.dtSP, self.dtSP, dtype=float)
         nt = tSP.size
+        start, nsun_all, zenith_all, azimuth_all, irradiance_all, dsky_all = (
+            self._timedep_shortwave_atmosphere(tSP)
+        )
 
         lscatter = self.lEB
         albedo = sim.assign_prop_to_fac("al")
@@ -868,104 +960,36 @@ class RadiationSection(Section):
         # step has any vegetation, in which case no timedepsveg file is written.
         s_veg_all: np.ndarray | None = None
 
-        start = datetime(
-            self.year,
-            self.month,
-            self.day,
-            self.hour,
-            self.minute,
-            self.second,
-        )
-
-        if self.isolar == 3:
-            weather = self._read_weather_table(Path(self.weatherfname))
-            date_val = int(start.strftime("%d%m%y"))
-            rows = weather["date"] == date_val
-            if not np.any(rows):
-                raise ValueError(f"No weather data for date {date_val} in {self.weatherfname}")
-
-            timedep_time = weather["TIME"][rows]
-            timedep_zenith = weather["SOLAR"][rows]
-            timedep_azimuth = weather["SOLAR_1"][rows] + 90.0
-            timedep_I = weather["HELIOM"][rows]
-            timedep_Dsky = weather["DIFSOLAR"][rows]
-
-            shift = -start.hour
-            timedep_zenith = np.roll(timedep_zenith, shift)
-            timedep_azimuth = np.roll(timedep_azimuth, shift)
-            timedep_I = np.roll(timedep_I, shift)
-            timedep_Dsky = np.roll(timedep_Dsky, shift)
-
-            x = np.concatenate([timedep_time, [86400.0]])
-            zenith_interp = self._interp_makima(x, np.concatenate([timedep_zenith, [timedep_zenith[0]]]), tSP)
-            azimuth_interp = self._interp_makima(x, np.concatenate([timedep_azimuth, [timedep_azimuth[0]]]), tSP)
-            I_interp = self._interp_makima(x, np.concatenate([timedep_I, [timedep_I[0]]]), tSP)
-            Dsky_interp = self._interp_makima(x, np.concatenate([timedep_Dsky, [timedep_Dsky[0]]]), tSP)
-
-            for n, t_val in enumerate(tSP):
-                solarzenith = float(zenith_interp[n])
-                irradiance = float(I_interp[n])
-                if (
-                    solarzenith < 90.0
-                    and irradiance > 0.0
-                    and abs(np.cos(np.radians(solarzenith))) >= _MIN_SUN_VERTICAL
-                ):
-                    azimuth = float(azimuth_interp[n]) - self.xazimuth
-                    nsun = nsun_from_angles(solarzenith, azimuth)
-                    dsky = float(Dsky_interp[n])
-                    step_start = time.perf_counter()
-                    sdir, knet, s_veg = self._compute_knet(
-                        nsun,
-                        irradiance,
-                        dsky,
-                        method,
-                        resolution,
-                        lscatter,
-                        albedo,
-                        vf,
-                        svf,
-                        fss,
-                    )
-                    self._print_timedep_shortwave_progress(
-                        n, nt, t_val, method, time.perf_counter() - step_start
-                    )
-                    sdir_all[:, n] = sdir
-                    knet_all[:, n] = knet
-                    if s_veg is not None and s_veg.size > 0:
-                        if s_veg_all is None:
-                            s_veg_all = np.zeros((s_veg.size, nt), dtype=float)
-                        s_veg_all[:, n] = s_veg
-        else:
-            for n, t_val in enumerate(tSP):
-                time_of_day = start + timedelta(seconds=float(t_val))
-                nsun, solarzenith, _, irradiance, dsky = self._solar_state_time(time_of_day)
-                if (
-                    solarzenith < 90.0
-                    and irradiance > 0.0
-                    and abs(np.cos(np.radians(solarzenith))) >= _MIN_SUN_VERTICAL
-                ):
-                    step_start = time.perf_counter()
-                    sdir, knet, s_veg = self._compute_knet(
-                        nsun,
-                        irradiance,
-                        dsky,
-                        method,
-                        resolution,
-                        lscatter,
-                        albedo,
-                        vf,
-                        svf,
-                        fss,
-                    )
-                    self._print_timedep_shortwave_progress(
-                        n, nt, t_val, method, time.perf_counter() - step_start
-                    )
-                    sdir_all[:, n] = sdir
-                    knet_all[:, n] = knet
-                    if s_veg is not None and s_veg.size > 0:
-                        if s_veg_all is None:
-                            s_veg_all = np.zeros((s_veg.size, nt), dtype=float)
-                        s_veg_all[:, n] = s_veg
+        for n, t_val in enumerate(tSP):
+            solarzenith = float(zenith_all[n])
+            irradiance = float(irradiance_all[n])
+            if (
+                solarzenith < 90.0
+                and irradiance > 0.0
+                and abs(np.cos(np.radians(solarzenith))) >= _MIN_SUN_VERTICAL
+            ):
+                step_start = time.perf_counter()
+                sdir, knet, s_veg = self._compute_knet(
+                    nsun_all[n],
+                    irradiance,
+                    float(dsky_all[n]),
+                    method,
+                    resolution,
+                    lscatter,
+                    albedo,
+                    vf,
+                    svf,
+                    fss,
+                )
+                self._print_timedep_shortwave_progress(
+                    n, nt, t_val, method, time.perf_counter() - step_start
+                )
+                sdir_all[:, n] = sdir
+                knet_all[:, n] = knet
+                if s_veg is not None and s_veg.size > 0:
+                    if s_veg_all is None:
+                        s_veg_all = np.zeros((s_veg.size, nt), dtype=float)
+                    s_veg_all[:, n] = s_veg
 
         self._write_sdir_nc(sdir_nc_path, tSP, sdir_all)
         self.write_timedepsw(tSP, knet_all)
@@ -974,6 +998,11 @@ class RadiationSection(Section):
         if s_veg_all is not None:
             self.write_timedepsveg(tSP, s_veg_all)
         _write_sig(timedepsw_path, sw_sig)
+        write_shortwave_forcing(
+            forcing_path, tSP, irradiance_all, dsky_all, zenith_all, azimuth_all,
+            source=f"uDALES isolar={self.isolar}", start_time=start.isoformat(),
+            overwrite=True,
+        )
 
     @staticmethod
     def _print_timedep_shortwave_progress(

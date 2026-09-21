@@ -33,6 +33,7 @@ from .radiation_timing import (
     timed_stage,
 )
 from .solar import nsun_from_angles, solar_position_python
+from .shortwave_forcing import write_shortwave_forcing
 
 
 DEFAULT_NWP_ROOT = Path("/data/simulateParis/NWP_demo_data")
@@ -118,6 +119,7 @@ class TimedepShortwaveResult:
     netsw_path: Path
     sdir_nc_path: Path | None
     timedepsveg_path: Path | None
+    shortwave_forcing_path: Path
 
 
 @dataclass(frozen=True)
@@ -1358,6 +1360,7 @@ def generate_timedepsw_from_harmonie(
                 "timedepsw": str(result.timedepsw_path),
                 "netsw": str(result.netsw_path),
                 "sdir_nc": str(result.sdir_nc_path) if result.sdir_nc_path else None,
+                "shortwave_forcing": str(result.shortwave_forcing_path),
                 "timedepsveg": (
                     str(result.timedepsveg_path) if result.timedepsveg_path else None
                 ),
@@ -1468,10 +1471,29 @@ def _generate_timedepsw_from_harmonie(
     if sdir_nc is not None:
         default_sdir_nc_path = Path(sdir_nc).expanduser().resolve()
     sdir_nc_path = default_sdir_nc_path if write_sdir_nc else None
-    paths_to_check = [timedepsw_path, netsw_path]
+    shortwave_forcing_path = case_dir / f"shortwave_forcing.{expnr}.nc"
+    paths_to_check = [timedepsw_path, netsw_path, shortwave_forcing_path]
     if sdir_nc_path is not None:
         paths_to_check.append(sdir_nc_path)
     _check_output_paths(paths_to_check, overwrite=overwrite)
+
+    with timed_stage(timing, "write_shortwave_forcing"):
+        start = datetime(
+            int(radiation.year), int(radiation.month), int(radiation.day),
+            int(radiation.hour), int(radiation.minute), int(radiation.second),
+        )
+        write_shortwave_forcing(
+            shortwave_forcing_path,
+            atmosphere.times,
+            atmosphere.dni,
+            atmosphere.dsky,
+            atmosphere.zenith,
+            atmosphere.azimuth_local,
+            ghi=atmosphere.ghi,
+            source=f"HARMONIE {version} ssrd domain mean; Erbs GHI split",
+            start_time=start.isoformat(),
+            overwrite=overwrite,
+        )
 
     with timed_stage(timing, "map_atmosphere_to_facets"):
         sdir, knet, sveg = map_atmosphere_to_facets(
@@ -1511,6 +1533,7 @@ def _generate_timedepsw_from_harmonie(
         netsw_path=netsw_path,
         sdir_nc_path=sdir_nc_path,
         timedepsveg_path=written_sveg_path,
+        shortwave_forcing_path=shortwave_forcing_path,
     )
 
 
