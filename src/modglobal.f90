@@ -247,7 +247,7 @@ module modglobal
    real    :: tstatsdump   = 10000.   !< Time step for statistics outputs
    real    :: tstatsgap    = 0.       !< Time gap between two consecutive statistics dumps (used in conjunction with tstatstart)
    real    :: tsample      = 5.       !<    Sample time steps for statistics
-   real    :: receptor_height = 1.1   !< Height above local ground for pedestrian-level output [m]
+   real    :: receptor_height = 1.1   !< Height above model ground (z=0) for pedestrian-level output [m]
    
    ! Outputting instantaneous slices sampled at every tsample
    logical :: lkslicedump  = .false.  !<  switch to output slices in the xy-plane every tsample

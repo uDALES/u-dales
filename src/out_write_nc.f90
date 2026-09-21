@@ -669,6 +669,63 @@ subroutine writeoffset_1dx(ncid, ncname, var, nrec, dim1, dim2, dim3)
 
 end subroutine writeoffset_1dx
 
+  subroutine write_pedestrian_wind_metadata_nc(ncid, receptor_height)
+    implicit none
+
+    integer, intent(in) :: ncid
+    real, intent(in) :: receptor_height
+
+    integer :: status, height_varid, wind_varid
+    integer :: no_dims(0)
+    real :: stored_height, tolerance
+    logical :: height_exists
+
+    status = nf90_inq_varid(ncid, 'receptor_height', height_varid)
+    height_exists = status == NF90_NOERR
+    if (height_exists) then
+      status = nf90_get_var(ncid, height_varid, stored_height)
+      call nchandle_error(status)
+      tolerance = 100.*epsilon(1.)*max(1., abs(stored_height), abs(receptor_height))
+      if (abs(stored_height-receptor_height) > tolerance) then
+        write(0,'(a,f10.3,a,f10.3,a)') 'ERROR: Existing receptor_height=', stored_height, &
+                                       ' m differs from configured value ', receptor_height, ' m.'
+        stop 1
+      end if
+    else if (status /= NF90_ENOTVAR) then
+      call nchandle_error(status)
+    end if
+
+    status = nf90_redef(ncid)
+    call nchandle_error(status)
+
+    if (.not. height_exists) then
+      status = nf90_def_var(ncid, 'receptor_height', NF90_FLOAT, no_dims, height_varid)
+      call nchandle_error(status)
+    end if
+
+    status = nf90_put_att(ncid, height_varid, 'longname', &
+                          'Height above model ground used for ws_local')
+    call nchandle_error(status)
+    status = nf90_put_att(ncid, height_varid, 'standard_name', 'height')
+    call nchandle_error(status)
+    status = nf90_put_att(ncid, height_varid, 'units', 'm')
+    call nchandle_error(status)
+    status = nf90_put_att(ncid, height_varid, 'positive', 'up')
+    call nchandle_error(status)
+
+    status = nf90_inq_varid(ncid, 'ws_local', wind_varid)
+    call nchandle_error(status)
+    status = nf90_put_att(ncid, wind_varid, 'coordinates', 'receptor_height')
+    call nchandle_error(status)
+
+    status = nf90_enddef(ncid)
+    call nchandle_error(status)
+    status = nf90_put_var(ncid, height_varid, receptor_height)
+    call nchandle_error(status)
+    status = nf90_sync(ncid)
+    call nchandle_error(status)
+  end subroutine write_pedestrian_wind_metadata_nc
+
 
   subroutine ncinfo(out,in1,in2,in3,in4)
 

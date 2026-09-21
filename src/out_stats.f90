@@ -31,7 +31,8 @@ module stats
                          islice, nislice, jslice, njslice, kslice, nkslice, &
                          ib, ie, ih, jb, je, jh, kb, ke, kh, itot, jtot, xf, xh, yf, yh, zf, zh, &
                          dxf, dzf, dzfi, dxhi, dzhi, dzh2i, dyi, dzhiq, &
-                         timee, tstatsdump, tstatstart, tstatsgap, tsample, dt, runtime, btime, &
+                         timee, tstatsdump, tstatstart, tstatsgap, tsample, receptor_height, &
+                         dt, runtime, btime, &
                          k1, JNO2
   use modfields,  only : um, vm, wm, pres0, presf, thlm, qtm, ql0, exnf, svm, &
                          IIu, IIus, IIut, IIv, IIvs, IIvt, IIw, IIws, IIwt, IIc, IIcs, IIct, &
@@ -42,7 +43,8 @@ module stats
   use modmpi,     only : cmyidx, cmyidy, myid, myidx, myidy, spatial_avg
   use decomp_2d,  only : zstart, zend
   use modstat_nc, only : ncinfo, open_nc, define_nc, writestat_dims_nc, writestat_nc, &
-                         writeoffset, writeoffset_2d, writeoffset_1dx, nc_fillvalue
+                         writeoffset, writeoffset_2d, writeoffset_1dx, &
+                         write_pedestrian_wind_metadata_nc, nc_fillvalue
   use netcdf
 
   implicit none
@@ -119,13 +121,12 @@ module stats
   real, allocatable :: vsgst(:,:,:)
   real, allocatable :: wsgst(:,:,:)
 
-  real, parameter   :: pedestrian_height = 1.1
   real, parameter   :: utci_wind_height  = 10.0
-  real, allocatable :: ws_1p1t(:,:), ws_10t(:,:), ws_now(:,:)
-  logical, allocatable :: ws_1p1_valid(:,:), ws_10_valid(:,:)
-  integer :: ws_1p1_klo, ws_1p1_khi, ws_10_klo, ws_10_khi
-  real    :: ws_1p1_weight, ws_10_weight
-  logical :: ws_1p1_available, ws_10_available
+  real, allocatable :: ws_localt(:,:), ws_10t(:,:), ws_now(:,:)
+  logical, allocatable :: ws_local_valid(:,:), ws_10_valid(:,:)
+  integer :: ws_local_klo, ws_local_khi, ws_10_klo, ws_10_khi
+  real    :: ws_local_weight, ws_10_weight
+  logical :: ws_local_available, ws_10_available
 
   real, allocatable :: thlt(:,:,:)
   real, allocatable :: tempnow(:,:,:), tempt(:,:,:)
@@ -841,26 +842,27 @@ module stats
     subroutine stats_allocate_tavg_pedestrian_wind
       implicit none
 
-      allocate(ws_1p1t(ib:ie,jb:je)); ws_1p1t = 0.
-      allocate(ws_10t  (ib:ie,jb:je)); ws_10t   = 0.
-      allocate(ws_now  (ib:ie,jb:je)); ws_now   = 0.
-      allocate(ws_1p1_valid(ib:ie,jb:je)); ws_1p1_valid = .false.
-      allocate(ws_10_valid  (ib:ie,jb:je)); ws_10_valid   = .false.
+      allocate(ws_localt(ib:ie,jb:je)); ws_localt = 0.
+      allocate(ws_10t   (ib:ie,jb:je)); ws_10t    = 0.
+      allocate(ws_now   (ib:ie,jb:je)); ws_now    = 0.
+      allocate(ws_local_valid(ib:ie,jb:je)); ws_local_valid = .false.
+      allocate(ws_10_valid   (ib:ie,jb:je)); ws_10_valid    = .false.
 
-      call stats_find_vertical_bracket(pedestrian_height, ws_1p1_klo, ws_1p1_khi, &
-                                       ws_1p1_weight, ws_1p1_available)
+      call stats_find_vertical_bracket(receptor_height, ws_local_klo, ws_local_khi, &
+                                       ws_local_weight, ws_local_available)
       call stats_find_vertical_bracket(utci_wind_height, ws_10_klo, ws_10_khi, &
                                        ws_10_weight, ws_10_available)
 
-      if (ws_1p1_available) then
-        if (ws_1p1_klo == ws_1p1_khi) then
-          ws_1p1_valid = IIc(ib:ie,jb:je,ws_1p1_klo) == 1
+      if (ws_local_available) then
+        if (ws_local_klo == ws_local_khi) then
+          ws_local_valid = IIc(ib:ie,jb:je,ws_local_klo) == 1
         else
-          ws_1p1_valid = (IIc(ib:ie,jb:je,ws_1p1_klo) == 1) .and. &
-                          (IIc(ib:ie,jb:je,ws_1p1_khi) == 1)
+          ws_local_valid = (IIc(ib:ie,jb:je,ws_local_klo) == 1) .and. &
+                           (IIc(ib:ie,jb:je,ws_local_khi) == 1)
         end if
       else if (myid == 0) then
-        write(0,*) 'WARNING: ws_1p1 cannot be sampled because z=1.1 m is outside the scalar-level range.'
+        write(0,'(a,f10.3,a)') 'WARNING: ws_local cannot be sampled because receptor_height=', &
+                               receptor_height, ' m is outside the scalar-level range.'
       end if
 
       if (ws_10_available) then
@@ -874,8 +876,8 @@ module stats
         write(0,*) 'WARNING: ws_10 cannot be sampled because z=10 m is outside the scalar-level range.'
       end if
 
-      call ncinfo(pedestrianWindVars(1,:), 'ws_1p1', &
-                  'Time-mean horizontal wind speed at z=1.1 m above model ground', 'm/s', 'tt0t')
+      call ncinfo(pedestrianWindVars(1,:), 'ws_local', &
+                  'Time-mean horizontal wind speed at configured height above model ground', 'm/s', 'tt0t')
       call ncinfo(pedestrianWindVars(2,:), 'ws_10', &
                   'Time-mean horizontal wind speed at z=10 m above model ground', 'm/s', 'tt0t')
     end subroutine stats_allocate_tavg_pedestrian_wind
@@ -1059,6 +1061,7 @@ module stats
         end if
         call define_nc(ncidt, tVarsCount, tVars)
         call define_nc(ncidt, size(pedestrianWindVars,1), pedestrianWindVars)
+        call write_pedestrian_wind_metadata_nc(ncidt, receptor_height)
       end if
     end subroutine stats_createnc_tavg
 
@@ -1075,7 +1078,7 @@ module stats
 
     subroutine stats_reset_tavg_pedestrian_wind
       implicit none
-      ws_1p1t = 0.
+      ws_localt = 0.
       ws_10t = 0.
     end subroutine stats_reset_tavg_pedestrian_wind
 
@@ -1794,10 +1797,10 @@ module stats
     subroutine stats_compute_tavg_pedestrian_wind
       implicit none
 
-      if (ws_1p1_available) then
-        call stats_horizontal_speed_at_height(ws_1p1_klo, ws_1p1_khi, ws_1p1_weight, &
-                                              ws_1p1_valid, ws_now)
-        call stats_compute_tavg(ws_1p1t, ws_now)
+      if (ws_local_available) then
+        call stats_horizontal_speed_at_height(ws_local_klo, ws_local_khi, ws_local_weight, &
+                                              ws_local_valid, ws_now)
+        call stats_compute_tavg(ws_localt, ws_now)
       end if
 
       if (ws_10_available) then
@@ -2366,9 +2369,9 @@ module stats
       deallocate(fld)
 
       allocate(fld2d(ib:ie,jb:je))
-      fld2d = ws_1p1t
-      where (.not. ws_1p1_valid) fld2d = nc_fillvalue
-      call writeoffset_2d(ncidt, 'ws_1p1', fld2d, nrect, xdim, ydim)
+      fld2d = ws_localt
+      where (.not. ws_local_valid) fld2d = nc_fillvalue
+      call writeoffset_2d(ncidt, 'ws_local', fld2d, nrect, xdim, ydim)
 
       fld2d = ws_10t
       where (.not. ws_10_valid) fld2d = nc_fillvalue
@@ -2864,7 +2867,7 @@ module stats
         if (lrh)     deallocate(rht)
       end if
       if (ltdump) then
-        deallocate(ws_1p1t,ws_10t,ws_now,ws_1p1_valid,ws_10_valid)
+        deallocate(ws_localt,ws_10t,ws_now,ws_local_valid,ws_10_valid)
       end if
       if (ltavg3d .or. lytdump) then
         if (nsv>0)   deallocate(svt,svti,svtj,svtk,usvti,vsvtj,wsvtk,svsvt,svsgst)

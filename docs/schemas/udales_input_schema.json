@@ -1129,7 +1129,7 @@
           "type": "number",
           "exclusiveMinimum": 0,
           "default": 1.1,
-          "description": "Height above local ground for pedestrian-level output [m]"
+          "description": "Height above model ground (z=0) for pedestrian-level output [m]"
         },
         "tsample": {
           "type": "number",

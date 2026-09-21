@@ -9,7 +9,7 @@ All switches and frequency parameters below live in the `&OUTPUT`, `&TREES`, `&W
 | File | Enabled by | Frequency | Contents |
 | ---- | ---------- | --------- | -------- |
 | **Statistics (time- and/or space-averaged)** | | | |
-| `stats_t.<px>.<expnr>.nc` | `ltdump` | `tstatsdump` | Time-averaged 3D statistics split by x-rank: mean velocity, temperature, moisture, pressure and scalar fields; PSS defect; turbulent momentum/heat/scalar fluxes; variances and TKE; SGS scalar fluxes. Each file also contains 2D horizontal wind-speed fields at z=1.1 m (`ws_1p1`) and z=10 m (`ws_10`), masked where either interpolation level is solid. |
+| `stats_t.<px>.<expnr>.nc` | `ltdump` | `tstatsdump` | Time-averaged 3D statistics split by x-rank: mean velocity, temperature, moisture, pressure and scalar fields; PSS defect; turbulent momentum/heat/scalar fluxes; variances and TKE; SGS scalar fluxes. Each file also contains 2D horizontal wind-speed fields at the configured `receptor_height` (`ws_local`) and z=10 m (`ws_10`), masked where either interpolation level is solid. |
 | `mintdump.<px>.<py>.<expnr>.nc` | `lmintdump` | `tstatsdump` | Reduced time-averaged 3D statistics per CPU: mean u, v, w, temperature and moisture, and pressure only (lighter-weight alternative to `tdump`). |
 | `xytdump.<expnr>.nc` | `lxytdump` | `tstatsdump` | x-, y- and time-averaged 1D (height) statistics: mean velocity/temperature/moisture/pressure profiles, turbulent/kinematic/SGS fluxes, temperature and momentum variances, TKE. |
 | `xydump.<expnr>.nc` | `lxydump` | `tsample` | x- and y-averaged instantaneous 1D (height) profiles: velocity, temperature, moisture, pressure, turbulent/SGS momentum and heat fluxes, advective fluxes. |
@@ -28,12 +28,14 @@ All switches and frequency parameters below live in the `&OUTPUT`, `&TREES`, `&W
 | `facT.<expnr>.nc` | `lwriteEBfiles` (requires `lEB`) | `dtEB` | Facet layer temperature (`T`) and temperature gradient (`dTdz`) per facet and facet layer. |
 | `facEB.<expnr>.nc` | `lwriteEBfiles` (requires `lEB`) | `dtEB` | Facet surface energy-balance terms per facet: net shortwave, incoming longwave, outgoing longwave, sensible heat flux, latent heat flux, soil water content. |
 
-For `ws_1p1` and `ws_10`, u and v are first destaggered to scalar-cell centres and
+For `ws_local` and `ws_10`, u and v are first destaggered to scalar-cell centres and
 linearly interpolated in height at each `tsample`. The instantaneous horizontal
 speed `sqrt(u^2 + v^2)` is then accumulated, so the result is the time mean of
 wind-speed magnitude rather than the magnitude of time-mean u and v. Heights are
 relative to model ground (`z=0`); a point is masked if either vertical interpolation
-level is solid or the requested height lies outside the scalar-level range.
+level is solid or the requested height lies outside the scalar-level range. Each
+`stats_t` file stores `receptor_height` as a scalar height coordinate associated
+with `ws_local`; `ws_10` remains fixed at 10 m.
 
 Statistics that are sampled every `tsample` and only dumped every `tstatsdump` (`stats_t`, `mintdump`, `xytdump`, `ytdump`, `treedump`, `tkedump`) report the average over the preceding `tstatsdump` window; the switches whose frequency is `tsample` (`xydump`, `ydump`, the slice dumps) instead write an instantaneous sample every `tsample`. Sampling/averaging only starts once the simulation time passes `tstatstart`.
 

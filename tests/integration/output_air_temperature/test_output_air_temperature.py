@@ -31,6 +31,7 @@ class AirTemperatureOutputTest(unittest.TestCase):
         *,
         ltempeq: bool = True,
         lmoist: bool = True,
+        receptor_height: float = 1.1,
         expected_error: str | None = None,
     ) -> None:
         if not EXECUTABLE.is_file():
@@ -52,6 +53,7 @@ class AirTemperatureOutputTest(unittest.TestCase):
             fieldvars=fieldvars,
             slicevars=slicevars,
             probevars=probevars,
+            receptor_height=receptor_height,
             lislicedump=True,
             ljslicedump=True,
             lkslicedump=True,
@@ -292,19 +294,34 @@ class AirTemperatureOutputTest(unittest.TestCase):
     def test_pedestrian_wind_speed_is_stats_only(self) -> None:
         with tempfile.TemporaryDirectory(prefix="udales_pedestrian_wind_") as tmp:
             case_dir = Path(tmp)
-            self._run_case(case_dir, "u0,v0,w0", "u0,v0,w0", "u0,v0,w0")
+            receptor_height = 2.25
+            self._run_case(
+                case_dir, "u0,v0,w0", "u0,v0,w0", "u0,v0,w0",
+                receptor_height=receptor_height,
+            )
 
             stats_files = sorted(case_dir.glob(f"stats_t.*.{CASE}.nc"))
             self.assertTrue(stats_files, "No stats_t files found")
             found_fill_value = False
             for path in stats_files:
                 with Dataset(path) as ds:
-                    for name in ("ws_1p1", "ws_10"):
+                    self.assertNotIn("ws_1p1", ds.variables)
+                    self.assertIn("receptor_height", ds.variables)
+                    height = ds["receptor_height"]
+                    self.assertEqual(height.dimensions, ())
+                    self.assertEqual(height.getncattr("standard_name"), "height")
+                    self.assertEqual(height.getncattr("units"), "m")
+                    self.assertEqual(height.getncattr("positive"), "up")
+                    self.assertAlmostEqual(float(np.asarray(height[...]).item()), receptor_height)
+
+                    for name in ("ws_local", "ws_10"):
                         with self.subTest(file=path.name, variable=name):
                             self.assertIn(name, ds.variables)
                             variable = ds[name]
                             self.assertEqual(variable.dimensions, ("time", "yt", "xt"))
                             self.assertEqual(variable.getncattr("units"), "m/s")
+                            if name == "ws_local":
+                                self.assertEqual(variable.getncattr("coordinates"), "receptor_height")
                             values = np.ma.asarray(variable[:])
                             valid_values = values.compressed()
                             self.assertGreater(valid_values.size, 0)
@@ -319,8 +336,16 @@ class AirTemperatureOutputTest(unittest.TestCase):
                 self.assertTrue(files, f"No {family} files found")
                 for path in files:
                     with Dataset(path) as ds:
+                        self.assertNotIn("ws_local", ds.variables)
                         self.assertNotIn("ws_1p1", ds.variables)
                         self.assertNotIn("ws_10", ds.variables)
+                        self.assertNotIn("receptor_height", ds.variables)
+
+            self._run_case(
+                case_dir, "u0,v0,w0", "u0,v0,w0", "u0,v0,w0",
+                receptor_height=3.25,
+                expected_error="differs from configured value",
+            )
 
 
 if __name__ == "__main__":
