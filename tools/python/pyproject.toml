@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "udales-tools"
 version = "0.1.0"
-description = "uDALES Python pre/post-processing tools (udbase, udgeom, udprep, udvis)"
+description = "uDALES Python pre/post-processing tools (udbase, udgeom, udprep, udvis, udcomf)"
 readme = "README_VENV.md"
 requires-python = ">=3.9"
 license = { text = "GPL-3.0-or-later" }
@@ -32,7 +32,7 @@ py-modules = [
     "udnetcdf",
     "convert_trees_to_sparse",
 ]
-packages = ["udgeom", "udprep", "udvis"]
+packages = ["udgeom", "udprep", "udvis", "udcomf", "udcomf.thermalcomfort"]
 
 [tool.setuptools.dynamic]
 dependencies = { file = ["requirements.txt"] }

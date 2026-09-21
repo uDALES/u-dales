@@ -183,6 +183,10 @@ class UDBase:
         # provides plotting methods on top of that state.
         self.vis = UDVis(self, backend=backend)
 
+        # Comfort postprocessing uses this same loaded case state.
+        from udcomf import UDComf
+        self.comf = UDComf(self)
+
     @property
     def backend(self) -> str:
         """Default rendering backend for 3-D plots (``"plotly"`` or ``"pyvista"``).
