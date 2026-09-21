@@ -281,6 +281,7 @@ BCs at the bottom (BCbot; only effective if not covered with ground facets): 1 =
 | lfielddump | .false. | .true. or .false. | Switch for instantaneous field output. | - |
 | tfielddump | 10000. | | Output time for fields. | [s] |
 | fieldvars | '' | Any of the given labels, several are separated by a comma: u0,v0,w0,p0,pa,th,ta,rh,qt,ql,s1,s2,s3,s4,s5 | Variable names of fields (`pa` writes hydrostatic absolute pressure as `pabs`). | - |
+| receptor_height | 1.1 | `REAL` > 0 | Height above local ground used for pedestrian-level output. | [m] |
 | tsample | 5. | `REAL` | Sample time for statistics. | [s] |
 | tstatsdump | 10000. | `REAL` | Output time for statistics. | [s] |
 | tstatstart | 0. | `REAL` | Time from which statistics computation or data sampling starts. | [s] |

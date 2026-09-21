@@ -1125,6 +1125,12 @@
           "default": "",
           "description": "Variable names of fields (u0,v0,w0,p0,pa,th,ta,rh,qt,ql,s1,s2,s3,s4,s5)"
         },
+        "receptor_height": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "default": 1.1,
+          "description": "Height above local ground for pedestrian-level output [m]"
+        },
         "tsample": {
           "type": "number",
           "minimum": 0,

@@ -34,6 +34,7 @@
 module readnamelists
 
 use mpi
+   use, intrinsic :: ieee_arithmetic, only : ieee_is_finite
    use modglobal, mg_rv => rv
    use modsurfdata
    use modfields
@@ -126,7 +127,8 @@ use mpi
       slicevars, lkslicedump, kslice, nkslice, lislicedump, islice, nislice, ljslicedump, jslice, njslice, &
       ltislicedump, ltjslicedump, ltkslicedump, &
       probevars, lprobedump, nprobe, &
-      tinstantstart, tinstantdump, tstatsdump, tsample, tstatstart, tstatsgap, tcheck
+      tinstantstart, tinstantdump, tstatsdump, tsample, tstatstart, tstatsgap, tcheck, &
+      receptor_height
    namelist/TREES/ &
       ltrees, ntrees, cd, dec, ud, lad, Qstar, dQdt, lsize, r_s, ltreedump, itree_mode
    namelist/PURIFS/ &
@@ -294,6 +296,10 @@ contains
          if (ierr > 0) then
             write(0, *) 'ERROR: Problem in namoptions OUTPUT'
             write(0, *) 'iostat error: ', ierr
+            stop 1
+         endif
+         if (.not. ieee_is_finite(receptor_height) .or. receptor_height <= 0.) then
+            write(0, *) 'ERROR: OUTPUT.receptor_height must be finite and greater than zero.'
             stop 1
          endif
          !write (6, OUTPUT)
@@ -630,6 +636,7 @@ contains
       call MPI_BCAST(tstatstart, 1, MY_REAL, 0, comm3d, mpierr)
       call MPI_BCAST(tstatsgap, 1, MY_REAL, 0, comm3d, mpierr)
       call MPI_BCAST(tcheck, 1, MY_REAL, 0, comm3d, mpierr)
+      call MPI_BCAST(receptor_height, 1, MY_REAL, 0, comm3d, mpierr)
       call MPI_BCAST(nislice, 1, MPI_INTEGER, 0, comm3d, mpierr)
       call MPI_BCAST(islice, nislice, MPI_INTEGER, 0, comm3d, mpierr)
       call MPI_BCAST(njslice, 1, MPI_INTEGER, 0, comm3d, mpierr)

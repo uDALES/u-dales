@@ -16,7 +16,7 @@ from _common import PYTHON_DIR
 from udprep.udprep import Section, SectionSpec, SKIP, UDPrep  # noqa: E402
 from udprep.udprep_bcs import SPEC as BCS_SPEC  # noqa: E402
 from udprep.udprep_ibm import IBMSection  # noqa: E402
-from udprep.udprep_radiation import RadiationSection  # noqa: E402
+from udprep.udprep_radiation import RadiationSection, SPEC as RADIATION_SPEC  # noqa: E402
 from udprep.udprep_seb import SEBSection  # noqa: E402
 from udgeom.view3d import (  # noqa: E402
     ViewFactorRepairLimits,
@@ -672,6 +672,18 @@ class TestUDPrepCore(unittest.TestCase):
         self.assertEqual(prep.bcs.BCym, 3)
         self.assertEqual(prep.sim.BCxm, 2)
         self.assertEqual(prep.sim.BCym, 3)
+
+    def test_radiation_section_owns_receptor_height_default(self):
+        fake_module = self._fake_udbase_module()
+        with mock.patch.dict(sys.modules, {"udbase": fake_module}):
+            with mock.patch.object(UDPrep, "SECTION_SPECS", [RADIATION_SPEC]):
+                prep = UDPrep("123", path=self.workdir, load_geometry=False)
+
+        self.assertEqual(prep.radiation.receptor_height, 1.1)
+        self.assertEqual(prep.sim.receptor_height, 1.1)
+
+        prep.radiation.receptor_height = 1.5
+        self.assertEqual(prep.sim.receptor_height, 1.5)
 
     def test_run_all_respects_section_gates(self):
         prep = self._make_run_all_prep(libm=True, radiation_lEB=True, ltrees=True)
