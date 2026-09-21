@@ -16,6 +16,7 @@ import numpy as np
 import xarray as xr
 import pandas as pd
 import json
+import operator
 from pathlib import Path
 from typing import Optional, Union, Dict, Any, List
 import importlib.util
@@ -856,7 +857,7 @@ class UDBase:
         >>> sim.load_stat_xyt()  # Display available variables
         >>> u_avg = sim.load_stat_xyt('u')  # Returns numpy array
         """
-        filename = self.path / f"xytdump.{self.expnr}.nc"
+        filename = self.path / f"stats_xyt.{self.expnr}.nc"
         return self._load_ncdata(filename, var)
     
     def load_stat_t(self, var: Optional[str] = None) -> Union[xr.Dataset, np.ndarray]:
@@ -878,7 +879,7 @@ class UDBase:
         >>> sim.load_stat_t()  # Display available variables
         >>> u_tavg = sim.load_stat_t('u')  # Returns numpy array
         """
-        filename = self.path / f"tdump.{self.expnr}.nc"
+        filename = self.path / f"stats_t.{self.expnr}.nc"
         return self._load_ncdata(filename, var)
     
     def load_stat_tree(self, var: Optional[str] = None) -> Union[xr.Dataset, np.ndarray]:
@@ -1030,6 +1031,72 @@ class UDBase:
         filename = self.path / f"facT.{self.expnr}.nc"
         return self._load_ncdata(filename, var)
     
+    def load_sdir(self, var: Optional[str] = None) -> Union[xr.Dataset, np.ndarray]:
+        """Load the facet direct-shortwave archive (Sdir and tSP)."""
+        return self._load_ncdata(self.path / "Sdir.nc", var)
+
+    def load_timedepsw(
+        self, *, facet_indices: Optional[np.ndarray] = None, time_index: Optional[int] = None
+    ) -> Dict[str, np.ndarray]:
+        """Read facet net shortwave forcing, optionally selecting facets and time.
+
+        The Paris file can exceed 1 GB. Selecting a timestamp keeps the returned
+        array small, but the text file still has to be scanned sequentially.
+        """
+        path = self.path / f"timedepsw.inp.{self.expnr}"
+        selected = None
+        if facet_indices is not None:
+            selected = np.atleast_1d(np.asarray(facet_indices))
+            if not np.issubdtype(selected.dtype, np.integer):
+                raise TypeError("facet_indices must contain integers")
+            if np.any(selected < 0) or len(np.unique(selected)) != len(selected):
+                raise ValueError("facet_indices must be unique, nonnegative zero-based indices")
+            if hasattr(self, "nfcts") and np.any(selected >= int(self.nfcts)):
+                raise IndexError("facet_indices exceed nfcts")
+
+        with path.open("r", encoding="ascii") as handle:
+            handle.readline()  # header
+            times = np.fromstring(handle.readline(), sep=" ")
+            if times.size == 0 or not np.isfinite(times).all() or np.any(np.diff(times) <= 0):
+                raise DataFormatError(f"Invalid time row in {path}")
+            if time_index is not None:
+                time_index = operator.index(time_index)
+            if time_index is not None and not 0 <= time_index < len(times):
+                raise IndexError(f"timedepsw time index {time_index} outside 0..{len(times) - 1}")
+
+            rows = [] if selected is None else [None] * len(selected)
+            positions = None if selected is None else {int(row): pos for pos, row in enumerate(selected)}
+            count = 0
+            for count, line in enumerate(handle, start=1):
+                row = count - 1
+                if positions is not None and row not in positions:
+                    continue
+                values = np.fromstring(line, sep=" ")
+                if len(values) != len(times) or not np.isfinite(values).all():
+                    raise DataFormatError(f"Invalid facet row {row} in {path}")
+                value = values if time_index is None else values[time_index]
+                if positions is None:
+                    rows.append(value)
+                else:
+                    rows[positions[row]] = value
+
+        if hasattr(self, "nfcts") and count != int(self.nfcts):
+            raise DataFormatError(f"timedepsw has {count} facets; expected {self.nfcts}")
+        if selected is not None and any(value is None for value in rows):
+            raise IndexError("facet_indices exceed the number of timedepsw rows")
+        values = np.asarray(rows, dtype=float)
+        if time_index is None and not len(rows):
+            values = values.reshape(0, len(times))
+        return {"time": times if time_index is None else times[time_index], "netsw": values}
+
+    def load_timedeplw(self) -> Dict[str, np.ndarray]:
+        """Load the two-column sky-longwave forcing series (seconds, W m-2)."""
+        path = self.path / f"timedeplw.inp.{self.expnr}"
+        data = np.loadtxt(path, skiprows=2, ndmin=2)
+        if data.shape[1] != 2 or not np.isfinite(data).all() or np.any(np.diff(data[:, 0]) <= 0):
+            raise DataFormatError(f"Invalid time/LWsky columns in {path}")
+        return {"time": data[:, 0], "LWsky": data[:, 1]}
+
     def load_seb(self) -> Dict[str, np.ndarray]:
         """
         Load all surface energy balance terms.
