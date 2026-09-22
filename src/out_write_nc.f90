@@ -675,7 +675,7 @@ end subroutine writeoffset_1dx
     integer, intent(in) :: ncid
     real, intent(in) :: receptor_height
 
-    integer :: status, height_varid, wind_varid
+    integer :: status, height_varid, wind_varid, ndims
     integer :: no_dims(0)
     real :: stored_height, tolerance
     logical :: height_exists
@@ -683,6 +683,12 @@ end subroutine writeoffset_1dx
     status = nf90_inq_varid(ncid, 'receptor_height', height_varid)
     height_exists = status == NF90_NOERR
     if (height_exists) then
+      status = nf90_inquire_variable(ncid, height_varid, ndims=ndims)
+      call nchandle_error(status)
+      if (ndims /= 0) then
+        write(0,*) 'ERROR: Existing receptor_height is an array; cannot use a single height.'
+        stop 1
+      end if
       status = nf90_get_var(ncid, height_varid, stored_height)
       call nchandle_error(status)
       tolerance = 100.*epsilon(1.)*max(1., abs(stored_height), abs(receptor_height))
@@ -715,6 +721,12 @@ end subroutine writeoffset_1dx
 
     status = nf90_inq_varid(ncid, 'ws_local', wind_varid)
     call nchandle_error(status)
+    status = nf90_inquire_variable(ncid, wind_varid, ndims=ndims)
+    call nchandle_error(status)
+    if (ndims /= 3) then
+      write(0,*) 'ERROR: Existing ws_local has incompatible dimensions for a single height.'
+      stop 1
+    end if
     status = nf90_put_att(ncid, wind_varid, 'coordinates', 'receptor_height')
     call nchandle_error(status)
 
@@ -725,6 +737,102 @@ end subroutine writeoffset_1dx
     status = nf90_sync(ncid)
     call nchandle_error(status)
   end subroutine write_pedestrian_wind_metadata_nc
+
+  subroutine write_pedestrian_wind_heights_nc(ncid, heights)
+    implicit none
+    integer, intent(in) :: ncid
+    real, intent(in) :: heights(:)
+    integer :: status, height_dimid, height_varid, wind_varid, xt_dimid, yt_dimid, time_dimid
+    integer :: ndims, stored_count, dimids(NF90_MAX_VAR_DIMS)
+    real, allocatable :: stored_heights(:)
+    logical :: height_exists
+
+    status = nf90_inq_varid(ncid, 'receptor_height', height_varid)
+    height_exists = status == NF90_NOERR
+    if (height_exists) then
+      status = nf90_inquire_variable(ncid, height_varid, ndims=ndims, dimids=dimids)
+      call nchandle_error(status)
+      if (ndims /= 1) then
+        write(0,*) 'ERROR: Existing receptor_height is scalar; cannot use multiple heights.'
+        stop 1
+      end if
+      height_dimid = dimids(1)
+      status = nf90_inquire_dimension(ncid, height_dimid, len=stored_count)
+      call nchandle_error(status)
+      if (stored_count /= size(heights)) then
+        write(0,*) 'ERROR: Existing receptor_height count differs from configured count.'
+        stop 1
+      end if
+      allocate(stored_heights(stored_count))
+      status = nf90_get_var(ncid, height_varid, stored_heights)
+      call nchandle_error(status)
+      if (any(abs(stored_heights-heights) > &
+          100.*epsilon(1.)*max(1.,abs(stored_heights),abs(heights)))) then
+        write(0,*) 'ERROR: Existing receptor_height values differ from configured heights.'
+        stop 1
+      end if
+    else if (status /= NF90_ENOTVAR) then
+      call nchandle_error(status)
+    end if
+
+    status = nf90_inq_dimid(ncid, 'xt', xt_dimid)
+    call nchandle_error(status)
+    status = nf90_inq_dimid(ncid, 'yt', yt_dimid)
+    call nchandle_error(status)
+    status = nf90_inq_dimid(ncid, 'time', time_dimid)
+    call nchandle_error(status)
+
+    status = nf90_redef(ncid)
+    call nchandle_error(status)
+    if (.not. height_exists) then
+      status = nf90_def_dim(ncid, 'receptor_height', size(heights), height_dimid)
+      call nchandle_error(status)
+      status = nf90_def_var(ncid, 'receptor_height', NF90_FLOAT, (/height_dimid/), height_varid)
+      call nchandle_error(status)
+    end if
+    status = nf90_put_att(ncid, height_varid, 'longname', 'Heights above model ground used for ws_local')
+    call nchandle_error(status)
+    status = nf90_put_att(ncid, height_varid, 'standard_name', 'height')
+    call nchandle_error(status)
+    status = nf90_put_att(ncid, height_varid, 'units', 'm')
+    call nchandle_error(status)
+    status = nf90_put_att(ncid, height_varid, 'positive', 'up')
+    call nchandle_error(status)
+
+    status = nf90_inq_varid(ncid, 'ws_local', wind_varid)
+    if (status == NF90_ENOTVAR) then
+      status = nf90_def_var(ncid, 'ws_local', NF90_FLOAT, &
+                            (/xt_dimid,yt_dimid,height_dimid,time_dimid/), wind_varid)
+      call nchandle_error(status)
+      status = nf90_put_att(ncid, wind_varid, '_FillValue', nc_fillvalue)
+      call nchandle_error(status)
+    else
+      call nchandle_error(status)
+      status = nf90_inquire_variable(ncid, wind_varid, ndims=ndims, dimids=dimids)
+      call nchandle_error(status)
+      if (ndims /= 4) then
+        write(0,*) 'ERROR: Existing ws_local has incompatible dimensions for multiple heights.'
+        stop 1
+      end if
+      if (any(dimids(1:4) /= (/xt_dimid,yt_dimid,height_dimid,time_dimid/))) then
+        write(0,*) 'ERROR: Existing ws_local dimension order differs from configured output.'
+        stop 1
+      end if
+    end if
+    status = nf90_put_att(ncid, wind_varid, 'longname', &
+                          'Time-mean horizontal wind speed at configured heights above model ground')
+    call nchandle_error(status)
+    status = nf90_put_att(ncid, wind_varid, 'units', 'm/s')
+    call nchandle_error(status)
+    status = nf90_put_att(ncid, wind_varid, 'coordinates', 'receptor_height')
+    call nchandle_error(status)
+    status = nf90_enddef(ncid)
+    call nchandle_error(status)
+    status = nf90_put_var(ncid, height_varid, heights)
+    call nchandle_error(status)
+    status = nf90_sync(ncid)
+    call nchandle_error(status)
+  end subroutine write_pedestrian_wind_heights_nc
 
 
   subroutine ncinfo(out,in1,in2,in3,in4)

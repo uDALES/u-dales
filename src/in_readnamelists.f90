@@ -128,7 +128,7 @@ use mpi
       ltislicedump, ltjslicedump, ltkslicedump, &
       probevars, lprobedump, nprobe, &
       tinstantstart, tinstantdump, tstatsdump, tsample, tstatstart, tstatsgap, tcheck, &
-      receptor_height
+      receptor_height, nreceptor_heights, receptor_heights
    namelist/TREES/ &
       ltrees, ntrees, cd, dec, ud, lad, Qstar, dQdt, lsize, r_s, ltreedump, itree_mode
    namelist/PURIFS/ &
@@ -301,6 +301,26 @@ contains
          if (.not. ieee_is_finite(receptor_height) .or. receptor_height <= 0.) then
             write(0, *) 'ERROR: OUTPUT.receptor_height must be finite and greater than zero.'
             stop 1
+         endif
+         if (nreceptor_heights < 0 .or. nreceptor_heights > size(receptor_heights)) then
+            write(0, *) 'ERROR: OUTPUT.nreceptor_heights is outside the supported range.'
+            stop 1
+         endif
+         if (nreceptor_heights > 0) then
+            if (any(.not. ieee_is_finite(receptor_heights(1:nreceptor_heights))) .or. &
+                any(receptor_heights(1:nreceptor_heights) <= 0.)) then
+               write(0, *) 'ERROR: OUTPUT.receptor_heights must be finite and positive.'
+               stop 1
+            endif
+            if (abs(receptor_heights(1)-receptor_height) > &
+                100.*epsilon(1.)*max(1.,abs(receptor_height))) then
+               write(0, *) 'ERROR: First receptor_heights entry must equal receptor_height.'
+               stop 1
+            endif
+            if (any(receptor_heights(2:nreceptor_heights) <= receptor_heights(1:nreceptor_heights-1))) then
+               write(0, *) 'ERROR: OUTPUT.receptor_heights must be strictly increasing.'
+               stop 1
+            endif
          endif
          !write (6, OUTPUT)
          rewind (ifnamopt)
@@ -637,6 +657,8 @@ contains
       call MPI_BCAST(tstatsgap, 1, MY_REAL, 0, comm3d, mpierr)
       call MPI_BCAST(tcheck, 1, MY_REAL, 0, comm3d, mpierr)
       call MPI_BCAST(receptor_height, 1, MY_REAL, 0, comm3d, mpierr)
+      call MPI_BCAST(nreceptor_heights, 1, MPI_INTEGER, 0, comm3d, mpierr)
+      call MPI_BCAST(receptor_heights, nreceptor_heights, MY_REAL, 0, comm3d, mpierr)
       call MPI_BCAST(nislice, 1, MPI_INTEGER, 0, comm3d, mpierr)
       call MPI_BCAST(islice, nislice, MPI_INTEGER, 0, comm3d, mpierr)
       call MPI_BCAST(njslice, 1, MPI_INTEGER, 0, comm3d, mpierr)

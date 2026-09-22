@@ -1131,6 +1131,18 @@
           "default": 1.1,
           "description": "Height above model ground (z=0) for pedestrian-level output [m]"
         },
+        "nreceptor_heights": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 1000,
+          "default": 0,
+          "description": "Number of heights in receptor_heights; zero uses receptor_height only"
+        },
+        "receptor_heights": {
+          "type": "array",
+          "items": {"type": "number", "exclusiveMinimum": 0},
+          "description": "Strictly increasing heights [m] for ws_local; first entry must equal receptor_height"
+        },
         "tsample": {
           "type": "number",
           "minimum": 0,

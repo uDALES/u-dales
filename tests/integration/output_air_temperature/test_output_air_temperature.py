@@ -32,6 +32,8 @@ class AirTemperatureOutputTest(unittest.TestCase):
         ltempeq: bool = True,
         lmoist: bool = True,
         receptor_height: float = 1.1,
+        receptor_heights: list[float] | None = None,
+        ltdump: bool = True,
         expected_error: str | None = None,
     ) -> None:
         if not EXECUTABLE.is_file():
@@ -54,6 +56,7 @@ class AirTemperatureOutputTest(unittest.TestCase):
             slicevars=slicevars,
             probevars=probevars,
             receptor_height=receptor_height,
+            ltdump=ltdump,
             lislicedump=True,
             ljslicedump=True,
             lkslicedump=True,
@@ -75,6 +78,9 @@ class AirTemperatureOutputTest(unittest.TestCase):
             kslice=[12],
             nprobe=1,
         )
+        if receptor_heights is not None:
+            output["nreceptor_heights"] = len(receptor_heights)
+            output["receptor_heights"] = receptor_heights
         namelist.write(case_dir / f"namoptions.{CASE}", force=True)
         (case_dir / f"probe.inp.{CASE}").write_text("# i j k\n32 16 12\n", encoding="ascii")
 
@@ -346,6 +352,62 @@ class AirTemperatureOutputTest(unittest.TestCase):
                 receptor_height=3.25,
                 expected_error="differs from configured value",
             )
+
+    def test_pedestrian_wind_speed_in_kslice_only(self) -> None:
+        with tempfile.TemporaryDirectory(prefix="udales_kslice_wind_") as tmp:
+            case_dir = Path(tmp)
+            self._run_case(case_dir, "u0,v0,w0", "u0,v0,w0", "u0,v0,w0", ltdump=False)
+            self.assertFalse(list(case_dir.glob(f"stats_t.*.{CASE}.nc")))
+            files = sorted(case_dir.glob(f"stats_kslice.*.{CASE}.nc"))
+            self.assertTrue(files)
+            for path in files:
+                with Dataset(path) as ds:
+                    self.assertEqual(ds["receptor_height"].dimensions, ())
+                    for name in ("ws_local", "ws_10"):
+                        self.assertEqual(ds[name].dimensions, ("time", "yt", "xt"))
+                        values = np.ma.asarray(ds[name][:]).compressed()
+                        self.assertGreater(values.size, 0)
+                        self.assertTrue(np.isfinite(values).all())
+
+    def test_multiple_receptor_heights_in_stats_and_kslice(self) -> None:
+        with tempfile.TemporaryDirectory(prefix="udales_multiheight_wind_") as tmp:
+            case_dir = Path(tmp)
+            heights = [2.25, 3.25]
+            self._run_case(case_dir, "u0,v0,w0", "u0,v0,w0", "u0,v0,w0",
+                           receptor_height=heights[0], receptor_heights=heights)
+            t_files = sorted(case_dir.glob(f"stats_t.*.{CASE}.nc"))
+            k_files = sorted(case_dir.glob(f"stats_kslice.*.{CASE}.nc"))
+            self.assertTrue(t_files)
+            self.assertEqual(len(t_files), len(k_files))
+            for t_path, k_path in zip(t_files, k_files):
+                with Dataset(t_path) as t_ds, Dataset(k_path) as k_ds:
+                    for ds in (t_ds, k_ds):
+                        self.assertEqual(ds["ws_local"].dimensions,
+                                         ("time", "receptor_height", "yt", "xt"))
+                        self.assertEqual(ds["ws_10"].dimensions, ("time", "yt", "xt"))
+                        np.testing.assert_allclose(ds["receptor_height"][:], heights)
+                        values = np.ma.asarray(ds["ws_local"][:])
+                        self.assertGreater(values[:, 0].compressed().size, 0)
+                        self.assertGreater(values[:, 1].compressed().size, 0)
+                        self.assertTrue(np.isfinite(values.compressed()).all())
+                    np.testing.assert_allclose(t_ds["ws_local"][:], k_ds["ws_local"][:])
+                    np.testing.assert_allclose(t_ds["ws_10"][:], k_ds["ws_10"][:])
+
+            self._run_case(case_dir, "u0,v0,w0", "u0,v0,w0", "u0,v0,w0",
+                           receptor_height=heights[0], receptor_heights=[2.25, 4.25],
+                           expected_error="values differ from configured heights")
+
+            if all(shutil.which(tool) for tool in ("ncpdq", "ncrcat", "ncks")):
+                gather = subprocess.run(
+                    ["bash", str(ROOT / "tools" / "nco_concatenate_field_x.sh"),
+                     "stats_kslice", "u,xm", "gathered_kslice.nc"],
+                    cwd=case_dir, capture_output=True, text=True, check=False,
+                )
+                self.assertEqual(gather.returncode, 0, gather.stdout + gather.stderr)
+                with Dataset(case_dir / "gathered_kslice.nc") as ds:
+                    self.assertEqual(ds["ws_local"].dimensions,
+                                     ("time", "receptor_height", "yt", "xt"))
+                    np.testing.assert_allclose(ds["receptor_height"][:], heights)
 
 
 if __name__ == "__main__":
