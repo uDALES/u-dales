@@ -458,6 +458,9 @@ class UDComfRadiation:
         projected_weights = (
             np.maximum(normal_matrix @ directions.T, 0.0) * weights[None, :] / np.pi
         )
+        # Every receiving plane integrates a constant radiance to pi*L.
+        # Enforce that exact zeroth moment after finite angular quadrature.
+        projected_weights /= projected_weights.sum(axis=1, keepdims=True)
         return directions, projected_weights
 
     def trace_shortwave_rays(
@@ -820,7 +823,7 @@ class UDComfRadiation:
             else [case / f"facEB.{expnr}.nc", case / f"timedeplw.inp.{expnr}"]
         )
         manifest = {
-            "version": 1,
+            "version": 2,
             "kind": kind,
             "case": str(case.resolve()),
             "receptor_height_m": float(grid.z.flat[0]),

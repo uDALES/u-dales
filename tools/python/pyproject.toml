@@ -40,3 +40,4 @@ dependencies = { file = ["requirements.txt"] }
 [tool.setuptools.dynamic.optional-dependencies]
 plotly = { file = ["requirements-plotly.txt"] }
 build = { file = ["requirements-build.txt"] }
+comfort = { file = ["requirements-comfort.txt"] }

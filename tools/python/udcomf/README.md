@@ -162,6 +162,83 @@ The assembler cannot prove that a warm start did not interrupt a 15-minute
 statistics window; audit restart boundaries separately. It also does not
 compute thermal-comfort indices, which belong to the next pipeline step.
 
+## Model-neutral MRT, PET, UTCI and WBGT
+
+Install the optional scientific implementation on Python 3.10 or newer:
+
+```bash
+tools/python/.venv/bin/python -m pip install -e 'tools/python[comfort]'
+```
+
+The same function reads a strict exchange file from **any** model; it never
+opens uDALES case inputs or horizontally remaps another model's grid:
+
+```python
+from pathlib import Path
+from udcomf.thermalcomfort import calculate_indices, ComfortParameters
+
+output = calculate_indices(
+    Path("thermal_comfort_inputs_udales.h1p1.305.nc"),
+    parameters=ComfortParameters(),
+)
+```
+
+The default output is `thermal_comfort_indices_<model>.h<height>.nc`, with
+native coordinates, mask, time bounds, and hourly `(x,y,time)` planes for
+`mrt`, `pet`, `utci` and `wbgt` in degrees Celsius. `globe_temperature` and
+`natural_wet_bulb_temperature` are retained for WBGT auditing. All values are
+indices **of the preceding 15-minute mean inputs**, not time means of the
+instantaneous indices. The input file must contain every required variable,
+units, grid, fixed mask, 24 time bounds, solar angles, georeference and
+provenance; missing or negative source values inside the mask are rejected.
+Output outside the mask, and indices outside their physical or validated
+domains, use `_FillValue`. No meteorological input is clipped. A per-cell
+`validity_flags` bit mask and global `validity_counts` record humidity, UTCI,
+WBGT sensor-domain/convergence and PET failures.
+
+MRT uses the documented six-direction standing-person weights (0.06 up/down,
+0.22 each side), human shortwave absorptivity 0.70 and emissivity 0.97. The
+direct beam is separate: its orientation-averaged standing-body factor varies
+with solar zenith as `0.28 sin(zenith) + 0.06 cos(zenith)` above the horizon.
+Azimuth is checked but not used because person orientation is averaged. This
+is a stated six-plane approximation, not angularly resolved human geometry.
+The factors and PET person can be changed through `ComfortParameters` but
+**must be kept identical across models** in one intercomparison.
+
+PET is `pythermalcomfort`'s steady MEMI implementation for a standing
+35-year-old man, 1.75 m, 75 kg, 1.37 met (79.7 W m-2) and 0.9 clo by default.
+The activity unit is **W m-2**, not 80 W total-body power. UTCI uses that
+library's unrounded operational calculation with `ws_10`; outside its
+temperature, radiant-temperature, wind or vapour-pressure domain it is missing
+and flagged, not extrapolated. PET uses `ws_local` and actual pressure.
+Both receive RH derived from `qv` and `pabs`; supersaturation is flagged, not
+silently capped at 100%.
+
+WBGT solves a Liljegren-type black-globe and natural-wet-bulb heat/mass balance
+with the saved **local** six-plane radiation, air temperature, pressure,
+humidity and `ws_local`. A 50.8 mm globe receives direct DNI over one-quarter
+of its area and the six-plane mean non-direct irradiance. A 7 mm by 25.4 mm
+vertical wick receives lateral and end-face irradiance by surface-area
+weighting; its direct side projection is `sin(zenith)/pi`. This replaces the
+published Liljegren program's flat-ground shortwave/sky/surface estimate with
+an urban directional estimate: it is **not** claimed to be the unmodified,
+instrument-validated Liljegren model. Cells below its 0.13 m s-1 forced-flow
+domain, outside the wick property fit's 283.15--313.15 K temperature range, or
+with nonconvergent sensor balances are missing and flagged; wind is not raised
+to the reference code's floor. The ISO 7243 solar-load expression
+is selected where local direct beam is positive, and the no-direct-solar
+expression elsewhere. This per-cell sun/shade rule is part of the protocol.
+
+References: [SOLWEIG standing-person factors](https://umep-dev.github.io/solweig/physics/tmrt/),
+[pythermalcomfort PET/UTCI](https://pythermalcomfort.readthedocs.io/en/stable/documentation/models.html),
+[Liljegren reference source](https://github.com/mdljts/wbgt/blob/master/src/wbgt.c),
+[ISO 7243](https://www.iso.org/standard/67188.html).
+The numerical verification cases and their limits are recorded in
+[`VALIDATION.md`](VALIDATION.md). The directional WBGT sensor balances have an
+independent root-solver check, but the urban radiation adaptation still needs
+comparison with physical globe and wick measurements before it can be called
+measurement-validated.
+
 `trace_shortwave_rays` returns a receptor-specific first-hit map. Pass it back
 as `ray_map` to `shortwave_at_receptor` at later times to reuse static geometry;
 the changing direct-sun ray is still tested for each timestamp.

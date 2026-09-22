@@ -111,6 +111,8 @@ class TestShortwaveInputs(unittest.TestCase):
         self.assertAlmostEqual(
             float(np.dot(np.maximum(directions[:, 2], 0), weights)), np.pi, places=12
         )
+        _, projected = UDComfRadiation(_case())._plane_geometry(8, 32)
+        np.testing.assert_allclose(projected.sum(axis=1), 1.0, rtol=0, atol=1e-14)
 
 
 class TestShortwaveReceptors(unittest.TestCase):
