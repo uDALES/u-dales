@@ -7,12 +7,15 @@ from tempfile import TemporaryDirectory
 
 from udbase import UDBase
 from udcomf import UDComf
+from udcomf.udcomf_radiation import UDComfRadiation
 
 
 class TestUDComfPackage(unittest.TestCase):
     def test_modules_import(self):
         for name in (
             "udcomf.udcomf_radiation",
+            "udcomf.udcomf_atmosphere",
+            "udcomf.heights",
             "udcomf.udcomf_export",
             "udcomf.udcomf_io",
             "udcomf.checkpoints",
@@ -33,4 +36,7 @@ class TestUDComfPackage(unittest.TestCase):
 
             self.assertIsInstance(sim.comf, UDComf)
             self.assertIs(sim.comf.sim, sim)
+            self.assertIsInstance(sim.comf.radiation, UDComfRadiation)
+            self.assertIs(sim.comf.radiation.sim, sim)
+            self.assertIs(sim.comf.atmosphere.sim, sim)
             self.assertIsNot(sim.comf, sim.vis)

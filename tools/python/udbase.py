@@ -864,7 +864,10 @@ class UDBase:
         filename = self.path / f"stats_xyt.{self.expnr}.nc"
         return self._load_ncdata(filename, var)
     
-    def load_stat_t(self, var: Optional[str] = None) -> Union[xr.Dataset, np.ndarray]:
+    def load_stat_t(
+        self, var: Optional[str] = None, *, time_index: Optional[int] = None,
+        vertical_indices: Optional[List[int]] = None,
+    ) -> Union[xr.Dataset, np.ndarray]:
         """
         Load time-averaged 3D statistics.
         
@@ -884,7 +887,17 @@ class UDBase:
         >>> u_tavg = sim.load_stat_t('u')  # Returns numpy array
         """
         filename = self.path / f"stats_t.{self.expnr}.nc"
-        return self._load_ncdata(filename, var)
+        return self._load_ncdata(filename, var, time_index=time_index,
+                                 vertical_indices=vertical_indices)
+
+    def load_stat_kslice(
+        self, var: Optional[str] = None, *, time_index: Optional[int] = None,
+        vertical_indices: Optional[List[int]] = None,
+    ) -> Union[xr.Dataset, np.ndarray]:
+        """Load gathered time-averaged horizontal slices, optionally selecting records/levels."""
+        filename = self.path / f"stats_kslice.{self.expnr}.nc"
+        return self._load_ncdata(filename, var, time_index=time_index,
+                                 vertical_indices=vertical_indices)
     
     def load_stat_tree(self, var: Optional[str] = None) -> Union[xr.Dataset, np.ndarray]:
         """
@@ -937,9 +950,13 @@ class UDBase:
         filename = self.path / f"{plane}slicedump.{self.expnr}.nc"
         return self._load_ncdata(filename, var)
     
-    def _load_ncdata(self, filename: Path, var: Optional[str]) -> Union[xr.Dataset, np.ndarray]:
+    def _load_ncdata(
+        self, filename: Path, var: Optional[str], *, time_index: Optional[int] = None,
+        vertical_indices: Optional[List[int]] = None,
+    ) -> Union[xr.Dataset, np.ndarray]:
         """Load NetCDF data (thin wrapper over :func:`udnetcdf.load_ncdata`)."""
-        return udnetcdf.load_ncdata(filename, var)
+        return udnetcdf.load_ncdata(filename, var, time_index=time_index,
+                                    vertical_indices=vertical_indices)
 
     def _load_nc_vars(self, filename: Path, names: List[str]) -> Dict[str, np.ndarray]:
         """Load several variables from one NetCDF file in a single open.
@@ -989,7 +1006,9 @@ class UDBase:
         filename = self.path / f"fac.{self.expnr}.nc"
         return self._load_ncdata(filename, var)
     
-    def load_fac_eb(self, var: Optional[str] = None) -> Union[xr.Dataset, np.ndarray]:
+    def load_fac_eb(
+        self, var: Optional[str] = None, *, time_index: Optional[int] = None
+    ) -> Union[xr.Dataset, np.ndarray]:
         """
         Load facet surface energy balance data.
         
@@ -997,6 +1016,8 @@ class UDBase:
         ----------
         var : str, optional
             Variable name to load. If None, displays available variables and returns full dataset.
+        time_index : int, optional
+            Read only one time record of ``var``. Keeps large facet series out of memory.
         
         Returns
         -------
@@ -1010,7 +1031,7 @@ class UDBase:
         >>> K = sim.load_fac_eb('netsw')  # Net shortwave - Returns numpy array
         """
         filename = self.path / f"facEB.{self.expnr}.nc"
-        return self._load_ncdata(filename, var)
+        return self._load_ncdata(filename, var, time_index=time_index)
     
     def load_fac_temperature(self, var: Optional[str] = None) -> Union[xr.Dataset, np.ndarray]:
         """

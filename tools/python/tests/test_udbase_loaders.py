@@ -192,6 +192,14 @@ class TestNetCDFLoaders(_CaseBase):
         arr = self._sim().load_fac_eb("hf")
         self.assertEqual(arr.shape, (3, 2))
 
+        one_record = self._sim().load_fac_eb("hf", time_index=1)
+        self.assertEqual(one_record.shape, (3,))
+        np.testing.assert_allclose(one_record, data[1])
+        with self.assertRaises(IndexError):
+            self._sim().load_fac_eb("hf", time_index=2)
+        with self.assertRaises(ValueError):
+            self._sim().load_fac_eb(time_index=0)
+
     def test_load_fac_temperature_returns_transposed_array(self):
         # (time, lyr, fct) = (2, 3, 4) -> (fct, lyr, time) = (4, 3, 2)
         data = np.arange(2 * 3 * 4, dtype=float).reshape(2, 3, 4)
