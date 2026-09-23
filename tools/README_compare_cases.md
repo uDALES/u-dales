@@ -136,7 +136,7 @@ ud_compare_inputs.py <exp_num> <exppath> <ref_path> [tolerance]
 | Method | Files |
 |--------|-------|
 | **Exact text** | `namoptions.<case>` |
-| **Numeric** (max absolute error, `#` comments skipped) | `prof.inp`, `lscale.inp`, `scalar.inp`, `scalarsourcep.inp.N`, `scalarsourcel.inp.N`, `facetarea.inp`, `facets.inp`, `facets_unused`, `factypes.inp`, `svf.inp`, `netsw.inp`, `Tfacinit.inp`, `heatpump.inp`, `trees.inp`, `Sdir.txt`, `facet_sections_*.txt`, `fluid_boundary_*.txt`, `solid_*.txt` |
+| **Numeric** (max absolute error, `#` comments skipped) | `prof.inp`, `lscale.inp`, `probe.inp`, `scalar.inp`, `scalarsourcep.inp.N`, `scalarsourcel.inp.N`, `facetarea.inp`, `facets.inp`, `facets_unused`, `factypes.inp`, `svf.inp`, `netsw.inp`, `Tfacinit.inp`, `heatpump.inp`, `trees.inp`, `Sdir.txt`, `facet_sections_*.txt`, `fluid_boundary_*.txt`, `solid_*.txt` |
 | **NetCDF** (all numeric variables, max absolute error) | `vf.nc.inp.<case>` |
 
 - If a file is absent from **both** directories it is skipped with `[SKIP]`.
