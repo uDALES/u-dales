@@ -15,7 +15,7 @@ All switches and frequency parameters below live in the `&OUTPUT`, `&TREES`, `&W
 | `xydump.<expnr>.nc` | `lxydump` | `tsample` | x- and y-averaged instantaneous 1D (height) profiles: velocity, temperature, moisture, pressure, turbulent/SGS momentum and heat fluxes, advective fluxes. |
 | `ytdump.<expnr>.nc` | `lytdump` | `tstatsdump` | y- and time-averaged 2D (x, height) statistics: mean velocity/temperature/moisture/scalar profiles, turbulent/kinematic/SGS fluxes, variances. Only functional if the x-direction is not parallelised. |
 | `ydump.<expnr>.nc` | `lydump` | `tsample` | y-averaged instantaneous 2D (x, height) profiles: velocity, temperature, moisture, scalars, turbulent/SGS momentum and heat fluxes, advective fluxes. Only functional if the x-direction is not parallelised. |
-| `tkedump.<expnr>.nc` | `ltkedump` | `tstatsdump` | xy-averaged TKE budget terms vs. height: buoyancy production, total transport, advection, turbulent transport, SGS transport, shear production, viscous and SGS dissipation. Currently marked unsupported in the namoptions documentation — treat as experimental. |
+| `tkedump.<expnr>.nc` | `ltkedump` | `tstatsdump` | xy-averaged TKE budget terms vs. height: buoyancy production, total transport, advection, turbulent transport, SGS transport, shear production, viscous and SGS dissipation. **Disabled.** The budget terms are never accumulated, so the file would contain nothing but zeros; setting `ltkedump = .true.` now aborts the run with an error instead. Tracked in [issue #352](https://github.com/uDALES/u-dales/issues/352). |
 | `treedump.<px>.<py>.<expnr>.nc` | `ltreedump` (`&TREES`) | `tstatsdump` | Time-averaged 3D vegetation/tree terms per CPU: drag in x, y, z; temperature and moisture source/sink terms; scalar source/sink terms; decoupling factor. |
 | **Instantaneous fields** | | | |
 | `fielddump.<px>.<py>.<expnr>.nc` | `lfielddump` | `tfielddump` | Instantaneous 3D snapshots of the variables listed in `fieldvars` (e.g. velocity components, temperature, moisture, pressure, scalars, wall stresses, heat flux, IBM masks, divergence), per CPU. |
@@ -29,6 +29,59 @@ All switches and frequency parameters below live in the `&OUTPUT`, `&TREES`, `&W
 | `facEB.<expnr>.nc` | `lwriteEBfiles` (requires `lEB`) | `dtEB` | Facet surface energy-balance terms per facet: net shortwave, incoming longwave, outgoing longwave, sensible heat flux, latent heat flux, soil water content. |
 
 Statistics that are sampled every `tsample` and only dumped every `tstatsdump` (`tdump`, `mintdump`, `xytdump`, `ytdump`, `treedump`, `tkedump`) report the average over the preceding `tstatsdump` window; the switches whose frequency is `tsample` (`xydump`, `ydump`, the slice dumps) instead write an instantaneous sample every `tsample`. Sampling/averaging only starts once the simulation time passes `tstatstart`.
+
+## Subgrid-scale (SGS) flux variables
+
+The statistics files listed above contain SGS counterparts of the resolved
+fluxes, named `usgs*`, `vsgs*`, `wsgs*`, `thlsgs*`, `qtsgs*` and `sv1sgs`–`sv4sgs`
+(`sca1sgs*`–`sca3sgs*` in the y-averaged files).
+
+### Sign convention
+
+**These are fluxes, and they carry the same sign as the resolved fluxes written
+alongside them in the same file with the same units.** Explicitly, with `K_m`
+the eddy viscosity (`ekm`) and `K_h` the eddy diffusivity (`ekh`):
+
+| Variable | Definition |
+| -------- | ---------- |
+| `usgs` | `<u'w'>_sgs = -K_m (du/dz + dw/dx)`, at the uw corner |
+| `vsgs` | `<v'w'>_sgs = -K_m (dv/dz + dw/dy)`, at the vw corner |
+| `wsgs` | `tau_33 = -2 K_m dw/dz`, at the cell centre |
+| `thlsgs` | `<w'thl'>_sgs = -K_h dthl/dz`, at the w-level |
+| `qtsgs` | `<w'qt'>_sgs = -K_h dqt/dz`, at the w-level |
+| `sv1sgs`–`sv4sgs` | `<w'sv_n'>_sgs = -K_h dsv_n/dz`, at the w-level |
+
+The total flux is therefore the sum of the resolved and SGS parts, for example
+`uwxyt + upwpxyt + usgsxyt` for the total vertical flux of streamwise momentum.
+
+!!! warning "Breaking change"
+    Before uDALES 3.0 these variables were stored **without** the leading minus
+    sign, i.e. as `+K dphi/dn`, and were therefore opposite in sign to the
+    resolved fluxes in the same file. Any analysis that compensated for that
+    (by negating the SGS term, or by subtracting rather than adding it) must be
+    updated. Note also that `wsgs` was previously not a flux at all but the
+    vertical part of the `w`-diffusion tendency, in `m/s^2` rather than
+    `m^2/s^2`, and located at the w-level rather than the cell centre.
+
+### No surface contribution
+
+The SGS statistics are computed from the interior eddy-diffusivity formulas
+only. The fluxes that the wall model and the immersed-boundary method actually
+impose at surfaces (`momfluxb`/`tfluxb`, the facet stresses `tau_x`, `tau_y`,
+`tau_z`, and `thl_flux`) are **not** accumulated into them. Consequences:
+
+- The total-stress profile does not close at the wall: near solid surfaces the
+  resolved plus SGS flux is smaller in magnitude than the true total flux by the
+  missing surface contribution.
+- Levels that the masks exclude — in particular the bottom level `kb` of the
+  w-located profiles, which the IBM masks out entirely — are reported as `-999.`
+  rather than as a number.
+- In the 3-D `tdump` output, `sv1sgs`–`sv4sgs` are likewise set to `-999.` at
+  solid and wall-adjacent faces, where the interior formula does not describe
+  what the solver applied.
+
+Adding the surface contribution is tracked in
+[issue #353](https://github.com/uDALES/u-dales/issues/353).
 
 ## Restart files
 
