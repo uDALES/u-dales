@@ -79,21 +79,29 @@ contains
   end subroutine checksim
 !>      Calculates the courant number as in max(w)*deltat/deltaz
   subroutine calccourant
+    use mpi
     use modglobal, only : ib,ie,jb,je,kb,ke,dxhi,dyi,dzhi
-    use modfields, only : um,vm,wm
+    use modfields, only : um,vm,wm,thl0
     use modmpi,    only : myid,comm3d,mpierr,mpi_max,my_real
+    use decomp_2d, only : zstart
     implicit none
 
 
-    real          :: courtotl, courtot
-    integer       :: i, j, k
+    real          :: courtotl, courtot, cour
+    real          :: maxl(2), maxg(2)
+    integer       :: i, j, k, im, jm, km
 
     courtotl = 0.0
     courtot  = 0.0
+    im = ib; jm = jb; km = kb
     do k=kb,ke
       do j=jb,je
         do i=ib,ie
-          courtotl = max(courtotl,(um(i,j,k)*dxhi(i) + vm(i,j,k)*dyi + wm(i,j,k)*dzhi(k))*dtmn)
+          cour = (um(i,j,k)*dxhi(i) + vm(i,j,k)*dyi + wm(i,j,k)*dzhi(k))*dtmn
+          if (cour > courtotl) then
+            courtotl = cour
+            im = i; jm = j; km = k
+          end if
         end do
       end do
     end do
@@ -101,6 +109,16 @@ contains
     call MPI_ALLREDUCE(courtotl,courtot,1,MY_REAL,MPI_MAX,comm3d,mpierr)
     if (myid==0) then
       write(*,'(A,ES10.2)') 'Courant numbers (x,y,z,tot):',courtot
+    end if
+
+    ! Diagnostic: report where the domain-wide Courant maximum lives.
+    maxl(1) = courtotl
+    maxl(2) = real(myid)
+    call MPI_ALLREDUCE(maxl,maxg,1,MPI_2DOUBLE_PRECISION,MPI_MAXLOC,comm3d,mpierr)
+    if (myid == nint(maxg(2))) then
+      write(*,'(A,I6,A,3I5,A,4ES11.3)') 'maxcour: rank', myid, &
+        '  glob(i,j,k)=', im+zstart(1)-1, jm+zstart(2)-1, km+zstart(3)-1, &
+        '  u,v,w,thl=', um(im,jm,km), vm(im,jm,km), wm(im,jm,km), thl0(im,jm,km)
     end if
 
     return

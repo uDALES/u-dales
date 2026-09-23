@@ -40,6 +40,22 @@ save
   logical :: lvreman      = .true. !<  switch for Vreman (2004) subgrid scheme
   logical :: lbuoycorr    = .false. !<  switch for buoyancy correction in Vreman (2004) subgrid scheme
   logical :: loneeqn      = .false. !<  switch for one-eqn subgrid scheme
+  logical :: lnarrowdamp  = .false. !<  switch for local Smagorinsky-type eddy-viscosity floor in geometrically
+                                    !<  under-resolved (narrow) fluid cells listed in narrow_c.txt; the base SGS
+                                    !<  model (e.g. Vreman) is unchanged elsewhere
+  real    :: cs_narrow    = 0.2     !<  Smagorinsky constant used for the narrow-cell viscosity floor
+  real    :: cs_floor     = 0.      !<  if > 0: global weak Smagorinsky-type lower bound on the Vreman eddy
+                                    !<  viscosity, ekm >= (cs_floor*delta)**2 * |S|. In resolved turbulence the
+                                    !<  Vreman viscosity exceeds this bound; it only engages where Vreman is
+                                    !<  anomalously small relative to strain (grid-scale unidirectional jets).
+  integer :: nnarrowpts   = 0       !<  total number of narrow cells (data lines in narrow_c.txt)
+  integer :: nnarrowptsrank = 0     !<  number of narrow cells on this rank
+  integer, allocatable :: narrowpts_loc(:,:) !< local (i,j,k) of narrow cells on this rank
+  logical :: lnarrowcolfull = .false. !< extend the narrow-cell floor over the FULL column height (kb..ke) of every
+                                      !< column containing narrow cells, so jets cannot escape the damped region
+                                      !< by climbing above the masked levels
+  integer :: nnarrowcolsrank = 0      !< number of such columns on this rank
+  integer, allocatable :: narrowcols_loc(:,:) !< local (i,j) of those columns
   real :: cf      = 2.5  !< filter constant
   real :: Rigc    = 0.25 !< critical Richardson number
   real :: Prandtl = 0.333

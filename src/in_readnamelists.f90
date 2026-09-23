@@ -51,6 +51,7 @@ use mpi
    use modibm
    use decomp_2d
    use modsubgriddata, only : ldelta, lmason, cf, cn, Rigc, Prandtl, lsmagorinsky, &
+      lnarrowdamp, cs_narrow, nnarrowpts, cs_floor, lnarrowcolfull, &
                               lvreman, loneeqn, c_vreman, cs, nmason, lbuoycorr
 
    implicit none
@@ -136,7 +137,8 @@ use mpi
    namelist/HEATPUMP/ &
       lheatpump, lfan_hp, nhppoints, Q_dot_hp, QH_dot_hp
    namelist/NAMSUBGRID/ &
-         ldelta,lmason, cf,cn,Rigc,Prandtl,lsmagorinsky,lvreman,loneeqn,c_vreman,cs,nmason,lbuoycorr
+         ldelta,lmason, cf,cn,Rigc,Prandtl,lsmagorinsky,lvreman,loneeqn,c_vreman,cs,nmason,lbuoycorr, &
+         lnarrowdamp,cs_narrow,nnarrowpts,cs_floor,lnarrowcolfull
 
 contains
    subroutine read_namelist_inputs
@@ -774,6 +776,11 @@ contains
       call MPI_BCAST(cs, 1, MY_REAL, 0, comm3d, mpierr)
       call MPI_BCAST(nmason, 1, MY_REAL, 0, comm3d, mpierr)
       call MPI_BCAST(lbuoycorr, 1, MPI_LOGICAL, 0, comm3d, mpierr)
+      call MPI_BCAST(lnarrowdamp, 1, MPI_LOGICAL, 0, comm3d, mpierr)
+      call MPI_BCAST(cs_narrow, 1, MY_REAL, 0, comm3d, mpierr)
+      call MPI_BCAST(cs_floor, 1, MY_REAL, 0, comm3d, mpierr)
+      call MPI_BCAST(lnarrowcolfull, 1, MPI_LOGICAL, 0, comm3d, mpierr)
+      call MPI_BCAST(nnarrowpts, 1, MPI_INTEGER, 0, comm3d, mpierr)
    end subroutine broadcast_namsubgrid_parameters
 
    logical function has_namelist_group(group_name)

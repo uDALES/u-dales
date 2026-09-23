@@ -44,12 +44,47 @@ contains
   subroutine initsubgrid
     use modglobal, only : ih,ib,ie,jh,jb,je,kb,ke,kh, &
          pi
+    use readsparsefiles, only : read_sparse_ijk
 
     implicit none
 
     real :: ceps, ch
+    integer :: icol, jcol, ncol
+    logical, allocatable :: colseen(:,:)
+    integer, allocatable :: narrowids_tmp(:), narrowpts_tmp(:,:)
 
     call subgridnamelist
+
+    if (lnarrowdamp) then
+       if (nnarrowpts <= 0) then
+          write(0,*) 'ERROR: lnarrowdamp requires nnarrowpts > 0 (lines in narrow_c.txt)'
+          stop 1
+       end if
+       call read_sparse_ijk('narrow_c.txt', nnarrowpts, nnarrowptsrank, narrowids_tmp, narrowpts_tmp)
+       call move_alloc(narrowpts_tmp, narrowpts_loc)
+       deallocate(narrowids_tmp)
+
+       if (lnarrowcolfull) then
+          ! collect the unique local (i,j) columns containing narrow cells
+          allocate(colseen(ib:ie,jb:je)); colseen = .false.
+          do ncol = 1, nnarrowptsrank
+             colseen(narrowpts_loc(ncol,1), narrowpts_loc(ncol,2)) = .true.
+          end do
+          nnarrowcolsrank = count(colseen)
+          allocate(narrowcols_loc(nnarrowcolsrank,2))
+          ncol = 0
+          do jcol = jb, je
+             do icol = ib, ie
+                if (colseen(icol,jcol)) then
+                   ncol = ncol + 1
+                   narrowcols_loc(ncol,1) = icol
+                   narrowcols_loc(ncol,2) = jcol
+                end if
+             end do
+          end do
+          deallocate(colseen)
+       end if
+    end if
 
     allocate(ekm(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh))
     allocate(ekh(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh))
@@ -79,6 +114,7 @@ contains
   end subroutine initsubgrid
 
   subroutine subgridnamelist
+    use mpi,       only : MPI_INTEGER
     use modglobal, only : ifnamopt,fname_options,lles
     use modmpi,    only : myid, comm3d, mpierr, my_real, mpi_logical
 
@@ -87,7 +123,8 @@ contains
     integer :: ierr
 
     namelist/NAMSUBGRID/ &
-         ldelta,lmason, cf,cn,Rigc,Prandtl,lsmagorinsky,lvreman,loneeqn,c_vreman,cs,nmason,lbuoycorr
+         ldelta,lmason, cf,cn,Rigc,Prandtl,lsmagorinsky,lvreman,loneeqn,c_vreman,cs,nmason,lbuoycorr, &
+         lnarrowdamp,cs_narrow,nnarrowpts,cs_floor,lnarrowcolfull
 
     if(myid==0)then
        open(ifnamopt,file=fname_options,status='old',iostat=ierr)
@@ -114,6 +151,11 @@ contains
     call MPI_BCAST(cn         ,1,MY_REAL   ,0,comm3d,mpierr)
     call MPI_BCAST(Rigc       ,1,MY_REAL   ,0,comm3d,mpierr)
     call MPI_BCAST(Prandtl    ,1,MY_REAL   ,0,comm3d,mpierr)
+    call MPI_BCAST(lnarrowdamp,1,MPI_LOGICAL,0,comm3d,mpierr)
+    call MPI_BCAST(cs_narrow  ,1,MY_REAL    ,0,comm3d,mpierr)
+    call MPI_BCAST(cs_floor   ,1,MY_REAL    ,0,comm3d,mpierr)
+    call MPI_BCAST(lnarrowcolfull,1,MPI_LOGICAL,0,comm3d,mpierr)
+    call MPI_BCAST(nnarrowpts ,1,MPI_INTEGER,0,comm3d,mpierr)
     prandtli = 1./Prandtl
 
     if ((lsmagorinsky) .or. (lvreman) .or. (loneeqn)) then
@@ -202,7 +244,8 @@ contains
     real    :: strain2,mlen,a11,a12,a13, &
          a21,a22,a23,a31,a32,a33,aa,b11,b12,b13,b22, &
          b23,b33,bb,du0dz,dv0dz,Rig
-    integer :: i,j,k,kp,km,jp,jm,im,ip
+    integer :: i,j,k,kp,km,jp,jm,im,ip,n,nfloorpts
+    real    :: numin
 
     !  if (lles  .and. rk3step == 1) then        ! compute ekm and ekh only once in complete RK-cycle
     if(lsmagorinsky) then
@@ -353,6 +396,45 @@ contains
          end do
        end if
 
+       ! Global weak lower bound on the Vreman viscosity (see modsubgriddata: cs_floor).
+       ! Vreman yields ~zero viscosity for grid-scale unidirectional jets (bb -> 0 while
+       ! aa is large); such jets are numerical artifacts at any altitude and must feel
+       ! subgrid drag. The bound is far below Vreman's value in resolved turbulence.
+       if (cs_floor > 0.) then
+         do k = kb,ke
+           kp=k+1
+           km=k-1
+           do i = ib,ie
+             ip=i+1
+             im=i-1
+             do j = jb,je
+               jp=j+1
+               jm=j-1
+               strain2 = ((u0(ip,j,k)-u0(i,j,k))    *dxi      )**2 &
+                       + ((v0(i,jp,k)-v0(i,j,k))    *dyi      )**2 &
+                       + ((w0(i,j,kp)-w0(i,j,k))    *dzfi(k)  )**2
+               strain2 = strain2 + 0.125 * ( &
+                       + ((w0(i ,j,kp)-w0(im,j ,kp))*dxi + (u0(i ,j,kp)-u0(i ,j,k ))*dzhi(kp))**2 &
+                       + ((w0(i ,j,k )-w0(im,j ,k ))*dxi + (u0(i ,j,k )-u0(i ,j,km))*dzhi(k ))**2 &
+                       + ((w0(ip,j,k )-w0(i ,j ,k ))*dxi + (u0(ip,j,k )-u0(ip,j,km))*dzhi(k ))**2 &
+                       + ((w0(ip,j,kp)-w0(i ,j ,kp))*dxi + (u0(ip,j,kp)-u0(ip,j,k ))*dzhi(kp))**2 )
+               strain2 = strain2 + 0.125 * ( &
+                       + ((u0(i ,jp,k)-u0(i ,j ,k))*dyi + (v0(i ,jp,k)-v0(im,jp,k))*dxi)**2 &
+                       + ((u0(i ,j ,k)-u0(i ,jm,k))*dyi + (v0(i ,j ,k)-v0(im,j ,k))*dxi)**2 &
+                       + ((u0(ip,j ,k)-u0(ip,jm,k))*dyi + (v0(ip,j ,k)-v0(i ,j ,k))*dxi)**2 &
+                       + ((u0(ip,jp,k)-u0(ip,j ,k))*dyi + (v0(ip,jp,k)-v0(i ,jp,k))*dxi)**2 )
+               strain2 = strain2 + 0.125 * ( &
+                       + ((v0(i,j ,kp)-v0(i,j ,k ))*dzhi(kp) + (w0(i,j ,kp)-w0(i,jm,kp))*dyi)**2 &
+                       + ((v0(i,j ,k )-v0(i,j ,km))*dzhi(k ) + (w0(i,j ,k )-w0(i,jm,k ))*dyi)**2 &
+                       + ((v0(i,jp,k )-v0(i,jp,km))*dzhi(k ) + (w0(i,jp,k )-w0(i,j ,k ))*dyi)**2 &
+                       + ((v0(i,jp,kp)-v0(i,jp,k ))*dzhi(kp) + (w0(i,jp,kp)-w0(i,j ,kp))*dyi)**2 )
+               numin = (cs_floor * delta(i,k))**2 * sqrt(2. * strain2)
+               if (ekm(i,j,k) < numin) ekm(i,j,k) = numin
+             end do
+           end do
+         end do
+       end if
+
        ekh(:,:,:) = ekm(:,:,:)*prandtli              ! Eddy diffusivity from eddy viscosity, Kh = Km/Pr
        ! ekh(:,:,:) = max(ekh(:,:,:),ekmin)
 
@@ -401,6 +483,63 @@ contains
     else   ! no subgrid model (DNS!)
        ekm = numol
        ekh = numol*prandtlmoli
+    end if
+
+    ! Local eddy-viscosity floor in geometrically under-resolved (narrow) cells.
+    ! The base SGS model (e.g. Vreman) yields ~zero viscosity for the grid-scale,
+    ! near-unidirectional jets that develop in slots/wedges narrower than ~3-4 cells,
+    ! where the resolved-laminar assumption behind that limit is invalid. In exactly
+    ! those cells (read from narrow_c.txt) impose a Smagorinsky-type lower bound so
+    ! such jets feel subgrid drag; elsewhere the base model is untouched.
+    if (lnarrowdamp) then
+       if (lnarrowcolfull) then
+          nfloorpts = nnarrowcolsrank*(ke-kb+1)
+       else
+          nfloorpts = nnarrowptsrank
+       end if
+       do n = 1, nfloorpts
+          if (lnarrowcolfull) then
+             i = narrowcols_loc((n-1)/(ke-kb+1)+1,1)
+             j = narrowcols_loc((n-1)/(ke-kb+1)+1,2)
+             k = kb + mod(n-1, ke-kb+1)
+          else
+             i = narrowpts_loc(n,1)
+             j = narrowpts_loc(n,2)
+             k = narrowpts_loc(n,3)
+          end if
+          kp = k+1
+          km = k-1
+          ip = i+1
+          im = i-1
+          jp = j+1
+          jm = j-1
+
+          strain2 = ((u0(ip,j,k)-u0(i,j,k))    *dxi      )**2 &
+                  + ((v0(i,jp,k)-v0(i,j,k))    *dyi      )**2 &
+                  + ((w0(i,j,kp)-w0(i,j,k))    *dzfi(k)  )**2
+
+          strain2 = strain2 + 0.125 * ( &
+                  + ((w0(i ,j,kp)-w0(im,j ,kp))*dxi + (u0(i ,j,kp)-u0(i ,j,k ))*dzhi(kp))**2 &
+                  + ((w0(i ,j,k )-w0(im,j ,k ))*dxi + (u0(i ,j,k )-u0(i ,j,km))*dzhi(k ))**2 &
+                  + ((w0(ip,j,k )-w0(i ,j ,k ))*dxi + (u0(ip,j,k )-u0(ip,j,km))*dzhi(k ))**2 &
+                  + ((w0(ip,j,kp)-w0(i ,j ,kp))*dxi + (u0(ip,j,kp)-u0(ip,j,k ))*dzhi(kp))**2 )
+
+          strain2 = strain2 + 0.125 * ( &
+                  + ((u0(i ,jp,k)-u0(i ,j ,k))*dyi + (v0(i ,jp,k)-v0(im,jp,k))*dxi)**2 &
+                  + ((u0(i ,j ,k)-u0(i ,jm,k))*dyi + (v0(i ,j ,k)-v0(im,j ,k))*dxi)**2 &
+                  + ((u0(ip,j ,k)-u0(ip,jm,k))*dyi + (v0(ip,j ,k)-v0(i ,j ,k))*dxi)**2 &
+                  + ((u0(ip,jp,k)-u0(ip,j ,k))*dyi + (v0(ip,jp,k)-v0(i ,jp,k))*dxi)**2 )
+
+          strain2 = strain2 + 0.125 * ( &
+                  + ((v0(i,j ,kp)-v0(i,j ,k ))*dzhi(kp) + (w0(i,j ,kp)-w0(i,jm,kp))*dyi)**2 &
+                  + ((v0(i,j ,k )-v0(i,j ,km))*dzhi(k ) + (w0(i,j ,k )-w0(i,jm,k ))*dyi)**2 &
+                  + ((v0(i,jp,k )-v0(i,jp,km))*dzhi(k ) + (w0(i,jp,k )-w0(i,j ,k ))*dyi)**2 &
+                  + ((v0(i,jp,kp)-v0(i,jp,k ))*dzhi(kp) + (w0(i,jp,kp)-w0(i,j ,kp))*dyi)**2 )
+
+          numin = (cs_narrow * delta(i,k))**2 * sqrt(2. * strain2)
+          ekm(i,j,k) = max(ekm(i,j,k), numin)
+          ekh(i,j,k) = max(ekh(i,j,k), numin*prandtli)
+       end do
     end if
 
     !*************************************************************
