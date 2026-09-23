@@ -183,6 +183,7 @@ class TestShortwaveWriters(unittest.TestCase):
         with TemporaryDirectory() as tmp:
             case_dir = Path(tmp) / "300"
             case_dir.mkdir()
+            case_dir = case_dir.resolve()
             prep = types.SimpleNamespace(
                 sim=types.SimpleNamespace(path=case_dir, expnr="300"),
                 radiation=types.SimpleNamespace(
