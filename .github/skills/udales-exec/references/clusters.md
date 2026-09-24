@@ -124,3 +124,54 @@ works from a clean module environment:
 module load tools/prod
 module load NCO/5.2.9-foss-2024a
 ```
+
+### ICL — HX1 GPU nodes (A100), single and multi-node (2026-09-24)
+
+GPU builds use the `gpuhx1` target of `tools/build_executable.sh`. Three MPI
+"stacks" are recorded there (older ones as comments):
+
+| Stack | MPI | Works |
+|---|---|---|
+| 1 | OpenMPI 3.1.5 bundled with NVHPC 23.7 (`comm_libs/mpi`) | one node only, slow non-contiguous GPU datatypes |
+| 2 | OpenMPI 4.1.5 bundled with NVHPC (`comm_libs/12.2/openmpi4`) | one node only, ~20 % faster than stack 1 |
+| 3 | OpenMPI 4.1.6 built for NVHPC 23.7 in `~/openmpi-4.1.6-NVHPC-23.7-CUDA-12.2.0` | one node and multi-node |
+
+Why the bundled ones cannot cross nodes: HX1's node networks (ib0, ens*) are
+IPv6-only, the only IPv4 address is a per-node 464XLAT interface
+(`clat`, 192.0.0.1) identical everywhere, and the bundled OpenMPIs are built
+without `--enable-ipv6`, so their launcher daemons connect back to themselves
+and hang. Their bundled UCX also cannot load its InfiniBand module against the
+system rdma-core. Stack 3 is built with `--enable-ipv6 --with-tm=/opt/pbs`
+and the site `UCX/1.14.1-GCCcore-12.3.0` + `UCX-CUDA` (same recipe as the site
+module `OpenMPI/4.1.4-NVHPC-22.7-CUDA-11.7.0`), needs `-fPIC` in every flag and
+`-Wl,-rpath,/opt/pbs/lib`. Each stack has its own HDF5/netCDF/FFTW tree
+(`~/newlib-NVHPC-23.7-CUDA-12.2.0*`).
+
+Runtime for stack 3 (what the `hx1:gpu` block of `tools/hpc_execute.sh` writes):
+
+```bash
+module load NVHPC/23.7-CUDA-12.2.0
+export PATH="/gpfs/home/dmajumda/openmpi-4.1.6-NVHPC-23.7-CUDA-12.2.0/openmpi/bin:$PATH"
+export UCX_MODULE_DIR=/gpfs/easybuild/prod/software/UCX-CUDA/1.14.1-GCCcore-12.3.0-CUDA-12.1.1/ucx
+export EB_UCX_uct_MODULES=":ib:rdmacm:cma:cuda"
+export EB_UCX_ucm_MODULES=":cuda"
+export EB_UCX_uct_cuda_MODULES=":gdrcopy"
+export LD_LIBRARY_PATH="$EBROOTNVHPC/Linux_x86_64/23.7/cuda/12.2/lib64:/gpfs/easybuild/prod/software/GDRCopy/2.3.1-GCCcore-12.3.0/lib:$LD_LIBRARY_PATH"
+mpirun --map-by ppr:${NGPU}:node -n ${NP} tools/bind.sh u-dales namoptions.<exp>
+```
+
+Without the UCX variables multi-rank runs segfault in `ucp_dt_pack` on small
+GPU messages. `mpirun` takes the node list from PBS (tm), so no hostfile or
+remote agent is needed; `bind.sh` maps `OMPI_COMM_WORLD_LOCAL_RANK` to the GPU.
+
+Limits and measured behaviour:
+- Server limit `max_run_res.ngpus = 12` per user (queue max is 16): a job
+  may use at most 2 nodes x 4 GPUs for a grid that 12 ranks cannot tile.
+- Multi-node does not scale: 512^3 on 4 GPUs of one node 0.48 s/step, on 8
+  GPUs over two nodes 0.79 (1x8) to 0.95 s/step. The 2DECOMP transposes
+  cross the InfiniBand link with every Poisson solve. Prefer 1xN layouts.
+- 1024^3 (case 556) runs on 8 GPUs over 2 nodes: 75 GB of 80 GB per card,
+  5 s/step at 1x8, 110 s initialisation. `nvidia_peermem` is loaded on the
+  GPU nodes. Use `PLACE=scatter` so each chunk gets its own node.
+- Do not force UCX onto TCP (`UCX_TLS=tcp,...`): it hangs.
+

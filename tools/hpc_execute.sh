@@ -26,7 +26,11 @@ set -e
 # comes from config.sh in the case directory:
 #
 #   NNODE, NCPU, WALLTIME, MEM   required for every run
-#   NGPU                         GPUs per node; setting it makes this a GPU run
+#   NGPU                         GPUs per node; setting it makes this a GPU run.
+#                                NNODE > 1 with NGPU is a multi-node GPU run
+#                                (HX1: stack 3 MPI, up to 12 GPUs per user, so
+#                                at most 2 nodes x 4 GPUs for a 1024 grid); use
+#                                PLACE=scatter to put each chunk on its own node
 #   QUEUE                        optional, adds "#PBS -q <QUEUE>"
 #   PLACE                        optional, adds "#PBS -l place=<PLACE>", e.g. excl
 #   GPU_TYPE                     GPU card for the select line, default A100;
@@ -207,8 +211,31 @@ module load intel/2021a netCDF/4.8.0-iimpi-2021a netCDF-Fortran/4.5.3-iimpi-2021
         # Mirrors "gpuhx1". netCDF and FFTW are reached through the executable's
         # RPATH, so NVHPC is the only module needed - but its mpirun lives under
         # comm_libs, which the module does not put on PATH.
+        # The mpirun below has to be the one the executable was linked against;
+        # keep it in step with the stack chosen in the "gpuhx1" block of
+        # build_executable.sh.
+        # Stack 1 - OpenMPI 3.1.5 (NVHPC default, single node only):
+        # job_modules='module load NVHPC/23.7-CUDA-12.2.0
+        # export PATH="$EBROOTNVHPC/Linux_x86_64/23.7/comm_libs/mpi/bin:$PATH"'
+        # Stack 2 - OpenMPI 4.1.5 bundled with NVHPC (single node only):
+        # job_modules='module load NVHPC/23.7-CUDA-12.2.0
+        # export PATH="$EBROOTNVHPC/Linux_x86_64/23.7/comm_libs/12.2/openmpi4/openmpi-4.1.5/bin:$PATH"'
+        # Stack 3 - own OpenMPI 4.1.6 (IPv6, PBS tm launch, site UCX): mpirun
+        # takes the node list from PBS itself, so the same launch line serves
+        # one node or several.
+        # UCX finds its CUDA transports (cuda_copy, cuda_ipc, gdr_copy) only
+        # through UCX_MODULE_DIR, kept by the site in a separate UCX-CUDA
+        # install; without them UCX treats GPU buffers as host memory and
+        # small messages segfault. libcudart and libgdrapi are their deps. The
+        # site UCX carries a compiled-in module list without cuda; the EB_UCX_*
+        # variables (set by the UCX-CUDA module) override it.
         job_modules='module load NVHPC/23.7-CUDA-12.2.0
-export PATH="$EBROOTNVHPC/Linux_x86_64/23.7/comm_libs/mpi/bin:$PATH"'
+export PATH="/gpfs/home/dmajumda/openmpi-4.1.6-NVHPC-23.7-CUDA-12.2.0/openmpi/bin:$PATH"
+export UCX_MODULE_DIR=/gpfs/easybuild/prod/software/UCX-CUDA/1.14.1-GCCcore-12.3.0-CUDA-12.1.1/ucx
+export EB_UCX_uct_MODULES=":ib:rdmacm:cma:cuda"
+export EB_UCX_ucm_MODULES=":cuda"
+export EB_UCX_uct_cuda_MODULES=":gdrcopy"
+export LD_LIBRARY_PATH="$EBROOTNVHPC/Linux_x86_64/23.7/cuda/12.2/lib64:/gpfs/easybuild/prod/software/GDRCopy/2.3.1-GCCcore-12.3.0/lib:$LD_LIBRARY_PATH"'
         ;;
     cx3:gpu)
         echo "There is no CX3 GPU target in tools/build_executable.sh."
@@ -237,7 +264,11 @@ if [ "$UDALES_TARGET" = "gpu" ]; then
         pbs_select="${pbs_select}:gpu_type=${gpu_type}"
     fi
     # One rank per GPU; bind.sh pins each to its own device.
-    launch="mpirun -n ${NP} ${DA_TOOLSDIR}/bind.sh ${DA_BUILD}"
+    # launch="mpirun -n ${NP} ${DA_TOOLSDIR}/bind.sh ${DA_BUILD}"
+    # With stack 3 mpirun takes the node list from PBS itself (tm launch), so
+    # the same line serves one node or several; --map-by ppr pins NGPU ranks
+    # to each node, which is what bind.sh's local-rank -> GPU mapping expects.
+    launch="mpirun --map-by ppr:${NGPU}:node -n ${NP} ${DA_TOOLSDIR}/bind.sh ${DA_BUILD}"
 else
     NP=$(( NNODE * NCPU ))
     pbs_select="select=${NNODE}:ncpus=${NCPU}:mpiprocs=${NCPU}:mem=${MEM}"
@@ -252,6 +283,9 @@ if [ -n "${QUEUE:-}" ]; then
 fi
 # Optional placement, e.g. PLACE=excl for a node of your own. On the a100
 # queue that holds a whole 4-GPU node whatever NGPU is, so use it deliberately.
+# PLACE=excl puts the whole node to this job, and the no other job will start on this node until this one finishes.
+# PLACE=scatter puts every chunk on a different node (multi-node GPU runs).
+# set approprite PLACE in config.sh, or leave it unset to let PBS decide.
 if [ -n "${PLACE:-}" ]; then
     pbs_directives="${pbs_directives}
 #PBS -l place=${PLACE}"

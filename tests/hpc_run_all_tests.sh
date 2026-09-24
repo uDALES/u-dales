@@ -79,6 +79,9 @@ RES_CPU="select=1:ncpus=8:mpiprocs=8:mem=64gb"
 RES_GPU1="select=1:ncpus=8:mpiprocs=8:mem=128gb:ngpus=1:gpu_type=A100"
 RES_GPU2="select=1:ncpus=8:mpiprocs=8:mem=128gb:ngpus=2:gpu_type=A100"
 RES_GPU4="select=1:ncpus=8:mpiprocs=8:mem=128gb:ngpus=4:gpu_type=A100"
+# Two nodes with two GPUs each: the multi-node exchange path (stack 3 MPI over
+# InfiniBand). Schedules more easily than four GPUs on one node.
+RES_GPU2x2="select=2:ncpus=2:mpiprocs=2:mem=64gb:ngpus=2:gpu_type=A100"
 
 # The block every test job starts with. Single-quoted heredoc: nothing here is
 # expanded when the job script is written, only when it runs on the node.
@@ -101,9 +104,30 @@ export UDALES_CPU_MPIEXEC="$MPIEXEC"
 export UDALES_CPU_SYSTEM=hx1
 export UDALES_GPU_SYSTEM=gpuhx1
 export UDALES_CPU_FORTRAN_COMPILER=$IMPI_BIN/mpiifort
-export UDALES_GPU_FORTRAN_COMPILER=$NVHPC_ROOT/Linux_x86_64/23.7/comm_libs/mpi/bin/mpif90
-export UDALES_GPU_MPIEXEC=$NVHPC_ROOT/Linux_x86_64/23.7/comm_libs/mpi/bin/mpiexec
-export PATH="$PATH:$NVHPC_ROOT/Linux_x86_64/23.7/comm_libs/mpi/bin"
+# Keep in step with the "gpuhx1" block of tools/build_executable.sh.
+# Stack 1 - OpenMPI 3.1.5 (NVHPC default, single node only):
+# export UDALES_GPU_FORTRAN_COMPILER=$NVHPC_ROOT/Linux_x86_64/23.7/comm_libs/mpi/bin/mpif90
+# export UDALES_GPU_MPIEXEC=$NVHPC_ROOT/Linux_x86_64/23.7/comm_libs/mpi/bin/mpiexec
+# export PATH="$PATH:$NVHPC_ROOT/Linux_x86_64/23.7/comm_libs/mpi/bin"
+# Stack 2 - OpenMPI 4.1.5 bundled with NVHPC (single node only):
+# export UDALES_GPU_FORTRAN_COMPILER=$NVHPC_ROOT/Linux_x86_64/23.7/comm_libs/12.2/openmpi4/openmpi-4.1.5/bin/mpif90
+# export UDALES_GPU_MPIEXEC=$NVHPC_ROOT/Linux_x86_64/23.7/comm_libs/12.2/openmpi4/openmpi-4.1.5/bin/mpiexec
+# export PATH="$PATH:$NVHPC_ROOT/Linux_x86_64/23.7/comm_libs/12.2/openmpi4/openmpi-4.1.5/bin"
+# Stack 3 - own OpenMPI 4.1.6 (IPv6, PBS tm launch, site UCX):
+export UDALES_GPU_FORTRAN_COMPILER=/gpfs/home/dmajumda/openmpi-4.1.6-NVHPC-23.7-CUDA-12.2.0/openmpi/bin/mpif90
+export UDALES_GPU_MPIEXEC=/gpfs/home/dmajumda/openmpi-4.1.6-NVHPC-23.7-CUDA-12.2.0/openmpi/bin/mpiexec
+export PATH="$PATH:/gpfs/home/dmajumda/openmpi-4.1.6-NVHPC-23.7-CUDA-12.2.0/openmpi/bin"
+# UCX finds its CUDA transports (cuda_copy, cuda_ipc, gdr_copy) only through
+# UCX_MODULE_DIR, which the site keeps in a separate UCX-CUDA install; without
+# them UCX treats GPU buffers as host memory and small messages segfault.
+export UCX_MODULE_DIR=/gpfs/easybuild/prod/software/UCX-CUDA/1.14.1-GCCcore-12.3.0-CUDA-12.1.1/ucx
+# The site UCX was built without CUDA and carries a compiled-in module list;
+# its UCX-CUDA module overrides the list through these EB_UCX_* variables.
+# Without them UCX_MODULE_DIR alone is ignored and no cuda transport loads.
+export EB_UCX_uct_MODULES=":ib:rdmacm:cma:cuda"
+export EB_UCX_ucm_MODULES=":cuda"
+export EB_UCX_uct_cuda_MODULES=":gdrcopy"
+export LD_LIBRARY_PATH="$NVHPC_ROOT/Linux_x86_64/23.7/cuda/12.2/lib64:/gpfs/easybuild/prod/software/GDRCopy/2.3.1-GCCcore-12.3.0/lib:${LD_LIBRARY_PATH:-}"
 # Parity compares outputs to 1e-6; keep host threads out of the reductions.
 export OMP_NUM_THREADS=1
 # HX1 injects Lmod into every child bash through BASH_ENV, which defeats the
@@ -188,15 +212,20 @@ define_jobs() {
         # slowed it 3.5x (45 s -> 157 s per step) and past its timeout. A node
         # of its own makes its run time predictable; the price is waiting for
         # an idle node in the small/medium pool.
+        # Ranks spread over two nodes: the Poisson self-test and the mpi parity
+        # selection with each pair of ranks on different nodes.
+        EXTRA_PBS="#PBS -l place=scatter" write_job gpu-2node "$RES_GPU2x2" "02:00:00" \
+            "poisson-2node|env UDALES_BUILD=build/gpu/release/u-dales UDALES_GPU=1 UDALES_MAX_RANKS=2 MPI_LAUNCH_EXTRA_ARGS='--map-by ppr:2:node' bash tests/integration/poisson/run_test.sh" \
+            "gpu-mpi-2node|env UDALES_GPU_MPI_ARGS='--map-by ppr:2:node' python tests/integration/gpu/run_gpu_tests.py mpi --cpu-executable build/cpu/debug/u-dales --gpu-executable build/gpu/debug/u-dales --require-debug-selftest"
         EXTRA_PBS="#PBS -l place=excl" write_job fixtures "$RES_CPU" "03:00:00" \
             "gpu-fixtures-cpu|python tests/integration/gpu/run_gpu_tests.py full --cpu-only --cpu-executable build/cpu/debug/u-dales"
         write_job all       "$RES_CPU"  "04:00:00" \
             "all-release|python tests/run_tests.py all $BRANCHES --build-type Release"
-        CONCURRENT="python gpu-debug gpu-nightly gpu-full fixtures"
+        CONCURRENT="python gpu-debug gpu-nightly gpu-full gpu-2node fixtures"
         SEQUENTIAL="supported all"
         CHAIN_gpu_full="gpu-nightly"
     else
-        SKIPPED="gpu-full (4 GPUs), the CPU fixture matrix (40-90 min), all Release (repeats supported plus the experimental stream)"
+        SKIPPED="gpu-full (4 GPUs), gpu-2node (2 nodes x 2 GPUs), the CPU fixture matrix (40-90 min), all Release (repeats supported plus the experimental stream)"
     fi
 }
 

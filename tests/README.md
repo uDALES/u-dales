@@ -318,7 +318,9 @@ mode and every selection run, with the path of every log under
 `fast`, the default, covers every build, `python-library`, `gpu-smoke`,
 `gpu-mpi`, `gpu-nightly` (so both GPU build types, CPU/GPU parity and the
 restart round trip) and `supported` in Debug. `full` adds `gpu-full`, which
-needs four free A100s and can queue for hours for five minutes of work; the
+needs four free A100s and can queue for hours for five minutes of work;
+`gpu-2node`, the Poisson self-test and the mpi parity selection with each
+pair of ranks on different nodes (2 nodes x 2 GPUs, `place=scatter`); the
 CPU-only run of the GPU fixture matrix, submitted with `place=excl` because
 its 128³ Debug case slows 3.5× when it shares a node, so it waits for an idle
 node and then takes about 40 minutes; and `all` in Release. Queue waits are
@@ -392,13 +394,27 @@ IMPI=/gpfs/easybuild/prod/software/impi/2021.9.0-intel-compilers-2023.1.0/mpi/20
 export UDALES_CPU_SYSTEM=hx1
 export UDALES_GPU_SYSTEM=gpuhx1
 export UDALES_CPU_FORTRAN_COMPILER=$IMPI/mpiifort
-export UDALES_GPU_FORTRAN_COMPILER=$NVHPC/Linux_x86_64/23.7/comm_libs/mpi/bin/mpif90
+# The GPU MPI is "stack 3": OpenMPI 4.1.6 built for NVHPC 23.7 with IPv6,
+# PBS (tm) launch and the site UCX, in ~/openmpi-4.1.6-NVHPC-23.7-CUDA-12.2.0.
+# The OpenMPIs bundled with NVHPC only work on a single node here (see
+# .github/skills/udales-exec/references/clusters.md, HX1 GPU).
+OMPI=/gpfs/home/dmajumda/openmpi-4.1.6-NVHPC-23.7-CUDA-12.2.0/openmpi
+export UDALES_GPU_FORTRAN_COMPILER=$OMPI/bin/mpif90
 
-# run_gpu_tests.py: one launcher per binary. NVHPC's mpiexec finds orted via
-# PATH; appended, so Intel's tools keep precedence for everything else.
+# run_gpu_tests.py: one launcher per binary. Appended, so Intel's tools keep
+# precedence for everything else.
 export UDALES_CPU_MPIEXEC=$IMPI/mpiexec
-export UDALES_GPU_MPIEXEC=$NVHPC/Linux_x86_64/23.7/comm_libs/mpi/bin/mpiexec
-export PATH="$PATH:$NVHPC/Linux_x86_64/23.7/comm_libs/mpi/bin"
+export UDALES_GPU_MPIEXEC=$OMPI/bin/mpiexec
+export PATH="$PATH:$OMPI/bin"
+
+# UCX finds its CUDA transports only through UCX_MODULE_DIR plus the EB_UCX_*
+# module lists (the site's UCX-CUDA module sets them); without them UCX takes
+# GPU buffers for host memory and multi-rank runs segfault on small messages.
+export UCX_MODULE_DIR=/gpfs/easybuild/prod/software/UCX-CUDA/1.14.1-GCCcore-12.3.0-CUDA-12.1.1/ucx
+export EB_UCX_uct_MODULES=":ib:rdmacm:cma:cuda"
+export EB_UCX_ucm_MODULES=":cuda"
+export EB_UCX_uct_cuda_MODULES=":gdrcopy"
+export LD_LIBRARY_PATH="$NVHPC/Linux_x86_64/23.7/cuda/12.2/lib64:/gpfs/easybuild/prod/software/GDRCopy/2.3.1-GCCcore-12.3.0/lib:$LD_LIBRARY_PATH"
 
 # Parity compares CPU and GPU output to 1e-6; keep host threads out of it.
 export OMP_NUM_THREADS=1

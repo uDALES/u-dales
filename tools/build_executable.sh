@@ -112,12 +112,36 @@ elif [ $system == "gpuhx1" ]
 then
     module load NVHPC/23.7-CUDA-12.2.0
     module load CMake/3.26.3-GCCcore-12.3.0 git/2.41.0-GCCcore-12.3.0-nodocs
-    NVHPC_MPI_BIN="$EBROOTNVHPC/Linux_x86_64/23.7/comm_libs/mpi/bin"
+    # MPI and the libraries built against it must be switched together: the
+    # executable, 2DECOMP, HDF5/netCDF and FFTW all link the same libmpi, and
+    # tools/hpc_execute.sh must put the matching mpirun on PATH at run time.
+    #
+    # Stack 1 - OpenMPI 3.1.5, NVHPC's default. CUDA-aware on a node, but built
+    # without UCX: no working InfiniBand path on HX1, so single node only.
+    # NVHPC_MPI_BIN="$EBROOTNVHPC/Linux_x86_64/23.7/comm_libs/mpi/bin"
+    # Stack 2 - OpenMPI 4.1.5 with UCX and CUDA, also shipped with NVHPC 23.7.
+    # Faster than stack 1 on a node, but built without IPv6 (HX1's node
+    # networks are IPv6-only, so it cannot launch across nodes) and its UCX
+    # cannot use HX1's InfiniBand. Single node only.
+    # NVHPC_MPI_BIN="$EBROOTNVHPC/Linux_x86_64/23.7/comm_libs/12.2/openmpi4/openmpi-4.1.5/bin"
+    # Stack 3 - OpenMPI 4.1.6 built for NVHPC 23.7 with --enable-ipv6,
+    # --with-tm (PBS launch) and the site UCX 1.14.1 + UCX-CUDA; see
+    # ~/openmpi-4.1.6-NVHPC-23.7-CUDA-12.2.0. For multi-node GPU runs.
+    NVHPC_MPI_BIN="/gpfs/home/dmajumda/openmpi-4.1.6-NVHPC-23.7-CUDA-12.2.0/openmpi/bin"
     FC="$NVHPC_MPI_BIN/mpif90"
     export PATH="$NVHPC_MPI_BIN:$PATH"
-    NETCDF_DIR=/gpfs/home/dmajumda/newlib-NVHPC-23.7-CUDA-12.2.0/netcdf-c-4.10.1/netcdfc
-    NETCDF_FORTRAN_DIR=/gpfs/home/dmajumda/newlib-NVHPC-23.7-CUDA-12.2.0/netcdf-fortran-4.6.4/netcdff
-    export FFTWDIR=/gpfs/home/dmajumda/newlib-NVHPC-23.7-CUDA-12.2.0/fftw-3.3.11/fftw3
+    # Libraries for stack 1:
+    # NETCDF_DIR=/gpfs/home/dmajumda/newlib-NVHPC-23.7-CUDA-12.2.0/netcdf-c-4.10.1/netcdfc
+    # NETCDF_FORTRAN_DIR=/gpfs/home/dmajumda/newlib-NVHPC-23.7-CUDA-12.2.0/netcdf-fortran-4.6.4/netcdff
+    # export FFTWDIR=/gpfs/home/dmajumda/newlib-NVHPC-23.7-CUDA-12.2.0/fftw-3.3.11/fftw3
+    # Libraries for stack 2:
+    # NETCDF_DIR=/gpfs/home/dmajumda/newlib-NVHPC-23.7-CUDA-12.2.0-OpenMPI-4.1.5/netcdf-c-4.10.1/netcdfc
+    # NETCDF_FORTRAN_DIR=/gpfs/home/dmajumda/newlib-NVHPC-23.7-CUDA-12.2.0-OpenMPI-4.1.5/netcdf-fortran-4.6.4/netcdff
+    # export FFTWDIR=/gpfs/home/dmajumda/newlib-NVHPC-23.7-CUDA-12.2.0-OpenMPI-4.1.5/fftw-3.3.11/fftw3
+    # Libraries for stack 3:
+    NETCDF_DIR=/gpfs/home/dmajumda/newlib-NVHPC-23.7-CUDA-12.2.0-OpenMPI-4.1.6-tm/netcdf-c-4.10.1/netcdfc
+    NETCDF_FORTRAN_DIR=/gpfs/home/dmajumda/newlib-NVHPC-23.7-CUDA-12.2.0-OpenMPI-4.1.6-tm/netcdf-fortran-4.6.4/netcdff
+    export FFTWDIR=/gpfs/home/dmajumda/newlib-NVHPC-23.7-CUDA-12.2.0-OpenMPI-4.1.6-tm/fftw-3.3.11/fftw3
 
     # HX1's GPU nodes (the v1_a100 queue) are A100s, which are cc80. The default
     # is "all", which works but compiles every supported architecture; naming 80
