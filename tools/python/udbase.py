@@ -1306,14 +1306,15 @@ class UDBase:
         return udstats.coarsegrain_field(var, Lflt, xm, ym)
     
     def plot_veg(self, veg: Optional[Dict[str, Any]] = None, show: bool = False,
-                 backend: Optional[str] = None):
-        """Plot vegetation points on top of the geometry using the visualization facade.
+                 backend: Optional[str] = None, **kwargs):
+        """Plot vegetation on top of the geometry using the visualization facade.
 
         ``show`` defaults to ``False`` (returns the figure/plotter without
         displaying it), consistent with the other overlay plots
-        (``plot_scalar_source``, ``plot_trees``).
+        (``plot_scalar_source``, ``plot_trees``). Remaining keyword arguments
+        (e.g. ``color``, ``opacity``) are forwarded to :meth:`UDVis.plot_veg`.
         """
-        return self.vis.plot_veg(veg=veg, show=show, backend=backend)
+        return self.vis.plot_veg(veg=veg, show=show, backend=backend, **kwargs)
 
     def plot_scalar_source(
         self,
@@ -1334,14 +1335,28 @@ class UDBase:
             backend=backend,
         )
 
-    def plot_trees(self, show: bool = False):
+    def plot_veg_outline(self, veg: Optional[Dict[str, Any]] = None, show: bool = False,
+                         backend: Optional[str] = None, **kwargs):
+        """Plot vegetation voxels over outline-style geometry via the facade.
+
+        Same vegetation rendering as :meth:`plot_veg` but on the outline base
+        of ``show_outline`` instead of the full wireframe. ``show`` defaults
+        to ``False``; remaining keyword arguments (``color``, ``opacity``,
+        ``line_width``, ``angle_threshold``) are forwarded to
+        :meth:`UDVis.plot_veg_outline`.
+        """
+        return self.vis.plot_veg_outline(veg=veg, show=show, backend=backend, **kwargs)
+
+    def plot_trees(self, show: bool = False, **kwargs):
         """Backward-compatible alias for :meth:`plot_veg`.
 
         ``UDVis`` exposes only ``plot_veg`` (vegetation is the current name for
         what legacy cases called "trees"), so forward there rather than to a
-        nonexistent ``UDVis.plot_trees``. ``show`` defaults to ``False``.
+        nonexistent ``UDVis.plot_trees``. ``show`` defaults to ``False``;
+        remaining keyword arguments (``backend``, ``color``, ``opacity``, ...)
+        are forwarded unchanged.
         """
-        return self.vis.plot_veg(show=show)
+        return self.vis.plot_veg(show=show, **kwargs)
     
     def plot_fac(self, var: np.ndarray, building_ids: Optional[np.ndarray] = None,
                  show: bool = True, backend: Optional[str] = None):
