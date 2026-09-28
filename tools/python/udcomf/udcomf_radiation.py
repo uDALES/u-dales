@@ -26,7 +26,8 @@ _PLANE_NAMES = (
     "upface", "downface", "northface", "southface", "eastface", "westface",
 )
 _SKY = -1
-_GROUND = -2
+_GROUND = -2      # opaque, non-emitting unmeshed model ground
+_BACKFACE = -3    # first hit on the back of a facet: orientation or mesh defect
 
 
 @dataclass(frozen=True)
@@ -223,16 +224,23 @@ class UDComfRadiation:
         if facet_types is not None and len(facet_types) != len(faces):
             raise ValueError("STL face count does not match facets.inp ordering")
         facet_normals = getattr(self.sim, "facs", {}).get("normals")
-        if facet_normals is not None:
-            facet_normals = np.asarray(facet_normals, dtype=float)
-            mesh_normals = np.asarray(stl.face_normals, dtype=float)
-            if facet_normals.shape != mesh_normals.shape:
-                raise ValueError("STL normals do not match facets.inp ordering or orientation")
-            lengths = np.linalg.norm(facet_normals, axis=1)
-            if (not np.isfinite(lengths).all() or np.any(lengths == 0)
-                    or not np.isfinite(mesh_normals).all()
-                    or np.any(np.einsum("ij,ij->i", facet_normals / lengths[:, None], mesh_normals) < 0.99)):
-                raise ValueError("STL normals do not match facets.inp ordering or orientation")
+        if facet_normals is None:
+            # The orientation audit is mandatory: uDALES's own facet radiation
+            # used the facets.inp orientation, so an unverified STL could hide
+            # flipped faces whose reflection would silently be lost.
+            raise ValueError(
+                "facets.inp normals are required to verify STL orientation before "
+                "receptor visibility queries; load the case facet properties"
+            )
+        facet_normals = np.asarray(facet_normals, dtype=float)
+        mesh_normals = np.asarray(stl.face_normals, dtype=float)
+        if facet_normals.shape != mesh_normals.shape:
+            raise ValueError("STL normals do not match facets.inp ordering or orientation")
+        lengths = np.linalg.norm(facet_normals, axis=1)
+        if (not np.isfinite(lengths).all() or np.any(lengths == 0)
+                or not np.isfinite(mesh_normals).all()
+                or np.any(np.einsum("ij,ij->i", facet_normals / lengths[:, None], mesh_normals) < 0.99)):
+            raise ValueError("STL normals do not match facets.inp ordering or orientation")
         if faces.size == 0:
             return None
         vtk_faces = np.empty((len(faces), 4), dtype=np.int64)
@@ -423,7 +431,7 @@ class UDComfRadiation:
         )
 
     def _directional_source(self, point: np.ndarray, direction: np.ndarray) -> int:
-        """Return the first facet ID, sky, or opaque unmeshed model ground."""
+        """Return the first facet ID, sky, unmeshed ground, or a back-face hit."""
         mesh = self._mesh()
         if mesh is None:
             return _SKY if direction[2] > 0 else _GROUND
@@ -444,7 +452,7 @@ class UDComfRadiation:
                     return _GROUND
             facet = int(hit_facets[0])
             normal = np.asarray(self.sim.geom.stl.face_normals[facet], dtype=float)
-            return facet if np.dot(normal, direction) < 0 else _GROUND
+            return facet if np.dot(normal, direction) < 0 else _BACKFACE
         return _SKY if direction[2] > 0 else _GROUND
 
     def _plane_geometry(
@@ -512,7 +520,7 @@ class UDComfRadiation:
             if (source_ids.shape != (len(directions),)
                     or not np.issubdtype(source_ids.dtype, np.integer)):
                 raise ValueError("Shortwave ray map has an invalid source array")
-        if np.any(source_ids < _GROUND) or np.any(source_ids >= n_facets):
+        if np.any(source_ids < _BACKFACE) or np.any(source_ids >= n_facets):
             raise ValueError("Shortwave ray map references an invalid facet")
         ray_exitance = np.zeros(len(source_ids), dtype=float)
         ray_exitance[source_ids == _SKY] = state.dsky
@@ -621,12 +629,14 @@ class UDComfRadiation:
             if (source_ids.shape != (len(directions),)
                     or not np.issubdtype(source_ids.dtype, np.integer)):
                 raise ValueError("Ray map has an invalid source array")
-        if np.any(source_ids < _GROUND) or np.any(source_ids >= n_facets):
+        if np.any(source_ids < _BACKFACE) or np.any(source_ids >= n_facets):
             raise ValueError("Ray map references an invalid facet")
-        if np.any(source_ids == _GROUND):
+        n_ground = int(np.count_nonzero(source_ids == _GROUND))
+        n_backface = int(np.count_nonzero(source_ids == _BACKFACE))
+        if n_ground or n_backface:
             raise ValueError(
-                "Longwave ray reaches unmeshed ground or a back-facing facet; "
-                "total irradiance cannot be determined"
+                f"Longwave rays reach unknown emission sources ({n_ground} on unmeshed ground, "
+                f"{n_backface} on a back-facing facet); total irradiance cannot be determined"
             )
         ray_exitance = np.zeros(len(source_ids), dtype=float)
         ray_exitance[source_ids == _SKY] = sky_irradiance
@@ -704,11 +714,16 @@ class UDComfRadiation:
         self, point: np.ndarray, kind: str, used: np.ndarray,
         exitance: np.ndarray, sky: np.ndarray, forcing: dict,
         projected_weights: np.ndarray, n_mu: int, n_azimuth: int,
-    ) -> np.ndarray:
+    ) -> tuple[np.ndarray, tuple[int, int]]:
         ray_map = self.trace_shortwave_rays(point, n_mu=n_mu, n_azimuth=n_azimuth)
         sources = ray_map.sources
-        if np.any(sources == _GROUND) and kind == "longwave":
-            raise ValueError("Longwave ray reaches unmeshed ground or a back-facing facet")
+        n_backface = int(np.count_nonzero(sources == _BACKFACE))
+        n_ground = int(np.count_nonzero(sources == _GROUND))
+        if kind == "longwave" and (n_ground or n_backface):
+            raise ValueError(
+                f"Longwave rays reach unknown emission sources ({n_ground} on unmeshed ground, "
+                f"{n_backface} on a back-facing facet)"
+            )
         if np.any(sources >= exitance.shape[0]):
             raise ValueError("Ray map references a facet outside the archived source")
         rays = np.zeros((len(sources), len(used)), dtype=float)
@@ -718,7 +733,7 @@ class UDComfRadiation:
         rays[facet_rays] = exitance[sources[facet_rays]][:, used]
         nondirect = projected_weights @ rays
         if kind == "longwave":
-            return nondirect
+            return nondirect, (n_backface, n_ground)
 
         direct = np.zeros(len(used), dtype=float)
         daylight = np.flatnonzero(
@@ -736,7 +751,7 @@ class UDComfRadiation:
                 forcing["dni"][used[daylight]]
                 * self.sky_visibility(point, sun_dirs)
             )
-        return np.vstack((direct, nondirect))
+        return np.vstack((direct, nondirect)), (n_backface, n_ground)
 
     def write_hourly(
         self, kind: str, target_times: np.ndarray, *,
@@ -823,7 +838,7 @@ class UDComfRadiation:
             else [case / f"facEB.{expnr}.nc", case / f"timedeplw.inp.{expnr}"]
         )
         manifest = {
-            "version": 2,
+            "version": 3,
             "kind": kind,
             "case": str(case.resolve()),
             "receptor_height_m": float(grid.z.flat[0]),
@@ -866,16 +881,19 @@ class UDComfRadiation:
                     for time_index in missing[tile_index]
                 }
                 if used.size:
+                    ray_counts = np.full((len(points), 2), -1, dtype=np.int32)
                     for row, point in enumerate(points):
-                        series = self._source_series(
+                        series, counts_row = self._source_series(
                             point, kind, used, exitance, sky, forcing,
                             projected_weights, n_mu, n_azimuth,
                         )
+                        ray_counts[row] = counts_row
                         for time_index, tile_values in values.items():
                             window = windows[time_index]
                             if window.complete:
                                 positions = np.searchsorted(used, window.indices)
                                 tile_values[row] = series[:, positions] @ window.weights
+                    checkpoints.write_counts(tile_index, ray_counts)
                 for time_index, tile_values in values.items():
                     checkpoints.write(time_index, tile_index, tile_values)
         return consolidate_radiation(

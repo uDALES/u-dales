@@ -314,8 +314,22 @@ with defaults `n_mu=8`, `n_azimuth=32`. Every ray is assigned to its first
 front-facing STL facet, unobstructed sky, or opaque unmeshed model ground.
 Projected weights for each receiving plane are normalized so constant radiance
 integrates exactly. This removed a 0.1255 K warm MRT bias in the default
-uniform-enclosure test; checkpoint manifest version 2 prevents mixing results
-from before and after that correction.
+uniform-enclosure test; checkpoint manifest version 2 prevented mixing results
+from before and after that correction, and version 3 adds the per-receptor
+ray-source counters below.
+
+STL orientation is verified against `facets.inp` normals at load time, and the
+check is mandatory: visibility queries refuse to run when the facet normals
+are unavailable, rather than silently skipping the audit. A ray that hits the
+back of a facet is classified separately (`_BACKFACE`) from unmeshed ground:
+both contribute zero shortwave and are fatal for longwave, but the error and
+the diagnostics distinguish an orientation/mesh defect from a coverage gap.
+The hourly radiation files carry two `(x,y)` integer diagnostics,
+`n_backface_rays` and `n_unmeshed_ground_rays` (-1 where a receptor's static
+rays were never traced), plus their global totals as attributes. In a healthy
+watertight mesh both totals are zero; because the longwave stage hard-errors
+on either class, a completed longwave file already implies zero, and the
+counters make the same evidence available to shortwave-only or subset runs.
 
 Static first-hit directions are traced once per receptor and reused over all
 source times. The changing direct-sun ray is tested separately at each source
@@ -361,7 +375,9 @@ exact physical sub-cadence means. A window is incomplete when its endpoints
 are not bracketed or an internal source interval exceeds `max_gap` (default
 1.1 times the median source cadence). No extrapolation or gap filling occurs.
 
-Checkpoints are atomic NPZ files per hour and receptor tile. Their manifest
+Checkpoints are atomic NPZ files per hour and receptor tile, plus one
+per-tile ray-count file feeding the `n_backface_rays` and
+`n_unmeshed_ground_rays` diagnostics. Their manifest
 contains the case, height, grid, receptor selection hash, quadrature, target
 times, file paths/sizes/modification times, and algorithm version. Resume is
 allowed only when the manifest is identical. `tile_size` controls checkpoint

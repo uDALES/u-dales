@@ -24,7 +24,9 @@ def _case(mesh=None):
         zsize=3.0,
         Sc=np.zeros((2, 2, 3), dtype=bool),
         geom=types.SimpleNamespace(stl=mesh) if mesh is not None else None,
-        facs={"typeid": np.ones(len(mesh.faces), dtype=int)} if mesh is not None else {},
+        facs=({"typeid": np.ones(len(mesh.faces), dtype=int),
+               "normals": np.asarray(mesh.face_normals, dtype=float)}
+              if mesh is not None else {}),
     )
 
 
