@@ -114,7 +114,7 @@ use mpi
       nfctsecs_u, nfctsecs_v, nfctsecs_w, nfctsecs_c, lbottom, lnorec, &
       prandtlturb, fkar, lwritefac, dtfac
    namelist/ENERGYBALANCE/ &
-      lEB, lwriteEBfiles, lperiodicEBcorr, sinkbase, lconstW, dtEB, bldT, flrT, wsoil, wgrmax, wwilt, wfc, &
+      lEB, lwriteEBfiles, lperiodicEBcorr, sinkbase, lconstW, dtEB, bldT, flrT, waterT, wsoil, wgrmax, wwilt, wfc, &
       skyLW, GRLAI, rsmin, nfaclyrs, lfacTlyrs, lvfsparse, nnz, fraction
    namelist/SCALARS/ &
       lreadscal, lscasrc, lscasrcl, lscasrcr, &
@@ -599,6 +599,7 @@ contains
       call MPI_BCAST(bldt, 1, MY_REAL, 0, comm3d, mpierr)
       call MPI_BCAST(dteb, 1, MY_REAL, 0, comm3d, mpierr)
       call MPI_BCAST(flrt, 1, MY_REAL, 0, comm3d, mpierr)
+      call MPI_BCAST(waterT, 1, MY_REAL, 0, comm3d, mpierr)
       call MPI_BCAST(fraction, 1, MY_REAL, 0, comm3d, mpierr)
       call MPI_BCAST(grlai, 1, MY_REAL, 0, comm3d, mpierr)
       call MPI_BCAST(lconstw, 1, MPI_LOGICAL, 0, comm3d, mpierr)

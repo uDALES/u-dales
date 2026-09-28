@@ -322,6 +322,7 @@ module modglobal
    real :: wsoil = 0. !water content of soil (kg/m3)
    real :: bldT = 0. !building internal temperature, currently also ground temperature at a depth equal to floor facet thickness
    real :: flrT = 0. !ground internal temperature
+   real :: waterT = -1. !water-body anchor (deep-layer) temperature [K]; negative -> use flrT
    real :: skyLW = 0. !longwave radiation from the sky
    real :: gres = 0. !saturation vapour pressure of green roof
    real :: grqs = 0. !saturation humidity of green roof
