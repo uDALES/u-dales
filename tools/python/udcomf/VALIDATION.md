@@ -12,9 +12,11 @@ validation against measurements.
 | Nighttime and blocked direct radiation | `test_udcomf_shortwave.py` and `test_udcomf_thermalcomfort.py` check sun visibility, wall shading, direct/non-direct separation and rejection of direct irradiance below the horizon. |
 | Open sky and uniform-temperature enclosure | `test_udcomf_shortwave.py`, `test_udcomf_longwave.py` and `test_udcomf_thermalcomfort.py` check analytical open-sky, ground and enclosure limits. |
 | Radiation sign and energy consistency | Shortwave tests check albedo conversion and analytical plane irradiance; longwave tests check sky/facet partitioning and uniform emission. Negative source fluxes are rejected. |
+| Mesh orientation and unknown ray sources | `test_udcomf_radiation.py` checks that visibility queries reject a case without `facets.inp` normals and distinguish back-face hits from unmeshed ground; `test_udcomf_checkpoints.py` checks the hourly files' `n_backface_rays`/`n_unmeshed_ground_rays` diagnostics and totals. |
 | Exact preceding 15-minute means | `test_udcomf_checkpoints.py` checks exact integration of a linear series over `[time-900 s,time)`, missing coverage, cadence gaps, restart checkpoints and multi-height isolation. |
 | NetCDF schema and metadata | `test_udcomf_exchange.py` and `test_udcomf_thermalcomfort.py` check `(x,y,time)` order, units, coordinates, masks, time bounds, georeferencing and missing-value handling. |
 | Vapour humidity | `test_udcomf_multiheight.py` checks `qv = qt - ql` after height interpolation and rejects negative values without clipping. |
+| Supersaturation tolerance | `test_udcomf_thermalcomfort.py` checks that relative humidity within the configured tolerance above 100 % is capped to saturation with flag bit 32 and finite indices, while larger overshoots stay invalid with flag bit 1. |
 | MRT, PET, UTCI and WBGT references | `test_udcomf_thermalcomfort.py` contains the fixed cases listed below. |
 | Model-neutral result | The same test supplies identical exchange data labelled PALM and UrbClim and requires identical index arrays. |
 | End-to-end small case | `test_udcomf_end_to_end.py` runs a synthetic one-cell uDALES case through atmospheric extraction, receptor shortwave/longwave calculation, strict exchange export, and all four indices. |
@@ -38,7 +40,9 @@ constant-radiance integral. This removes the 0.1255 K warm MRT bias that the
 unnormalized default 8 by 32 quadrature produced in a 25 degree Celsius
 uniform enclosure. The test now requires agreement within 0.0002 K.
 The radiation checkpoint manifest was advanced to version 2 so checkpoints
-created before this correction cannot be mixed with normalized results.
+created before this correction cannot be mixed with normalized results;
+version 3 adds per-tile ray-source count checkpoints for the
+`n_backface_rays`/`n_unmeshed_ground_rays` diagnostics.
 
 ### PET and UTCI
 

@@ -6,7 +6,13 @@ import unittest
 import numpy as np
 import trimesh
 
-from udcomf.udcomf_radiation import UDComfRadiation
+from udcomf.udcomf_radiation import (
+    _BACKFACE,
+    _GROUND,
+    LongwaveState,
+    ShortwaveState,
+    UDComfRadiation,
+)
 
 
 def _case(mesh=None):
@@ -21,7 +27,9 @@ def _case(mesh=None):
         Sc=solid,
         xazimuth=90.0,
         geom=types.SimpleNamespace(stl=mesh) if mesh is not None else None,
-        facs={"typeid": np.ones(len(mesh.faces), dtype=int)} if mesh is not None else {},
+        facs=({"typeid": np.ones(len(mesh.faces), dtype=int),
+               "normals": np.asarray(mesh.face_normals, dtype=float)}
+              if mesh is not None else {}),
     )
 
 
@@ -160,3 +168,46 @@ class TestVisibility(unittest.TestCase):
             np.array([[0.7, 0.2, 0.1], [0.1, 0.2, 0.7]]),
         )
         np.testing.assert_array_equal(visible, [[False, True]])
+
+
+class TestRaySourceClassification(unittest.TestCase):
+    @staticmethod
+    def _roof():
+        # one triangle above the receptors whose normal points up: from below,
+        # every upward ray that hits it hits its BACK
+        mesh = trimesh.Trimesh(
+            vertices=[[-9.0, -9.0, 2.0], [9.0, -9.0, 2.0], [0.0, 9.0, 2.0]],
+            faces=[[0, 1, 2]], process=False,
+        )
+        assert mesh.face_normals[0][2] > 0
+        return mesh
+
+    def test_visibility_requires_facet_normals(self):
+        sim = _case(self._roof())
+        del sim.facs["normals"]
+        with self.assertRaisesRegex(ValueError, "normals are required"):
+            UDComfRadiation(sim).sky_visibility(
+                np.array([0.0, 0.0, 1.1]), np.array([[0.0, 0.0, 1.0]])
+            )
+
+    def test_backface_hit_is_distinguished_from_unmeshed_ground(self):
+        radiation = UDComfRadiation(_case(self._roof()))
+        point = np.array([0.0, 0.0, 1.1])
+        self.assertEqual(
+            radiation._directional_source(point, np.array([0.0, 0.0, 1.0])), _BACKFACE
+        )
+        self.assertEqual(
+            radiation._directional_source(point, np.array([0.0, 0.0, -1.0])), _GROUND
+        )
+        state = LongwaveState(
+            time=0.0, sky_irradiance=300.0, facet_exitance=np.array([400.0])
+        )
+        with self.assertRaisesRegex(ValueError, "back-facing facet"):
+            radiation.longwave_at_receptor(point, state, n_mu=2, n_azimuth=8)
+        # shortwave treats a back-face hit as dark, never as a crash or a source
+        sw = ShortwaveState(time=0.0, dni=0.0, dsky=100.0, zenith=110.0,
+                            azimuth_local=0.0, facet_exitance=np.array([50.0]))
+        fields = radiation.shortwave_at_receptor(point, sw, n_mu=2, n_azimuth=8)
+        for name, value in fields.items():
+            self.assertTrue(np.isfinite(value), name)
+            self.assertGreaterEqual(value, 0.0, name)

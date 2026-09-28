@@ -32,7 +32,8 @@ def _case(path):
         xt=np.array([0.0, 1.0]), yt=np.array([0.0, 1.0]),
         zm=np.array([0.0, 1.0]), zsize=2.0, Sc=solid, xazimuth=0.0,
         geom=types.SimpleNamespace(stl=mesh),
-        facs={"typeid": np.ones(2, dtype=int)},
+        facs={"typeid": np.ones(2, dtype=int),
+              "normals": np.asarray(mesh.face_normals, dtype=float)},
         ltrees=False,
     )
     sw = {
@@ -130,6 +131,11 @@ class TestHourlyRadiation(unittest.TestCase):
                     self.assertEqual(ds.variables["processed_mask"][1, 1], 0)
                     self.assertTrue(np.isnan(ds.variables[names[0]][1, 1, 0]))
                     self.assertAlmostEqual(float(ds.variables[names[-1]][0, 0, 0]), expected)
+                    for ray_name in ("n_backface_rays", "n_unmeshed_ground_rays"):
+                        counts = ds.variables[ray_name][:]
+                        self.assertEqual(int(counts[0, 0]), 0)
+                        self.assertEqual(int(counts[1, 1]), -1)
+                        self.assertEqual(int(ds.getncattr(f"total_{ray_name}")), 0)
                 checkpoint = (
                     Path(tmp) / "udcomf_radiation.checkpoints" / kind
                     / "time_0001_tile_00000.npz"

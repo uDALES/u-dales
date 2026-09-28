@@ -15,7 +15,7 @@ from netCDF4 import Dataset
 import numpy as np
 
 from .physics import (
-    mean_radiant_temperature, saturation_pressure_pa, sensor_temperatures,
+    EPSILON, mean_radiant_temperature, saturation_pressure_pa, sensor_temperatures,
     vapour_pressure_pa, wet_bulb_globe_temperature,
 )
 
@@ -59,12 +59,14 @@ class ComfortParameters:
     pet_sex: str = "male"
     pet_weight_kg: float = 75.0
     pet_height_m: float = 1.75
+    supersaturation_tolerance_percent: float = 5.0
 
     def __post_init__(self) -> None:
         values = (self.human_shortwave_absorptivity, self.human_longwave_emissivity,
                   self.human_horizontal_factor, self.human_vertical_factor,
                   self.human_direct_side_factor, self.pet_met, self.pet_clo,
-                  self.pet_weight_kg, self.pet_height_m)
+                  self.pet_weight_kg, self.pet_height_m,
+                  self.supersaturation_tolerance_percent)
         if (not np.isfinite(values).all()
                 or not 0 < self.human_shortwave_absorptivity <= 1
                 or not 0 < self.human_longwave_emissivity <= 1
@@ -74,6 +76,7 @@ class ComfortParameters:
                 or self.human_direct_side_factor <= 0
                 or self.pet_met <= 0 or self.pet_clo < 0 or self.pet_age_years <= 0
                 or self.pet_weight_kg <= 0 or self.pet_height_m <= 0
+                or self.supersaturation_tolerance_percent < 0
                 or self.pet_sex not in ("male", "female")):
             raise ValueError("Comfort person and radiation parameters are invalid")
 
@@ -232,9 +235,14 @@ def calculate_indices(input_path: Path, *, output_path: Path | None = None,
                       overwrite: bool = False, tile_x: int = 64) -> Path:
     """Calculate common-model hourly maps, preserving the input's native grid.
 
-    No horizontal interpolation, meteorological clipping, or model-specific
-    adjustment occurs. Non-applicable indices are missing and flagged, while
-    valid MRT remains available independently of PET/UTCI/WBGT.
+    No horizontal interpolation or model-specific adjustment occurs. The one
+    documented exception to "no clipping" is slight supersaturation: relative
+    humidity above 100 % but within ``supersaturation_tolerance_percent`` is
+    treated as exactly saturated and flagged (bit 32) rather than rejected,
+    because averaging the convex saturation curve and interpolating between
+    saturated levels legitimately produce it. Larger overshoots remain invalid
+    (bit 1). Non-applicable indices are missing and flagged, while valid MRT
+    remains available independently of PET/UTCI/WBGT.
     """
     try:
         tile_x = operator.index(tile_x)
@@ -265,8 +273,9 @@ def calculate_indices(input_path: Path, *, output_path: Path | None = None,
         fd, name = tempfile.mkstemp(prefix=f".{output.name}.", suffix=".tmp", dir=output.parent)
         os.close(fd)
         temporary = Path(name)
-        counts = {name: 0 for name in ("invalid_humidity", "utci_outside_domain",
-                                          "wbgt_outside_domain", "wbgt_nonconverged", "pet_failed")}
+        counts = {name: 0 for name in ("invalid_humidity", "humidity_capped",
+                                          "utci_outside_domain", "wbgt_outside_domain",
+                                          "wbgt_nonconverged", "pet_failed")}
         try:
             with Dataset(temporary, "w", format="NETCDF4") as target:
                 nx, ny = mask.shape
@@ -302,7 +311,8 @@ def calculate_indices(input_path: Path, *, output_path: Path | None = None,
                 target.wbgt_model_limit = "forced-convection wind >= 0.13 m/s; no wind clipping"
                 target.validity_flag_meanings = (
                     "1 invalid_relative_humidity; 2 utci_outside_domain; "
-                    "4 wbgt_outside_domain; 8 wbgt_sensor_nonconverged; 16 pet_failed"
+                    "4 wbgt_outside_domain; 8 wbgt_sensor_nonconverged; 16 pet_failed; "
+                    "32 humidity_capped_to_saturation"
                 )
                 variables = {}
                 for field, long_name in _RESULTS.items():
@@ -322,10 +332,10 @@ def calculate_indices(input_path: Path, *, output_path: Path | None = None,
                                               fill_value=np.int16(-1), zlib=True, complevel=3,
                                               chunksizes=(min(nx, tile_x), min(ny, 64), 1))
                 flags.long_name = "bitwise index validity reasons"
-                flags.flag_masks = np.array([1, 2, 4, 8, 16], dtype="i2")
+                flags.flag_masks = np.array([1, 2, 4, 8, 16, 32], dtype="i2")
                 flags.flag_meanings = (
                     "invalid_relative_humidity utci_outside_domain wbgt_outside_domain "
-                    "wbgt_sensor_nonconverged pet_failed"
+                    "wbgt_sensor_nonconverged pet_failed humidity_capped_to_saturation"
                 )
                 for t in range(24):
                     zenith = float(source["solar_zenith"][t])
@@ -352,10 +362,26 @@ def calculate_indices(input_path: Path, *, output_path: Path | None = None,
                         ta = fields["ta"]
                         pressure = fields["pabs"]
                         wind = fields["ws_local"]
-                        e = vapour_pressure_pa(fields["qv"], pressure)
-                        rh = 100.0 * e / saturation_pressure_pa(ta)
-                        humidity_ok = (np.isfinite(rh) & (rh >= 0) & (rh <= 100)
-                                       & (e < pressure))
+                        es = saturation_pressure_pa(ta)
+                        e_raw = vapour_pressure_pa(fields["qv"], pressure)
+                        rh_raw = 100.0 * e_raw / es
+                        # Slight supersaturation is expected from averaging the
+                        # convex saturation curve and from vertical interpolation
+                        # between saturated levels; within the configured
+                        # tolerance the cell is treated as exactly saturated in
+                        # every index input, not rejected. Bit 32 marks it, but
+                        # only when the overshoot exceeds 0.01 % - float32
+                        # storage round-off alone must not raise flags.
+                        capped = (np.isfinite(rh_raw) & (rh_raw > 100.0)
+                                  & (rh_raw <= 100.0 + config.supersaturation_tolerance_percent)
+                                  & (e_raw < pressure) & (es < pressure))
+                        humidity_ok = ((np.isfinite(rh_raw) & (rh_raw >= 0)
+                                        & (rh_raw <= 100.0) & (e_raw < pressure))
+                                       | capped)
+                        e = np.where(capped, es, e_raw)
+                        rh = np.where(capped, 100.0, rh_raw)
+                        qv_saturated = EPSILON * es / (pressure - (1.0 - EPSILON) * es)
+                        qv_used = np.where(capped, qv_saturated, fields["qv"])
                         mrt_k = mean_radiant_temperature(
                             fields, zenith, alpha_sw=config.human_shortwave_absorptivity,
                             emissivity=config.human_longwave_emissivity,
@@ -366,6 +392,7 @@ def calculate_indices(input_path: Path, *, output_path: Path | None = None,
                         mrt = mrt_k - 273.15
                         state = np.zeros(valid.shape, dtype=np.int16)
                         state[valid & ~humidity_ok] |= 1
+                        state[valid & capped & (rh_raw > 100.01)] |= 32
                         tdb = ta - 273.15
                         utci_ok = (valid & humidity_ok & (tdb >= -50) & (tdb <= 50)
                                    & ((mrt - tdb) >= -30) & ((mrt - tdb) <= 70)
@@ -400,7 +427,7 @@ def calculate_indices(input_path: Path, *, output_path: Path | None = None,
                             tg, tnwb, converged = sensor_temperatures(
                                 np.where(wbgt_domain, ta, np.nan),
                                 np.where(wbgt_domain, pressure, np.nan),
-                                np.where(wbgt_domain, fields["qv"], np.nan),
+                                np.where(wbgt_domain, qv_used, np.nan),
                                 np.where(wbgt_domain, wind, np.nan), sensor_fields, zenith,
                             )
                             state[wbgt_domain & ~converged] |= 8
@@ -415,7 +442,8 @@ def calculate_indices(input_path: Path, *, output_path: Path | None = None,
                                 valid & np.isfinite(values), values, variables[field]._FillValue
                             ).astype("f4")
                         flags[lo:hi, :, t] = np.where(valid, state, flags._FillValue)
-                        for label, bit in (("invalid_humidity", 1), ("utci_outside_domain", 2),
+                        for label, bit in (("invalid_humidity", 1), ("humidity_capped", 32),
+                                           ("utci_outside_domain", 2),
                                            ("wbgt_outside_domain", 4), ("wbgt_nonconverged", 8),
                                            ("pet_failed", 16)):
                             counts[label] += int(np.count_nonzero(state & bit))

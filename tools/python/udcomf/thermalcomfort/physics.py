@@ -148,8 +148,15 @@ def sensor_temperatures(ta_k: np.ndarray, pressure_pa: np.ndarray, qv: np.ndarra
             h = _convective_coefficient(ref, pressure_pa, wind, 0.0508, sphere=True)
             rhs = (0.95 * globe_lw + 0.95 * globe_sw + h * (ta_k - globe)) / (0.95 * SIGMA)
             proposed = np.where(rhs > 0, rhs**0.25, np.nan)
-            globe_ok |= valid & np.isfinite(proposed) & (np.abs(proposed - globe) < tolerance_k)
-            globe = np.where(globe_ok, proposed, 0.9 * globe + 0.1 * proposed)
+            newly = (valid & ~globe_ok & np.isfinite(proposed)
+                     & (np.abs(proposed - globe) < tolerance_k))
+            # The raw fixed-point map is unstable; only the under-relaxed
+            # update converges. Freeze a cell at its accepted value instead of
+            # re-applying the raw map while other cells finish, which would
+            # amplify round-off until the converged cell silently became NaN.
+            globe = np.where(globe_ok, globe,
+                             np.where(newly, proposed, 0.9 * globe + 0.1 * proposed))
+            globe_ok |= newly
             if np.all(globe_ok | ~valid):
                 break
         for _ in range(iterations):
@@ -167,10 +174,12 @@ def sensor_temperatures(ta_k: np.ndarray, pressure_pa: np.ndarray, qv: np.ndarra
             )
             radiative = 0.95 * (wick_lw - SIGMA * wick**4) + 0.60 * wick_sw
             proposed = ta_k - evaporation + radiative / h
-            wick_ok |= valid & np.isfinite(proposed) & (e_wick < pressure_pa) & (
+            newly = valid & ~wick_ok & np.isfinite(proposed) & (e_wick < pressure_pa) & (
                 np.abs(proposed - wick) < tolerance_k
             )
-            wick = np.where(wick_ok, proposed, 0.9 * wick + 0.1 * proposed)
+            wick = np.where(wick_ok, wick,
+                            np.where(newly, proposed, 0.9 * wick + 0.1 * proposed))
+            wick_ok |= newly
             if np.all(wick_ok | ~valid):
                 break
     return np.where(globe_ok, globe, np.nan), np.where(wick_ok, wick, np.nan), globe_ok & wick_ok

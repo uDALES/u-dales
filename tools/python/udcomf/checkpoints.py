@@ -133,6 +133,38 @@ class RadiationCheckpoints:
         finally:
             Path(name).unlink(missing_ok=True)
 
+    def counts_path(self, tile_index: int) -> Path:
+        return self.directory / f"rays_tile_{tile_index:05d}.npz"
+
+    def read_counts(self, tile_index: int, length: int) -> np.ndarray | None:
+        """Per-receptor (back-face, unmeshed-ground) static-ray counts, if traced."""
+        path = self.counts_path(tile_index)
+        if not path.exists():
+            return None
+        try:
+            with np.load(path, allow_pickle=False) as archive:
+                counts = archive["counts"]
+            if (counts.shape != (length, 2)
+                    or not np.issubdtype(counts.dtype, np.integer)
+                    or np.any(counts < 0)):
+                raise ValueError(f"Invalid ray-count checkpoint: {path}")
+            return counts.astype(np.int32)
+        except (OSError, KeyError, ValueError) as exc:
+            raise ValueError(f"Corrupt ray-count checkpoint: {path}") from exc
+
+    def write_counts(self, tile_index: int, counts: np.ndarray) -> None:
+        counts = np.asarray(counts, dtype=np.int32)
+        if counts.ndim != 2 or counts.shape[1] != 2 or np.any(counts < 0):
+            raise ValueError("Ray counts must be a nonnegative (receptors, 2) array")
+        path = self.counts_path(tile_index)
+        fd, name = tempfile.mkstemp(prefix=".rays.", suffix=".npz", dir=self.directory)
+        os.close(fd)
+        try:
+            np.savez_compressed(name, counts=counts)
+            os.replace(name, path)
+        finally:
+            Path(name).unlink(missing_ok=True)
+
 
 def consolidate_radiation(path: Path, checkpoints: RadiationCheckpoints,
                           grid, indices: np.ndarray, names: tuple[str, ...],
@@ -179,6 +211,27 @@ def consolidate_radiation(path: Path, checkpoints: RadiationCheckpoints,
                 )
                 var.units = "W m-2"
                 variables[field_name] = var
+            back = np.full(nx * ny, -1, dtype=np.int32)
+            ground = np.full(nx * ny, -1, dtype=np.int32)
+            for tile_index, offset in enumerate(range(0, len(indices), tile_size)):
+                tile = indices[offset:offset + tile_size]
+                counts = checkpoints.read_counts(tile_index, len(tile))
+                if counts is not None:
+                    back[tile] = counts[:, 0]
+                    ground[tile] = counts[:, 1]
+            for ray_name, plane, description in (
+                ("n_backface_rays", back,
+                 "static quadrature rays whose first hit is the back of a facet"),
+                ("n_unmeshed_ground_rays", ground,
+                 "static quadrature rays ending on opaque unmeshed model ground"),
+            ):
+                var = ds.createVariable(ray_name, "i4", ("x", "y"), fill_value=np.int32(-1))
+                var.long_name = description
+                var.comment = ("-1 where the receptor's static rays were never traced; "
+                               "such directions contribute zero shortwave and are fatal "
+                               "for longwave")
+                var[:] = plane.reshape(nx, ny)
+                ds.setncattr(f"total_{ray_name}", int(plane[plane >= 0].sum()))
             ds.setncattr("integration", "Piecewise-linear source interpolation; exact 900 s integral")
             ds.setncattr("missing_windows", "NaN where source coverage is absent or a cadence gap is detected")
             ds.setncattr("provenance", json.dumps(checkpoints.manifest, sort_keys=True))

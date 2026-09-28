@@ -14,6 +14,7 @@ from udprep.shortwave_forcing import write_shortwave_forcing
 from udcomf.udcomf_radiation import (
     ShortwaveState,
     UDComfRadiation,
+    _BACKFACE,
     _sphere_quadrature,
     facet_shortwave_exitance,
 )
@@ -29,7 +30,9 @@ def _case(mesh=None):
         zsize=3.0,
         Sc=np.zeros((2, 2, 3), dtype=bool),
         geom=types.SimpleNamespace(stl=mesh) if mesh is not None else None,
-        facs={"typeid": np.ones(len(mesh.faces), dtype=int)} if mesh is not None else {},
+        facs=({"typeid": np.ones(len(mesh.faces), dtype=int),
+               "normals": np.asarray(mesh.face_normals, dtype=float)}
+              if mesh is not None else {}),
     )
 
 
@@ -178,9 +181,11 @@ class TestShortwaveReceptors(unittest.TestCase):
             faces=[[0, 1, 2]], process=False,
         )
         radiation = UDComfRadiation(_case(roof))
+        # classified as a back-face hit, not unmeshed ground: still dark for
+        # shortwave, but the diagnostics and longwave error name the defect
         self.assertEqual(
             radiation._directional_source(np.array([0.0, 0.0, 1.0]), np.array([0.0, 0.0, 1.0])),
-            -2,
+            _BACKFACE,
         )
 
     def test_vegetation_case_fails_instead_of_ignoring_attenuation(self):

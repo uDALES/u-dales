@@ -1456,7 +1456,7 @@ module modibm
      use modglobal, only : ib, ie, jb, je, xf, yf, zf, xh, yh, zh, dx, dy, dzh, &
                            xhat, yhat, zhat, vec0, ltempeq, lmoist, iwalltemp, iwallmoist, lEB, lwritefac, nfcts, rk3step, totheatflux, totqflux
      use modfields, only : u0, v0, w0, thl0, thlp, qt0, qtp, pres0
-     use initfac,   only : facT, facz0, facz0h, facnorm, fachf, facef, facqsat, fachurel, facf, faclGR, faca
+     use initfac,   only : facT, facz0, facz0h, facnorm, fachf, facef, facqsat, fachurel, facf, faclGR, facwater, faca
      use modmpi,    only : comm3d, mpi_sum, mpierr, my_real
      use modibmdata, only : bctfxm, bctfxp, bctfyp, bctfz
      use decomp_2d, only : zstart
@@ -1572,7 +1572,7 @@ module modibm
        end if
 
        ! Latent heat
-       if (lmoist .and. faclGR(fac)) then
+       if (lmoist .and. (faclGR(fac) .or. facwater(fac))) then
          if (iwallmoist == 1) then ! probably remove this eventually, only relevant to grid-aligned facets
            if     (is_equal(norm, xhat)) then
              flux = bcqfxp
@@ -1589,12 +1589,17 @@ module modibm
          elseif (iwallmoist == 2) then
             if (abs(htc*abs(utan)) > 0.) then
                qwall = facqsat(fac) ! saturation humidity
-               hurel = fachurel(fac) ! relative humidity
                resa = 1./(htc*abs(utan)) ! aerodynamic resistance
-               resc = facf(fac,4) ! canopy resistance
-               ress = facf(fac,5) ! soil resistance
-               cveg = 0.8 ! vegetation fraction
-               flux = moist_flux(cveg, resa, qtair, qwall, hurel, resc, ress)
+               if (facwater(fac)) then
+                  ! open water: saturated surface, aerodynamic resistance only
+                  flux = moist_flux(0., resa, qtair, qwall, 1., 0., 0.)
+               else
+                  hurel = fachurel(fac) ! relative humidity
+                  resc = facf(fac,4) ! canopy resistance
+                  ress = facf(fac,5) ! soil resistance
+                  cveg = 0.8 ! vegetation fraction
+                  flux = moist_flux(cveg, resa, qtair, qwall, hurel, resc, ress)
+               end if
             end if
          end if
 

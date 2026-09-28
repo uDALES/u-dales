@@ -239,6 +239,7 @@ BCs at the bottom (BCbot; only effective if not covered with ground facets): 1 =
 | dtEB | 10. | `REAL` | Time interval between calculations of facet energy balance. | s |
 | bldT | 0. | `REAL` | Internal temperature of the buildings. | [K] |
 | flrT | 0. | `REAL` | Internal temperature of the ground. | [K] |
+| waterT | -1. | `REAL` | Anchor (deep-layer) temperature of water-body facets (walltype in (-30,-20]); negative means: use flrT. | [K] |
 | wsoil | 0. | `REAL` | Water content of soil. | [kg/m3] |
 | wgrmax | 450. | `REAL` | Maximum water content. | [kg/m3] |
 | wwilt | 171. | `REAL` | Water content at wilting point. | [kg/m3] |
