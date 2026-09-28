@@ -15,6 +15,7 @@ validation against measurements.
 | Exact preceding 15-minute means | `test_udcomf_checkpoints.py` checks exact integration of a linear series over `[time-900 s,time)`, missing coverage, cadence gaps, restart checkpoints and multi-height isolation. |
 | NetCDF schema and metadata | `test_udcomf_exchange.py` and `test_udcomf_thermalcomfort.py` check `(x,y,time)` order, units, coordinates, masks, time bounds, georeferencing and missing-value handling. |
 | Vapour humidity | `test_udcomf_multiheight.py` checks `qv = qt - ql` after height interpolation and rejects negative values without clipping. |
+| Supersaturation tolerance | `test_udcomf_thermalcomfort.py` checks that relative humidity within the configured tolerance above 100 % is capped to saturation with flag bit 32 and finite indices, while larger overshoots stay invalid with flag bit 1. |
 | MRT, PET, UTCI and WBGT references | `test_udcomf_thermalcomfort.py` contains the fixed cases listed below. |
 | Model-neutral result | The same test supplies identical exchange data labelled PALM and UrbClim and requires identical index arrays. |
 | End-to-end small case | `test_udcomf_end_to_end.py` runs a synthetic one-cell uDALES case through atmospheric extraction, receptor shortwave/longwave calculation, strict exchange export, and all four indices. |

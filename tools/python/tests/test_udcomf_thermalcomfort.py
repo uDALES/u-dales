@@ -252,6 +252,54 @@ class TestComfortFiles(unittest.TestCase):
                 self.assertEqual(float(ds["utci"][0, 0, 0]), float(ds["utci"]._FillValue))
                 self.assertEqual(int(ds["validity_flags"][0, 0, 0]) & 1, 1)
 
+    def test_slight_supersaturation_is_capped_and_flagged(self):
+        import json
+        with TemporaryDirectory() as tmp:
+            source = Path(tmp) / "exchange.nc"
+            _exchange(source, rh=102.)
+            output = calculate_indices(source)
+            with Dataset(output) as ds:
+                ds.set_auto_mask(False)
+                flags = int(ds["validity_flags"][0, 0, 0])
+                self.assertEqual(flags & 32, 32)
+                self.assertEqual(flags & 1, 0)
+                for name in ("mrt", "pet", "utci", "wbgt"):
+                    self.assertNotEqual(float(ds[name][0, 0, 0]),
+                                        float(ds[name]._FillValue))
+                counts = json.loads(ds.validity_counts)
+                self.assertGreater(counts["humidity_capped"], 0)
+                self.assertEqual(counts["invalid_humidity"], 0)
+            saturated = Path(tmp) / "exchange_sat.nc"
+            _exchange(saturated, rh=100.)
+            sat_out = calculate_indices(saturated)
+            with Dataset(sat_out) as ds:
+                ds.set_auto_mask(False)
+                # exact saturation: storage round-off must not raise bit 32
+                self.assertEqual(int(ds["validity_flags"][0, 0, 0]), 0)
+                self.assertNotEqual(float(ds["wbgt"][0, 0, 0]),
+                                    float(ds["wbgt"]._FillValue))
+            strict = calculate_indices(
+                source, output_path=Path(tmp) / "strict.nc",
+                parameters=ComfortParameters(supersaturation_tolerance_percent=0.0),
+            )
+            with Dataset(strict) as ds:
+                ds.set_auto_mask(False)
+                self.assertEqual(int(ds["validity_flags"][0, 0, 0]) & 1, 1)
+                self.assertEqual(float(ds["pet"][0, 0, 0]), float(ds["pet"]._FillValue))
+
+    def test_beyond_tolerance_supersaturation_stays_invalid(self):
+        with TemporaryDirectory() as tmp:
+            source = Path(tmp) / "exchange.nc"
+            _exchange(source, rh=110.)
+            output = calculate_indices(source)
+            with Dataset(output) as ds:
+                ds.set_auto_mask(False)
+                flags = int(ds["validity_flags"][0, 0, 0])
+                self.assertEqual(flags & 1, 1)
+                self.assertEqual(flags & 32, 0)
+                self.assertEqual(float(ds["utci"][0, 0, 0]), float(ds["utci"]._FillValue))
+                self.assertTrue(np.isfinite(ds["mrt"][0, 0, 0]))
+
     def test_utci_low_wind_is_missing_and_flagged(self):
         with TemporaryDirectory() as tmp:
             source = Path(tmp) / "exchange.nc"

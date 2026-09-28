@@ -426,9 +426,17 @@ resolved human geometry.
 
 The common engine derives vapour pressure from `qv` and `pabs` and relative
 humidity from the Buck liquid-water saturation equation in
-`thermalcomfort/physics.py`. Supersaturation is not capped to 100 percent; it
-is flagged invalid. This guarantees the same humidity convention for every
-model supplying the exchange format.
+`thermalcomfort/physics.py`. Slight supersaturation - relative humidity above
+100 percent by no more than `supersaturation_tolerance_percent` (default 5) -
+is treated as exactly saturated in every index input (`RH=100`, `e=es`, and a
+saturated `qv` for the WBGT sensor balance) and flagged with bit 32, because
+15-minute averaging of the convex saturation curve and vertical interpolation
+between saturated levels legitimately produce small overshoots. Bit 32 is
+raised only when the overshoot exceeds 0.01 percent, so float32 storage
+round-off at exact saturation does not generate flag noise. Overshoots beyond
+the tolerance are flagged invalid (bit 1) and excluded. Setting the tolerance
+to zero restores strict rejection. This guarantees the same humidity
+convention for every model supplying the exchange format.
 
 ```text
 epsilon = 18.015/28.97
@@ -503,6 +511,7 @@ It writes `mrt`, `pet`, `utci`, `wbgt`, `globe_temperature`, and
 | 4 | WBGT outside its implemented sensor-property domain. |
 | 8 | WBGT globe or wick balance did not converge. |
 | 16 | PET solver failed. |
+| 32 | Slight supersaturation capped to saturation (indices calculated). |
 
 Global `validity_counts` records counts for all flags. MRT remains available
 when it is physically finite even if another index is invalid.
@@ -926,8 +935,9 @@ equivalent, not 80 W total-body power. UTCI uses that
 library's unrounded operational calculation with `ws_10`; outside its
 temperature, radiant-temperature, wind or vapour-pressure domain it is missing
 and flagged, not extrapolated. PET uses `ws_local` and actual pressure.
-Both receive RH derived from `qv` and `pabs`; supersaturation is flagged, not
-silently capped at 100%.
+Both receive RH derived from `qv` and `pabs`. Supersaturation within the
+configured tolerance is capped to saturation and flagged with bit 32; larger
+overshoots are flagged invalid, never silently altered.
 
 WBGT solves a Liljegren-type black-globe and natural-wet-bulb heat/mass balance
 with the saved **local** six-plane radiation, air temperature, pressure,
