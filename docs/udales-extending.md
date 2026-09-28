@@ -7,11 +7,11 @@ This page collects practical recipes for common developer tasks: adding a nameli
 Template: the `lydump` switch (`&OUTPUT`, y-averaged statistics output) is a simple, working logical option you can copy directly.
 
 1. **Declare the variable and its default** in `src/modglobal.f90`, e.g. `logical :: lydump = .false.` (declared alongside the other output switches around line 200). Pick a sensible default that preserves current behaviour when the option is absent from `namoptions`.
-2. **Add it to the relevant namelist group** in `src/modstartup.f90`, subroutine `readnamelists`. There are two places to touch:
-   - the `use modglobal, only : ...` import list at the top of `readnamelists` (`lydump` is imported there alongside the other `OUTPUT`-group switches)
+2. **Add it to the relevant namelist group** in `src/in_readnamelists.f90`, subroutine `read_namelist_inputs`. There are two places to touch:
+   - the `use modglobal, only : ...` import list in module `readnamelists` (`lydump` is imported there alongside the other `OUTPUT`-group switches)
    - the `namelist/OUTPUT/ &` declaration itself (`lydump` is listed there together with `ltdump, lytdump, lxydump, lxytdump, lmintdump, ...`)
    If you are adding a wholly new namelist group instead of extending an existing one, also add a `read (ifnamopt, YOURGROUP, iostat=ierr)` block (with the same `iostat` error-handling pattern used for `OUTPUT`, `BC`, etc.) and a `rewind (ifnamopt)` after it.
-3. **Broadcast it from rank 0 to all MPI ranks**, still in `readnamelists`: `call MPI_BCAST(lydump, 1, MPI_LOGICAL, 0, comm3d, mpierr)`. Match the MPI type to the Fortran type (`MPI_LOGICAL`, `MPI_INTEGER`, `MY_REAL`, or `MPI_CHARACTER` with `len(...)` for strings).
+3. **Broadcast it from rank 0 to all MPI ranks** in `broadcast_config_parameters`, also in `src/in_readnamelists.f90`: `call MPI_BCAST(lydump, 1, MPI_LOGICAL, 0, comm3d, mpierr)`. Match the MPI type to the Fortran type (`MPI_LOGICAL`, `MPI_INTEGER`, `MY_REAL`, or `MPI_CHARACTER` with `len(...)` for strings).
 4. **Use the value** wherever it is needed. `lydump` is consumed in two ways that are both worth knowing about as patterns:
    - a sanity check in `checknamelistvalues` (also in `modstartup.f90`): the value is pulled in via `use modglobal, only : ..., lydump, lytdump, ...` and checked, e.g. `if ((lydump .or. lytdump) .and. (nprocx > 1)) then ... stop 1`.
    - the actual behaviour, in `src/modstatsdump.f90`, which imports it with `use modglobal, only : dt, lydump, lytdump, ...` at module scope and gates both the NetCDF setup in `initstatsdump` and the sampling/writing in `statsdump` behind `if (lydump) then ... end if`.
@@ -20,8 +20,8 @@ Template: the `lydump` switch (`&OUTPUT`, y-averaged statistics output) is a sim
 Checklist:
 
 - [ ] Declare in `src/modglobal.f90` with a safe default
-- [ ] Add to the `use modglobal, only : ...` list and the `namelist/GROUP/` statement in `readnamelists` (`src/modstartup.f90`)
-- [ ] Broadcast with `MPI_BCAST` in the same subroutine
+- [ ] Add to the `use modglobal, only : ...` list and the `namelist/GROUP/` statement in `read_namelist_inputs` (`src/in_readnamelists.f90`)
+- [ ] Broadcast with `MPI_BCAST` in `broadcast_config_parameters`
 - [ ] Consume the value at its point of use, importing it with `use modglobal, only : ...` in that module
 - [ ] Add a row to `docs/udales-namoptions-overview.md`
 

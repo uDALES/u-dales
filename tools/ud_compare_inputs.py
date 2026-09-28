@@ -6,12 +6,12 @@ Text comparison (exact, unified diff on mismatch):
   namoptions.<exp>
 
 Numerical comparison (max absolute error, # comments skipped):
-  prof.inp.<exp>          lscale.inp.<exp>
+  prof.inp.<exp>          lscale.inp.<exp>       probe.inp.<exp>
   facetarea.inp.<exp>     facets.inp.<exp>
   facets_unused.<exp>     factypes.inp.<exp>
   netsw.inp.<exp>         sveg.inp.<exp>         svf.inp.<exp>      vfsparse.inp.<exp>
   heatpump.inp.<exp>
-  trees.inp.<exp>         veg.inp.<exp>         veg_params.inp.<exp>
+  trees.inp.<exp>         veg.inp.<exp>          veg_params.inp.<exp>
   scalar.inp.<exp>        scalarsourcep.inp.N.<exp>  scalarsourcel.inp.N.<exp>  (N = 1, 2, ...)
   Tfacinit.inp.<exp>      timedeplw.inp.<exp>      timedepsw.inp.<exp>      Sdir.txt
   facet_sections_c/u/v/w.txt
@@ -254,13 +254,13 @@ def run_comparison(dir1: str, exp_str1: str, dir2: str, exp_str2: str, tolerance
 
     # Vertical profile input files
     print("\n=== Comparing other input files ===")
-    for tag in ("prof.inp", "lscale.inp", "scalar.inp"):
+    for tag in ("prof.inp", "lscale.inp", "probe.inp", "scalar.inp"):
         compare_numeric_file(
             f"{tag}.{exp_str1}",
             pp(f"{tag}.{exp_str1}", f"{tag}.{exp_str2}"),
             tolerance, counters)
 
-    # Scalar source files: scalarsourcep/scalarsourcel.inp.N.exp (probe for N = 1..9)
+    # Scalar source files: scalarsourcep/scalarsourcel.inp.N.exp (scalar specie for N = 1..9)
     for source_kind in ("scalarsourcep", "scalarsourcel"):
         for n in range(1, 10):
             b1 = f"{source_kind}.inp.{n}.{exp_str1}"

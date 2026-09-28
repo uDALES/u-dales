@@ -14,7 +14,7 @@ current side is built from a clean detached worktree so the result is fully
 reproducible from Git state.
 
 Then it stages case `526` twice, forces `itree_mode = 99` on the current branch copy, runs both executables, and compares the
-resulting `treedump.*.*.526.nc` outputs.
+legacy reference `treedump.*.*.526.nc` outputs with the current `stats_tree.*.526.nc` outputs after reconstructing both to global fields.
 
 The temporary namelist rewrite also keeps `randu` very small (`1.0e-6`).
 That is intentional: the startup randomisation routines are not identical
