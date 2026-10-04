@@ -130,19 +130,25 @@ You can compile in parallel mode by passing Make the `j` flag followed by the nu
 
 ## Build on HPCs
 
-To compile uDALES (in release mode) on the ICL HPC cluster run:
+On the supported HPC systems, `tools/build_executable.sh` loads the right modules for you. Run it from the u-dales directory, with the system name and `debug` or `release`:
 
 ```sh
 # We assume you are running the following commands from the u-dales directory
+# General syntax: tools/build_executable.sh <system> <debug|release>
 tools/build_executable.sh icl release
 ```
 
-To compile uDALES (in release mode) on ARCHER2, use:
+| `<system>` | Machine | Toolchain loaded by the script |
+|---|---|---|
+| `icl` | Imperial CX3 | Intel 2021a, Intel MPI, netCDF 4.8.0, FFTW 3.3.9 |
+| `hx1` | Imperial HX1 | Intel 2023a, Intel MPI, netCDF 4.9.2, FFTW 3.3.10 |
+| `archer` | ARCHER2 | Cray compiler wrappers, cray-netcdf, cray-fftw |
+| `ecmwf` | ECMWF Atos HPC2020 | `prgenv/intel`, Intel 2021.4.0, Intel MPI 2021.4.0, netCDF 4.10.0, FFTW 3.3.10, CMake 4.2.4 |
+| `common` | Local workstation | No modules; uses the compilers and libraries on your system |
 
-```sh
-# We assume you are running the following commands from the u-dales directory
-tools/build_executable.sh archer release
-```
+The same name is used as `<machine>` when running simulations with `ud_run` (see [Running uDALES](./udales-simulation-setup.md)). The script also keeps a legacy `cca` target, which `ud_run` does not support.
+
+On ECMWF, build on a login node: the configure step downloads a small CMake helper for finding FFTW with `git clone`, which needs internet access. Warnings of the form `CMake Deprecation Warning ... cmake_minimum_required` from CMake 4 are expected and harmless.
 
 Information for developers: if you are a High Performance Cluster (HPC) user you are likely using the [Environment Modules package](http://modules.sourceforge.net/) for the dynamic modification of the user's environment via modulefiles and therefore you may need to hint CMake the PATH to netCDF (see below how).
 
