@@ -19,7 +19,7 @@
 
 set -euo pipefail
 
-# Usage: ./tools/build_executable.sh [icl, hx1, archer, cca, common] [debug, release]
+# Usage: ./tools/build_executable.sh [icl, hx1, ecmwf, archer, cca, common] [debug, release]
 
 if [ ! -d src ]; then
     echo "Please run this script from being inside the u-dales folder"
@@ -73,6 +73,16 @@ then
     FC=mpiifort
     NETCDF_DIR=/gpfs/easybuild/prod/software/netCDF/4.9.2-iimpi-2023a
     NETCDF_FORTRAN_DIR=/gpfs/easybuild/prod/software/netCDF-Fortran/4.6.1-iimpi-2023a
+
+elif [ $system == "ecmwf" ]
+then
+    # ECMWF Atos HPC2020 (hostnames such as ac6-101). Uses ECMWF's own Lmod tree
+    # (/usr/local/apps); prgenv/intel selects the Intel-flavoured builds of the
+    # libraries below. netcdf4 ships the C and Fortran libraries in one prefix.
+    module load prgenv/intel intel/2021.4.0 intel-mpi/2021.4.0 netcdf4/4.10.0 fftw/3.3.10 cmake/4.2.4
+    FC=mpiifort
+    NETCDF_DIR=/usr/local/apps/netcdf4/4.10.0/INTEL/2021.4
+    NETCDF_FORTRAN_DIR=/usr/local/apps/netcdf4/4.10.0/INTEL/2021.4
 
 elif [ $system == "archer" ]
 then

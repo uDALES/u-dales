@@ -123,3 +123,50 @@ works from a clean module environment:
 module load tools/prod
 module load NCO/5.2.9-foss-2024a
 ```
+
+## ECMWF Atos HPC2020 (added 2026-09-16)
+
+Host patterns:
+- login nodes such as `ac6-101.bullx`; compute nodes `ac4-*`, `ac5-*`, `ac6-*`
+- `$HOME` under `/etc/ecmwf/nfs/dh2_home_*`; `$SCRATCH=/ec/res4/scratch/<user>`,
+  `$HPCPERM=/ec/res4/hpcperm/<user>`, `$PERM=/perm/<user>`
+- Slurm (`sbatch`, no `qsub`); Lmod tree under `/usr/local/apps/modulefiles`
+
+Module stack (default session has `prgenv/gnu` + `gcc/8.5.0` loaded):
+```bash
+module load prgenv/intel intel/2021.4.0 intel-mpi/2021.4.0 netcdf4/4.10.0 fftw/3.3.10 cmake/4.2.4
+# -> mpiifort (ifort 2021.4.0); netCDF C + Fortran share
+#    /usr/local/apps/netcdf4/4.10.0/INTEL/2021.4
+```
+`prgenv/intel` switches the library modules to their Intel-built flavours
+(`.../INTEL/2021.4`). The netcdf4 module exports `NETCDF4_DIR`, not `NETCDF_DIR`.
+
+Solver build (verified 2026-09-16, release, links the libraries above):
+```bash
+./tools/build_executable.sh ecmwf release
+```
+CMake 4.2.4 prints `cmake_minimum_required` deprecation warnings (harmless).
+Configure `git clone`s findFFTW, so build on a login node (internet access).
+
+Run / gather:
+```bash
+./bin/ud_run ecmwf sim <case>      # tools/ecmwf_execute.sh
+./bin/ud_run ecmwf gather <case>   # tools/ecmwf_gather.sh (nco/5.3.7 + netcdf4)
+```
+- Nodes: 128 physical cores (256 hyperthreads), 240 GB. Jobs use
+  `--ntasks-per-node=$NCPU --hint=nomultithread`, `srun`; NCPU <= 128.
+- QOS: required in config.sh for the simulation, no default. `np` = exclusive
+  parallel (240 GB/node, no --mem emitted); `nf` = shared, 1 node, MaxTRES
+  cpu=128,mem=128G (shared pool DefMemPerNode=8000, so MEM is required and
+  --mem is emitted for any non-np QOS). np/nf max walltime 2 days. Also `ni`
+  (interactive-style: 1 job, 32 cores / 32 GB, max 7 days), `ef` (ECS only) and
+  `ng`/`dg` (GPU, unused by uDALES).
+  ecmwf_gather.sh hardcodes --qos=nf and ignores QOS (one NCO process; np would
+  bill a whole 128-core node).
+- `ecmwf_execute.sh` refuses `DA_WORKDIR` outside `$SCRATCH` (50 TB, purged 30
+  days after last access). MEM accepts `16G` or `16gb` (any case) and is
+  normalised to Slurm units; a bare number is rejected.
+- Slurm account is fixed by `ACCOUNT=` in both scripts (`account` lists them;
+  it only affects billing).
+- Validate job files without queueing: put a stub `sbatch` first on `PATH` that
+  calls `/usr/local/bin/sbatch --test-only "$@"`.
