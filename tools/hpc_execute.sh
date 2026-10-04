@@ -27,7 +27,7 @@ then
 fi
 
 ## go to experiment directory
-pushd $1
+pushd "$1"
 inputdir=$(pwd)
 
 ## set experiment number via path
@@ -44,15 +44,20 @@ else
 fi
 
 ## check if required variables are set
-if [ -z $DA_WORKDIR ]; then
+if [ -z "$DA_WORKDIR" ]; then
     echo "Output top-level directory DA_WORKDIR must be set inside $inputdir/config.sh"
     exit 1
 fi;
-if [ -z $DA_BUILD ]; then
+if [ -z "$DA_BUILD" ]; then
     echo "Executable DA_BUILD must be set inside $inputdir/config.sh"
     exit 1
 fi;
-if [ -z $DA_TOOLSDIR ]; then
+if [ ! -x "$DA_BUILD" ]; then
+    echo "Executable DA_BUILD=$DA_BUILD does not exist or is not executable"
+    echo "Build it first with: tools/build_executable.sh <icl|hx1> release"
+    exit 1
+fi
+if [ -z "$DA_TOOLSDIR" ]; then
     echo "Script directory DA_TOOLSDIR must be set inside $inputdir/config.sh"
     exit 1
 fi;
@@ -88,7 +93,7 @@ if [ -z "${UDALES_SYSTEM:-}" ]; then
     #    under /sw-eb.
     # 3. The PBS server from /etc/pbs.conf: pbs-6 serves HX1; Imperial's other
     #    server is CX3's.
-    pbs_server=$(sed -n 's/^PBS_SERVER=//p' /etc/pbs.conf 2>/dev/null)
+    pbs_server=$(sed -n 's/^PBS_SERVER=//p' /etc/pbs.conf 2>/dev/null) || true
     case "$(hostname -s)" in
         hx1-*)         UDALES_SYSTEM=hx1; cluster_tell="hostname $(hostname -s)" ;;
         cx3-*|login-*) UDALES_SYSTEM=cx3; cluster_tell="hostname $(hostname -s)" ;;
@@ -137,12 +142,12 @@ if [ -n "${PLACE:-}" ]; then
 fi
 
 ## set the output directory
-outdir=$DA_WORKDIR/$exp
+outdir="$DA_WORKDIR/$exp"
 
 echo "writing job.$exp."
 
 ## write new job.exp file for HPC
-cat <<EOF > job.$exp
+cat <<EOF > "job.$exp"
 #!/bin/bash
 ${pbs_directives}
 ${job_modules}
@@ -150,7 +155,7 @@ EOF
 
 ## Report how long this job waited in the queue, from PBS's own timestamps.
 ## Quoted heredoc: nothing below is expanded at submit time.
-cat <<'EOF' >> job.$exp
+cat <<'EOF' >> "job.$exp"
 queue_wait_line() {
     local info qt st w
     if [ -n "${PBS_JOBID:-}" ] && command -v qstat >/dev/null 2>&1; then
@@ -169,16 +174,16 @@ queue_wait_line() {
 EOF
 
 ## The queue-wait line goes into output.exp.log ahead of this run's solver output.
-cat <<EOF >> job.$exp
-mkdir -p $outdir
-cp -r $inputdir/* $outdir
-pushd $outdir
-queue_wait_line >> $outdir/output.$exp.log
-echo "cluster: $UDALES_SYSTEM ($cluster_tell)" >> $outdir/output.$exp.log
-mpirun -v6 -n $(( $NCPU * $NNODE )) $DA_BUILD $outdir/namoptions.$exp >> $outdir/output.$exp.log 2>&1
+cat <<EOF >> "job.$exp"
+mkdir -p "$outdir"
+cp -r "$inputdir"/* "$outdir"
+pushd "$outdir"
+queue_wait_line >> "$outdir/output.$exp.log"
+echo "cluster: $UDALES_SYSTEM ($cluster_tell)" >> "$outdir/output.$exp.log"
+mpirun -v6 -n $(( $NCPU * $NNODE )) "$DA_BUILD" "$outdir/namoptions.$exp" >> "$outdir/output.$exp.log" 2>&1
 EOF
 
 ## submit job.exp file to queue
-qsub job.$exp
+qsub "job.$exp"
 
 echo "job.$exp submitted."

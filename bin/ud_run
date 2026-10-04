@@ -1,0 +1,122 @@
+#!/usr/bin/env bash
+
+# uDALES (https://github.com/uDALES/u-dales).
+
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+# Copyright (C) 2016-2019 the uDALES Team.
+
+## One entry point for running and gathering a case on any supported machine.
+## It only dispatches to the machine-specific scripts in ../tools:
+##   icl     hpc_execute.sh    / hpc_gather.sh     (UDALES_SYSTEM=cx3)
+##   hx1     hpc_execute.sh    / hpc_gather.sh     (UDALES_SYSTEM=hx1)
+##   archer  archer_execute.sh / archer_gather.sh
+##   ecmwf   ecmwf_execute.sh  / ecmwf_gather.sh
+##   common  local_execute.sh  / gather_outputs.sh (run directly)
+## Machine names match tools/build_executable.sh.
+
+set -e
+
+usage() {
+    echo "usage: ud_run <machine> sim|gather <case_directory>"
+    echo "  machine         icl, hx1, archer, ecmwf, common"
+    echo "  sim             run the simulation (submit it on clusters)"
+    echo "  gather          merge the per-core outputs (submit it on clusters)"
+    echo "  case_directory  input case directory containing config.sh, e.g. experiments/001"
+}
+
+if (( $# == 0 )); then
+    usage
+    exit 0
+fi
+if (( $# != 3 )); then
+    usage
+    exit 1
+fi
+
+machine=$1
+action=$2
+casedir=$3
+
+## This script lives in u-dales/bin; the scripts it dispatches to are in
+## u-dales/tools. Resolve that from the real path, so a symlink into a PATH
+## directory keeps working.
+toolsdir="$(dirname "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")")/tools"
+if [ ! -d "$toolsdir" ]; then
+    echo "Cannot find the u-dales tools directory at $toolsdir"
+    exit 1
+fi
+
+case "$action" in
+    sim|gather) ;;
+    *) echo "Unknown action '$action'"; usage; exit 1 ;;
+esac
+
+if [ ! -d "$casedir" ]; then
+    echo "Case directory $casedir does not exist"
+    exit 1
+fi
+
+## Output directory $DA_WORKDIR/<exp> of the case, for the gather steps that
+## work on outputs rather than on the input case (archer, common).
+case_outdir() {
+    local inputdir exp
+    inputdir=$(cd "$casedir" && pwd)
+    exp="${inputdir: -3}"
+    if [ ! -f "$inputdir/config.sh" ]; then
+        echo "config.sh must be there inside $inputdir" >&2
+        return 1
+    fi
+    (
+        source "$inputdir/config.sh"
+        if [ -z "${DA_WORKDIR:-}" ]; then
+            echo "Output top-level directory DA_WORKDIR must be set inside $inputdir/config.sh" >&2
+            exit 1
+        fi
+        echo "$DA_WORKDIR/$exp"
+    )
+}
+
+case "$machine:$action" in
+    icl:sim)       UDALES_SYSTEM=cx3 exec "$toolsdir/hpc_execute.sh" "$casedir" ;;
+    icl:gather)    UDALES_SYSTEM=cx3 exec "$toolsdir/hpc_gather.sh" "$casedir" ;;
+    hx1:sim)       UDALES_SYSTEM=hx1 exec "$toolsdir/hpc_execute.sh" "$casedir" ;;
+    hx1:gather)    UDALES_SYSTEM=hx1 exec "$toolsdir/hpc_gather.sh" "$casedir" ;;
+    archer:sim)    exec bash "$toolsdir/archer_execute.sh" "$casedir" ;;
+    archer:gather)
+        # archer_gather.sh takes the output directory, not the input case.
+        outdir=$(case_outdir)
+        exec bash "$toolsdir/archer_gather.sh" "$outdir"
+        ;;
+    ecmwf:sim)     exec "$toolsdir/ecmwf_execute.sh" "$casedir" ;;
+    ecmwf:gather)  exec "$toolsdir/ecmwf_gather.sh" "$casedir" ;;
+    common:sim)    exec "$toolsdir/local_execute.sh" "$casedir" ;;
+    common:gather)
+        # local_execute.sh already gathers after the run; this re-runs it alone.
+        outdir=$(case_outdir)
+        exp="${outdir: -3}"
+        if [ ! -d "$outdir" ]; then
+            echo "Output directory $outdir does not exist; run 'ud_run common sim' first"
+            exit 1
+        fi
+        echo "Merging outputs across cores into one..." | tee -a "$outdir/output.$exp.log"
+        "$toolsdir/gather_outputs.sh" "$outdir" 2>&1 | tee -a "$outdir/output.$exp.log"
+        exit ${PIPESTATUS[0]}
+        ;;
+    *)
+        echo "Unknown machine '$machine'"
+        usage
+        exit 1
+        ;;
+esac

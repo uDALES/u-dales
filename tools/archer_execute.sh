@@ -10,7 +10,7 @@ then
 fi
 
 ## go to experiment directory
-pushd $1
+pushd "$1"
 inputdir=$(pwd)
 
 ## set experiment number via path
@@ -27,15 +27,20 @@ else
 fi
 
 ## check if required variables are set
-if [ -z $DA_WORKDIR ]; then
+if [ -z "$DA_WORKDIR" ]; then
     echo "Output top-level directory DA_WORKDIR must be set inside $inputdir/config.sh"
     exit 1
 fi;
-if [ -z $DA_BUILD ]; then
+if [ -z "$DA_BUILD" ]; then
     echo "Executable DA_BUILD must be set inside $inputdir/config.sh"
     exit 1
 fi;
-if [ -z $DA_TOOLSDIR ]; then
+if [ ! -x "$DA_BUILD" ]; then
+    echo "Executable DA_BUILD=$DA_BUILD does not exist or is not executable"
+    echo "Build it first with: tools/build_executable.sh archer release"
+    exit 1
+fi
+if [ -z "$DA_TOOLSDIR" ]; then
     echo "Script directory DA_TOOLSDIR must be set inside $inputdir/config.sh"
     exit 1
 fi;
@@ -59,18 +64,18 @@ if [ -z $QOS ]; then
 fi;
 
 ## set the output directory
-outdir=$DA_WORKDIR/$exp
+outdir="$DA_WORKDIR/$exp"
 
 ## copy files to execution and output directory
-mkdir -p $outdir
-cp -r -P $inputdir/* $outdir
-cp -r $DA_BUILD $outdir
-pushd $outdir
+mkdir -p "$outdir"
+cp -r -P "$inputdir"/* "$outdir"
+cp -r "$DA_BUILD" "$outdir"
+pushd "$outdir"
 
 echo "writing job.$exp.slurm"
 
 ## write new job.exp.slurm file
-cat <<EOF > job.$exp.slurm
+cat <<EOF > "job.$exp.slurm"
 #!/bin/bash
 #SBATCH --job-name=${exp}
 #SBATCH --time=${WALLTIME}
@@ -82,11 +87,11 @@ cat <<EOF > job.$exp.slurm
 #SBATCH --qos=${QOS}
 module load epcc-job-env
 export OMP_NUM_THREADS=1
-srun --distribution=block:block --hint=nomultithread ./u-dales $outdir/namoptions.$exp >> $outdir/output.$exp.log 2>&1
+srun --distribution=block:block --hint=nomultithread ./u-dales "$outdir/namoptions.$exp" >> "$outdir/output.$exp.log" 2>&1
 EOF
 
 ## submit job.exp file to queue
-sbatch job.$exp.slurm
+sbatch "job.$exp.slurm"
 
 echo "job.$exp.slurm submitted."
 
