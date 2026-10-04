@@ -130,7 +130,7 @@ You can compile in parallel mode by passing Make the `j` flag followed by the nu
 
 After a successful build, the executable is copied to `u-dales/bin/u-dales`. This does not modify your shell `PATH`; the wrapper scripts use `DA_BUILD`, so you can point `DA_BUILD` directly at this executable.
 
-Adding `u-dales/bin` to your `PATH` is optional. If you want to run `u-dales` or helper commands directly by name, you can add:
+Adding `u-dales/bin` to your `PATH` is optional. If you want to run `ud_run` (the run/gather entry point), `u-dales` or the other helper commands directly by name, you can add:
 
 ```sh
 export UD_TOPDIR=$(pwd)/u-dales

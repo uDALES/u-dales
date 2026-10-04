@@ -22,7 +22,7 @@ On clusters, `sim` and `gather` submit batch jobs; submit `gather` once the simu
 
 After building, the solver executable is available at `u-dales/bin/u-dales`. The wrapper scripts below use `DA_BUILD`, so set that explicitly in `config.sh`.
 
-Adding `u-dales/bin` to your shell `PATH` is optional. If you want to run `u-dales` or helper commands directly by name, you can add:
+Adding `u-dales/bin` to your shell `PATH` is optional. If you want to run `ud_run`, `u-dales` or the other helper commands directly by name, you can add:
 
 ```sh
 export UD_TOPDIR=/path/to/u-dales
