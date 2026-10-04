@@ -2,7 +2,9 @@
 
 This note records the cluster-side build, preprocessing, execution, and
 analysis workflow that is already encoded in the repository scripts under
-`tools/`.
+`tools/`. Most of it is written for the Imperial clusters (`icl` = CX3,
+`hx1` = HX1); the [ECMWF HPC2020](#ecmwf-hpc2020) section covers the ECMWF
+Atos system.
 
 ## Executable Build
 
@@ -13,9 +15,10 @@ Use the project wrapper instead of assembling a module stack by hand:
 ./tools/build_executable.sh icl release
 ```
 
-That script is the source of truth for the solver build environment on the
-cluster. It loads the compiler, MPI, NetCDF, FFTW, CMake, and Git modules that
-the solver build expects.
+Replace `icl` with `hx1`, `archer` or `ecmwf` on those machines. That script is
+the source of truth for the solver build environment on each cluster. Each
+branch loads the compiler, MPI, NetCDF and FFTW modules that the build expects,
+plus CMake and (on the Imperial clusters) Git.
 
 ## Preprocessing Build
 
@@ -66,22 +69,27 @@ while smaller requests use the requested GiB value.
 
 ## Batch Execution
 
-Use the execution wrapper rather than writing a new launcher command from
-scratch:
+Use `ud_run` rather than writing a new launcher command from scratch:
 
 ```bash
-./tools/hpc_execute.sh <case-directory>
+./bin/ud_run icl sim <case-directory>      # or hx1 on HX1
 ```
 
-The case directory must provide `config.sh`, and the wrapper writes and submits
-the PBS job script with the module stack and `mpiexec` invocation that the
-project expects.
+On `icl` and `hx1` this runs `tools/hpc_execute.sh` with the cluster set
+explicitly (`UDALES_SYSTEM=cx3` or `hx1`), so the script does not have to detect
+it. The case directory must provide `config.sh`, and the wrapper writes and
+submits the PBS job script with the module stack and `mpirun` invocation that
+the project expects.
 
-Use the gather wrapper to collect outputs after the run:
+Use the gather step to collect outputs after the run:
 
 ```bash
-./tools/hpc_gather.sh <case-directory>
+./bin/ud_run icl gather <case-directory>   # runs tools/hpc_gather.sh
 ```
+
+On other machines use `archer` or `ecmwf` as the first argument; see
+[Running uDALES](udales-simulation-setup.md) for the full list of machines and
+the scripts `ud_run` calls.
 
 ## Python Environment
 
@@ -142,3 +150,57 @@ So for interactive debugging:
 - keep the launcher invocation minimal
 - avoid changing MPI launcher behavior and output handling unless you have
   confirmed it works on the current node
+
+## ECMWF HPC2020
+
+The ECMWF Atos HPC2020 (hostnames such as `ac6-101`)
+uses Slurm and ECMWF's own Lmod module tree under `/usr/local/apps`.
+
+Build the solver on a login node:
+
+```bash
+./tools/build_executable.sh ecmwf release
+```
+
+This loads
+`prgenv/intel intel/2021.4.0 intel-mpi/2021.4.0 netcdf4/4.10.0 fftw/3.3.10 cmake/4.2.4`
+and compiles with `mpiifort`. The netCDF C and Fortran libraries share one
+prefix (`/usr/local/apps/netcdf4/4.10.0/INTEL/2021.4`).
+
+Run and gather:
+
+```bash
+./bin/ud_run ecmwf sim <case-directory>     # tools/ecmwf_execute.sh
+./bin/ud_run ecmwf gather <case-directory>  # tools/ecmwf_gather.sh
+```
+
+- `ecmwf_execute.sh` copies the inputs and the executable to
+  `$DA_WORKDIR/<exp>`, then submits `NNODE` nodes with `NCPU` ranks per node
+  (at most 128, physical cores only) launched with `srun`. The job loads the
+  runtime half of the build stack — `prgenv/intel`, `intel`, `intel-mpi`,
+  `netcdf4` and `fftw`, but not CMake. It refuses to submit unless `DA_WORKDIR`
+  is under `$SCRATCH`.
+- `ecmwf_gather.sh` submits a one-task job that loads `prgenv/intel`,
+  `intel/2021.4.0`, `netcdf4/4.10.0` and `nco/5.3.7` and runs
+  `gather_outputs.sh`. It requires `MEM` (`16G` or `16gb`).
+- `QOS` must be set in `config.sh` and applies to the simulation only; there is
+  no default. Use `np` (exclusive nodes, 240 GB each) for real runs, `nf`
+  (shared, 1 node, at most 128 cores / 128 GB) for small tests.
+- The gather job is fixed to `nf` and ignores `QOS`: it is one NCO process, and
+  on `np` it would be allocated — and billed — a whole 128-core node.
+- `MEM` is requested by the gather job always, and by the simulation only when
+  `QOS` is not `np` (shared nodes default to 8 GB). `16G` and `16gb` are both
+  accepted and normalised for Slurm; a unit is required.
+- The Slurm account is fixed by `ACCOUNT=` at the top of both scripts.
+
+Filesystems: use `$SCRATCH` (50 TB) for run directories. It is purged 30 days
+after last access, so move results to keep elsewhere (e.g. ECFS). `$HOME`
+(10 GB), `$PERM` (500 GB) and `$HPCPERM` (1 TB) are too small for multi-TB
+output, and none of the three is meant for parallel I/O. See the
+[ECMWF HPC2020 user guide](https://confluence.ecmwf.int/spaces/UDOC/pages/240851027/HPC2020+User+Guide).
+
+To check a job script by hand without queuing it, use
+`sbatch --test-only <job-file>`. To dry-run the wrapper scripts themselves,
+put a stub `sbatch` first on `PATH` that calls
+`/usr/local/bin/sbatch --test-only "$@"` — ECMWF's `sbatch` is a site wrapper,
+so the scripts must go through it.

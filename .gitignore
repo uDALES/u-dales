@@ -28,16 +28,15 @@ tests/integration/input/test_roundtrip_random.md
 
 examples/*/blocks.*.png
 tmp/*
-bin/
 tools/python/examples/*.stl
 # Restart and driver files
 examples/*/init*
 examples/*/*driver*
 examples/*/blocks.*.png
 
+
 # bin directory
 bin/u-dales
-
 
 # macOS specific
 .DS_Store

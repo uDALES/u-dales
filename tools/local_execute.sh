@@ -28,7 +28,7 @@ then
 fi
 
 ## go to experiment directory
-pushd $1
+pushd "$1"
 inputdir=$(pwd)
 
 ## set experiment number via path
@@ -42,15 +42,20 @@ if [ -f config.sh ]; then
 fi
 
 ## check if required variables are set
-if [ -z $DA_WORKDIR ]; then
+if [ -z "$DA_WORKDIR" ]; then
     echo "Output top-level directory DA_WORKDIR must be set inside $inputdir/config.sh"
     exit
 fi;
-if [ -z $DA_BUILD ]; then
+if [ -z "$DA_BUILD" ]; then
     echo "Executable DA_BUILD must be set inside $inputdir/config.sh"
     exit
 fi;
-if [ -z $DA_TOOLSDIR ]; then
+if [ ! -x "$DA_BUILD" ]; then
+    echo "Executable DA_BUILD=$DA_BUILD does not exist or is not executable"
+    echo "Build it first with: tools/build_executable.sh common release"
+    exit 1
+fi
+if [ -z "$DA_TOOLSDIR" ]; then
     echo "Script directory DA_TOOLSDIR must be set inside $inputdir/config.sh"
     exit
 fi;
@@ -61,26 +66,26 @@ if [ -z $NCPU ]; then
 fi;
 
 ## set the experiment output directory
-outdir=$DA_WORKDIR/$exp
+outdir="$DA_WORKDIR/$exp"
 
 echo "Starting job for case $exp..."
 
 ## copy files to output directory
-mkdir -p $outdir
-cp -r ./* $outdir
+mkdir -p "$outdir"
+cp -r ./* "$outdir"
 
 ## go to execution and output directory
-pushd $outdir
+pushd "$outdir"
 
 ## execute program with mpi
-mpiexec -n $NCPU --oversubscribe $DA_BUILD namoptions.$exp 2>&1 | tee -a output.$exp.log
+mpiexec -n $NCPU --oversubscribe "$DA_BUILD" "namoptions.$exp" 2>&1 | tee -a "output.$exp.log"
 
 ## Merge output files across outputs.
 gather_start=$(date +%s.%N)
-echo "Merging outputs across cores into one..." | tee -a output.$exp.log
-$DA_TOOLSDIR/gather_outputs.sh $outdir 2>&1 | tee -a output.$exp.log
+echo "Merging outputs across cores into one..." | tee -a "output.$exp.log"
+"$DA_TOOLSDIR/gather_outputs.sh" "$outdir" 2>&1 | tee -a "output.$exp.log"
 gather_end=$(date +%s.%N)
-echo "Wall time for phase [gather outputs] : $(echo "$gather_end $gather_start" | awk '{printf "%.6f", $1 - $2}') seconds" | tee -a output.$exp.log
+echo "Wall time for phase [gather outputs] : $(echo "$gather_end $gather_start" | awk '{printf "%.6f", $1 - $2}') seconds" | tee -a "output.$exp.log"
 
 popd
 

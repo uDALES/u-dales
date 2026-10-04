@@ -35,8 +35,8 @@ All examples are run using the following command:
 # We assume you are running the following commands from your
 # top-level project directory.
 
-# General syntax: local_execute.sh exp_directory
-./u-dales/tools/local_execute.sh examples/001
+# General syntax: ud_run <machine> sim exp_directory (common runs local_execute.sh)
+./u-dales/bin/ud_run common sim examples/001
 ```
 
 <!-- omit in toc -->

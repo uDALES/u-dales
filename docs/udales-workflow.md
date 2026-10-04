@@ -6,8 +6,8 @@ A uDALES study follows the same sequence of steps regardless of whether you run 
 flowchart LR
   A["Install & build"] --> B["Set up experiment"]
   B --> C["Pre-process<br/>write_inputs.sh"]
-  C --> D["Run<br/>local/hpc/archer_execute.sh"]
-  D --> E["Merge outputs<br/>gather_outputs.sh"]
+  C --> D["Run<br/>ud_run machine sim"]
+  D --> E["Merge outputs<br/>ud_run machine gather"]
   E --> F["Analyse<br/>udbase"]
 ```
 
@@ -37,17 +37,17 @@ See [Pre-processing](udales-pre-processing.md) for setup and options, including 
 
 ## 4. Run the simulation
 
-Launch the solver through the wrapper script for your platform — `local_execute.sh` (desktop), `hpc_execute.sh` (ICL cluster), or `archer_execute.sh` (ARCHER2):
+Launch the solver with `ud_run`, naming your machine — `common` (desktop), `icl` or `hx1` (Imperial clusters), `archer` (ARCHER2) or `ecmwf` (ECMWF HPC2020). It calls the matching machine-specific script in `u-dales/tools`:
 
 ```sh
-./u-dales/tools/local_execute.sh experiments/001
+./u-dales/bin/ud_run common sim experiments/001
 ```
 
 See [Running uDALES](udales-simulation-setup.md), and [cluster workflows](cluster_workflows.md) for cluster-specific notes.
 
 ## 5. Merge outputs
 
-uDALES writes one NetCDF file per CPU. After the run, merge them into single output files with `gather_outputs.sh` (done automatically by `local_execute.sh`). See [Post-processing](udales-post-processing.md).
+uDALES writes one NetCDF file per CPU. After the run, merge them into single output files with `ud_run <machine> gather experiments/001` (done automatically at the end of `ud_run common sim`). See [Post-processing](udales-post-processing.md).
 
 ## 6. Analyse
 
