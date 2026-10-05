@@ -9,6 +9,7 @@ from tempfile import TemporaryDirectory
 from unittest import mock
 
 import numpy as np
+from netCDF4 import Dataset
 from scipy import sparse
 
 from _common import PYTHON_DIR
@@ -16,7 +17,7 @@ from _common import PYTHON_DIR
 from udprep.udprep import Section, SectionSpec, SKIP, UDPrep  # noqa: E402
 from udprep.udprep_bcs import SPEC as BCS_SPEC  # noqa: E402
 from udprep.udprep_ibm import IBMSection  # noqa: E402
-from udprep.udprep_radiation import RadiationSection  # noqa: E402
+from udprep.udprep_radiation import RadiationSection, SPEC as RADIATION_SPEC  # noqa: E402
 from udprep.udprep_seb import SEBSection  # noqa: E402
 from udgeom.view3d import (  # noqa: E402
     ViewFactorRepairLimits,
@@ -673,6 +674,18 @@ class TestUDPrepCore(unittest.TestCase):
         self.assertEqual(prep.sim.BCxm, 2)
         self.assertEqual(prep.sim.BCym, 3)
 
+    def test_radiation_section_owns_receptor_height_default(self):
+        fake_module = self._fake_udbase_module()
+        with mock.patch.dict(sys.modules, {"udbase": fake_module}):
+            with mock.patch.object(UDPrep, "SECTION_SPECS", [RADIATION_SPEC]):
+                prep = UDPrep("123", path=self.workdir, load_geometry=False)
+
+        self.assertEqual(prep.radiation.receptor_height, 1.1)
+        self.assertEqual(prep.sim.receptor_height, 1.1)
+
+        prep.radiation.receptor_height = 1.5
+        self.assertEqual(prep.sim.receptor_height, 1.5)
+
     def test_run_all_respects_section_gates(self):
         prep = self._make_run_all_prep(libm=True, radiation_lEB=True, ltrees=True)
         prep.sim.lEB = True
@@ -907,6 +920,7 @@ class TestRadiationSection(unittest.TestCase):
 
             (case_dir / "Sdir.txt").write_text("1.0\n", encoding="ascii")
             (case_dir / "netsw.inp.321").write_text("1.0\n", encoding="ascii")
+            (case_dir / "shortwave_forcing.321.nc").write_bytes(b"cached")
             (case_dir / "vf.nc.inp.321").write_bytes(b"netcdf placeholder")
             vf_path = case_dir / "vf.txt"
             vf_path.write_text("stale view3d text output\n", encoding="ascii")
@@ -955,6 +969,10 @@ class TestRadiationSection(unittest.TestCase):
             section.run_short_wave()
 
             self.assertTrue(called.get("hit"), "stale signature must force a recompute")
+            with Dataset(case_dir / "shortwave_forcing.321.nc") as archive:
+                np.testing.assert_array_equal(archive.variables["dni"][:], [800.0])
+                np.testing.assert_array_equal(archive.variables["dsky"][:], [100.0])
+                self.assertEqual(archive.simulation_start, "2020-06-21T12:00:00")
             # The recompute must refresh the sidecar so the next run can skip.
             self.assertNotEqual(
                 (case_dir / "Sdir.txt.sig").read_text(encoding="ascii"),
@@ -1103,6 +1121,10 @@ class TestRadiationSection(unittest.TestCase):
             section = self._run_timedep(
                 tmp, nfcts=4, ltrees=False, s_veg_value=np.zeros(0, dtype=float)
             )
+            with Dataset(Path(tmp) / "shortwave_forcing.001.nc") as archive:
+                np.testing.assert_array_equal(archive.variables["time"][:], [0.0, 10.0, 20.0])
+                np.testing.assert_array_equal(archive.variables["dni"][:], [800.0] * 3)
+                np.testing.assert_array_equal(archive.variables["dsky"][:], [100.0] * 3)
         section.write_timedepsw.assert_called_once()
         _tSP, knet = section.write_timedepsw.call_args.args
         self.assertEqual(knet.shape, (4, 3))
@@ -1189,6 +1211,7 @@ class TestRadiationSection(unittest.TestCase):
             section.ltimedepsw = True
 
             (case_dir / "Sdir.nc").write_bytes(b"cached")
+            (case_dir / "shortwave_forcing.001.nc").write_bytes(b"cached")
             (case_dir / "timedepsw.inp.001").write_text(
                 "# time-dependent net shortwave on facets [W/m2]\n"
                 "     0.00     10.00\n"
@@ -1203,6 +1226,67 @@ class TestRadiationSection(unittest.TestCase):
             section._compute_knet.assert_not_called()
             values = np.loadtxt(case_dir / "netsw.inp.001", skiprows=1)
             np.testing.assert_allclose(values, [100.0, 200.0], atol=1.0e-4)
+
+    def test_timedep_cache_backfills_forcing_without_facet_solver(self):
+        with TemporaryDirectory() as tmp:
+            case_dir = Path(tmp)
+            sim = types.SimpleNamespace(path=case_dir, expnr="001", ltrees=False)
+            section = RadiationSection("radiation", {}, sim=sim, defaults={})
+            section.ltimedepsw = True
+            section.runtime, section.dtSP = 20.0, 10.0
+            section.year, section.month, section.day = 2020, 6, 21
+            section.hour, section.minute, section.second = 12, 0, 0
+            section.isolar = 1
+            section._solar_state_time = mock.Mock(
+                return_value=(np.array([0., 0., 1.]), 30., 180., 800., 100.)
+            )
+            section._compute_knet = mock.Mock()
+            (case_dir / "Sdir.nc").write_bytes(b"cached")
+            (case_dir / "timedepsw.inp.001").write_text(
+                "# time then facet net SW\n0 10 20\n1 2 3\n", encoding="ascii"
+            )
+
+            section.run_short_wave_timedep()
+
+            section._compute_knet.assert_not_called()
+            with Dataset(case_dir / "shortwave_forcing.001.nc") as archive:
+                np.testing.assert_array_equal(archive.variables["time"][:], [0., 10., 20.])
+                np.testing.assert_array_equal(archive.variables["dni"][:], [800.] * 3)
+                np.testing.assert_array_equal(archive.variables["dsky"][:], [100.] * 3)
+
+            (case_dir / "shortwave_forcing.001.nc").unlink()
+            (case_dir / "timedepsw.inp.001").write_text(
+                "# time then facet net SW\n0 20 40\n1 2 3\n", encoding="ascii"
+            )
+            with self.assertRaisesRegex(ValueError, "do not match runtime/dtSP"):
+                section.run_short_wave_timedep()
+            self.assertFalse((case_dir / "shortwave_forcing.001.nc").exists())
+
+    def test_weather_shortwave_archive_inputs_match_interpolated_forcing(self):
+        section = RadiationSection("radiation", {}, sim=DummySim(), defaults={})
+        section.isolar = 3
+        section.year, section.month, section.day = 2020, 6, 21
+        section.hour = section.minute = section.second = 0
+        section.xazimuth = 15.0
+        section.weatherfname = "unused.csv"
+        section._read_weather_table = mock.Mock(return_value={
+            "date": np.array([210620] * 3),
+            "TIME": np.array([0.0, 10.0, 20.0]),
+            "SOLAR": np.array([30.0] * 3),
+            "SOLAR_1": np.array([0.0, 10.0, 20.0]),
+            "HELIOM": np.array([100.0, 200.0, 300.0]),
+            "DIFSOLAR": np.array([10.0, 20.0, 30.0]),
+        })
+
+        _, nsun, zenith, azimuth, dni, dsky = section._timedep_shortwave_atmosphere(
+            np.array([0.0, 10.0, 20.0])
+        )
+
+        np.testing.assert_allclose(zenith, [30.0] * 3)
+        np.testing.assert_allclose(azimuth, [75.0, 85.0, 95.0])
+        np.testing.assert_allclose(dni, [100.0, 200.0, 300.0])
+        np.testing.assert_allclose(dsky, [10.0, 20.0, 30.0])
+        self.assertEqual(nsun.shape, (3, 3))
 
     def test_timedep_skips_near_horizon_step_without_crashing(self):
         # P11: a near-horizon step (|cos(zenith)| < 1e-2, where the solver would

@@ -20,6 +20,15 @@ Running `ud_run` with no arguments prints its usage. `<machine>` uses the same n
 
 On clusters, `sim` and `gather` submit batch jobs; submit `gather` once the simulation has finished (see [Post-processing](./udales-post-processing.md)). The machine-specific scripts can still be called directly, e.g. `./u-dales/tools/ecmwf_execute.sh experiments/009`. `ud_run` lives in `u-dales/bin`, so if you add that directory to your `PATH` (see below) you can call it as plain `ud_run` from anywhere.
 
+After building, the solver executable is available at `u-dales/bin/u-dales`. The wrapper scripts below use `DA_BUILD`, so set that explicitly in `config.sh`.
+
+Adding `u-dales/bin` to your shell `PATH` is optional. If you want to run `ud_run`, `u-dales` or the other helper commands directly by name, you can add:
+
+```sh
+export UD_TOPDIR=/path/to/u-dales
+export PATH="$UD_TOPDIR/bin:$PATH"
+```
+
 The scripts require several variables to be set up. Below is an example setup for copying and pasting. You can also specify these parameters in a `config.sh` file within the example directory, which is then read by the scripts. We recommend keeping a `config.sh` in each example case directory with the appropriate variable setting.
 The simulation workflow consists of three stages:
 
@@ -40,7 +49,7 @@ Note that you need to choose the number of CPUs you are using to run the simulat
 
 export DA_EXPDIR=$(pwd)/experiments                     # Experiments top-level directory
 export DA_TOOLSDIR=$(pwd)/u-dales/tools                 # Directory of scripts
-export DA_BUILD=$(pwd)/u-dales/build/release/u-dales    # Build file
+export DA_BUILD=$(pwd)/u-dales/bin/u-dales              # Executable
 export DA_WORKDIR=$(pwd)/outputs                        # Output top-level directory
 export NCPU=8                                           # Number of CPUs to use for a simulation
 
@@ -68,7 +77,7 @@ Then, to start the simulation, run:
 
 export DA_EXPDIR=$(pwd)/experiments                     # Experiments top-level directory
 export DA_TOOLSDIR=$(pwd)/u-dales/tools                 # Directory of scripts
-export DA_BUILD=$(pwd)/u-dales/build/release/u-dales    # Build file
+export DA_BUILD=$(pwd)/u-dales/bin/u-dales              # Executable
 export DA_WORKDIR=$EPHEMERAL                            # Output top-level directory
 export NCPU=128                                         # Number of CPUs to use for a simulation
 export PREPROC_WALLTIME="24:00:00"                      # Optional preprocessing override; defaults to 24:00:00
@@ -100,7 +109,7 @@ Then, to start the simulation, run:
 
 export DA_EXPDIR=/work/account/account/username/top_level_project_directory/experiments                     # Experiments top-level directory
 export DA_TOOLSDIR=/work/account/account/username/top_level_project_directory/u-dales/tools                 # Directory of scripts
-export DA_BUILD=/work/account/account/username/top_level_project_directory/u-dales/build/release/u-dales    # Build file
+export DA_BUILD=/work/account/account/username/top_level_project_directory/u-dales/bin/u-dales              # Executable
 export DA_WORKDIR=/work/account/account/username/top_level_project_directory/outputs                        # Output top-level directory
 export NCPU=128                                                                                             # Number of CPUs to use for a simulation
 export NNODE=1                                                                                              # Number of nodes to use for a simulation

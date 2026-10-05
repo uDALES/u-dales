@@ -1,6 +1,6 @@
 &RUN
 iexpnr       = 100
-runtime      = 0.01
+runtime      = 0.02
 trestart     = 1800.
 dtmax        = 0.01
 ladaptive    = .true.
@@ -11,7 +11,7 @@ randu        = 1.0
 
 &OUTPUT
 lfielddump   = .false.
-tfielddump   = 100.
+tinstantdump = 100.
 fieldvars    = 'u0,v0,w0,p0'
 ltdump       = .true.
 lxytdump     = .false.

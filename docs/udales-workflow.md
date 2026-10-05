@@ -52,3 +52,7 @@ uDALES writes one NetCDF file per CPU. After the run, merge them into single out
 ## 6. Analyse
 
 Load and analyse the merged NetCDF output with the `udbase` MATLAB class — see the [udbase](udales-udbase-tutorial.md), [fields](udales-fields-tutorial.md), and [facets](udales-facets-tutorial.md) tutorials. A [Python package](udales-python-package.md) providing the same functionality is under active testing and will replace the MATLAB toolchain from uDALES v3.0 onwards.
+
+## Input interface and checks
+
+Runtime input remains namelist-based. Schema files under `docs/schemas/` support tooling and editor validation, and the input round-trip/source-schema checks live under `tests/integration/input`. See the current test layout in [`tests/README.md`](../tests/README.md).
