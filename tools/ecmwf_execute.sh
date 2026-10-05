@@ -169,11 +169,9 @@ fi
 ## set the output directory
 outdir="$DA_WORKDIR/$exp"
 
-## copy files to execution and output directory; the executable is copied too,
-## so rebuilding while the job is queued does not change the run.
+## create output directory and copy the inputs
 mkdir -p "$outdir"
 cp -r -P "$inputdir"/* "$outdir"
-cp "$DA_BUILD" "$outdir/u-dales"
 pushd "$outdir"
 
 echo "writing job.$exp.slurm"
@@ -204,7 +202,7 @@ cat <<EOF > "job.$exp.slurm"
 ${sbatch_directives}
 module load prgenv/intel intel/2021.4.0 intel-mpi/2021.4.0 netcdf4/4.10.0 fftw/3.3.10
 export OMP_NUM_THREADS=1
-srun ./u-dales "$outdir/namoptions.$exp" >> "$outdir/output.$exp.log" 2>&1
+srun "$DA_BUILD" "$outdir/namoptions.$exp" >> "$outdir/output.$exp.log" 2>&1
 EOF
 
 ## submit job.exp.slurm file to queue

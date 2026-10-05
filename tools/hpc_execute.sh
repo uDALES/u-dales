@@ -144,6 +144,11 @@ fi
 ## set the output directory
 outdir="$DA_WORKDIR/$exp"
 
+## create output directory and copy the inputs
+mkdir -p "$outdir"
+cp -r -P "$inputdir"/* "$outdir"
+pushd "$outdir"
+
 echo "writing job.$exp."
 
 ## write new job.exp file for HPC
@@ -175,8 +180,6 @@ EOF
 
 ## The queue-wait line goes into output.exp.log ahead of this run's solver output.
 cat <<EOF >> "job.$exp"
-mkdir -p "$outdir"
-cp -r "$inputdir"/* "$outdir"
 pushd "$outdir"
 queue_wait_line >> "$outdir/output.$exp.log"
 echo "cluster: $UDALES_SYSTEM ($cluster_tell)" >> "$outdir/output.$exp.log"
@@ -187,3 +190,5 @@ EOF
 qsub "job.$exp"
 
 echo "job.$exp submitted."
+
+popd

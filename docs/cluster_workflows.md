@@ -174,8 +174,9 @@ Run and gather:
 ./bin/ud_run ecmwf gather <case-directory>  # tools/ecmwf_gather.sh
 ```
 
-- `ecmwf_execute.sh` copies the inputs and the executable to
-  `$DA_WORKDIR/<exp>`, then submits `NNODE` nodes with `NCPU` ranks per node
+- `ecmwf_execute.sh` copies the inputs to `$DA_WORKDIR/<exp>` (the executable
+  is not copied; the job runs it from `DA_BUILD`), then submits `NNODE` nodes
+  with `NCPU` ranks per node
   (at most 128, physical cores only) launched with `srun`. The job loads the
   runtime half of the build stack — `prgenv/intel`, `intel`, `intel-mpi`,
   `netcdf4` and `fftw`, but not CMake. It refuses to submit unless `DA_WORKDIR`
