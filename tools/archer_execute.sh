@@ -66,10 +66,9 @@ fi;
 ## set the output directory
 outdir="$DA_WORKDIR/$exp"
 
-## copy files to execution and output directory
+## create output directory and copy the inputs
 mkdir -p "$outdir"
 cp -r -P "$inputdir"/* "$outdir"
-cp -r "$DA_BUILD" "$outdir"
 pushd "$outdir"
 
 echo "writing job.$exp.slurm"
@@ -87,7 +86,7 @@ cat <<EOF > "job.$exp.slurm"
 #SBATCH --qos=${QOS}
 module load epcc-job-env
 export OMP_NUM_THREADS=1
-srun --distribution=block:block --hint=nomultithread ./u-dales "$outdir/namoptions.$exp" >> "$outdir/output.$exp.log" 2>&1
+srun --distribution=block:block --hint=nomultithread "$DA_BUILD" "$outdir/namoptions.$exp" >> "$outdir/output.$exp.log" 2>&1
 EOF
 
 ## submit job.exp file to queue
