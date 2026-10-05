@@ -272,7 +272,7 @@ module modibm
 
    subroutine initibmwallfun(fname_bnd, fname_sec, dir, bound_info)
      use modglobal, only : ifinput, ib, itot, ih, jb, jtot, jh, kb, ke, ktot, kh, &
-                           xf, yf, zf, xh, yh, zh, dx, dy, dzf, xhat, yhat, zhat, eps1
+                           xf, yf, zf, xh, yh, zh, dx, dy, xhat, yhat, zhat, eps1
      use modmpi,    only : myid, comm3d, MY_REAL, mpierr
      use initfac,   only : facnorm, facz0
      use decomp_2d, only : zstart, zend
@@ -297,7 +297,7 @@ module modibm
      real, dimension(6,3) :: inter
      real, dimension(6) :: inter_dists
      real :: xc, yc, zc, xl, yl, zl, xu, yu, zu
-     integer n, m, norm_align, dir_align, pos, p
+     integer n, m, norm_align, dir_align, pos, p, kc
      character(80) :: chmess
 
      integer, dimension(:), allocatable :: ids_loc
@@ -403,8 +403,20 @@ module modibm
            xu = xc + dx/2.
            yl = yc - dy/2.
            yu = yc + dy/2.
-           zl = zc - dzf(1)/2. ! assumes equidistant
-           zu = zc + dzf(1)/2. ! assumes equidistant
+           ! vertical edges from the grid itself, so that stretched grids are handled:
+           ! a cell centred on zf(kc) spans zh(kc)..zh(kc+1); one centred on zh(kc) spans zf(kc-1)..zf(kc)
+           kc = bound_info%bndpts(m,3)
+           if (dir_align == 3) then
+             if (kc > kb) then
+               zl = zf(kc-1)
+             else
+               zl = 2.*zh(kb) - zf(kb) ! mirror image of zf(kb) below the bottom face
+             end if
+             zu = zf(kc)
+           else
+             zl = zh(kc)
+             zu = zh(kc+1)
+           end if
 
            ! points on planes
            pxl = (/xl, yc, zc/)
@@ -415,7 +427,9 @@ module modibm
            pzu = (/xc, yc, zu/)
 
            p0 = (/xc, yc, zc/)
-           p1 = p0 + norm * sqrt(3.)*(dx*dy*dzf(1))**(1./3.)
+           ! segment as long as the cell diagonal, so it always leaves the cell. This is never shorter
+           ! than the former sqrt(3)*(dx*dy*dz)**(1/3), so intersections found before are unchanged.
+           p1 = p0 + norm * sqrt(dx**2 + dy**2 + (zu - zl)**2)
 
            call plane_line_intersection(xhat, pxl, p0, p1, inter(1,:), check(1), inter_dists(1))
            call plane_line_intersection(xhat, pxu, p0, p1, inter(2,:), check(2), inter_dists(2))
@@ -1304,7 +1318,7 @@ module modibm
 
    subroutine wallfunmom(dir, rhs, bound_info)
      use modglobal, only : ib, ie, ih, jb, je, jh, kb, ke, kh, xf, yf, zf, xh, yh, zh, &
-                           dx, dy, dzf, iwallmom, xhat, yhat, zhat, vec0, nfcts, lwritefac, rk3step
+                           dx, dy, dzf, dzh, iwallmom, xhat, yhat, zhat, vec0, nfcts, lwritefac, rk3step
      use modfields, only : u0, v0, w0, thl0
      use initfac,   only : facT, facz0, facz0h, facnorm, faca
      use decomp_2d, only : zstart
@@ -1318,7 +1332,7 @@ module modibm
      real dist, stress, stress_dir, area, vol, momvol, Tair, &
           utan, ctm, a, a_is, a_xn, a_yn, a_zn, stress_ix, stress_iy, stress_iz, xrec, yrec, zrec
      real, dimension(3) :: uvec, norm, strm, span, stressvec
-     logical :: valid
+     logical :: valid, lwgrid
      real, dimension(1:nfcts) :: fac_tau_loc, fac_tau
      !real, dimension(:), allocatable :: fac_tau, fac_pres
 
@@ -1336,6 +1350,9 @@ module modibm
        interp_velocity_ptr => interp_velocity_w
        interp_temperature_ptr => interp_temperature_w
      end select
+
+     ! w lives on zh(k), so its control volume is dzh(k) thick; u and v live on zf(k) (dzf(k)).
+     lwgrid = (alignment(dir) == 3)
 
      fac_tau_loc = 0.
 
@@ -1427,7 +1444,11 @@ module modibm
 
        stress_dir = sign(stress_dir, dot_product(uvec, dir))
 
-       vol = dx*dy*dzf(k)
+       if (lwgrid) then
+         vol = dx*dy*dzh(k)
+       else
+         vol = dx*dy*dzf(k)
+       end if
        momvol = stress_dir * area / vol
        rhs(i,j,k) = rhs(i,j,k) - momvol
        fac_tau_loc(fac) = fac_tau_loc(fac) + stress_dir * area ! output stresses on facets
@@ -1453,7 +1474,7 @@ module modibm
 
 
    subroutine wallfunheat
-     use modglobal, only : ib, ie, jb, je, xf, yf, zf, xh, yh, zh, dx, dy, dzh, &
+     use modglobal, only : ib, ie, jb, je, xf, yf, zf, xh, yh, zh, dx, dy, dzf, &
                            xhat, yhat, zhat, vec0, ltempeq, lmoist, iwalltemp, iwallmoist, lEB, lwritefac, nfcts, rk3step, totheatflux, totqflux
      use modfields, only : u0, v0, w0, thl0, thlp, qt0, qtp, pres0
      use initfac,   only : facT, facz0, facz0h, facnorm, fachf, facef, facqsat, fachurel, facf, faclGR, faca
@@ -1562,7 +1583,8 @@ module modibm
          ! flux [Km/s]
          ! fluid volumetric sensible heat source/sink = flux * area / volume [K/s]
          ! facet sensible heat flux = volumetric heat capacity of air * flux * sectionarea / facetarea [W/m^2]
-         thlp(i,j,k) = thlp(i,j,k) - flux * area / (dx*dy*dzh(k))
+         ! volume of the scalar cell centred on zf(k) is dx*dy*dzf(k) (dzh(k) is the centre-to-centre distance)
+         thlp(i,j,k) = thlp(i,j,k) - flux * area / (dx*dy*dzf(k))
 
          totheatflux = totheatflux + flux*area ! [Km^3s^-1] This sums the flux over all facets (unconditional, mirrors totqflux; decouples periodicEBcorr from lEB)
 
@@ -1602,7 +1624,7 @@ module modibm
          ! fluid volumetric latent heat source/sink = flux * area / volume [kg/kg / s]
          ! facet latent heat flux = volumetric heat capacity of air * flux * sectionarea / facetarea [W/m^2]
          totqflux = totqflux + flux*area ! [Km^3s^-1] This sums the flux over all facets
-         qtp(i,j,k) = qtp(i,j,k) - flux * area / (dx*dy*dzh(k))
+         qtp(i,j,k) = qtp(i,j,k) - flux * area / (dx*dy*dzf(k))
 
          if (lEB) then
            facef(fac) = facef(fac) + flux * area ! [Km^2/s] (will be divided by facetarea(fac) in modEB)
