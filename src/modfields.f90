@@ -723,7 +723,7 @@ contains
           scar=0.;scarl=0.
     end if
 
-    if (ltkedump) then ! this is currently not usable
+    if (ltkedump) then ! disabled: initstatsdump aborts on ltkedump, see issue #352
       ! allocate averaged variables
       allocate(uav(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh))
       allocate(vav(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh))
