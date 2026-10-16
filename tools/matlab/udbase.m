@@ -18,6 +18,7 @@
 % Aug 2024, Maarten van Reeuwijk, Jingzi Huang. first version
 % Dec 2024, Maarten van Reeuwijk, Chris Wilson. added facet functionality.
 % Oct 2025, Maarten van Reeuwijk, Jingzi Huang, Dipanjan Majumdar. Major upgrade of facet functionality and tree handling.
+% Mar 2026, Dipanjan Majumdar. Updated/added new load_stat_* methods.
 
 % Copyright (C) 2016- the uDALES Team.
 
@@ -63,12 +64,15 @@ classdef udbase < dynamicprops
         % standard filenames
         fnamoptions      = 'namoptions'
         fprof            = 'prof.inp'
-        fxytdump         = 'xytdump';
-        ftdump           = 'tdump';
+        fstats_y         = 'stats_y';
+        fstats_xy        = 'stats_xy';
+        fstats_yt        = 'stats_yt';
+        fstats_xyt       = 'stats_xyt';
+        fstats_t         = 'stats_t';
         ffielddump       = 'fielddump';
-        fislicedump      = 'islicedump';
-        fjslicedump      = 'jslicedump';
-        fkslicedump      = 'kslicedump';
+        fislice          = 'islice';
+        fjslice          = 'jslice';
+        fkslice          = 'kslice';
         fsolid           = 'solid';
         ffacEB           = 'facEB';
         ffacT            = 'facT';
@@ -78,7 +82,7 @@ classdef udbase < dynamicprops
         ffacetarea       = 'facetarea.inp';
         ffluid_boundary  = 'fluid_boundary';
         ffacet_sections  = 'facet_sections';
-        ftreedump        = 'treedump';
+        fstats_tree      = 'stats_tree';
         ftrees           = 'trees.inp';
 
         % logicals for whether input files are present
@@ -370,60 +374,14 @@ classdef udbase < dynamicprops
             end
         end
 
-        % ------------------------------------------------------------- %     
-
-        function data = load_stat_xyt(obj, varargin)
-            % A method to retrieve plane- and time-averaged 1D statistics
-            % information from the xytdump file.  
-            %
-            % load_stat_xyt(OBJ) displays the variables in the xytdump file
-            %
-            % load_stat_xyt(OBJ, svar) retrieves a variable from the xytdump file
-            %
-            % Example (view contents of output):
-            %   obj = udbase(expnr);
-            %   obj.load_stat_xyt();
-
-            obj.gopath();
-
-            fname = [obj.fxytdump, '.', obj.expnr, '.nc'];
-            ffullname = fullfile(obj.path, fname);
-            data = udbase.load_ncdata(ffullname, varargin);
-
-            obj.gohome();
-        end
-
-        % ------------------------------------------------------------- %     
-
-        function data = load_stat_tree(obj, varargin)
-            % A method to retrieve time-averaged statistics of the tree       
-            % source terms from the treedump file
-            %
-            % load_stat_tree(OBJ) displays the variables in the treedump file 
-            %
-            % load_stat_tree(OBJ, svar) retrieves a variable from the treedump file
-            %
-            % Example (view contents of output):
-            %   obj = udbase(expnr);
-            %   obj.load_stat_tree();
-
-            obj.gopath();
-
-            fname = [obj.ftreedump, '.', obj.expnr, '.nc'];
-            ffullname = fullfile(obj.path, fname);
-            data = udbase.load_ncdata(ffullname, varargin);
-
-            obj.gohome();
-        end
-
         % ------------------------------------------------------------- %
 
-        function data = load_stat_t(obj, varargin)
-            % A method to retrieve time-averaged statistics from the tdump file 
+        function varargout = load_stat_y(obj, varargin)
+            % A method to retrieve time-averaged statistics from the stats_y file 
             %
-            % load_stat_t(OBJ) displays the variables in the tdump file
+            % load_stat_t(OBJ) displays the variables in the stats_y file
             %
-            % load_stat_t(OBJ, svar) retrieves a variable from the tdump file
+            % load_stat_t(OBJ, svar) retrieves a variable from the stats_y file
             %
             % Example (view contents of output):
             %   obj = udbase(expnr);
@@ -431,16 +389,152 @@ classdef udbase < dynamicprops
 
             obj.gopath();
 
-            fname = [obj.ftdump, '.', obj.expnr, '.nc'];
+            fname = [obj.fstats_y, '.', obj.expnr, '.nc'];
             ffullname = fullfile(obj.path, fname);
-            data = udbase.load_ncdata(ffullname, varargin);
+            if isempty(varargin) && nargout == 0
+                udbase.ncinfo(ffullname);
+            else
+                varargout{1} = udbase.load_ncdata(ffullname, varargin);
+            end
 
             obj.gohome();
         end
 
         % ------------------------------------------------------------- %
 
-        function data = load_field(obj, varargin)
+        function varargout = load_stat_xy(obj, varargin)
+            % A method to retrieve time-averaged statistics from the stats_xy file 
+            %
+            % load_stat_t(OBJ) displays the variables in the stats_xy file
+            %
+            % load_stat_t(OBJ, svar) retrieves a variable from the stats_xy file
+            %
+            % Example (view contents of output):
+            %   obj = udbase(expnr);
+            %   obj.load_stat_t();
+
+            obj.gopath();
+
+            fname = [obj.fstats_xy, '.', obj.expnr, '.nc'];
+            ffullname = fullfile(obj.path, fname);
+            if isempty(varargin) && nargout == 0
+                udbase.ncinfo(ffullname);
+            else
+                varargout{1} = udbase.load_ncdata(ffullname, varargin);
+            end
+
+            obj.gohome();
+        end
+
+        % ------------------------------------------------------------- %
+
+        function varargout = load_stat_yt(obj, varargin)
+            % A method to retrieve time-averaged statistics from the stats_yt file 
+            %
+            % load_stat_t(OBJ) displays the variables in the stats_yt file
+            %
+            % load_stat_t(OBJ, svar) retrieves a variable from the stats_yt file
+            %
+            % Example (view contents of output):
+            %   obj = udbase(expnr);
+            %   obj.load_stat_t();
+
+            obj.gopath();
+
+            fname = [obj.fstats_yt, '.', obj.expnr, '.nc'];
+            ffullname = fullfile(obj.path, fname);
+            if isempty(varargin) && nargout == 0
+                udbase.ncinfo(ffullname);
+            else
+                varargout{1} = udbase.load_ncdata(ffullname, varargin);
+            end
+
+            obj.gohome();
+        end
+
+        % ------------------------------------------------------------- %     
+
+        function varargout = load_stat_xyt(obj, varargin)
+            % A method to retrieve plane- and time-averaged 1D statistics
+            % information from the stats_xyt file.  
+            %
+            % load_stat_xyt(OBJ) displays the variables in the stats_xyt file
+            %
+            % load_stat_xyt(OBJ, svar) retrieves a variable from the stats_xyt file
+            %
+            % Example (view contents of output):
+            %   obj = udbase(expnr);
+            %   obj.load_stat_xyt();
+
+            obj.gopath();
+
+            fname = [obj.fstats_xyt, '.', obj.expnr, '.nc'];
+            ffullname = fullfile(obj.path, fname);
+            if isempty(varargin) && nargout == 0
+                udbase.ncinfo(ffullname);
+            else
+                varargout{1} = udbase.load_ncdata(ffullname, varargin);
+            end
+
+            obj.gohome();
+        end
+
+        % ------------------------------------------------------------- %
+
+        function varargout = load_stat_t(obj, varargin)
+            % A method to retrieve time-averaged statistics from the stats_t file 
+            %
+            % load_stat_t(OBJ) displays the variables in the stats_t file
+            %
+            % load_stat_t(OBJ, svar) retrieves a variable from the stats_t file
+            %
+            % Example (view contents of output):
+            %   obj = udbase(expnr);
+            %   obj.load_stat_t();
+
+            obj.gopath();
+
+            fname = [obj.fstats_t, '.', obj.expnr, '.nc'];
+            ffullname = fullfile(obj.path, fname);
+            if isempty(varargin) && nargout == 0
+                udbase.ncinfo(ffullname);
+            else
+                varargout{1} = udbase.load_ncdata(ffullname, varargin);
+            end
+
+            obj.gohome();
+        end
+
+        % ------------------------------------------------------------- %     
+
+        function varargout = load_stat_tree(obj, varargin)
+            % A method to retrieve time-averaged statistics of the tree       
+            % source terms from the stats_tree file
+            %
+            % load_stat_tree(OBJ) displays the variables in the stats_tree file 
+            %
+            % load_stat_tree(OBJ, svar) retrieves a variable from the stats_tree file
+            %
+            % Example (view contents of output):
+            %   obj = udbase(expnr);
+            %   obj.load_stat_tree();
+
+            obj.gopath();
+
+            fname = [obj.fstats_tree, '.', obj.expnr, '.nc'];
+            ffullname = fullfile(obj.path, fname);
+            if isempty(varargin) && nargout == 0
+                udbase.ncinfo(ffullname);
+            else
+                varargout{1} = udbase.load_ncdata(ffullname, varargin);
+            end
+
+            obj.gohome();
+        end
+
+        % ------------------------------------------------------------- %
+
+        function varargout = load_field(obj, varargin)
             %  A method to retrieve instantaneous 3D data from from the fielddump file.
             %
             %  load_field(OBJ) displays the variables in the fielddump file
@@ -455,15 +549,19 @@ classdef udbase < dynamicprops
 
             fname = [obj.ffielddump, '.', obj.expnr, '.nc'];
             ffullname = fullfile(obj.path, fname);
-            data = udbase.load_ncdata(ffullname, varargin);
+            if isempty(varargin) && nargout == 0
+                udbase.ncinfo(ffullname);
+            else
+                varargout{1} = udbase.load_ncdata(ffullname, varargin);
+            end
 
             obj.gohome();
         end
 
         % ------------------------------------------------------------- %
 
-        function data = load_slice(obj, option, varargin)
-            % A method to retrieve instantaneous 2D slices from from the slicedump file.
+        function varargout = load_slice(obj, option, varargin)
+            % A method to retrieve instantaneous 2D slices from from the slice file.
             %
             % load_slice(obj) displays information, option chooses plane.
             %
@@ -477,23 +575,27 @@ classdef udbase < dynamicprops
 
             switch option
                 case 'i'
-                    fname = [obj.fislicedump, '.', obj.expnr, '.nc'];
+                    fname = [obj.fislice, '.', obj.expnr, '.nc'];
                 case 'j'
-                    fname = [obj.fjslicedump, '.', obj.expnr, '.nc'];
+                    fname = [obj.fjslice, '.', obj.expnr, '.nc'];
                 case 'k'
-                    fname = [obj.fkslicedump, '.', obj.expnr, '.nc'];
+                    fname = [obj.fkslice, '.', obj.expnr, '.nc'];
                 otherwise
                     error('Invalid option. Use ''i'', ''j'', or ''k''.');
             end
             ffullname = fullfile(obj.path, fname);
-            data = udbase.load_ncdata(ffullname, varargin);
+            if isempty(varargin) && nargout == 0
+                udbase.ncinfo(ffullname);
+            else
+                varargout{1} = udbase.load_ncdata(ffullname, varargin);
+            end
 
             obj.gohome();
         end
 
         % ------------------------------------------------------------- %
 
-        function data = load_fac_eb(obj, varargin)
+        function varargout = load_fac_eb(obj, varargin)
             % A method to retrieve facet data of a surface energy balance
             % term from the facEB file.   
             %
@@ -508,13 +610,17 @@ classdef udbase < dynamicprops
             obj.gopath();
             fname = [obj.ffacEB, '.', obj.expnr, '.nc'];
             ffullname = fullfile(obj.path, fname);
-            data = udbase.load_ncdata(ffullname, varargin);
+            if isempty(varargin) && nargout == 0
+                udbase.ncinfo(ffullname);
+            else
+                varargout{1} = udbase.load_ncdata(ffullname, varargin);
+            end
             obj.gohome();
         end
 
         % ------------------------------------------------------------- %
 
-        function data = load_fac_temperature(obj, varargin)
+        function varargout = load_fac_temperature(obj, varargin)
             % A method to retrieve temperature and temperature gradient
             % data from the facT file.   
             %
@@ -529,13 +635,17 @@ classdef udbase < dynamicprops
             obj.gopath();
             fname = [obj.ffacT, '.', obj.expnr, '.nc'];
             ffullname = fullfile(obj.path, fname);
-            data = udbase.load_ncdata(ffullname, varargin);
+            if isempty(varargin) && nargout == 0
+                udbase.ncinfo(ffullname);
+            else
+                varargout{1} = udbase.load_ncdata(ffullname, varargin);
+            end
             obj.gohome();
         end
 
         % ------------------------------------------------------------- %
     
-        function data = load_fac_momentum(obj, varargin)
+        function varargout = load_fac_momentum(obj, varargin)
             % A method to retrieve facet data for pressure and shear
             % information from the fac file.  
             %
@@ -550,7 +660,11 @@ classdef udbase < dynamicprops
             obj.gopath();
             fname = [obj.ffac, '.', obj.expnr, '.nc'];
             ffullname = fullfile(obj.path, fname);
-            data = udbase.load_ncdata(ffullname, varargin);
+            if isempty(varargin) && nargout == 0
+                udbase.ncinfo(ffullname);
+            else
+                varargout{1} = udbase.load_ncdata(ffullname, varargin);
+            end
             obj.gohome();
         end
         

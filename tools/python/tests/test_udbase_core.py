@@ -625,6 +625,7 @@ class TestNamoptionsParsing(unittest.TestCase):
         self.assertIs(vals["ltest"], True)
         self.assertEqual(vals["stl_file"], "geom.stl")
         self.assertEqual(vals["nsv"], 0)  # scalar default present
+        self.assertEqual(vals["receptor_height"], 1.1)
 
 class TestNcDataHandle(unittest.TestCase):
     """_load_ncdata must release the NetCDF file handle: load-and-close for a

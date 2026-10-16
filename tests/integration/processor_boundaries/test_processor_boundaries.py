@@ -24,13 +24,12 @@ RUNTIME_MODULES = os.environ.get(
     "FFTW/3.3.9-intel-2021a CMake/3.29.3-GCCcore-13.3.0 git/2.45.1-GCCcore-13.3.0",
 )
 TREE_FIELDS = ("tr_u", "tr_v", "tr_w")
-NO_TREE_FIELDS = ("ut", "vt", "wt")
+NO_TREE_FIELDS = ("u", "v", "w")
 ABS_TOL = 1.0e-9
-# The no-tree Xie/Castro parity check compares tdump output, which is written
-# to NetCDF as NF90_FLOAT in modstat_nc.f90. The residual y-split/xy-split wt
-# mismatch observed on Ubuntu is therefore quantized at float32 precision even
-# though the solver runs in r8. Keep this tolerance tight and scoped only to
-# that global no-tree comparison.
+# The no-tree Xie/Castro parity check compares stats_t output from out_stats.f90.
+# The residual y-split/xy-split w mismatch observed on Ubuntu is quantized at
+# float32 precision even though the solver runs in r8. Keep this tolerance tight
+# and scoped only to that global no-tree comparison.
 NO_TREE_GLOBAL_ABS_TOL = 2.0e-8
 CONFIGS = {
     "serial": (1, 1),
@@ -121,11 +120,11 @@ def _processor_boundary_band(field: str, shape: Tuple[int, int, int], nprocx: in
     return band
 
 
-def _parse_tile_indices(path: Path, prefix: str, case_id: int) -> Tuple[int, int]:
-    match = re.match(rf"{re.escape(prefix)}\.(\d{{3}})\.(\d{{3}})\.{case_id}\.nc$", path.name)
+def _parse_tile_indices(path: Path, prefix: str, case_id: int) -> int:
+    match = re.match(rf"{re.escape(prefix)}\.(\d{{3}})\.{case_id}\.nc$", path.name)
     if not match:
-        raise RuntimeError(f"Unexpected treedump file name: {path.name}")
-    return int(match.group(1)), int(match.group(2))
+        raise RuntimeError(f"Unexpected stats file name: {path.name}")
+    return int(match.group(1))
 
 
 def _load_global_fields(run_dir: Path, case_id: int, prefix: str, fields: Iterable[str]) -> Dict[str, np.ndarray]:
@@ -134,10 +133,9 @@ def _load_global_fields(run_dir: Path, case_id: int, prefix: str, fields: Iterab
     jtot = _read_int_setting(namelist, "jtot")
     ktot = _read_int_setting(namelist, "ktot")
     nprocx = _read_int_setting(namelist, "nprocx")
-    nprocy = _read_int_setting(namelist, "nprocy")
 
     field_names = tuple(fields)
-    files = sorted(run_dir.glob(f"{prefix}.*.*.{case_id}.nc"))
+    files = sorted(run_dir.glob(f"{prefix}.*.{case_id}.nc"))
     if not files:
         raise RuntimeError(f"No {prefix} outputs found in {run_dir}")
 
@@ -145,15 +143,14 @@ def _load_global_fields(run_dir: Path, case_id: int, prefix: str, fields: Iterab
         field: np.zeros((ktot, jtot, itot), dtype=np.float64) for field in field_names
     }
     for path in files:
-        px, py = _parse_tile_indices(path, prefix, case_id)
+        px = _parse_tile_indices(path, prefix, case_id)
         with nc.Dataset(path) as ds:
             sample = np.asarray(ds.variables[field_names[0]][0], dtype=np.float64)
             nz, ny, nx = sample.shape
             istart = px * (itot // nprocx)
-            jstart = py * (jtot // nprocy)
             for field in field_names:
                 arr = np.asarray(ds.variables[field][0], dtype=np.float64)
-                fields[field][:nz, jstart : jstart + ny, istart : istart + nx] = arr
+                fields[field][:nz, :ny, istart : istart + nx] = arr
     return fields
 
 
@@ -186,9 +183,9 @@ def _run_case(executable: Path, run_dir: Path, case_id: int, nprocs: int) -> Non
     diag_log = run_dir / "fortran_diagnostics.log"
     for stale in run_dir.glob("monitor*.txt"):
         stale.unlink()
-    for stale in run_dir.glob(f"treedump.*.*.{case_id}.nc"):
+    for stale in run_dir.glob(f"stats_tree.*.{case_id}.nc"):
         stale.unlink()
-    for stale in run_dir.glob(f"tdump.*.*.{case_id}.nc"):
+    for stale in run_dir.glob(f"stats_t.*.{case_id}.nc"):
         stale.unlink()
     if diag_log.exists():
         diag_log.unlink()
@@ -344,35 +341,35 @@ class _BaseProcessorBoundaryParity(unittest.TestCase):
 
 class TestNoTreeProcessorBoundaryParity(_BaseProcessorBoundaryParity):
     CASE_ID = NO_TREE_CASE_ID
-    PREFIX = "tdump"
+    PREFIX = "stats_t"
     FIELDS = NO_TREE_FIELDS
     VEGETATION_ENABLED = False
 
     def test_x_split_matches_serial_on_u_boundary_band(self) -> None:
         def mask_builder(field: str, shape: Tuple[int, int, int], nprocx: int, nprocy: int) -> np.ndarray:
-            if field == "ut":
+            if field == "u":
                 return _processor_boundary_band("tr_u", shape, nprocx, nprocy)
             return np.zeros(shape, dtype=bool)
 
-        self._assert_fields_match("serial", "x_split", ("ut",), mask_builder)
+        self._assert_fields_match("serial", "x_split", ("u",), mask_builder)
 
     def test_y_split_matches_serial_on_v_boundary_band(self) -> None:
         def mask_builder(field: str, shape: Tuple[int, int, int], nprocx: int, nprocy: int) -> np.ndarray:
-            if field == "vt":
+            if field == "v":
                 return _processor_boundary_band("tr_v", shape, nprocx, nprocy)
             return np.zeros(shape, dtype=bool)
 
-        self._assert_fields_match("serial", "y_split", ("vt",), mask_builder)
+        self._assert_fields_match("serial", "y_split", ("v",), mask_builder)
 
     def test_xy_split_matches_serial_on_boundary_bands(self) -> None:
         def mask_builder(field: str, shape: Tuple[int, int, int], nprocx: int, nprocy: int) -> np.ndarray:
-            if field == "ut":
+            if field == "u":
                 return _processor_boundary_band("tr_u", shape, nprocx, nprocy)
-            if field == "vt":
+            if field == "v":
                 return _processor_boundary_band("tr_v", shape, nprocx, nprocy)
             return np.zeros(shape, dtype=bool)
 
-        self._assert_fields_match("serial", "xy_split", ("ut", "vt"), mask_builder)
+        self._assert_fields_match("serial", "xy_split", ("u", "v"), mask_builder)
 
     def test_xy_split_matches_serial_globally(self) -> None:
         def mask_builder(field: str, shape: Tuple[int, int, int], nprocx: int, nprocy: int) -> np.ndarray:
@@ -388,7 +385,7 @@ class TestNoTreeProcessorBoundaryParity(_BaseProcessorBoundaryParity):
 
 class TestTreeProcessorBoundaryParity(_BaseProcessorBoundaryParity):
     CASE_ID = TREE_CASE_ID
-    PREFIX = "treedump"
+    PREFIX = "stats_tree"
     FIELDS = TREE_FIELDS
     VEGETATION_ENABLED = True
 

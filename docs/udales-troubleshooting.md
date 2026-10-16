@@ -30,7 +30,7 @@ This page collects common problems and their fixes, grouped by the stage of the 
 
 **`Number of CPU cores NCPU must be set inside <dir>/config.sh`** (the ECMWF script says `Number of MPI ranks on each node NCPU must be set…`) — the run scripts check for `NCPU` (and, on HPC, `NNODE`) before launching `mpiexec`/`mpirun`/`srun`; set these in `config.sh` so their product matches `nprocx * nprocy`, per the note above.
 
-**`Executable DA_BUILD=<path> does not exist or is not executable`** — `DA_BUILD` in `config.sh` points at a file that is not there (a typo'd path, or a build that has not finished). The run scripts check this before copying anything or submitting a job. Build first, e.g. `tools/build_executable.sh <system> release`, and check `DA_BUILD` matches the executable produced (`u-dales/bin/u-dales`, or `u-dales/build/<release|debug>/u-dales`).
+**`Executable DA_BUILD=<path> does not exist or is not executable`** — `DA_BUILD` in `config.sh` points at a file that is not there (a typo'd path, or a build that has not finished). The run scripts check this before copying anything or submitting a job. Build first, e.g. `tools/build_executable.sh <system> release`, and check `DA_BUILD` matches the executable produced, `u-dales/build/<release|debug>/u-dales`, whose full path the build log prints.
 
 **`usage: ud_run <machine> sim|gather <case_directory>` / `Unknown machine '<name>'`** — `ud_run` needs exactly three arguments, and `<machine>` must be one of `icl`, `hx1`, `archer`, `ecmwf` or `common` (the names used by `tools/build_executable.sh`). See [Running uDALES](udales-simulation-setup.md).
 
