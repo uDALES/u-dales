@@ -169,9 +169,14 @@ fi
 ## set the output directory
 outdir="$DA_WORKDIR/$exp"
 
-## create output directory and copy the inputs
+## create output directory and copy the inputs, and the executable with them:
+## $DA_BUILD normally lives in the repo on $HOME, whose I/O bandwidth is
+## throttled from the compute nodes, and ECMWF support advise against 2048 ranks
+## loading it from there at startup. The copy also pins the binary for the run,
+## so a rebuild while the job is queued cannot change it.
 mkdir -p "$outdir"
 cp -r -P "$inputdir"/* "$outdir"
+cp "$DA_BUILD" "$outdir/u-dales"
 pushd "$outdir"
 
 echo "writing job.$exp.slurm"
@@ -202,7 +207,7 @@ cat <<EOF > "job.$exp.slurm"
 ${sbatch_directives}
 module load prgenv/intel intel/2021.4.0 hpcx-openmpi/2.21.3 netcdf4/4.10.0 fftw/3.3.10
 export OMP_NUM_THREADS=1
-srun "$DA_BUILD" "$outdir/namoptions.$exp" >> "$outdir/output.$exp.log" 2>&1
+srun "$outdir/u-dales" "$outdir/namoptions.$exp" >> "$outdir/output.$exp.log" 2>&1
 EOF
 
 ## submit job.exp.slurm file to queue

@@ -73,12 +73,13 @@ echo "Starting job for case $exp..."
 ## copy files to output directory
 mkdir -p "$outdir"
 cp -r ./* "$outdir"
+cp "$DA_BUILD" "$outdir/u-dales"
 
 ## go to execution and output directory
 pushd "$outdir"
 
 ## execute program with mpi
-mpiexec -n $NCPU --oversubscribe "$DA_BUILD" "namoptions.$exp" 2>&1 | tee -a "output.$exp.log"
+mpiexec -n $NCPU --oversubscribe ./u-dales "namoptions.$exp" 2>&1 | tee -a "output.$exp.log"
 
 ## Merge output files across outputs.
 gather_start=$(date +%s.%N)

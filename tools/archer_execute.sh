@@ -67,8 +67,13 @@ fi;
 outdir="$DA_WORKDIR/$exp"
 
 ## create output directory and copy the inputs
+## The executable is copied in with the inputs and the run uses that copy:
+## $DA_BUILD usually lives in the repo on $HOME, whose I/O bandwidth is throttled
+## from the compute nodes, and it pins the binary for the run so a rebuild while
+## the job is queued cannot change what executes.
 mkdir -p "$outdir"
 cp -r -P "$inputdir"/* "$outdir"
+cp "$DA_BUILD" "$outdir/u-dales"
 pushd "$outdir"
 
 echo "writing job.$exp.slurm"
@@ -86,7 +91,7 @@ cat <<EOF > "job.$exp.slurm"
 #SBATCH --qos=${QOS}
 module load epcc-job-env
 export OMP_NUM_THREADS=1
-srun --distribution=block:block --hint=nomultithread "$DA_BUILD" "$outdir/namoptions.$exp" >> "$outdir/output.$exp.log" 2>&1
+srun --distribution=block:block --hint=nomultithread "$outdir/u-dales" "$outdir/namoptions.$exp" >> "$outdir/output.$exp.log" 2>&1
 EOF
 
 ## submit job.exp file to queue
