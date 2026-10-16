@@ -19,7 +19,15 @@
 
 # Runs cases in the examples folders.
 # Data are saved under outputs.
-# Usage: ./tools/examples/run_and_plot_examples.sh
+# Usage: ./tools/examples/run_examples.sh [case ...]
+#
+# Without arguments, every case in examples/ is run (except those listed in
+# EXCLUDED below), in ascending order. This guarantees that the driver
+# (precursor) case 949 runs before the driven case 950.
+#
+# DA_BUILD, DA_WORKDIR and DA_TOOLSDIR default to the paths below and can be
+# overridden from the environment. The number of MPI ranks for each case is
+# taken from nprocx*nprocy in its namoptions file.
 
 set -e
 
@@ -28,37 +36,67 @@ if [ ! -d src ]; then
   exit 1
 fi
 
-export DA_TOOLSDIR=$(pwd)/tools
-export DA_BUILD=$(pwd)/build/release/u-dales
-export NCPU=2
-export DA_WORKDIR=$(pwd)/outputs
+export DA_TOOLSDIR=${DA_TOOLSDIR:-$(pwd)/tools}
+export DA_BUILD=${DA_BUILD:-$(pwd)/build/release/u-dales}
+export DA_WORKDIR=${DA_WORKDIR:-$(pwd)/outputs}
 
-for example in 001 002 101 102 201 501 502
+# Cases that cannot sensibly be run by this script:
+#   024: large-scale HPC case (1024^3 grid on nprocx*nprocy = 32*32 = 1024 cores).
+EXCLUDED="024"
+
+if (( $# > 0 )); then
+    examples="$*"
+else
+    examples=""
+    for dir in examples/*/; do
+        example=$(basename "$dir")
+        if [[ " $EXCLUDED " == *" $example "* ]]; then
+            echo "Skipping excluded case $example"
+            continue
+        fi
+        examples="$examples $example"
+    done
+fi
+
+# Case inputs are staged in a temporary directory so that the config.sh
+# shipped with each example (which contains machine-specific paths) does not
+# override the settings above, and so that no files are added to examples/.
+stagedir=$(mktemp -d)
+trap 'rm -rf "$stagedir"' EXIT
+
+for example in $examples
 do
+    namoptions=examples/$example/namoptions.$example
+    if [ ! -f "$namoptions" ]; then
+        echo "Case $example not found: $namoptions does not exist"
+        exit 1
+    fi
+
     # Always start from afresh
-    rm -rf $DA_WORKDIR/$example
+    rm -rf "${DA_WORKDIR:?}/$example"
+
+    cp -r "examples/$example" "$stagedir/$example"
+    rm -f "$stagedir/$example/config.sh"
+
+    # The number of cores must equal nprocx*nprocy set in the namoptions file.
+    nprocx=$(awk -F= '/^[[:space:]]*nprocx[[:space:]]*=/ {gsub(/[[:space:]]/,"",$2); print $2; exit}' "$namoptions")
+    nprocy=$(awk -F= '/^[[:space:]]*nprocy[[:space:]]*=/ {gsub(/[[:space:]]/,"",$2); print $2; exit}' "$namoptions")
+    export NCPU=$(( ${nprocx:-1} * ${nprocy:-1} ))
 
     if [[ $example == 102 ]]; then
-        # Download required files for warmstart simulation
-        mkdir -p $DA_WORKDIR/$example
-        pushd $DA_WORKDIR/$example
-        curl -o examples_warmstart_102.zip -L https://www.dropbox.com/sh/20rsgpt0gh09gr7/AABuoCFtn6_zFTxx4k8pKqvLa?dl=1
-        set +e # Unzip may raise warnings as errors
-        unzip -o examples_warmstart_102.zip
-        set -e
-        popd
+        # Warmstart simulation: the restart files must be next to the other inputs.
+        cp "examples/$example"/warmstart_files/init?00000267_*."$example" "$stagedir/$example/"
     fi
 
-    if [[ $example == 502 ]]; then
-        # Download required files for driver simulation
-        mkdir -p $DA_WORKDIR/$example
-        pushd $DA_WORKDIR/$example
-        curl -o examples_driver_501.zip -L https://www.dropbox.com/sh/spld3hqipqe17j1/AAA0cuzW3qc9ftY6dvHcSSL8a?dl=1
-        set +e # Unzip may raise warnings as errors
-        unzip -o examples_driver_501.zip
-        set -e
-        popd
+    if [[ $example == 950 ]]; then
+        # Driven simulation: link the driver files written by the precursor
+        # simulation 949 (which must have been run first).
+        if [ ! -d "$DA_WORKDIR/949" ]; then
+            echo "Case 950 requires the outputs of driver case 949 in $DA_WORKDIR/949; run 949 first"
+            exit 1
+        fi
+        "$DA_TOOLSDIR/link_driver_files.sh" "$DA_WORKDIR/949" "$stagedir/$example"
     fi
 
-    ./tools/local_execute.sh examples/$example
+    ./tools/local_execute.sh "$stagedir/$example"
 done

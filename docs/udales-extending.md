@@ -90,7 +90,7 @@ To exercise a new example locally:
 ./u-dales/tools/local_execute.sh examples/<NNN>
 ```
 
-`tools/local_execute.sh` reads `config.sh` from the case directory, checks `DA_WORKDIR`/`DA_BUILD`/`DA_TOOLSDIR`/`NCPU` are set, and runs the case. `tools/examples/run_examples.sh` is the CI/local sweep that runs several examples back to back (currently listing `001 002 101 102 201 501 502`, cross-check against the current contents of `examples/` before relying on this list — it also handles downloading the extra warmstart/driver assets for `102`/`502` via `curl`+`unzip`). Add your new case number to that loop if it should be part of the routine sweep.
+`tools/local_execute.sh` reads `config.sh` from the case directory, checks `DA_WORKDIR`/`DA_BUILD`/`DA_TOOLSDIR`/`NCPU` are set, and runs the case. `tools/examples/run_examples.sh` is the local sweep that runs the examples back to back: by default every case in `examples/` in ascending order (so the driver case `949` runs before the driven case `950`, whose driver files are linked in with `tools/link_driver_files.sh`), except those listed in its `EXCLUDED` variable (currently `024`, a 1024-core HPC case). It ignores each case's `config.sh`, taking `DA_BUILD`/`DA_WORKDIR`/`DA_TOOLSDIR` from the environment (defaulting to `build/release/u-dales`, `outputs/` and `tools/`) and `NCPU` from `nprocx*nprocy`. A new case is therefore picked up automatically; add it to `EXCLUDED` (with a comment) if it cannot run in the routine sweep, or add any extra setup it needs to the loop, as done for `102` (warmstart files) and `950` (driver files).
 
 Checklist:
 
@@ -99,7 +99,7 @@ Checklist:
 - [ ] Add `prof.inp.<NNN>`, `lscale.inp.<NNN>`, and any case-specific `.inp` files
 - [ ] Add `info.txt` describing the case
 - [ ] Test with `./u-dales/tools/local_execute.sh examples/<NNN>`
-- [ ] Add the case to `tools/examples/run_examples.sh` if it should run in the routine sweep
+- [ ] Check the case runs with `tools/examples/run_examples.sh <NNN>` (it is included in the routine sweep automatically; add it to `EXCLUDED` there if it should not be)
 - [ ] Document the case in `docs/udales-example-simulations.md` (setup table row plus a walkthrough section, following the `001`/`002`/`101`/`102` pattern)
 
 ## Adding a test
