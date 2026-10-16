@@ -200,7 +200,7 @@ fi
 cat <<EOF > "job.$exp.slurm"
 #!/bin/bash
 ${sbatch_directives}
-module load prgenv/intel intel/2021.4.0 intel-mpi/2021.4.0 netcdf4/4.10.0 fftw/3.3.10
+module load prgenv/intel intel/2021.4.0 hpcx-openmpi/2.21.3 netcdf4/4.10.0 fftw/3.3.10
 export OMP_NUM_THREADS=1
 srun "$DA_BUILD" "$outdir/namoptions.$exp" >> "$outdir/output.$exp.log" 2>&1
 EOF

@@ -79,8 +79,17 @@ then
     # ECMWF Atos HPC2020 (hostnames such as ac6-101). Uses ECMWF's own Lmod tree
     # (/usr/local/apps); prgenv/intel selects the Intel-flavoured builds of the
     # libraries below. netcdf4 ships the C and Fortran libraries in one prefix.
-    module load prgenv/intel intel/2021.4.0 intel-mpi/2021.4.0 netcdf4/4.10.0 fftw/3.3.10 cmake/4.2.4
-    FC=mpiifort
+    # NOTE (2026-10): MPI is hpcx-openmpi, not intel-mpi. A 2048-rank run died in
+    # its first MPI_Bcast with ~1e6 "mlx5dv_devx_obj_create(QP) failed ... syndrome
+    # 0x19c6d6" errors from UCX, reproducibly and across disjoint node sets. ECMWF
+    # support diagnosed a Mellanox firmware rate limit on QP creation, aggravated
+    # by the old libfabric (1.9) bundled with intel-mpi/2021.4, and recommend
+    # hpcx-openmpi generally; 2.21.3 is their current LTS, 2.9.0 the fallback they
+    # run IFS on. hpcx has an INTEL/2021.4 flavour, so mpif90 still wraps the same
+    # ifort and netCDF/FFTW resolve to the same prefixes.
+    #   previous line: module load ... intel-mpi/2021.4.0 ... with FC=mpiifort
+    module load prgenv/intel intel/2021.4.0 hpcx-openmpi/2.21.3 netcdf4/4.10.0 fftw/3.3.10 cmake/4.2.4
+    FC=mpif90
     NETCDF_DIR=/usr/local/apps/netcdf4/4.10.0/INTEL/2021.4
     NETCDF_FORTRAN_DIR=/usr/local/apps/netcdf4/4.10.0/INTEL/2021.4
 
