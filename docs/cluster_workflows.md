@@ -163,8 +163,10 @@ Build the solver on a login node:
 ```
 
 This loads
-`prgenv/intel intel/2021.4.0 intel-mpi/2021.4.0 netcdf4/4.10.0 fftw/3.3.10 cmake/4.2.4`
-and compiles with `mpiifort`. The netCDF C and Fortran libraries share one
+`prgenv/intel intel/2021.4.0 hpcx-openmpi/2.21.3 netcdf4/4.10.0 fftw/3.3.10 cmake/4.2.4`
+and compiles with `mpif90`. ECMWF recommend hpcx-openmpi over intel-mpi in
+general; hpcx has an `INTEL/2021.4` flavour, so `mpif90` still wraps the same
+`ifort`. The netCDF C and Fortran libraries share one
 prefix (`/usr/local/apps/netcdf4/4.10.0/INTEL/2021.4`).
 
 Run and gather:
@@ -174,8 +176,8 @@ Run and gather:
 ./bin/ud_run ecmwf gather <case-directory>  # tools/ecmwf_gather.sh
 ```
 
-- `ecmwf_execute.sh` copies the inputs to `$DA_WORKDIR/<exp>` (the executable
-  is not copied; the job runs it from `DA_BUILD`), then submits `NNODE` nodes
+- `ecmwf_execute.sh` copies the inputs and the executable to `$DA_WORKDIR/<exp>`
+  and runs that copy, then submits `NNODE` nodes
   with `NCPU` ranks per node
   (at most 128, physical cores only) launched with `srun`. The job loads the
   runtime half of the build stack — `prgenv/intel`, `intel`, `intel-mpi`,

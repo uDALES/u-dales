@@ -154,7 +154,7 @@ tools/build_executable.sh icl release
 | `icl` | Imperial CX3 | Intel 2021a, Intel MPI, netCDF 4.8.0, FFTW 3.3.9 |
 | `hx1` | Imperial HX1 | Intel 2023a, Intel MPI, netCDF 4.9.2, FFTW 3.3.10 |
 | `archer` | ARCHER2 | Cray compiler wrappers, cray-netcdf, cray-fftw |
-| `ecmwf` | ECMWF Atos HPC2020 | `prgenv/intel`, Intel 2021.4.0, Intel MPI 2021.4.0, netCDF 4.10.0, FFTW 3.3.10, CMake 4.2.4 |
+| `ecmwf` | ECMWF Atos HPC2020 | `prgenv/intel`, Intel 2021.4.0, hpcx-openmpi 2.21.3, netCDF 4.10.0, FFTW 3.3.10, CMake 4.2.4 |
 | `common` | Local workstation | No modules; uses the compilers and libraries on your system |
 
 The same name is used as `<machine>` when running simulations with `ud_run` (see [Running uDALES](./udales-simulation-setup.md)). The script also keeps a legacy `cca` target, which `ud_run` does not support.

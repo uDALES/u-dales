@@ -134,8 +134,8 @@ Host patterns:
 
 Module stack (default session has `prgenv/gnu` + `gcc/8.5.0` loaded):
 ```bash
-module load prgenv/intel intel/2021.4.0 intel-mpi/2021.4.0 netcdf4/4.10.0 fftw/3.3.10 cmake/4.2.4
-# -> mpiifort (ifort 2021.4.0); netCDF C + Fortran share
+module load prgenv/intel intel/2021.4.0 hpcx-openmpi/2.21.3 netcdf4/4.10.0 fftw/3.3.10 cmake/4.2.4
+# -> mpif90 (wraps ifort 2021.4.0); netCDF C + Fortran share
 #    /usr/local/apps/netcdf4/4.10.0/INTEL/2021.4
 ```
 `prgenv/intel` switches the library modules to their Intel-built flavours
