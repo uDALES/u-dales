@@ -20,9 +20,9 @@ Running `ud_run` with no arguments prints its usage. `<machine>` uses the same n
 
 On clusters, `sim` and `gather` submit batch jobs; submit `gather` once the simulation has finished (see [Post-processing](./udales-post-processing.md)). The machine-specific scripts can still be called directly, e.g. `./u-dales/tools/ecmwf_execute.sh experiments/009`. `ud_run` lives in `u-dales/bin`, so if you add that directory to your `PATH` (see below) you can call it as plain `ud_run` from anywhere.
 
-After building, the solver executable is available at `u-dales/bin/u-dales`. The wrapper scripts below use `DA_BUILD`, so set that explicitly in `config.sh`.
+After building, the solver executable is at `u-dales/build/<debug|release>/u-dales` and the build log prints its full path. The wrapper scripts below use `DA_BUILD`, so set that explicitly in `config.sh`.
 
-Adding `u-dales/bin` to your shell `PATH` is optional. If you want to run `ud_run`, `u-dales` or the other helper commands directly by name, you can add:
+Adding `u-dales/bin` to your shell `PATH` is optional. It holds the helper commands (`ud_run`, `ud_nml2json`, ...) but not the solver, which stays in the build tree. To run them by name, you can add:
 
 ```sh
 export UD_TOPDIR=/path/to/u-dales
@@ -49,7 +49,7 @@ Note that you need to choose the number of CPUs you are using to run the simulat
 
 export DA_EXPDIR=$(pwd)/experiments                     # Experiments top-level directory
 export DA_TOOLSDIR=$(pwd)/u-dales/tools                 # Directory of scripts
-export DA_BUILD=$(pwd)/u-dales/bin/u-dales              # Executable
+export DA_BUILD=$(pwd)/u-dales/build/release/u-dales    # Executable
 export DA_WORKDIR=$(pwd)/outputs                        # Output top-level directory
 export NCPU=8                                           # Number of CPUs to use for a simulation
 
@@ -77,7 +77,7 @@ Then, to start the simulation, run:
 
 export DA_EXPDIR=$(pwd)/experiments                     # Experiments top-level directory
 export DA_TOOLSDIR=$(pwd)/u-dales/tools                 # Directory of scripts
-export DA_BUILD=$(pwd)/u-dales/bin/u-dales              # Executable
+export DA_BUILD=$(pwd)/u-dales/build/release/u-dales    # Executable
 export DA_WORKDIR=$EPHEMERAL                            # Output top-level directory
 export NCPU=128                                         # Number of CPUs to use for a simulation
 export PREPROC_WALLTIME="24:00:00"                      # Optional preprocessing override; defaults to 24:00:00
@@ -109,7 +109,7 @@ Then, to start the simulation, run:
 
 export DA_EXPDIR=/work/account/account/username/top_level_project_directory/experiments                     # Experiments top-level directory
 export DA_TOOLSDIR=/work/account/account/username/top_level_project_directory/u-dales/tools                 # Directory of scripts
-export DA_BUILD=/work/account/account/username/top_level_project_directory/u-dales/bin/u-dales              # Executable
+export DA_BUILD=/work/account/account/username/top_level_project_directory/u-dales/build/release/u-dales    # Executable
 export DA_WORKDIR=/work/account/account/username/top_level_project_directory/outputs                        # Output top-level directory
 export NCPU=128                                                                                             # Number of CPUs to use for a simulation
 export NNODE=1                                                                                              # Number of nodes to use for a simulation
@@ -140,7 +140,7 @@ The ECMWF Atos HPC2020 uses Slurm. Build first with `tools/build_executable.sh e
 
 export DA_EXPDIR=/home/username/top_level_project_directory/experiments           # Experiments top-level directory
 export DA_TOOLSDIR=/home/username/top_level_project_directory/u-dales/tools       # Directory of scripts
-export DA_BUILD=/home/username/top_level_project_directory/u-dales/bin/u-dales    # Executable
+export DA_BUILD=/home/username/top_level_project_directory/u-dales/build/release/u-dales    # Executable
 export DA_WORKDIR=$SCRATCH/outputs                                                # Output top-level directory; must be under $SCRATCH
 export NCPU=128                                                                   # MPI ranks per node (at most 128)
 export NNODE=2                                                                    # Number of nodes to use for a simulation

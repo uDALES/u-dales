@@ -1,10 +1,10 @@
 # Binaries
 
-This directory contains the primary runtime executable and helper utilities.
+This directory contains helper utilities. The solver executable is not here:
+it stays where CMake builds it, at `build/<debug|release>/u-dales`.
 
 ## Contents
 
-- `u-dales`: Main u-DALES executable.
 - `ud_run`: Run or gather a case on any supported machine: `ud_run <machine> sim|gather <case>`. Dispatches to the machine-specific scripts in `tools/` (`local_execute.sh`, `hpc_execute.sh`, `archer_execute.sh`, `ecmwf_execute.sh` and the matching gather scripts).
 - `ud_nml2json`: Convert namelist input to JSON (no mapping applied).
 - `ud_nml2v3`: Apply mapping rules from `docs/schemas/nml_mapping.txt` directly to a namelist file (in-place by default).
