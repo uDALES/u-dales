@@ -800,14 +800,16 @@ contains
       ! *** Check whether the grid is equidistant *****
       !--------------------------------------------------
 
-      !if (myid == 0) then
-      !do k=kb,ke+kh
-      !if (.not.(dzf(k).eq.dzf(1)))
-      !      write (6, *) &
-      !      'WARNING, You are working with a non-equidistant grid!!!!'
-      !end if
-      !end do
-      !end if ! end if myid==0
+      ! A stretched vertical grid is supported by the tridiagonal (Gaussian elimination) Poisson
+      ! solves, but the z cosine transform (ipoiss = 0 with BCzp = 2) and the 3D FFT (ipoiss = 2)
+      ! assume equidistant levels, so refuse those combinations rather than solve the wrong system.
+      if (maxval(abs(dzf(kb:ke) - dzf(kb))) > 1.e-6*dzf(kb)) then
+         if (ipoiss == POISS_FFT3D .or. (ipoiss == POISS_FFT2D .and. BCzp /= 1)) then
+            if (nrank == 0) write (*, *) 'ERROR: non-equidistant vertical grid is not supported by ', &
+                                         'ipoiss, BCzp = ', ipoiss, BCzp, '; use BCzp = 1 or ipoiss = 3'
+            stop 1
+         end if
+      end if
 
       dzhi = 1./dzh
       dzfi = 1./dzf

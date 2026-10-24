@@ -871,8 +871,8 @@ module modforces
                           zh, fraction,xlen,ylen,dzf
   use modmpi, only : comm3d, mpierr, MY_REAL, MPI_SUM
   !
-  integer :: i, j, k, M
-  real :: tot_Tflux, tot_qflux, latent_heat_out,R_theta,R_q, H_proj, E_proj, R_theta_scaled,R_q_scaled, abl_height,phi_theta_t,phi_q_t  !, !tot_qflux !, sink_points
+  integer :: i, j, k
+  real :: tot_Tflux, tot_qflux, latent_heat_out,R_theta,R_q, H_proj, E_proj, R_theta_scaled,R_q_scaled, abl_height,phi_theta_t,phi_q_t,sink_depth  !, !tot_qflux !, sink_points
   !
   !write(*,*) 'lperiodicEBcorr ', lperiodicEBcorr
   !write(*,*) 'fraction', fraction
@@ -898,10 +898,13 @@ module modforces
   abl_height = zh(ke+1)/fraction ! We reverse engineer the ABL height from domain height and fraction
   R_theta = H_proj/abl_height ![Ks^-1] This is the forcing F\theta from Grylls 2021
   R_q = E_proj/abl_height
- ! Ke is the number of points in the vertical over which we would apply R if we included the canopy
-  M = ke - (sinkbase+1) +1 ! The number of points over which we will apply rscaled. We only apply the forcing above the canopy so it has to be made bigger.
-  R_theta_scaled = R_theta * ke/(M) ! [Ks^-1]The forcing is scaled up beacuse we do not apply it to the whole volume, only to points above the canopy. We add one to sinkbase to be above the buildings and add 1 to (ke-(sinkbase+1)) to correctly count the points.
-  R_q_scaled = R_q * ke/(M)
+  ! R is only applied above the canopy, between zh(sinkbase+1) and zh(ke+1), so it is scaled up
+  ! by (domain depth)/(sink-layer depth) to keep its vertical integral equal to fraction*H_proj.
+  ! This is a ratio of heights, not of level counts: the two agree (ke/(ke-sinkbase)) only on an
+  ! equidistant grid, and the level count over- or under-removes heat on a stretched grid.
+  sink_depth = zh(ke+1) - zh(sinkbase+1)
+  R_theta_scaled = R_theta * zh(ke+1)/sink_depth ! [Ks^-1]
+  R_q_scaled = R_q * zh(ke+1)/sink_depth
   !phi_theta_t = 0 ! For debugging the flux profile !(1-fraction)*H_proj! The heat flux out the top of the domain.
   phi_theta_t = (1-fraction)*tot_Tflux/(xlen*ylen*dzf(ke)) ![Ks^-1]    
   phi_q_t = (1-fraction)*tot_qflux/(xlen*ylen*dzf(ke))

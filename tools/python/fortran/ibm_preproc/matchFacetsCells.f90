@@ -129,15 +129,18 @@ module matchFacets2Cells
 
    subroutine matchFacetsToCells(connectivityList, faceNormal, nFaces, vertices, nVertices, &
       fluid_IB, solid_IB, fluid_IB_xyz, nfluid_IB, &
-      xgrid, ygrid, zgrid, itot, jtot, ktot, &
+      xgrid, ygrid, zgrid, zedges, itot, jtot, ktot, &
       diag_neighbs, periodic_x, periodic_y, n_threads, &
       secfacids, secbndptids, secareas, bnddst, nfacsecs)
 
+    ! zedges(k), zedges(k+1): bottom and top of the cell centred on zgrid(k). They are passed in
+    ! rather than taken as zgrid -+ dz/2, because on a stretched grid the faces of a cell-centred
+    ! grid are not midway between neighbouring centres.
     use, intrinsic :: ieee_arithmetic
     integer, intent(in) :: nFaces, nVertices, nfluid_IB, itot, jtot, ktot, n_threads
     integer, intent(in) :: connectivityList(nFaces,3)
     real   , intent(in) :: faceNormal(nFaces,3), vertices(nVertices,3), fluid_IB_xyz(nfluid_IB,3)
-    real   , intent(in) :: xgrid(itot), ygrid(jtot), zgrid(ktot)
+    real   , intent(in) :: xgrid(itot), ygrid(jtot), zgrid(ktot), zedges(ktot+1)
     logical, intent(in), dimension(itot,jtot,ktot) :: fluid_IB, solid_IB
     logical, intent(in) :: diag_neighbs, periodic_x, periodic_y
     integer, dimension(:), allocatable, intent(out) :: secfacids, secbndptids
@@ -182,7 +185,7 @@ module matchFacets2Cells
 
     dx = xgrid(2)-xgrid(1)
     dy = ygrid(2)-ygrid(1)
-    dz = zgrid(2)-zgrid(1)
+    dz = zgrid(2)-zgrid(1) ! only a common length scale in the neighbour weighting below
 
     tol = 1e-8 ! machine precision errors
     area_miss = 0.0 ! Initialize for OpenMP reduction
@@ -192,8 +195,7 @@ module matchFacets2Cells
     x_edges(itot+1) = xgrid(itot) + dx/2.
     y_edges(1:jtot) = ygrid - dy/2.
     y_edges(jtot+1) = ygrid(jtot) + dy/2.
-    z_edges(1:ktot) = zgrid - dz/2.
-    z_edges(ktot+1) = zgrid(ktot) + dz/2.
+    z_edges = zedges
 
     call buildBoundaryIndex(fluid_IB, solid_IB, itot, jtot, ktot, diag_neighbs, bidx)
 
@@ -288,8 +290,8 @@ module matchFacets2Cells
                xu = xgrid(i) + dx/2. + tol
                yl = ygrid(j) - dy/2. - tol
                yu = ygrid(j) + dy/2. + tol
-               zl = zgrid(k) - dz/2. - tol
-               zu = zgrid(k) + dz/2. + tol
+               zl = z_edges(k) - tol
+               zu = z_edges(k+1) + tol
 
                planes(1,:) = (/ 1., 0., 0., xu/)
                planes(2,:) = (/-1., 0., 0.,-xl/)
