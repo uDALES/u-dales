@@ -1,5 +1,12 @@
 #!/usr/bin/env python3
-"""Calculate model-neutral MRT, PET, UTCI, and WBGT maps."""
+"""Calculate model-neutral MRT, PET, UTCI, and WBGT maps.
+
+Accepts exchange NetCDF files with any number of time records; optional
+metadata (bounds, georeference, CRS, provenance, pedestrian mask) is used
+when present. The physical fields, their units and per-record solar angles
+are required. The separate intercomparison-protocol tool, maintained
+outside this repository, enforces the strict 24-hour exchange contract.
+"""
 
 from __future__ import annotations
 
@@ -13,7 +20,7 @@ from udcomf.thermalcomfort import ComfortParameters, calculate_indices
 
 
 def load_comfort_parameters(path: Path | None) -> ComfortParameters:
-    """Read one shared intercomparison protocol, or use documented defaults."""
+    """Read shared comfort parameters, or use the documented defaults."""
     if path is None:
         return ComfortParameters()
     config_path = Path(path).expanduser().resolve()
@@ -32,7 +39,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         description=(
             "Calculate native-grid MRT, PET, UTCI, and WBGT from one or more "
-            "strict model-neutral thermal-comfort exchange files."
+            "model-neutral thermal-comfort exchange files."
         )
     )
     parser.add_argument("exchange_files", type=Path, nargs="+")

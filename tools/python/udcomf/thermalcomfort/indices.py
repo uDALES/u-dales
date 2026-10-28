@@ -1,4 +1,4 @@
-"""Model-neutral MRT, PET, UTCI and WBGT from the strict exchange format."""
+"""Model-neutral MRT, PET, UTCI and WBGT from exchange NetCDF files."""
 
 from __future__ import annotations
 
@@ -31,12 +31,6 @@ _RESULTS = {"mrt": "mean radiant temperature", "pet": "physiological equivalent 
             "utci": "universal thermal climate index", "wbgt": "wet-bulb globe temperature",
             "globe_temperature": "black-globe sensor temperature",
             "natural_wet_bulb_temperature": "natural wet-bulb sensor temperature"}
-_GLOBAL_REQUIRED = (
-    "model_name", "model_version", "institution", "simulation_identifier",
-    "horizontal_grid_spacing_m", "vertical_grid_spacing_m", "terrain_convention",
-    "building_representation", "model_axis_rotation_degrees_from_true_north",
-    "vertical_interpolation_method", "spinup_start_utc", "spinup_end_utc",
-)
 
 
 @dataclass(frozen=True)
@@ -81,98 +75,93 @@ class ComfortParameters:
             raise ValueError("Comfort person and radiation parameters are invalid")
 
 
-def _validate_exchange(ds: Dataset) -> np.ndarray:
-    """Check schema before any index work; dynamic values are checked by tile."""
-    for name in _GLOBAL_REQUIRED:
-        if name not in ds.ncattrs() or (isinstance(ds.getncattr(name), str)
-                                         and not ds.getncattr(name).strip()):
-            raise ValueError(f"Exchange file lacks global metadata: {name}")
-    if not str(getattr(ds, "Conventions", "")).startswith("CF-"):
-        raise ValueError("Exchange file must declare a CF convention")
-    for dim in ("x", "y", "time", "bounds"):
+def _validate_exchange(ds: Dataset) -> np.ndarray | None:
+    """Check what the index physics needs; dynamic values are checked by tile.
+
+    Required: the native (x, y) grid, at least one time record on a strictly
+    increasing axis, per-record solar angles, and the physical fields with
+    the documented units. Everything else - time bounds, grid bounds,
+    longitude/latitude, ground elevation, CRS, receptor height, pedestrian
+    mask - is optional and validated only when present. Returns the
+    pedestrian mask, or None when the file carries none (the caller then
+    derives one from data finiteness).
+    """
+    for dim in ("x", "y", "time"):
         if dim not in ds.dimensions:
             raise ValueError(f"Exchange file lacks dimension {dim}")
     nx, ny, nt = (len(ds.dimensions[name]) for name in ("x", "y", "time"))
-    if nt != 24 or len(ds.dimensions["bounds"]) != 2:
-        raise ValueError("Exchange file must contain 24 hourly planes and two time bounds")
+    if nt < 1:
+        raise ValueError("Exchange file needs at least one time record")
+    if "bounds" in ds.dimensions and len(ds.dimensions["bounds"]) != 2:
+        raise ValueError("The bounds dimension must have size two")
     schema = {
-        "time": (("time",), "seconds since "),
-        "time_bounds": (("time", "bounds"), "seconds since "),
-        "x": (("x",), "m"), "y": (("y",), "m"),
-        "x_bounds": (("x", "bounds"), "m"),
-        "y_bounds": (("y", "bounds"), "m"),
-        "longitude": (("x", "y"), "degrees_east"),
-        "latitude": (("x", "y"), "degrees_north"),
-        "z_ground": (("x", "y"), "m"),
-        "receptor_height": ((), "m above local terrain"),
-        "solar_zenith": (("time",), "rad"),
-        "solar_azimuth": (("time",), "rad"),
+        "time": ("time",),
+        "time_bounds": ("time", "bounds"),
+        "x": ("x",), "y": ("y",),
+        "x_bounds": ("x", "bounds"),
+        "y_bounds": ("y", "bounds"),
+        "longitude": ("x", "y"),
+        "latitude": ("x", "y"),
+        "z_ground": ("x", "y"),
+        "receptor_height": (),
+        "solar_zenith": ("time",),
+        "solar_azimuth": ("time",),
     }
-    for name, (dims, units) in schema.items():
-        if name not in ds.variables or ds[name].dimensions != dims:
+    required = {"time", "x", "y", "solar_zenith", "solar_azimuth"}
+    for name, dims in schema.items():
+        if name not in ds.variables:
+            if name in required:
+                raise ValueError(f"Exchange file has missing or invalid {name} dimensions")
+            continue
+        if ds[name].dimensions != dims:
             raise ValueError(f"Exchange file has missing or invalid {name} dimensions")
-        actual = getattr(ds[name], "units", None)
-        wrong_units = (not actual.startswith(units)
-                       if isinstance(actual, str) and units == "seconds since "
-                       else actual != units)
-        if not isinstance(actual, str) or wrong_units:
-            raise ValueError(f"Exchange file has wrong units for {name}")
     for name in _FIELDS:
         if (name not in ds.variables or ds[name].dimensions != ("x", "y", "time")
-                or getattr(ds[name], "units", None) != _FIELDS[name]
-                or getattr(ds[name], "cell_methods", None) != "time: mean"
-                or getattr(ds[name], "grid_mapping", None) != "crs"
-                or set(str(getattr(ds[name], "coordinates", "")).split())
-                != {"longitude", "latitude"}
-                or not hasattr(ds[name], "_FillValue")):
+                or getattr(ds[name], "units", None) != _FIELDS[name]):
             raise ValueError(f"Exchange file lacks a valid {name} field")
-    if ("crs" not in ds.variables or ds["crs"].dimensions != ()
-            or not getattr(ds["crs"], "grid_mapping_name", None)):
-        raise ValueError("Exchange file lacks a scalar CF grid mapping")
-    if not (getattr(ds["crs"], "crs_wkt", None) or getattr(ds["crs"], "spatial_ref", None)):
-        raise ValueError("Exchange file lacks complete CRS WKT")
-    if "pedestrian_mask" not in ds.variables or ds["pedestrian_mask"].dimensions != ("x", "y"):
-        raise ValueError("Exchange file lacks the fixed pedestrian mask")
-    mask = np.asarray(ds["pedestrian_mask"][:])
-    if not np.isin(mask, (0, 1)).all() or not np.any(mask):
-        raise ValueError("Exchange file has an empty or invalid pedestrian mask")
-    if not np.isfinite(float(ds["receptor_height"][...])) or float(ds["receptor_height"][...]) <= 0:
-        raise ValueError("Receptor height must be finite and positive")
+    mask = None
+    if "pedestrian_mask" in ds.variables:
+        if ds["pedestrian_mask"].dimensions != ("x", "y"):
+            raise ValueError("The pedestrian mask must live on the native grid")
+        mask = np.asarray(ds["pedestrian_mask"][:])
+        if not np.isin(mask, (0, 1)).all() or not np.any(mask):
+            raise ValueError("Exchange file has an empty or invalid pedestrian mask")
+        mask = mask.astype(bool)
+    if "receptor_height" in ds.variables:
+        if (not np.isfinite(float(ds["receptor_height"][...]))
+                or float(ds["receptor_height"][...]) <= 0):
+            raise ValueError("Receptor height must be finite and positive")
     time = np.asarray(ds["time"][:], dtype=float)
-    expected = np.arange(1, 25, dtype=float) * 3600.0
-    if not np.array_equal(time, expected) or not np.array_equal(
-        np.asarray(ds["time_bounds"][:], dtype=float), np.column_stack((expected - 900.0, expected))
-    ):
-        raise ValueError(
-            "Exchange time axis is not the prescribed hourly preceding-15-minute schedule"
-        )
-    if (getattr(ds["time"], "bounds", None) != "time_bounds"
-            or getattr(ds["time"], "calendar", None) != "gregorian"
-            or ds["time"].units != ds["time_bounds"].units
-            or not re.fullmatch(r"seconds since \d{4}-\d{2}-\d{2} 00:00:00 UTC", ds["time"].units)):
-        raise ValueError("Exchange time metadata must be Gregorian UTC with exact bounds")
+    if not np.isfinite(time).all() or (nt > 1 and not np.all(np.diff(time) > 0)):
+        raise ValueError("Exchange time axis must be finite and strictly increasing")
+    if "time_bounds" in ds.variables:
+        bounds = np.asarray(ds["time_bounds"][:], dtype=float)
+        if not np.isfinite(bounds).all() or np.any(bounds[:, 0] >= bounds[:, 1]):
+            raise ValueError("Exchange time bounds must be finite windows of positive length")
     for axis, n in (("x", nx), ("y", ny)):
         centers = np.asarray(ds[axis][:], dtype=float)
-        bounds = np.asarray(ds[f"{axis}_bounds"][:], dtype=float)
-        if (centers.shape != (n,) or bounds.shape != (n, 2) or not np.isfinite(centers).all()
-                or not np.isfinite(bounds).all() or not np.all(np.diff(centers) > 0)
-                or not np.allclose(bounds.mean(axis=1), centers, rtol=0, atol=1e-5)
-                or not np.allclose(bounds[1:, 0], bounds[:-1, 1], rtol=0, atol=1e-5)):
+        if centers.shape != (n,) or not np.isfinite(centers).all() or not np.all(np.diff(centers) > 0):
             raise ValueError(f"Exchange {axis} grid and bounds disagree")
+        if f"{axis}_bounds" in ds.variables:
+            bounds = np.asarray(ds[f"{axis}_bounds"][:], dtype=float)
+            if (bounds.shape != (n, 2) or not np.isfinite(bounds).all()
+                    or not np.allclose(bounds.mean(axis=1), centers, rtol=0, atol=1e-5)
+                    or not np.allclose(bounds[1:, 0], bounds[:-1, 1], rtol=0, atol=1e-5)):
+                raise ValueError(f"Exchange {axis} grid and bounds disagree")
     for name in ("longitude", "latitude", "z_ground"):
+        if name not in ds.variables:
+            continue
         values = np.asarray(ds[name][:], dtype=float)
         if values.shape != (nx, ny) or not np.isfinite(values).all():
             raise ValueError(f"Exchange {name} must be finite on the native grid")
-    if not getattr(ds["z_ground"], "vertical_datum", None):
-        raise ValueError("Exchange ground elevation lacks a vertical datum")
     for name, maximum in (("longitude", 180), ("latitude", 90)):
-        if np.any(abs(ds[name][:]) > maximum):
+        if name in ds.variables and np.any(abs(ds[name][:]) > maximum):
             raise ValueError(f"Exchange {name} is outside WGS84 bounds")
     for name, maximum in (("solar_zenith", np.pi), ("solar_azimuth", 2 * np.pi)):
         values = np.asarray(ds[name][:], dtype=float)
         if not np.isfinite(values).all() or np.any((values < 0) | (values > maximum)):
             raise ValueError(f"Exchange {name} is outside the physical range")
-    return mask.astype(bool)
+    return mask
 
 
 def _load_physics():
@@ -215,21 +204,6 @@ def _pet_values(pet_steady, tdb: np.ndarray, mrt: np.ndarray, wind: np.ndarray,
         return values
 
 
-def _valid_field(values: np.ndarray, mask: np.ndarray, fill: float, name: str) -> None:
-    if not np.isfinite(values[mask]).all() or np.any(values[mask] == fill):
-        raise ValueError(f"{name} has missing or nonfinite values in the pedestrian mask")
-    if np.isnan(fill):
-        missing = np.isnan(values[~mask])
-    else:
-        missing = values[~mask] == fill
-    if not missing.all():
-        raise ValueError(f"{name} must use its _FillValue outside the pedestrian mask")
-    if name in ("ta", "pabs") and np.any(values[mask] <= 0):
-        raise ValueError(f"{name} must be positive")
-    if name not in ("ta", "pabs") and np.any(values[mask] < 0):
-        raise ValueError(f"{name} must be nonnegative")
-
-
 def calculate_indices(input_path: Path, *, output_path: Path | None = None,
                       parameters: ComfortParameters | None = None,
                       overwrite: bool = False, tile_x: int = 64) -> Path:
@@ -243,6 +217,12 @@ def calculate_indices(input_path: Path, *, output_path: Path | None = None,
     saturated levels legitimately produce it. Larger overshoots remain invalid
     (bit 1). Non-applicable indices are missing and flagged, while valid MRT
     remains available independently of PET/UTCI/WBGT.
+
+    Any number of time records is accepted, from a single instant upward.
+    When the file carries no pedestrian mask, the computation mask is
+    derived from data finiteness at the first record and written to the
+    output. Per-cell nonphysical inputs are flagged (validity bit 64)
+    rather than failing the whole file.
     """
     try:
         tile_x = operator.index(tile_x)
@@ -258,12 +238,32 @@ def calculate_indices(input_path: Path, *, output_path: Path | None = None,
     with Dataset(source_path) as source:
         source.set_auto_mask(False)
         mask = _validate_exchange(source)
-        model = re.sub(r"[^a-z0-9_-]+", "_", source.model_name.lower()).strip("_")
+        raw_name = str(getattr(source, "model_name", "") or "")
+        if not raw_name:
+            raw_name = source_path.stem
+        model = re.sub(r"[^a-z0-9_-]+", "_", raw_name.lower()).strip("_")
         if not model:
             raise ValueError("Model name cannot be used in an output filename")
-        height = float(source["receptor_height"][...])
-        tag = f"h{height:g}".replace(".", "p")
-        output = (source_path.with_name(f"thermal_comfort_indices_{model}.{tag}.nc")
+        nt = len(source.dimensions["time"])
+        if "receptor_height" in source.variables:
+            height = float(source["receptor_height"][...])
+            tag = "." + f"h{height:g}".replace(".", "p")
+        else:
+            tag = ""
+        if mask is None:
+            nx0, ny0 = (len(source.dimensions[d]) for d in ("x", "y"))
+            derived = np.ones((nx0, ny0), dtype=bool)
+            for field in _FIELDS:
+                var = source[field]
+                values = np.asarray(var[:, :, 0], dtype=float)
+                fill = getattr(var, "_FillValue", None)
+                if fill is not None and np.isfinite(fill):
+                    values = np.where(values == fill, np.nan, values)
+                derived &= np.isfinite(values)
+            if not derived.any():
+                raise ValueError("No computable cells in the exchange file")
+            mask = derived
+        output = (source_path.with_name(f"thermal_comfort_indices_{model}{tag}.nc")
                   if output_path is None else Path(output_path))
         if output.resolve() == source_path.resolve():
             raise ValueError("Comfort output must not replace its exchange input")
@@ -275,15 +275,19 @@ def calculate_indices(input_path: Path, *, output_path: Path | None = None,
         temporary = Path(name)
         counts = {name: 0 for name in ("invalid_humidity", "humidity_capped",
                                           "utci_outside_domain", "wbgt_outside_domain",
-                                          "wbgt_nonconverged", "pet_failed")}
+                                          "wbgt_nonconverged", "pet_failed",
+                                          "invalid_input")}
         try:
             with Dataset(temporary, "w", format="NETCDF4") as target:
                 nx, ny = mask.shape
                 for dim in ("x", "y", "time", "bounds"):
-                    target.createDimension(dim, len(source.dimensions[dim]))
+                    if dim in source.dimensions:
+                        target.createDimension(dim, len(source.dimensions[dim]))
                 for name in ("x", "y", "x_bounds", "y_bounds", "longitude", "latitude",
                              "z_ground", "receptor_height", "pedestrian_mask", "crs",
                              "time", "time_bounds", "solar_zenith", "solar_azimuth"):
+                    if name not in source.variables:
+                        continue
                     original = source[name]
                     attrs = {
                         key: original.getncattr(key)
@@ -295,6 +299,11 @@ def calculate_indices(input_path: Path, *, output_path: Path | None = None,
                     copy.setncatts(attrs)
                 target.setncatts({name: source.getncattr(name) for name in source.ncattrs()})
                 target.input_file = source_path.name
+                if "pedestrian_mask" not in source.variables:
+                    derived_var = target.createVariable("pedestrian_mask", "i1", ("x", "y"))
+                    derived_var[:] = mask.astype(np.int8)
+                    derived_var.long_name = ("computation mask derived from finite "
+                                             "inputs at the first time record")
                 target.comfort_method = (
                     "standing six-direction MRT; MEMI PET; operational UTCI; "
                     "directional Liljegren-type WBGT"
@@ -312,7 +321,7 @@ def calculate_indices(input_path: Path, *, output_path: Path | None = None,
                 target.validity_flag_meanings = (
                     "1 invalid_relative_humidity; 2 utci_outside_domain; "
                     "4 wbgt_outside_domain; 8 wbgt_sensor_nonconverged; 16 pet_failed; "
-                    "32 humidity_capped_to_saturation"
+                    "32 humidity_capped_to_saturation; 64 invalid_input"
                 )
                 variables = {}
                 for field, long_name in _RESULTS.items():
@@ -332,12 +341,13 @@ def calculate_indices(input_path: Path, *, output_path: Path | None = None,
                                               fill_value=np.int16(-1), zlib=True, complevel=3,
                                               chunksizes=(min(nx, tile_x), min(ny, 64), 1))
                 flags.long_name = "bitwise index validity reasons"
-                flags.flag_masks = np.array([1, 2, 4, 8, 16, 32], dtype="i2")
+                flags.flag_masks = np.array([1, 2, 4, 8, 16, 32, 64], dtype="i2")
                 flags.flag_meanings = (
                     "invalid_relative_humidity utci_outside_domain wbgt_outside_domain "
-                    "wbgt_sensor_nonconverged pet_failed humidity_capped_to_saturation"
+                    "wbgt_sensor_nonconverged pet_failed humidity_capped_to_saturation "
+                    "invalid_input"
                 )
-                for t in range(24):
+                for t in range(nt):
                     zenith = float(source["solar_zenith"][t])
                     for lo in range(0, nx, tile_x):
                         hi = min(nx, lo + tile_x)
@@ -347,18 +357,32 @@ def calculate_indices(input_path: Path, *, output_path: Path | None = None,
                                 var[lo:hi, :, t] = var._FillValue
                             flags[lo:hi, :, t] = flags._FillValue
                             continue
+                        tile_mask = valid
+                        usable = valid.copy()
                         fields = {}
                         for field in _FIELDS:
                             var = source[field]
                             values = np.asarray(var[lo:hi, :, t], dtype=float)
-                            _valid_field(values, valid, float(var._FillValue), field)
+                            fill = getattr(var, "_FillValue", None)
+                            if fill is not None and np.isfinite(fill):
+                                values = np.where(values == fill, np.nan, values)
+                            with np.errstate(invalid="ignore"):
+                                good = np.isfinite(values)
+                                if field in ("ta", "pabs"):
+                                    good &= values > 0
+                                else:
+                                    good &= values >= 0
+                            usable &= good
                             fields[field] = np.where(valid, values, np.nan)
-                        if zenith >= np.pi / 2 and np.any(
-                            fields["sw_direct_normal"][valid] > 1.0e-6
-                        ):
-                            raise ValueError(
-                                "Direct shortwave must be zero at or below the horizon"
-                            )
+                        invalid_input = tile_mask & ~usable
+                        valid = usable
+                        if zenith >= np.pi / 2:
+                            # direct beam with the sun at or below the horizon is
+                            # inconsistent input: flag the cells, keep the plane
+                            with np.errstate(invalid="ignore"):
+                                sunlit = fields["sw_direct_normal"] > 1.0e-6
+                            invalid_input = invalid_input | (valid & sunlit)
+                            valid = valid & ~sunlit
                         ta = fields["ta"]
                         pressure = fields["pabs"]
                         wind = fields["ws_local"]
@@ -390,7 +414,8 @@ def calculate_indices(input_path: Path, *, output_path: Path | None = None,
                             direct_side_factor=config.human_direct_side_factor,
                         )
                         mrt = mrt_k - 273.15
-                        state = np.zeros(valid.shape, dtype=np.int16)
+                        state = np.zeros(tile_mask.shape, dtype=np.int16)
+                        state[invalid_input] |= 64
                         state[valid & ~humidity_ok] |= 1
                         state[valid & capped & (rh_raw > 100.01)] |= 32
                         tdb = ta - 273.15
@@ -441,11 +466,11 @@ def calculate_indices(input_path: Path, *, output_path: Path | None = None,
                             variables[field][lo:hi, :, t] = np.where(
                                 valid & np.isfinite(values), values, variables[field]._FillValue
                             ).astype("f4")
-                        flags[lo:hi, :, t] = np.where(valid, state, flags._FillValue)
+                        flags[lo:hi, :, t] = np.where(tile_mask, state, flags._FillValue)
                         for label, bit in (("invalid_humidity", 1), ("humidity_capped", 32),
                                            ("utci_outside_domain", 2),
                                            ("wbgt_outside_domain", 4), ("wbgt_nonconverged", 8),
-                                           ("pet_failed", 16)):
+                                           ("pet_failed", 16), ("invalid_input", 64)):
                             counts[label] += int(np.count_nonzero(state & bit))
                 target.validity_counts = json.dumps(counts, sort_keys=True)
             if output.exists() and not overwrite:

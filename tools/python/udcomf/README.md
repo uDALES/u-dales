@@ -630,7 +630,7 @@ from datetime import date
 from pathlib import Path
 from udcomf.udcomf_export import check_comfort_preflight
 
-report = check_comfort_preflight(Path("/path/to/case"), date(2023, 8, 21))
+report = check_comfort_preflight(Path("/path/to/case"), date(2025, 6, 21))
 print(report.blockers)
 print(report.cautions)
 ```
@@ -658,11 +658,11 @@ preflight and merge interfaces derive `namoptions.<expnr>` from that name.
 
 ```bash
 PY=tools/python/.venv/bin/python
-CASE=/path/to/experiments/305
+CASE=/path/to/experiments/1
 
 $PY tools/python/examples/thermal_comfort/udales_to_comfort.py \
   --case-dir "$CASE" \
-  --analysis-day 2023-08-21 \
+  --analysis-day 2025-06-21 \
   --metadata "$CASE/thermal_comfort_metadata.json" \
   --statistics-source stats_kslice \
   --tile-size 256 \
@@ -674,7 +674,7 @@ $PY tools/python/examples/thermal_comfort/udales_to_comfort.py \
 
 ```bash
 $PY tools/python/examples/thermal_comfort/calculate_indices.py \
-  "$CASE/thermal_comfort_inputs_udales.h1p1.305.nc"
+  "$CASE/thermal_comfort_inputs_udales.h1p1.1.nc"
 ```
 
 Use `--skip-atmosphere` or `--skip-radiation` only when the corresponding final
@@ -694,7 +694,7 @@ README linked at the top of this document.
   recalculated because it changes with height.
 - The full facet source series is loaded once per radiation kind. Peak memory
   includes geometry plus roughly `nfcts * nsource_times` facet values.
-- A complete Paris full-plane run has not yet been performance-qualified.
+- A complete city-scale full-plane run has not yet been performance-qualified.
   Test a receptor subset and quadrature convergence before reserving production
   resources.
 - Vegetation attenuation and vegetation longwave emission are not implemented.
@@ -736,7 +736,7 @@ between verified equations and pending measurement evidence.
 
 ## Detailed component notes
 
-The sections below retain lower-level API behavior, Paris warm-start findings,
+The sections below retain lower-level API behavior, warm-start findings,
 file names, and restart details that are useful during real case processing.
 
 ## Warm-start facet outputs
@@ -752,12 +752,12 @@ the full `UDBase` case:
 from pathlib import Path
 from udcomf.udcomf_io import merge_facet_outputs
 
-case = Path("/home/dipanjan/simulation/udtest/experiments/305")
-sources = [case / f"facEB.{number}.nc" for number in range(312, 318)]
+case = Path("/path/to/experiments/1")
+sources = [case / f"facEB.{number}.nc" for number in (2, 3, 4)]
 result = merge_facet_outputs(case, sources)
 ```
 
-This writes `facEB.305.nc` and `facT.305.nc` without changing the sources.
+This writes `facEB.1.nc` and `facT.1.nc` without changing the sources.
 The merge sorts segments by saved simulation time, rejects overlaps and schema
 mismatches, and preserves restart gaps exactly; it does not interpolate or
 claim that an averaging window crossing a gap is complete. Existing merged
@@ -811,7 +811,7 @@ outputs, process all saved heights without changing the case configuration:
 import numpy as np
 from udbase import UDBase
 
-sim = UDBase(305, "/path/to/305", load_geometry=True)
+sim = UDBase(1, "/path/to/experiments/1", load_geometry=True)
 hours = np.arange(25200.0, 108001.0, 3600.0)
 atmosphere = sim.comf.atmosphere.write_hourly_heights(
     hours, source="stats_kslice"
@@ -842,7 +842,7 @@ start interrupted that interval must still be checked separately.
 Radiation is computed afresh at every height because visibility changes with
 height. The STL mesh and existing forcing/facet files are reused; neither
 preprocessing nor the LES is rerun. Heights are processed sequentially to
-limit peak memory. A Paris full-plane ray sweep has not yet been performance
+limit peak memory. A city-scale full-plane ray sweep has not yet been performance
 qualified. These files are uDALES-side inputs to the common-model thermal-index
 engine described below; this radiation stage does not itself calculate MRT,
 PET, UTCI, or WBGT.
@@ -893,14 +893,14 @@ metadata = ExchangeMetadata(
     institution="<contributing institution>",
     building_representation="<actual IBM/facet representation>",
     terrain_convention="<actual flat-ground convention>",
-    spinup_start_utc="2023-08-20T18:00:00Z",
-    spinup_end_utc="2023-08-21T00:00:00Z",
+    spinup_start_utc="2025-06-20T18:00:00Z",
+    spinup_end_utc="2025-06-21T00:00:00Z",
 )
-files = sim.comf.export_exchange(date(2023, 8, 21), metadata)
+files = sim.comf.export_exchange(date(2025, 6, 21), metadata)
 ```
 
 These geographic and provenance facts are not inferred from the solar site
-coordinates or from the STL. For the Paris case, verify the STL's projected
+coordinates or from the STL. For a real city case, verify the STL's projected
 origin/rotation and geodetic ground reference before constructing metadata.
 The assembler cannot prove that a warm start did not interrupt a 15-minute
 statistics window; audit restart boundaries separately. It also does not
@@ -914,15 +914,29 @@ Install the optional scientific implementation on Python 3.10 or newer:
 tools/python/.venv/bin/python -m pip install -e 'tools/python[comfort]'
 ```
 
-The same function reads a strict exchange file from **any** model; it never
-opens uDALES case inputs or horizontally remaps another model's grid:
+The same function reads an exchange file from **any** model; it never opens
+uDALES case inputs or horizontally remaps another model's grid.
+
+The input contract is deliberately light: any number of time records from a
+single instant upward on a strictly increasing axis, the physical fields
+with the documented units, and per-record solar angles. Optional metadata -
+time and grid bounds, longitude/latitude, ground elevation, CRS, receptor
+height, provenance, pedestrian mask - is validated when present and simply
+omitted otherwise; without a mask, the computation mask is derived from
+data finiteness at the first record and written to the output. Per-cell
+nonphysical inputs (nonfinite values, nonpositive temperature or pressure,
+negative humidity, wind or irradiance, or direct beam with the sun below
+the horizon) are flagged with validity bit 64 instead of rejecting the
+file. Formal intercomparisons use a separate standalone protocol tool,
+maintained outside this repository, that enforces the full 24-hour strict
+exchange contract on the same physics:
 
 ```python
 from pathlib import Path
 from udcomf.thermalcomfort import calculate_indices, ComfortParameters
 
 output = calculate_indices(
-    Path("thermal_comfort_inputs_udales.h1p1.305.nc"),
+    Path("thermal_comfort_inputs_udales.h1p1.1.nc"),
     parameters=ComfortParameters(),
 )
 ```
@@ -991,7 +1005,7 @@ the changing direct-sun ray is still tested for each timestamp.
 
 Current limits: the sky distribution is isotropic, facet reflection is
 Lambertian, unmeshed ground is non-emitting, and vegetation attenuation is not
-implemented (vegetation cases raise). A full Paris-plane ray sweep has not
+implemented (vegetation cases raise). A full city-scale ray sweep has not
 been performance-qualified; process small receptor batches before scaling up.
 
 ## Longwave
@@ -1024,7 +1038,7 @@ unknown, so zero would silently bias the comfort calculation. A complete,
 consistently oriented ground facet mesh is required. Vegetation emission and
 attenuation are not implemented (vegetation cases raise). The sky is isotropic,
 facet emission Lambertian, and the quadrature should be checked for convergence
-in obstructed scenes. No full Paris-plane performance claim is made here.
+in obstructed scenes. No full-plane performance claim is made here.
 
 ## Hourly output and restart
 
@@ -1048,7 +1062,7 @@ both radiation kinds:
     import numpy as np
     from udbase import UDBase
 
-    sim = UDBase(305, "/path/to/305", load_geometry=True)
+    sim = UDBase(1, "/path/to/experiments/1", load_geometry=True)
     hours = np.arange(21600.0, 108001.0, 3600.0)
     for kind in ("shortwave", "longwave"):
         sim.comf.radiation.write_hourly(
@@ -1068,30 +1082,29 @@ Use overwrite=True to replace an existing final file.
 The full facet source series is loaded once through UDBase for each kind.
 Static first-hit rays are traced once per receptor tile and reused across
 needed source times; direct-sun rays remain time-dependent. Peak memory still
-includes the full geometry and one full facet-source matrix. A Paris full-plane
+includes the full geometry and one full facet-source matrix. A city-scale full-plane
 sweep has not been timed or qualified. Start with a subset and check angular
 convergence before allocating production resources.
 
-For the merged 305 warm starts, among hours 6 through 30 inclusive, all
-shortwave windows have source coverage. Longwave hours 8, 25, and 29 cross
-restart gaps; hour 30 is also incomplete because the final saved facet
-record is at 107999.016 s rather than 108000 s. These hours remain present
-with time_complete=0 and NaN longwave fields.
+After a warm-start merge, windows that cross a restart gap, or whose last
+source sample falls just short of the requested endpoint, remain present
+with time_complete=0 and NaN fields. List them after processing and decide
+explicitly whether the analysis can proceed without those hours.
 
 ## Before the LES run
 
-Run the configuration check before submitting a Paris simulation:
+Run the configuration check before submitting a production simulation:
 
     from datetime import date
     from pathlib import Path
     from udcomf.udcomf_export import check_comfort_preflight
 
-    report = check_comfort_preflight(Path("/path/to/case"), date(2023, 8, 21))
+    report = check_comfort_preflight(Path("/path/to/case"), date(2025, 6, 21))
     print(report.blockers)
     print(report.cautions)
 
-For a run starting at 2023-08-20
-18:00 UTC, the 24 required comparison planes end at model times 25200,
+For a run starting at 18:00 UTC
+on the day before the analysis day, the 24 required comparison planes end at model times 25200,
 28800, ..., 108000 s. The needed statistics settings are tstatstart=21600,
 tstatsdump=900, and tstatsgap=2700, with ltempeq and lmoist enabled. Enable
 either ltdump or ltkslicedump; for k-slice-only output, configure kslice to
@@ -1106,8 +1119,8 @@ timestamp. Nor does it validate surface radiation or geospatial metadata.
 Check actual restart boundaries and output records after the run.
 
 Full stats_t includes at least 28 three-dimensional float32 fields at each
-dump when temperature and moisture are enabled. For 24 dumps, the raw data
-payload is at least about 1.03 TB for the 305 grid and 3.72 TB for the 350
-grid, before slices, probes, restarts and other outputs. stats_kslice is the
+dump when temperature and moisture are enabled. For 24 dumps on a grid of a
+few hundred million cells the raw data payload reaches the terabyte scale
+before slices, probes, restarts and other outputs. stats_kslice is the
 disk-saving alternative, but the solver still allocates full 3D time-average
 accumulators; k-slice-only does not deliver an equivalent memory reduction.

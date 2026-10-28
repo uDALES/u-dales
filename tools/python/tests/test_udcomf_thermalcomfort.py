@@ -228,15 +228,23 @@ class TestComfortFiles(unittest.TestCase):
                 for field in ("mrt", "pet", "utci", "wbgt"):
                     np.testing.assert_array_equal(left[field][:], right[field][:])
 
-    def test_rejects_bad_schema_and_missing_inside_mask(self):
+    def test_missing_value_inside_mask_is_flagged_not_fatal(self):
+        import json
         with TemporaryDirectory() as tmp:
             source = Path(tmp) / "exchange.nc"
             _exchange(source)
             with Dataset(source, "r+") as ds:
                 ds["qv"][0, 0, 0] = ds["qv"]._FillValue
-            with self.assertRaisesRegex(ValueError, "qv has missing"):
-                calculate_indices(source)
-            self.assertFalse(list(Path(tmp).glob("thermal_comfort_indices*")))
+            output = calculate_indices(source)
+            with Dataset(output) as ds:
+                ds.set_auto_mask(False)
+                self.assertEqual(int(ds["validity_flags"][0, 0, 0]) & 64, 64)
+                self.assertEqual(float(ds["mrt"][0, 0, 0]), float(ds["mrt"]._FillValue))
+                # only that record and cell is lost
+                self.assertTrue(np.isfinite(ds["mrt"][0, 0, 1]))
+                self.assertTrue(np.isfinite(ds["mrt"][0, 1, 0]))
+                counts = json.loads(ds.validity_counts)
+                self.assertEqual(counts["invalid_input"], 1)
 
     def test_invalid_humidity_is_flagged_without_clipping_or_losing_mrt(self):
         with TemporaryDirectory() as tmp:
@@ -251,6 +259,41 @@ class TestComfortFiles(unittest.TestCase):
                 self.assertEqual(float(ds["pet"][0, 0, 0]), float(ds["pet"]._FillValue))
                 self.assertEqual(float(ds["utci"][0, 0, 0]), float(ds["utci"]._FillValue))
                 self.assertEqual(int(ds["validity_flags"][0, 0, 0]) & 1, 1)
+
+def _generic_exchange(path: Path, *, n_times: int = 3, rh: float = 50.) -> None:
+    """Minimal relaxed file: no mask, bounds, georeference, CRS or provenance."""
+    ta = 298.15
+    pressure = 101325.
+    e = rh / 100. * float(saturation_pressure_pa(np.array([ta]))[0])
+    qv = EPSILON * e / (pressure - (1 - EPSILON) * e)
+    with Dataset(path, "w") as ds:
+        for name, size in (("x", 2), ("y", 2), ("time", n_times)):
+            ds.createDimension(name, size)
+        for name in ("x", "y"):
+            ds.createVariable(name, "f8", (name,))[:] = [5., 15.]
+            ds[name].units = "m"
+        ds.createVariable("time", "f8", ("time",))[:] = 600.0 * (1 + np.arange(n_times))
+        ds["time"].units = "s since simulation start"
+        for name, value in (("solar_zenith", np.pi / 3), ("solar_azimuth", np.pi)):
+            ds.createVariable(name, "f8", ("time",))[:] = value
+            ds[name].units = "rad"
+        values = {"ta": ta, "pabs": pressure, "qv": qv, "ws_local": 1., "ws_10": 1.,
+                  "sw_direct_normal": 0.}
+        for side in ("upface", "downface", "northface", "southface", "eastface", "westface"):
+            values[f"sw_nondirect_{side}"] = 0.
+            values[f"lw_{side}"] = SIGMA * ta**4
+        for name, value in values.items():
+            units = ("K" if name == "ta" else "Pa" if name == "pabs" else
+                     "kg kg-1" if name == "qv" else "m s-1" if name.startswith("ws_")
+                     else "W m-2")
+            var = ds.createVariable(name, "f4", ("x", "y", "time"))
+            data = np.full((2, 2, n_times), value, dtype=np.float32)
+            if name == "ta":
+                data[1, 1, :] = np.nan  # one cell with unusable input
+            var[:] = data
+            var.units = units
+        ds.model_name = "GENERIC"
+
 
     def test_slight_supersaturation_is_capped_and_flagged(self):
         import json
@@ -287,6 +330,51 @@ class TestComfortFiles(unittest.TestCase):
                 self.assertEqual(int(ds["validity_flags"][0, 0, 0]) & 1, 1)
                 self.assertEqual(float(ds["pet"][0, 0, 0]), float(ds["pet"]._FillValue))
 
+
+    def test_accepts_relaxed_files_with_arbitrary_record_counts(self):
+        import json
+        with TemporaryDirectory() as tmp:
+            source = Path(tmp) / "relaxed.nc"
+            _generic_exchange(source, n_times=3)
+            output = calculate_indices(source)
+            with Dataset(output) as ds:
+                ds.set_auto_mask(False)
+                self.assertEqual(len(ds.dimensions["time"]), 3)
+                # derived mask excludes the cell with nonfinite input
+                np.testing.assert_array_equal(ds["pedestrian_mask"][:],
+                                              [[1, 1], [1, 0]])
+                self.assertNotEqual(float(ds["mrt"][0, 0, 0]),
+                                    float(ds["mrt"]._FillValue))
+                self.assertEqual(float(ds["mrt"][1, 1, 0]),
+                                 float(ds["mrt"]._FillValue))
+                counts = json.loads(ds.validity_counts)
+                self.assertEqual(counts["invalid_input"], 0)
+
+    def test_flags_nonphysical_cells_instead_of_refusing(self):
+        import json
+        with TemporaryDirectory() as tmp:
+            source = Path(tmp) / "relaxed.nc"
+            _generic_exchange(source, n_times=2)
+            with Dataset(source, "r+") as ds:
+                ds["pabs"][0, 1, :] = -5.0  # nonphysical pressure in one cell
+            output = calculate_indices(source)
+            with Dataset(output) as ds:
+                ds.set_auto_mask(False)
+                self.assertEqual(int(ds["validity_flags"][0, 1, 0]) & 64, 64)
+                self.assertEqual(float(ds["mrt"][0, 1, 0]), float(ds["mrt"]._FillValue))
+                self.assertTrue(np.isfinite(ds["mrt"][0, 0, 0]))
+                counts = json.loads(ds.validity_counts)
+                self.assertGreater(counts["invalid_input"], 0)
+
+    def test_accepts_full_protocol_files_unchanged(self):
+        with TemporaryDirectory() as tmp:
+            source = Path(tmp) / "exchange.nc"
+            _exchange(source)
+            output = calculate_indices(source, output_path=Path(tmp) / "out.nc")
+            with Dataset(output) as ds:
+                ds.set_auto_mask(False)
+                self.assertTrue(np.isfinite(ds["mrt"][0, 0, 0]))
+
     def test_beyond_tolerance_supersaturation_stays_invalid(self):
         with TemporaryDirectory() as tmp:
             source = Path(tmp) / "exchange.nc"
@@ -313,12 +401,17 @@ class TestComfortFiles(unittest.TestCase):
                 self.assertEqual(int(ds["validity_flags"][0, 0, 0]) & 2, 2)
                 self.assertTrue(np.isfinite(ds["pet"][0, 0, 0]))
 
-    def test_rejects_direct_beam_below_horizon(self):
+    def test_direct_beam_below_horizon_flags_the_cell(self):
         with TemporaryDirectory() as tmp:
             source = Path(tmp) / "exchange.nc"
             _exchange(source)
             with Dataset(source, "r+") as ds:
                 ds["solar_zenith"][0] = np.pi / 2
                 ds["sw_direct_normal"][0, 1, 0] = 100.
-            with self.assertRaisesRegex(ValueError, "Direct shortwave"):
-                calculate_indices(source)
+            output = calculate_indices(source)
+            with Dataset(output) as ds:
+                ds.set_auto_mask(False)
+                # inconsistent cell flagged and filled; the rest computed
+                self.assertEqual(int(ds["validity_flags"][0, 1, 0]) & 64, 64)
+                self.assertEqual(float(ds["mrt"][0, 1, 0]), float(ds["mrt"]._FillValue))
+                self.assertTrue(np.isfinite(ds["mrt"][0, 0, 0]))

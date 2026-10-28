@@ -6,7 +6,8 @@ separate in `udcomf`:
 1. `udales_to_comfort.py` reads saved uDALES results and writes one strict,
    model-neutral exchange file per receptor height.
 2. `calculate_indices.py` reads exchange files from uDALES or another model and
-   calculates MRT, PET, UTCI, and WBGT with the same protocol.
+   calculates MRT, PET, UTCI, and WBGT with one shared set of person and
+   sensor parameters.
 
 Neither script runs the LES. The first script reuses saved uDALES statistics,
 facet energy-balance output, shortwave forcing, longwave forcing, geometry,
@@ -32,7 +33,7 @@ arrays:
 import numpy as np
 
 np.savez_compressed(
-    "paris_georeference.npz",
+    "city_georeference.npz",
     x=projected_model_x_centres,          # (nx,)
     y=projected_model_y_centres,          # (ny,)
     x_bounds=projected_model_x_bounds,    # (nx, 2)
@@ -48,7 +49,7 @@ the placeholders below are not defaults:
 
 ```json
 {
-  "georeference_npz": "paris_georeference.npz",
+  "georeference_npz": "city_georeference.npz",
   "crs_attributes": {
     "grid_mapping_name": "<verified CF grid mapping name>",
     "crs_wkt": "<complete WKT describing the projected model axes>"
@@ -58,8 +59,8 @@ the placeholders below are not defaults:
   "institution": "<contributing institution>",
   "building_representation": "<actual IBM and facet representation>",
   "terrain_convention": "<actual flat-ground convention>",
-  "spinup_start_utc": "2023-08-20T18:00:00Z",
-  "spinup_end_utc": "2023-08-21T00:00:00Z"
+  "spinup_start_utc": "2025-06-20T18:00:00Z",
+  "spinup_end_utc": "2025-06-21T00:00:00Z"
 }
 ```
 
@@ -76,11 +77,11 @@ the inputs documented in `tools/python/udcomf/README.md`.
 
 ```bash
 PY=tools/python/.venv/bin/python
-CASE=/home/dipanjan/simulation/udtest/experiments/305
+CASE=/path/to/experiments/1
 
 $PY tools/python/examples/thermal_comfort/udales_to_comfort.py \
   --case-dir "$CASE" \
-  --analysis-day 2023-08-21 \
+  --analysis-day 2025-06-21 \
   --metadata "$CASE/thermal_comfort_metadata.json" \
   --statistics-source stats_kslice \
   --tile-size 256 \
@@ -99,11 +100,11 @@ For warm-started facet output, repeat `--facet-source` for each source case or
 ```bash
 $PY tools/python/examples/thermal_comfort/udales_to_comfort.py \
   --case-dir "$CASE" \
-  --analysis-day 2023-08-21 \
+  --analysis-day 2025-06-21 \
   --metadata "$CASE/thermal_comfort_metadata.json" \
-  --facet-source "$CASE/facEB.312.nc" \
-  --facet-source "$CASE/facEB.313.nc" \
-  --facet-source "$CASE/facEB.314.nc"
+  --facet-source "$CASE/facEB.2.nc" \
+  --facet-source "$CASE/facEB.3.nc" \
+  --facet-source "$CASE/facEB.4.nc"
 ```
 
 When the pedestrian atmosphere and both radiation files already exist and
@@ -112,7 +113,7 @@ have passed their earlier checks, assemble only the exchange files with:
 ```bash
 $PY tools/python/examples/thermal_comfort/udales_to_comfort.py \
   --case-dir "$CASE" \
-  --analysis-day 2023-08-21 \
+  --analysis-day 2025-06-21 \
   --metadata "$CASE/thermal_comfort_metadata.json" \
   --skip-atmosphere \
   --skip-radiation
@@ -124,7 +125,7 @@ For a long headless radiation run:
 LOG="$CASE/udcomf_postprocess.log"
 nohup "$PY" -u tools/python/examples/thermal_comfort/udales_to_comfort.py \
   --case-dir "$CASE" \
-  --analysis-day 2023-08-21 \
+  --analysis-day 2025-06-21 \
   --metadata "$CASE/thermal_comfort_metadata.json" \
   --statistics-source stats_kslice \
   > "$LOG" 2>&1 < /dev/null &
@@ -147,7 +148,7 @@ model. With the documented default person and sensor parameters:
 
 ```bash
 $PY tools/python/examples/thermal_comfort/calculate_indices.py \
-  "$CASE/thermal_comfort_inputs_udales.h1p1.305.nc"
+  "$CASE/thermal_comfort_inputs_udales.h1p1.1.nc"
 ```
 
 Several model or height files can be processed together. Each output is placed
@@ -155,7 +156,7 @@ beside its input:
 
 ```bash
 $PY tools/python/examples/thermal_comfort/calculate_indices.py \
-  outputs/thermal_comfort_inputs_udales.h1p1.305.nc \
+  outputs/thermal_comfort_inputs_udales.h1p1.1.nc \
   outputs/thermal_comfort_inputs_palm.h1p1.nc \
   outputs/thermal_comfort_inputs_urbclim.h1p1.nc
 ```
