@@ -37,6 +37,16 @@ def z_grid_from_profile(zt: np.ndarray, zsize: float) -> Tuple[np.ndarray, np.nd
     faces[0] = 0.0
     for k, centre in enumerate(zt):
         faces[k + 1] = 2.0 * centre - faces[k]
+    if np.any(np.diff(faces) <= 0):
+        import warnings
+
+        warnings.warn(
+            "profile centres do not describe a valid solver grid: the face "
+            "recursion yields non-increasing faces. The solver would derive "
+            "the same broken spacings from this prof.inp.",
+            RuntimeWarning,
+            stacklevel=2,
+        )
     if zsize > 0 and abs(faces[-1] - zsize) > 1e-6 * zsize:
         import warnings
 

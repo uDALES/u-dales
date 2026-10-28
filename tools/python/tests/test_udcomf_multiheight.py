@@ -22,7 +22,7 @@ def _case(root: Path, *, omit_second_level: bool = False) -> UDBase:
         encoding="ascii",
     )
     (case / "prof.inp.001").write_text(
-        "# profile\n# z thl\n0.75 300\n2.25 300\n9.75 300\n11.25 300\n",
+        "# profile\n# z thl\n0.75 300\n2.25 300\n5.25 300\n9.75 300\n",
         encoding="ascii",
     )
     sim = UDBase(1, case, load_geometry=False, suppress_load_warnings=True)
