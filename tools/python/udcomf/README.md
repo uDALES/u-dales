@@ -315,8 +315,9 @@ front-facing STL facet, unobstructed sky, or opaque unmeshed model ground.
 Projected weights for each receiving plane are normalized so constant radiance
 integrates exactly. This removed a 0.1255 K warm MRT bias in the default
 uniform-enclosure test; checkpoint manifest version 2 prevented mixing results
-from before and after that correction, and version 3 adds the per-receptor
-ray-source counters below.
+from before and after that correction, version 3 adds the per-receptor
+ray-source counters below, and version 4 records the direct-beam
+body-sampling settings.
 
 STL orientation is verified against `facets.inp` normals at load time, and the
 check is mandatory: visibility queries refuse to run when the facet normals
@@ -780,7 +781,11 @@ assumes an isotropic upper sky with radiance `dsky / pi`. A ray from the recepto
 sees the first front-facing facet, unobstructed sky, or opaque unmeshed ground.
 The six `sw_nondirect_*face` fields integrate sky diffuse and reflected facet
 radiance over each receiving hemisphere. `sw_direct_normal` is DNI when the
-sun ray is clear and zero when shaded or below the horizon. Direct beam is
+sun ray is clear and zero when shaded or below the horizon. With
+`sun_body_points > 1` the sun ray is instead tested at several heights spread
+over `sun_body_height` around the receptor, and `sw_direct_normal` becomes
+the body-sampled sunlit fraction of DNI - partial shading at shadow edges
+rather than all or none. Direct beam is
 never added to a non-direct field. Outputs are irradiance in W m-2, not power
 multiplied by facet area.
 

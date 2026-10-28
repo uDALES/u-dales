@@ -10,6 +10,7 @@ validation against measurements.
 |---|---|
 | Wind interpolation at several receptor heights | `test_udcomf_multiheight.py` checks scalar interpolation, saved `ws_local` height selection, `ws_10`, full statistics and k-slice inputs. |
 | Nighttime and blocked direct radiation | `test_udcomf_shortwave.py` and `test_udcomf_thermalcomfort.py` check sun visibility, wall shading, direct/non-direct separation and rejection of direct irradiance below the horizon. |
+| Body-sampled direct-beam fraction | `test_udcomf_radiation.py` checks the sunlit-fraction limits (0 and 1), a partial fraction against a finite wall, and the below-horizon case. |
 | Open sky and uniform-temperature enclosure | `test_udcomf_shortwave.py`, `test_udcomf_longwave.py` and `test_udcomf_thermalcomfort.py` check analytical open-sky, ground and enclosure limits. |
 | Radiation sign and energy consistency | Shortwave tests check albedo conversion and analytical plane irradiance; longwave tests check sky/facet partitioning and uniform emission. Negative source fluxes are rejected. |
 | Mesh orientation and unknown ray sources | `test_udcomf_radiation.py` checks that visibility queries reject a case without `facets.inp` normals and distinguish back-face hits from unmeshed ground; `test_udcomf_checkpoints.py` checks the hourly files' `n_backface_rays`/`n_unmeshed_ground_rays` diagnostics and totals. |

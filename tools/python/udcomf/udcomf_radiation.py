@@ -367,6 +367,36 @@ class UDComfRadiation:
         direction = nsun_from_angles(float(zenith), float(azimuth_local))
         return bool(self.sky_visibility(point, direction[None, :])[0])
 
+    def direct_solar_fraction(
+        self, point: np.ndarray, zenith: float, azimuth_local: float,
+        *, sun_body_points: int = 1, sun_body_height: float = 2.0,
+    ) -> float:
+        """Sunlit fraction of a vertical body centred on the receptor.
+
+        One sample reproduces the binary receptor-point test. Several samples
+        test the sun ray at heights spread uniformly over ``sun_body_height``
+        around the receptor, so a body standing at a shadow edge receives the
+        partially shaded fraction of the direct beam instead of all or none.
+        """
+        point = self._point(point)
+        n = operator.index(sun_body_points)
+        if n < 1:
+            raise ValueError("sun_body_points must be at least 1")
+        if not np.isfinite(sun_body_height) or sun_body_height <= 0:
+            raise ValueError("sun_body_height must be positive")
+        if not np.isfinite(zenith) or not np.isfinite(azimuth_local):
+            raise ValueError("Solar angles must be finite")
+        if not 0 <= zenith < 90:
+            return 0.0
+        if n == 1:
+            return float(self.direct_solar_visibility(point, zenith, azimuth_local))
+        direction = nsun_from_angles(float(zenith), float(azimuth_local))
+        clear = 0
+        for dz in np.linspace(-0.5, 0.5, n) * sun_body_height:
+            sample = np.array([point[0], point[1], max(point[2] + dz, 1.0e-3)])
+            clear += int(self.sky_visibility(sample, direction[None, :])[0])
+        return clear / n
+
     def load_shortwave_state(self, time_index: int) -> ShortwaveState:
         """Read one preprocessing timestamp through UDBase's existing loaders."""
         index = operator.index(time_index)
@@ -490,6 +520,7 @@ class UDComfRadiation:
         self, point: np.ndarray, state: ShortwaveState,
         directions: np.ndarray, projected_weights: np.ndarray,
         sources: np.ndarray | None = None,
+        sun_body_points: int = 1, sun_body_height: float = 2.0,
     ) -> dict[str, float]:
         point = self._point(point)
         if getattr(self.sim, "ltrees", False):
@@ -531,10 +562,11 @@ class UDComfRadiation:
             f"sw_nondirect_{name}": float(value)
             for name, value in zip(_PLANE_NAMES, irradiances)
         }
-        result["sw_direct_normal"] = (
-            float(state.dni) if state.dni > 0 and self.direct_solar_visibility(
-                point, state.zenith, state.azimuth_local
-            ) else 0.0
+        result["sw_direct_normal"] = float(state.dni) * (
+            self.direct_solar_fraction(
+                point, state.zenith, state.azimuth_local,
+                sun_body_points=sun_body_points, sun_body_height=sun_body_height,
+            ) if state.dni > 0 else 0.0
         )
         return result
 
@@ -542,6 +574,7 @@ class UDComfRadiation:
         self, point: np.ndarray, state: ShortwaveState,
         *, n_mu: int = 8, n_azimuth: int = 32,
         ray_map: ShortwaveRayMap | None = None,
+        sun_body_points: int = 1, sun_body_height: float = 2.0,
     ) -> dict[str, float]:
         """Return seven irradiances [W m-2] at one fluid receptor.
 
@@ -560,6 +593,7 @@ class UDComfRadiation:
         return self._shortwave_at_receptor(
             point, state, directions, projected_weights,
             sources=ray_map.sources if ray_map is not None else None,
+            sun_body_points=sun_body_points, sun_body_height=sun_body_height,
         )
 
     def shortwave_plane(
@@ -714,6 +748,7 @@ class UDComfRadiation:
         self, point: np.ndarray, kind: str, used: np.ndarray,
         exitance: np.ndarray, sky: np.ndarray, forcing: dict,
         projected_weights: np.ndarray, n_mu: int, n_azimuth: int,
+        sun_body_points: int = 1, sun_body_height: float = 2.0,
     ) -> tuple[np.ndarray, tuple[int, int]]:
         ray_map = self.trace_shortwave_rays(point, n_mu=n_mu, n_azimuth=n_azimuth)
         sources = ray_map.sources
@@ -740,17 +775,17 @@ class UDComfRadiation:
             (forcing["dni"][used] > 0) & (forcing["solar_zenith"][used] < 90)
         )
         if daylight.size:
-            sun_dirs = np.stack([
-                nsun_from_angles(
+            fractions = np.array([
+                self.direct_solar_fraction(
+                    point,
                     float(forcing["solar_zenith"][used[i]]),
                     float(forcing["solar_azimuth_local"][used[i]]),
+                    sun_body_points=sun_body_points,
+                    sun_body_height=sun_body_height,
                 )
                 for i in daylight
             ])
-            direct[daylight] = (
-                forcing["dni"][used[daylight]]
-                * self.sky_visibility(point, sun_dirs)
-            )
+            direct[daylight] = forcing["dni"][used[daylight]] * fractions
         return np.vstack((direct, nondirect)), (n_backface, n_ground)
 
     def write_hourly(
@@ -762,6 +797,8 @@ class UDComfRadiation:
         tile_size: int = 256,
         n_mu: int = 8,
         n_azimuth: int = 32,
+        sun_body_points: int = 1,
+        sun_body_height: float = 2.0,
         max_gap: float | None = None,
         resume: bool = True,
         overwrite: bool = False,
@@ -785,6 +822,11 @@ class UDComfRadiation:
         tile_size = operator.index(tile_size)
         n_mu = operator.index(n_mu)
         n_azimuth = operator.index(n_azimuth)
+        sun_body_points = operator.index(sun_body_points)
+        if sun_body_points < 1:
+            raise ValueError("sun_body_points must be at least 1")
+        if not np.isfinite(sun_body_height) or sun_body_height <= 0:
+            raise ValueError("sun_body_height must be positive")
         if tile_size <= 0:
             raise ValueError("tile_size must be positive")
         _, projected_weights = self._plane_geometry(n_mu, n_azimuth)
@@ -838,7 +880,7 @@ class UDComfRadiation:
             else [case / f"facEB.{expnr}.nc", case / f"timedeplw.inp.{expnr}"]
         )
         manifest = {
-            "version": 3,
+            "version": 4,
             "kind": kind,
             "case": str(case.resolve()),
             "receptor_height_m": float(grid.z.flat[0]),
@@ -848,6 +890,8 @@ class UDComfRadiation:
             "tile_size": tile_size,
             "n_mu": n_mu,
             "n_azimuth": n_azimuth,
+            "sun_body_points": sun_body_points,
+            "sun_body_height_m": float(sun_body_height),
             "target_times_s": [window.end for window in windows],
             "window_duration_s": 900.0,
             "max_source_gap_s": gap,
@@ -886,6 +930,8 @@ class UDComfRadiation:
                         series, counts_row = self._source_series(
                             point, kind, used, exitance, sky, forcing,
                             projected_weights, n_mu, n_azimuth,
+                            sun_body_points=sun_body_points,
+                            sun_body_height=sun_body_height,
                         )
                         ray_counts[row] = counts_row
                         for time_index, tile_values in values.items():
@@ -911,6 +957,8 @@ class UDComfRadiation:
         tile_size: int = 256,
         n_mu: int = 8,
         n_azimuth: int = 32,
+        sun_body_points: int = 1,
+        sun_body_height: float = 2.0,
         max_gap: float | None = None,
         resume: bool = True,
         overwrite: bool = False,
@@ -949,6 +997,7 @@ class UDComfRadiation:
                     output_path=directory / f"pedestrian_{kind}.{tag}.{self.sim.expnr}.nc",
                     checkpoint_dir=checkpoints / kind / tag,
                     tile_size=tile_size, n_mu=n_mu, n_azimuth=n_azimuth,
+                    sun_body_points=sun_body_points, sun_body_height=sun_body_height,
                     max_gap=max_gap, resume=resume, overwrite=overwrite,
                 )
         return results

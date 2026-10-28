@@ -124,6 +124,23 @@ class TestVisibility(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "barycentric_samples"):
             radiation.facet_sample_visibility(point, np.array([near[0]]), np.array([[1, 1, 0]]))
 
+    def test_direct_solar_fraction_samples_the_body(self):
+        radiation = UDComfRadiation(_case(self._two_walls()))
+        point = np.array([0.0, 0.0, 1.0])
+        # single sample reproduces the binary point test
+        self.assertEqual(radiation.direct_solar_fraction(point, 60.0, 0.0), 0.0)
+        self.assertEqual(radiation.direct_solar_fraction(point, 60.0, 180.0), 1.0)
+        # a 2 m body against a 2 m wall: only the top sample clears it
+        fraction = radiation.direct_solar_fraction(
+            point, 60.0, 0.0, sun_body_points=3, sun_body_height=2.0
+        )
+        self.assertAlmostEqual(fraction, 1.0 / 3.0)
+        self.assertEqual(
+            radiation.direct_solar_fraction(point, 95.0, 0.0, sun_body_points=3), 0.0
+        )
+        with self.assertRaises(ValueError):
+            radiation.direct_solar_fraction(point, 60.0, 0.0, sun_body_points=0)
+
     def test_requires_loaded_mesh_when_stl_is_configured(self):
         sim = _case()
         sim.stl_file = "city.stl"
