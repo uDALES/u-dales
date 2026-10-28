@@ -45,6 +45,19 @@ created before this correction cannot be mixed with normalized results;
 version 3 adds per-tile ray-source count checkpoints for the
 `n_backface_rays`/`n_unmeshed_ground_rays` diagnostics.
 
+The angular quadrature has also been cross-checked against exact
+view-factor integration (View3D, finite 0.5 m receptor faces with full
+obstruction) at sixteen receptors in a dense real-city geometry, using
+identical facet exitance and isotropic sky sources with the direct beam
+excluded. In deeply obstructed courtyards (sky-view fractions near 0.03) the
+diffuse mean radiant temperature agrees within 0.4 K at the default 8x32
+quadrature and within 0.15 K at 16x64, converging toward the view-factor
+result with refinement. At open sites the remaining difference is dominated
+by the reference's own finite view-factor cull radius rather than by
+quadrature error: the ray method sees the true distant skyline. For work
+requiring better than ~0.5 K in strongly obstructed scenes, 16x64 is
+recommended over the default.
+
 ### PET and UTCI
 
 The published `pythermalcomfort` examples are retained as fixed regression
