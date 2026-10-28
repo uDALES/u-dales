@@ -26,7 +26,7 @@
 !> Advection redirection function
    module initfac
       use mpi
-      use modglobal, only : ifinput, nfcts, cexpnr, libm, bldT, flrT, rsmin, wsoil, wfc, &
+      use modglobal, only : ifinput, nfcts, cexpnr, libm, bldT, flrT, waterT, rsmin, wsoil, wfc, &
                            nfaclyrs, lEB, lvfsparse, nnz, lfacTlyrs, lwritefac
       use modmpi,   only : myid, comm3d, mpierr, MY_REAL, nprocs, cmyid
       use netcdf
@@ -37,6 +37,7 @@
       !integer, allocatable :: block(:, :) !block coordinates and facet Nr corresponding to block faces
       !facet properties
       logical, allocatable :: faclGR(:) !logic array, is it a green (vegetated) facet?
+      logical, allocatable :: facwater(:) !logic array, is it a water-body facet (walltype in (-30,-20])?
       real, allocatable    :: facz0(:) !roughness for momentum on facets
       real, allocatable    :: facz0h(:) !roughness for heat and moisture on facets
       real, allocatable    :: facalb(:) !facet shortwave albedo
@@ -115,6 +116,7 @@
         allocate (facz0h(0:nfcts)); facz0h = 0.
         allocate (faca(0:nfcts)); faca = 0.
         allocate (faclGR(0:nfcts)); faclGR = .false.
+        allocate (facwater(0:nfcts)); facwater = .false.
 
         ! only used by SEB
         if (myid==0) then
@@ -214,6 +216,7 @@
               do n = 1, nfcts
                 i = typeloc(facets(n))
                 faclGR(n) = (abs(factypes(i, 2) - 1.00) < 1.0D-5) !logic for green surface, conversion from real to logical
+                facwater(n) = (facets(n) <= -20) .and. (facets(n) > -30) !water bodies: reserved walltype band
                 facz0(n) = factypes(i, 3)  !surface momentum roughness
                 facz0h(n) = factypes(i, 4) !surface heat & moisture roughness
                 !facalb(n) = factypes(i, 5) !surface shortwave albedo
@@ -348,11 +351,21 @@
                  end do
                  facT(0, nfaclyrs+1) = 299.
 
+                 ! water columns start isothermal at the anchor temperature
+                 if (waterT < 0.) waterT = flrT
+                 do n = 1, nfcts
+                    if (facwater(n)) then
+                       facT(n, :) = waterT
+                    end if
+                 end do
+
                  ! assign initial soil moisture for outermost layer
                  do n = 1, nfcts
                     facqsat(n) = qsat(facT(n,1))
                     if (faclGR(n)) then
                        fachurel(n) = 0.5*(1. - cos(3.14159*wsoil/wfc))
+                    else if (facwater(n)) then
+                       fachurel(n) = 1. !open water: saturated surface
                     end if
                  end do
 
@@ -366,6 +379,7 @@
             call MPI_BCAST(facets, nfcts, MPI_Integer, 0, comm3d, mpierr)
             call MPI_BCAST(facnorm, nfcts*3, MY_REAL, 0, comm3d, mpierr)
             call MPI_BCAST(faclGR(0:nfcts), nfcts + 1, mpi_logical, 0, comm3d, mpierr)
+            call MPI_BCAST(facwater(0:nfcts), nfcts + 1, mpi_logical, 0, comm3d, mpierr)
 
             !call MPI_BCAST(facalb(0:nfcts), nfcts + 1, MY_REAL, 0, comm3d, mpierr)
             !call MPI_BCAST(facem(0:nfcts), nfcts + 1, MY_REAL, 0, comm3d, mpierr)

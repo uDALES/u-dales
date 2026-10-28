@@ -295,3 +295,5 @@ If `isolar = 3`, then the parameters are specified in a file containing weather 
 - `hour`. Default: 0.
 
 The solar parameters can also be varied in time using the `ltimedepsw` switch. This occurs on a timescale `dtSP`, which is equal to `dtEB` by default.
+
+Shortwave preprocessing also saves `shortwave_forcing.<expnr>.nc` in the case directory. Its `time` coordinate is seconds since `simulation_start`; `dni` is direct **normal** irradiance and `dsky` is diffuse **horizontal** sky irradiance, both in W/m^2. The file also records solar zenith and the local azimuth used by the facet calculation. The HARMONIE `ssrd` converter includes `ghi` (global horizontal irradiance); its `dni` and `dsky` are derived from `ghi` with the Erbs split, not separate native HARMONIE fields. The archive stores atmospheric inputs before shading and facet reflections and is for postprocessing, not an additional uDALES solver input.

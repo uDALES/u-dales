@@ -17,15 +17,26 @@ logdir/
 *.nc
 monitor*.txt
 outputs/
+
+# markdown files for testing
+test_sourcecode_full.md
+test_sourcecode_status.md
+tests/integration/input/test_sourcecode_full.md
+tests/integration/input/test_sourcecode_status.md
+tests/integration/input/test_roundtrip_default.md
+tests/integration/input/test_roundtrip_random.md
+
 examples/*/blocks.*.png
 tmp/*
 tools/python/examples/*.stl
 # Restart and driver files
 examples/*/init*
 examples/*/*driver*
+examples/*/blocks.*.png
 
 # bin directory
 bin/u-dales
+
 
 # macOS specific
 .DS_Store

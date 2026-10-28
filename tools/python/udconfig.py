@@ -16,6 +16,7 @@ NAMOPTIONS_SCALAR_DEFAULTS: Dict[str, Any] = {
     "lscasrcr": False,
     "nscasrc": 0,
     "nscasrcl": 0,
+    "receptor_height": 1.1,
 }
 
 
