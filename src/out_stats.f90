@@ -41,7 +41,8 @@ module stats
   use modsubgrid, only : ekh, ekm
   use modthermodynamics, only : air_temperature, relative_humidity
   use vegetation, only : veg, vegp, npts_u, npts_v, npts_w, ijk_u, ijk_v, ijk_w, veg_up, veg_vp, veg_wp
-  use modmpi,     only : cmyidx, cmyidy, myid, myidx, myidy, spatial_avg
+  use modmpi,     only : cmyidx, cmyidy, myid, myidx, myidy, spatial_avg, mpierr
+  use mpi
   use decomp_2d,  only : zstart, zend
   use modstat_nc, only : ncinfo, open_nc, define_nc, writestat_dims_nc, writestat_nc, &
                          writeoffset, writeoffset_2d, writeoffset_1dx, &
@@ -401,7 +402,8 @@ module stats
           write(*,*) "You have used runtime = ", runtime, ", btime = ", btime, ", tstatstart = ", tstatstart, ", and &
                      &tstatsdump = ", tstatsdump
           write(*,*) "Either correct the time settings or change all time-averaged stats writing flags to false."
-          stop 1
+          !abort every rank: a bare STOP inside a rank-0 guard leaves the other ranks alive until walltime
+          call MPI_ABORT(MPI_COMM_WORLD, 1, mpierr)
         end if
       end if
       

@@ -104,7 +104,8 @@ module instant
                       &runtime+btime must be greater than tinstantstart for wiriting instantaneous output files."
           write(*,*) "Curent setting: runtime = ", runtime, ", btime = ", btime, ", tinstantstart = ", tinstantstart
           write(*,*) "Either correct the time settings or change all the instantaneous output flags to false."
-          stop 1
+          !abort every rank: a bare STOP inside a rank-0 guard leaves the other ranks alive until walltime
+          call MPI_ABORT(MPI_COMM_WORLD, 1, mpierr)
         end if
       end if
 
@@ -1861,7 +1862,8 @@ module instant
       if (nvars == 0) then
         if(myid==0) then
           print *, "ERROR: no '", trim(var_name), "' entries found, although ", trim(var_flag), " are set to true !!"
-          stop 1
+          !abort every rank: a bare STOP inside a rank-0 guard leaves the other ranks alive until walltime
+          call MPI_ABORT(MPI_COMM_WORLD, 1, mpierr)
         end if
       end if
     end subroutine instant_validate_output_vars
