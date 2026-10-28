@@ -27,7 +27,7 @@ program uDALES
   use mpi
   use modmpi,            only : initmpi,exitmpi,starttimer,myid
   use modglobal,         only : initglobal,rk3step,timeleft
-  use modglobal,         only : runmode,RUN_COLDSTART,RUN_WARMSTART,RUN_DRIVER,RUN_STRATSTART,TEST_ROUNDTRIP,TEST_IO,TEST_SPARSE_IJK,TEST_2DCOMP_INIT_EXIT,TEST_MPI_OPERATORS
+  use modglobal,         only : runmode,RUN_COLDSTART,RUN_WARMSTART,RUN_DRIVER,RUN_STRATSTART,TEST_ROUNDTRIP,TEST_IO,TEST_SPARSE_IJK,TEST_2DCOMP_INIT_EXIT,TEST_MPI_OPERATORS,TEST_ZGRID_METRICS
   use modstartup,        only : initrunparams,init2decomp,checkinitvalues,readinitfiles,exitmodules
   use modfields,         only : initfields
   use modsave,           only : writerestartfiles
@@ -60,7 +60,7 @@ program uDALES
 !     0.2     USE STATEMENTS FOR TESTS
 !------------------------------------------------------------------------------
   use tests,             only : tests_read_sparse_ijk,tests_2decomp_init_exit,tests_mpi_operators
-  use tests,             only : init_tests,tests_roundtrip,exit_tests
+  use tests,             only : init_tests,tests_roundtrip,exit_tests,tests_zgrid_metrics
 
   implicit none
 
@@ -291,6 +291,8 @@ contains
         test_failed = .not. tests_read_sparse_ijk()
       case (TEST_MPI_OPERATORS)
         test_failed = .not. tests_mpi_operators()
+      case (TEST_ZGRID_METRICS)
+        test_failed = .not. tests_zgrid_metrics()
       case (TEST_2DCOMP_INIT_EXIT)
         call tests_2decomp_init_exit
       case (TEST_IO)
