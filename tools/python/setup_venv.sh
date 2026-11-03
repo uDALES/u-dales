@@ -92,8 +92,8 @@ die() {
 
 check_python_version() {
     local python_cmd="$1"
-    if ! "$python_cmd" -c "import sys; sys.exit(0 if sys.version_info >= (3, 9) else 1)" >/dev/null 2>&1; then
-        die "Python 3.9 or newer is required (found $("$python_cmd" --version 2>&1))."
+    if ! "$python_cmd" -c "import sys; sys.exit(0 if sys.version_info >= (3, 10) else 1)" >/dev/null 2>&1; then
+        die "Python 3.10 or newer is required (found $("$python_cmd" --version 2>&1))."
     fi
 }
 
@@ -125,7 +125,7 @@ load_build_environment() {
             die "Environment modules are not available; cannot use build system 'ecmwf'."
         fi
         # Keep in sync with the ecmwf branch of tools/build_preprocessing.sh.
-        # /usr/bin/python3 on ECMWF is 3.6, below the 3.9 minimum.
+        # /usr/bin/python3 on ECMWF is 3.6, below the 3.10 minimum.
         module load prgenv/gnu gcc/14.2.0 python3/3.13.16-01 cmake/4.2.4
         export CC=gcc FC=gfortran
     fi

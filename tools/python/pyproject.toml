@@ -7,7 +7,7 @@ name = "udales-tools"
 version = "0.1.0"
 description = "uDALES Python pre/post-processing tools (udbase, udgeom, udprep, udvis)"
 readme = "README_VENV.md"
-requires-python = ">=3.9"
+requires-python = ">=3.10"
 license = { text = "GPL-3.0-or-later" }
 authors = [{ name = "the uDALES Team" }]
 # Core runtime dependencies and the optional Plotly backend / build tools are
