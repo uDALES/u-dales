@@ -127,6 +127,28 @@ def _sphere_quadrature(n_mu: int, n_azimuth: int) -> tuple[np.ndarray, np.ndarra
     return np.vstack(directions), np.concatenate(weights)
 
 
+def _nearest_hit(mesh, origin: np.ndarray, end: np.ndarray) -> tuple[np.ndarray, int] | None:
+    """Return the ``(point, facet)`` intersection of segment origin->end closest to origin.
+
+    ``ray_trace(first_point=True)`` only returns entry zero of VTK's hit list.
+    That entry was the nearest hit with the vtkOBBTree used by PyVista < 0.49,
+    but the vtkStaticCellLocator used from 0.49 on reports hits in an arbitrary
+    order (and no longer trims the cell list to one entry). Sort explicitly so
+    visibility does not depend on the library's traversal order.
+    """
+    points, cells = mesh.ray_trace(origin, end)
+    points = np.asarray(points, dtype=float).reshape(-1, 3)
+    if points.shape[0] == 0:
+        return None
+    cells = np.asarray(cells).reshape(-1)
+    if cells.shape[0] != points.shape[0]:
+        raise RuntimeError(
+            f"ray_trace returned {points.shape[0]} points but {cells.shape[0]} cells"
+        )
+    nearest = int(np.argmin(np.linalg.norm(points - np.asarray(origin, dtype=float), axis=1)))
+    return points[nearest], int(cells[nearest])
+
+
 class UDComfRadiation:
     """Use a loaded UDBase case for pedestrian geometry and visibility.
 
@@ -273,14 +295,15 @@ class UDComfRadiation:
                 16.0 * np.finfo(np.float32).eps * max(1.0, np.max(np.abs(end))),
             )
             trace_end = end + extension * unit
-        hits, hit_facets = mesh.ray_trace(origin, trace_end, first_point=True)
-        if len(hits) == 0:
+        hit = _nearest_hit(mesh, origin, trace_end)
+        if hit is None:
             return target_facet is None
         if sky:
             return False
+        hit_point, hit_facet = hit
         if target_facet is not None:
-            return int(hit_facets[0]) == target_facet
-        hit_distance = float(np.linalg.norm(np.asarray(hits).reshape(3) - start))
+            return hit_facet == target_facet
+        hit_distance = float(np.linalg.norm(hit_point - start))
         return hit_distance >= length - tolerance
 
     def sky_visibility(self, point: np.ndarray, directions: np.ndarray) -> np.ndarray:
@@ -470,17 +493,17 @@ class UDComfRadiation:
         distance = float(np.linalg.norm(far_corner) + 1.0)
         origin = point + 1.0e-7 * direction
         end = point + distance * direction
-        hits, hit_facets = mesh.ray_trace(origin, end, first_point=True)
-        if len(hits):
+        hit = _nearest_hit(mesh, origin, end)
+        if hit is not None:
+            hit_point, facet = hit
             if direction[2] < 0:
                 ground_distance = -point[2] / direction[2]
-                hit_distance = float(np.linalg.norm(np.asarray(hits).reshape(3) - point))
+                hit_distance = float(np.linalg.norm(hit_point - point))
                 precision = 16.0 * np.finfo(np.float32).eps * max(
                     1.0, np.max(np.abs(point)), ground_distance
                 )
                 if hit_distance > ground_distance + precision:
                     return _GROUND
-            facet = int(hit_facets[0])
             normal = np.asarray(self.sim.geom.stl.face_normals[facet], dtype=float)
             return facet if np.dot(normal, direction) < 0 else _BACKFACE
         return _SKY if direction[2] > 0 else _GROUND
