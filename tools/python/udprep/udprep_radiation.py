@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import os
+import time
 import warnings
 from datetime import datetime, timedelta
 from typing import TYPE_CHECKING, Any, Dict, List, Tuple
@@ -18,13 +20,18 @@ if TYPE_CHECKING:
     from .directshortwave import DirectShortwaveSolver
 from .solar import nsun_from_angles, solar_position_python, solar_state, solar_strength_ashrae
 from udgeom.view3d import (
+    ViewFactorRepairLimits,
+    ViewFactorRepairReport,
     compute_svf,
     read_view3d_output,
+    repair_view_factors,
     resolve_view3d_exe,
     run_view3d,
     stl_to_view3d,
+    validate_view_factors,
     write_svf,
     write_vf,
+    write_view_factor_repair_report,
     write_vfsparse,
 )
 
@@ -93,6 +100,15 @@ class RadiationSection(Section):
         self._vf_cache: Any | None = None
         self._svf_cache: np.ndarray | None = None
         self._vf_cache_key: tuple | None = None
+        self.view_factor_policy = os.environ.get(
+            "UDALES_VIEW_FACTOR_POLICY", "repair"
+        ).strip().lower()
+        if self.view_factor_policy not in {"repair", "strict"}:
+            raise ValueError(
+                "UDALES_VIEW_FACTOR_POLICY must be 'repair' or 'strict'; got "
+                f"{self.view_factor_policy!r}"
+            )
+        self.view_factor_repair_limits = ViewFactorRepairLimits()
         # (veg_data object, content token). The strong reference to the last
         # veg_data keeps its address alive so it cannot be recycled into a stale
         # solver key (P20: id() reuse after GC could silently reuse the solver).
@@ -324,6 +340,83 @@ class RadiationSection(Section):
 
         raise ValueError(f"Unsupported isolar value: {self.isolar}")
 
+    def _condition_view_factors(
+        self,
+        vf,
+        svf: np.ndarray | None = None,
+    ) -> tuple[Any, np.ndarray, ViewFactorRepairReport | None]:
+        """Validate or conservatively repair one View3D result."""
+        sim = self._require_sim()
+        areas = np.asarray(sim.geom.stl.area_faces, dtype=float)
+        if self.view_factor_policy == "strict":
+            sky = compute_svf(vf) if svf is None else np.asarray(svf, dtype=float)
+            validate_view_factors(
+                vf,
+                sky,
+                areas=areas,
+                reciprocity_tolerance=(
+                    self.view_factor_repair_limits.max_reciprocity_l1_relative
+                ),
+            )
+            return vf, sky, None
+
+        repaired, sky, report = repair_view_factors(
+            vf,
+            areas,
+            limits=self.view_factor_repair_limits,
+        )
+        return repaired, sky, report
+
+    def _view_factor_cache_key(
+        self,
+        stl_path: Path,
+        stl_mtime: float | None,
+        maxD: float,
+        nfacets: int,
+    ) -> tuple:
+        return (
+            str(stl_path),
+            stl_mtime,
+            self.view3d_out,
+            self.lvfsparse,
+            float(maxD),
+            nfacets,
+            self.view_factor_policy,
+            self.view_factor_repair_limits,
+        )
+
+    def _reload_and_validate_sparse_view_factors(
+        self,
+        vf_path: Path,
+        svf_path: Path,
+        nfacets: int,
+    ) -> tuple[Any, np.ndarray]:
+        """Validate the exact formatted sparse files that uDALES will read."""
+        sim = self._require_sim()
+        vf = read_view3d_output(vf_path, nfacets=nfacets, outformat=2)
+        svf = np.loadtxt(svf_path)
+        validate_view_factors(
+            vf,
+            svf,
+            areas=np.asarray(sim.geom.stl.area_faces, dtype=float),
+            reciprocity_tolerance=(
+                self.view_factor_repair_limits.max_reciprocity_l1_relative
+            ),
+        )
+        return vf, np.asarray(svf, dtype=float).reshape(-1)
+
+    @staticmethod
+    def _repair_warning(report: ViewFactorRepairReport, report_path: Path) -> str:
+        return (
+            "View3D open-domain closure repaired: "
+            f"{report.overfull_rows} overfull rows, maximum row sum "
+            f"{report.max_row_sum_before:.6g} -> "
+            f"{report.max_row_sum_after:.6g}, materially overfull facet area "
+            f"{report.materially_overfull_area_fraction:.3%}, removed exchange area "
+            f"{report.exchange_area_reduction_fraction:.3%}. "
+            f"Diagnostics: {report_path}"
+        )
+
     def calc_view_factors(self, maxD: float | None = None, force: bool = False):
         """
         Export geometry, run View3D, and load view factors + sky view factors.
@@ -368,6 +461,7 @@ class RadiationSection(Section):
         else:
             raise ValueError(f"Unsupported view3d_out: {self.view3d_out}")
         svf_path = out_dir / f"svf.inp.{sim.expnr}"
+        repair_report_path = out_dir / f"view3d_repair.{sim.expnr}.json"
         vfsparse_path = None
         vf_nc_path = None
         if self.view3d_out in (0, 1) and self.lvfsparse:
@@ -381,6 +475,7 @@ class RadiationSection(Section):
             "vf_nc": vf_nc_path,
             "svf": svf_path,
             "vfsparse": vfsparse_path,
+            "repair_report": repair_report_path,
         }
 
         stl_path = Path(sim.path) / sim.stl_file
@@ -389,7 +484,9 @@ class RadiationSection(Section):
         # Shared with calc_short_wave (same self._vf_cache storage): both cache
         # the identical (vf, svf) View3D result, so keep the key format identical
         # to let the two methods share entries. maxD is the validated per-call value.
-        cache_key = (str(stl_path), stl_mtime, self.view3d_out, self.lvfsparse, maxD, nfacets)
+        cache_key = self._view_factor_cache_key(
+            stl_path, stl_mtime, maxD, nfacets
+        )
         if self._vf_cache is not None and self._svf_cache is not None and self._vf_cache_key == cache_key:
             return self._vf_cache, self._svf_cache, paths
 
@@ -397,10 +494,48 @@ class RadiationSection(Section):
             print("[view3d] using existing output; external solver not run", flush=True)
             print(f"[view3d] facets: {nfacets}", flush=True)
             vf = read_view3d_output(vf_path, nfacets=nfacets, outformat=self.view3d_out)
-            svf = np.loadtxt(svf_path)
-            if vfsparse_path is not None and not vfsparse_path.exists():
-                write_vfsparse(vfsparse_path, vf, threshold=5e-7)
-            if vf_nc_path is not None and not vf_nc_path.exists():
+            stored_svf = np.loadtxt(svf_path)
+            vf, svf, repair_report = self._condition_view_factors(vf, stored_svf)
+            sky_changed = not np.allclose(
+                np.asarray(stored_svf).reshape(-1),
+                svf,
+                rtol=0.0,
+                atol=5.0e-8,
+            )
+            if repair_report is not None and repair_report.repaired:
+                if self.view3d_out == 2:
+                    write_vfsparse(vf_path, vf, threshold=0.0)
+                write_view_factor_repair_report(repair_report_path, repair_report)
+                warnings.warn(self._repair_warning(repair_report, repair_report_path))
+            if sky_changed or (repair_report is not None and repair_report.repaired):
+                write_svf(svf_path, svf)
+            print("[view3d] physical validation passed", flush=True)
+            if vfsparse_path is not None and (
+                not vfsparse_path.exists()
+                or (repair_report is not None and repair_report.repaired)
+            ):
+                write_vfsparse(
+                    vfsparse_path,
+                    vf,
+                    threshold=(
+                        0.0 if repair_report and repair_report.repaired else 5e-7
+                    ),
+                )
+            final_sparse_path = (
+                vf_path if self.view3d_out == 2 else vfsparse_path
+            )
+            if (
+                repair_report is not None
+                and repair_report.repaired
+                and final_sparse_path is not None
+            ):
+                vf, svf = self._reload_and_validate_sparse_view_factors(
+                    final_sparse_path, svf_path, nfacets
+                )
+            if vf_nc_path is not None and (
+                not vf_nc_path.exists()
+                or (repair_report is not None and repair_report.repaired)
+            ):
                 write_vf(vf_nc_path, vf.toarray())
             if vf_nc_path is not None and vf_path.exists():
                 vf_path.unlink()
@@ -431,11 +566,32 @@ class RadiationSection(Section):
         run_view3d(view3d_exe, vs3_path, vf_path, check=True, nfacets=nfacets)
 
         vf = read_view3d_output(vf_path, nfacets=nfacets, outformat=self.view3d_out)
-        svf = compute_svf(vf)
+        vf, svf, repair_report = self._condition_view_factors(vf)
+        if repair_report is not None and repair_report.repaired:
+            if self.view3d_out == 2:
+                write_vfsparse(vf_path, vf, threshold=0.0)
+            write_view_factor_repair_report(repair_report_path, repair_report)
+            warnings.warn(self._repair_warning(repair_report, repair_report_path))
+        else:
+            repair_report_path.unlink(missing_ok=True)
+        print("[view3d] physical validation passed", flush=True)
         write_svf(svf_path, svf)
 
         if vfsparse_path is not None:
-            write_vfsparse(vfsparse_path, vf, threshold=5e-7)
+            write_vfsparse(
+                vfsparse_path,
+                vf,
+                threshold=(0.0 if repair_report and repair_report.repaired else 5e-7),
+            )
+        final_sparse_path = vf_path if self.view3d_out == 2 else vfsparse_path
+        if (
+            repair_report is not None
+            and repair_report.repaired
+            and final_sparse_path is not None
+        ):
+            vf, svf = self._reload_and_validate_sparse_view_factors(
+                final_sparse_path, svf_path, nfacets
+            )
         if vf_nc_path is not None:
             write_vf(vf_nc_path, vf.toarray())
             if vf_path.exists():
@@ -561,16 +717,14 @@ class RadiationSection(Section):
         nfacets = sim.geom.stl.faces.shape[0]
         # Keep this key format identical to calc_view_factors: both share
         # self._vf_cache and cache the same (vf, svf), so a match must be comparable.
-        cache_key = (str(stl_path), stl_mtime, self.view3d_out, self.lvfsparse, float(maxD), nfacets)
+        cache_key = self._view_factor_cache_key(
+            stl_path, stl_mtime, float(maxD), nfacets
+        )
         if not force and self._vf_cache is not None and self._svf_cache is not None and self._vf_cache_key == cache_key:
             vf = self._vf_cache
             svf = self._svf_cache
         if vf is None or svf is None:
-            if not force and vf_path.exists() and svf_path.exists():
-                vf = read_view3d_output(vf_path, nfacets=nfacets, outformat=self.view3d_out)
-                svf = np.loadtxt(svf_path)
-            if vf is None or svf is None:
-                vf, svf, _ = self.calc_view_factors(maxD=maxD)
+            vf, svf, _ = self.calc_view_factors(maxD=maxD, force=force)
             self._vf_cache = vf
             self._svf_cache = svf
             self._vf_cache_key = cache_key
@@ -759,6 +913,7 @@ class RadiationSection(Section):
                     azimuth = float(azimuth_interp[n]) - self.xazimuth
                     nsun = nsun_from_angles(solarzenith, azimuth)
                     dsky = float(Dsky_interp[n])
+                    step_start = time.perf_counter()
                     sdir, knet, s_veg = self._compute_knet(
                         nsun,
                         irradiance,
@@ -770,6 +925,9 @@ class RadiationSection(Section):
                         vf,
                         svf,
                         fss,
+                    )
+                    self._print_timedep_shortwave_progress(
+                        n, nt, t_val, method, time.perf_counter() - step_start
                     )
                     sdir_all[:, n] = sdir
                     knet_all[:, n] = knet
@@ -786,6 +944,7 @@ class RadiationSection(Section):
                     and irradiance > 0.0
                     and abs(np.cos(np.radians(solarzenith))) >= _MIN_SUN_VERTICAL
                 ):
+                    step_start = time.perf_counter()
                     sdir, knet, s_veg = self._compute_knet(
                         nsun,
                         irradiance,
@@ -797,6 +956,9 @@ class RadiationSection(Section):
                         vf,
                         svf,
                         fss,
+                    )
+                    self._print_timedep_shortwave_progress(
+                        n, nt, t_val, method, time.perf_counter() - step_start
                     )
                     sdir_all[:, n] = sdir
                     knet_all[:, n] = knet
@@ -812,6 +974,21 @@ class RadiationSection(Section):
         if s_veg_all is not None:
             self.write_timedepsveg(tSP, s_veg_all)
         _write_sig(timedepsw_path, sw_sig)
+
+    @staticmethod
+    def _print_timedep_shortwave_progress(
+        index: int,
+        total: int,
+        model_time_seconds: float,
+        method: str,
+        wall_seconds: float,
+    ) -> None:
+        print(
+            f"[shortwave {index + 1:3d}/{total}] "
+            f"t={model_time_seconds:8.1f}s mode=direct "
+            f"method={method} wall={wall_seconds:.3f}s",
+            flush=True,
+        )
 
     def write_timedepsw(self, tSP: np.ndarray, knet: np.ndarray) -> None:
         """Write time-dependent net shortwave (timedepsw.inp.<expnr>)."""
@@ -1055,17 +1232,28 @@ class RadiationSection(Section):
         vf,
         svf: np.ndarray | None,
         fss: np.ndarray | None,
+        *,
+        timing: Dict[str, float] | None = None,
     ) -> Tuple[np.ndarray, np.ndarray, np.ndarray | None]:
+        if timing is not None:
+            direct_wall_start = time.perf_counter()
+            direct_cpu_start = time.process_time()
         sdir, s_veg, _ = self.calc_direct_sw(
             nsun,
             irradiance,
             method=method,
             resolution=resolution,
         )
+        if timing is not None:
+            timing["direct_wall_seconds"] = time.perf_counter() - direct_wall_start
+            timing["direct_cpu_seconds"] = time.process_time() - direct_cpu_start
         if method == "scanline_f2py":
             # MATLAB's Fortran route writes Sdir.txt with f8.2 and reads it
             # back before computing Knet, so use the same precision here.
             sdir = np.round(sdir, 2)
+        if timing is not None:
+            net_wall_start = time.perf_counter()
+            net_cpu_start = time.process_time()
         if lscatter:
             if vf is None or svf is None:
                 raise ValueError("View factors are required for shortwave reflections")
@@ -1074,6 +1262,9 @@ class RadiationSection(Section):
             if fss is None:
                 raise ValueError("Fss is required for non-scattering shortwave")
             knet = _radiation_compute.net_shortwave_nonscattering(sdir, dsky, fss, albedo)
+        if timing is not None:
+            timing["net_wall_seconds"] = time.perf_counter() - net_wall_start
+            timing["net_cpu_seconds"] = time.process_time() - net_cpu_start
         return sdir, knet, s_veg
 
     @staticmethod

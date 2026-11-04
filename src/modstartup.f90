@@ -1065,7 +1065,8 @@ module modstartup
             end do
          end do
 
-         do j = j, je
+         thv0 = 0.
+         do j = jb, je
             do i = ib, ie
                do k = kb, ke + kh
                   thv0(i, j, k) = (thl0(i, j, k) + rlv*ql0(i, j, k)/(cp)) &
@@ -1611,6 +1612,12 @@ module modstartup
             !write (*, *) "doing warmstart"
             call readrestartfiles
 
+            ! The restart files hold levels kb..ke+kh only; the ghost level kb-1 is used by
+            ! calc_halflev below (and by the cold start, which mirrors it), so set it here
+            ! instead of leaving uninitialised memory that can raise a floating-point trap.
+            thl0(:, :, kb - 1) = thl0(:, :, kb)
+            qt0(:, :, kb - 1)  = qt0(:, :, kb)
+
             ! average initial profiles
             call avexy_ibm(u_init(kb:ke+kh),u0(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,kh,IIu(ib:ie,jb:je,kb:ke+kh),IIus(kb:ke+kh),.false.)
             call avexy_ibm(v_init(kb:ke+kh),v0(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,kh,IIv(ib:ie,jb:je,kb:ke+kh),IIvs(kb:ke+kh),.false.)
@@ -1682,6 +1689,16 @@ module modstartup
             qtm = qt0
             svm = sv0 ! What if nsv=0?
             e12m = e120
+
+            ! Exchange the halos, as the cold start does once its fields are built.
+            ! The restart files carry the one-cell halo only; the outer cells of the
+            ! scalars (ihc = 2, and the kappa scheme reads i-2 on the upwind face) would
+            ! otherwise hold their allocation value until the loop's own exchange, which
+            ! runs after the first advection, so a warm start diverged from the run it
+            ! continued at the west boundary: by 1e-11 on a smooth scalar and 5e-5 once the
+            ! limiter had a rough field to switch on.
+            call halos
+
             ekm(:, :, :) = numol
             ekh(:, :, :) = numol*prandtlmoli !tg3315 added because wttop using ekh in modboundary which is called in startup
 
@@ -1747,7 +1764,8 @@ module modstartup
             end do
             end do
 
-            do j = j, je
+            thv0 = 0.
+            do j = jb, je
             do i = ib, ie
             do k = kb, ke + kh
                thv0(i, j, k) = (thl0(i, j, k) + rlv*ql0(i, j, k)/(cp)) &

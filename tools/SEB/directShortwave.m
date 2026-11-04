@@ -139,7 +139,11 @@ toc
 
 %% Find radiation
 Ap = histc(bw(:), 1:Nf) * delta^2;
-S = irradiance * Ap ./ A; % Radiation on facet (W/m2)
+S = zeros(Nf, 1);
+validArea = A > 0;
+S(validArea) = irradiance * Ap(validArea) ./ A(validArea);
+cosIncidence = min(max(N * nsun', 0), 1);
+S = min(max(S, 0), max(irradiance, 0) .* cosIncidence);
 %toc
 
 if show_plot_2d  

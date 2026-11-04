@@ -150,6 +150,7 @@ jobs:
       shell: bash -l {0}
       env:
         PYVISTA_OFF_SCREEN: "true"
+        MPLBACKEND: Agg
       run: xvfb-run -a python -m unittest discover -s tools/python/tests -p "test_udbase_vis.py"
 
   docs:
