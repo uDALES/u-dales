@@ -11,7 +11,8 @@ This list refers to the original code-base [DALES](https://github.com/dalesteam/
 | Name | Default | Possible values | Description | Unit |
 | ---- | ------- | --------------- | ----------- | ---- |
 | iexpnr | 000 | Three digit integer. | Experiment case number | - |
-| lwarmstart | .false. | .true. or .false. | If .true. simulation reads in restart file to initialize fields.  | - |
+| lwarmstart | .false. | .true. or .false. | If .true. the simulation continues from the restart set named by `startfile`: the `initd` flow fields, and by default also the `inits` scalar fields (`lreadscal`) and the `initf` facet state (`lreadfacT`). | - |
+| lstratstart | .false. | .true. or .false. | Read the flow fields from the restart set named by `startfile` as for a warm start, then overwrite the temperature and humidity profiles from `prof.inp.<expnr>`. Scalar and facet restart files are not read: scalars start from `scalar.inp.<expnr>` and facets from `Tfacinit*.inp.<expnr>`. | - |
 | startfile | '' | 'initd00001234_xxx_xxx.000'| Name of restart file, the last three digits should match iexpnr. | - |
 | lreadfacT | .true. | .true. or .false. | On a warm start, read the facet state (wall temperatures, soil moisture, humidity, energy-balance interval) from the matching `initf<ntrun>.<expnr>` restart file; `Tfacinit.inp.<expnr>` is then not read, and a missing or mismatched file aborts the run. Set to .false. to re-seed the facet temperatures from `Tfacinit.inp.<expnr>` (or `Tfacinit_layers.inp.<expnr>` with `lfacTlyrs`) instead. | - |
 | runtime | 300 | > 0 | Simulation time. | [s] |
@@ -228,6 +229,7 @@ BCs at the bottom (BCbot; only effective if not covered with ground facets): 1 =
 | GRLAI | 2. | `REAL` | Leaf area index of a green roof. | [m2/m2] |
 | rsmin | 110. | `REAL` | Minimum resistance of soil/plant. | [s/m] |
 | nfaclyrs | 3 | `INTEGER` | Number of layers making up each facet (nwalllayers in uDALES v1). | - |
+| lfacTlyrs | .false. | .true. or .false. | Initialise the temperature of every facet layer from `Tfacinit_layers.inp.<expnr>` (nfcts x nfaclyrs) instead of the surface value in `Tfacinit.inp.<expnr>` with a linear profile towards `bldT`/`flrT`. Applies to a cold start and to a warm start with `lreadfacT = .false.`; otherwise the facet state comes from the `initf` restart file and neither file is read. | - |
 | lvfsparse | .false. | .true. or .false. | Switch for view factors in sparse (text) format. | - |
 | nnz | 0 | `INTEGER` | Number of non-zero view factors (only used with sparse view factor format. | - |
 | lperiodicEBcorr | .false. | .true. or .false. | Switch for preventing over-heating and moisture saturation in periodic simualtions. | - |

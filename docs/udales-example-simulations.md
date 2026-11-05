@@ -431,7 +431,7 @@ startfile    = 'initd00000267_xxx_xxx.102'
 
 where the name of the `startfile` needs to match the name of the restart files (xxx instead of processor number).
 
-For a warmstart containing scalar concentration fields you need to additionally set
+The scalar fields are continued from the `inits` restart files by default (`lreadscal = .true.` in `&SCALARS`); set `lreadscal = .false.` to start them from `scalar.inp.102` instead. Facet state, when a case has facets with an energy balance or wall functions, is continued from the `initf` restart file in the same way (`lreadfacT`).
 
 #### Volume flow rate forcing in x
 
@@ -466,7 +466,7 @@ nscasrc      = 1
 lreadscal    = .true.
 ```
 
-Here `lreadscal` is necessary as we are running a warmstart.
+`lreadscal = .true.` is the default; it is written out here to make explicit that the scalar field is continued from the restart files rather than re-initialised.
 
 The position, strength and standard deviation of emission of the source are set by:
 
