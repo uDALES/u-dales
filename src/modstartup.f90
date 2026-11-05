@@ -2187,7 +2187,7 @@ module modstartup
          ifinput, nsv, dt, cexpnr, lreadmean, lreadminl, &
          totinletav, lreadscal, ltempeq, dzf, numol, prandtlmoli, &
          lreadfacT, nfcts, nfaclyrs, lEB, iwallmom, iwalltemp, iwallmoist, ifacrestartversion, &
-         tEB, tnextEB
+         tEB, tnextEB, lwarmstart
       use modmpi, only:cmyid, cmyidx, cmyidy, myid, comm3d, mpierr, my_real, mpi_logical
       use modsubgriddata, only:ekm
       use modinlet, only:zinterpolate1d, zinterpolatet1d, zinterpolatew1d, zinterpolate2d, &
@@ -2206,7 +2206,7 @@ module modstartup
       character(len(startfile)) :: name
       character(50) :: name2, name4
       character(50) :: namefac
-      logical :: lfacrestart = .false.
+      logical :: lfacrestart = .false., lscalrestart = .false.
       integer :: ifacversion, nfctsfile, nfaclyrsfile, iostatfac
       real :: timeefac, tEBfac, tnextEBfac
       real dummy
@@ -2238,17 +2238,23 @@ module modstartup
       close (ifinput)
       !write (6, *) 'finished loading ', name
 
-      if ((nsv > 0) .and. (lreadscal)) then
+      ! Scalar fields. On a warm start they are read from the inits restart set by
+      ! default (lreadscal); the file must exist, there is no fallback. With
+      ! lreadscal = .false. (or for lstratstart) sv0 keeps the scalar.inp profile that
+      ! readinitfiles assigned before calling this routine, i.e. the cold-start value.
+      if ((nsv > 0) .and. (lwarmstart) .and. (lreadscal)) then
          name(5:5) = 's'
-         !write (6, *) 'loading ', name
-         open (unit=ifinput, file=name, form='unformatted')
+         inquire (file=name, exist=lscalrestart)
+         if (.not. lscalrestart) then
+            write (0, *) 'ERROR: scalar restart file ', trim(name), ' not found.'
+            write (0, *) '       A warm start with nsv > 0 and lreadscal = .true. needs the inits files written with the initd set.'
+            write (0, *) '       Set lreadscal = .false. to start the scalars from scalar.inp.'//cexpnr//' instead.'
+            call MPI_ABORT(MPI_COMM_WORLD, 1, mpierr)
+         end if
+         open (unit=ifinput, file=name, form='unformatted', status='old')
          read (ifinput) ((((sv0(i, j, k, n), i=ib - ih, ie + ih), j=jb - jh, je + jh), k=kb, ke + kh), n=1, nsv)
          read (ifinput) timee
          close (ifinput)
-         !write (6, *) 'finished loading ', name
-      elseif ((nsv > 0) .and. (.not. lreadscal)) then
-         sv0 = 0.
-         svprof = 0.
       end if
 
       ! Read the facet state written by writerestartfiles. The facet arrays are global
@@ -2256,7 +2262,7 @@ module modstartup
       ! rank 0 and broadcast. With lreadfacT, readfacetfiles (called before readinitfiles
       ! in program.f90) has not read Tfacinit*.inp, so this is the only source of the
       ! facet state: a missing, mismatched or truncated file aborts the run.
-      if ((nfcts > 0) .and. (lreadfacT) .and. &
+      if ((nfcts > 0) .and. (lwarmstart) .and. (lreadfacT) .and. &
           ((lEB) .or. (iwalltemp == 2) .or. (iwallmom == 2) .or. (iwallmoist == 2))) then
          namefac = 'initf        .'
          namefac(6:13) = startfile(6:13)

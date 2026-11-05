@@ -86,8 +86,8 @@ module modglobal
    logical :: lwarmstart = .false. !<   flag for "cold" or "warm" start
    logical :: lstratstart = .false.
    logical :: lfielddump = .false. !< switch to enable the fielddump
-   logical :: lreadscal = .false. !<   flag for reading scalar pollutant field (warm start)
-   logical :: lreadfacT = .true. !<   flag for reading the facet state from the initf restart file (warm start)
+   logical :: lreadscal = .true. !<   warm start: read the scalar fields from the inits restart file (.false.: start them from scalar.inp)
+   logical :: lreadfacT = .true. !<   warm start: read the facet state from the initf restart file (.false.: re-seed from Tfacinit*.inp)
 
    !Switches for boundary conditions
    !momentum (m), temperature (T), humidity (q) and scalars (s)

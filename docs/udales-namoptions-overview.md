@@ -239,7 +239,7 @@ BCs at the bottom (BCbot; only effective if not covered with ground facets): 1 =
 | Name | Default | Possible values | Description | Unit |
 | ---- | ------- | --------------- | ----------- | ---- |
 | nsv | 0 | `INTEGER` > 0 | Number of passive scalars. | - |
-| lreadscal | .false. | .true., .false. | Switch for reading scalar pollutant field (warm start). *Deprecated, will be removed in the future.* | - |
+| lreadscal | .true. | .true., .false. | On a warm start with nsv > 0, read the scalar fields from the matching `inits<ntrun>_<px>_<py>.<expnr>` restart files; a missing file aborts the run. Set to .false. to start the scalars from `scalar.inp.<expnr>` instead. Ignored on a cold start. | - |
 | lscasrcr | .false. | .true., .false. |  Switch for 2-D network of point sources at lowest level as defined in scals.inp.xxx.  | - |
 | lscasrcl | .false. | .true., .false. |  Switch for passive scalar line source when using canyon geometry.  | - |
 | lscasrc | .false. | .true., .false. |  Switch for passive scalar point source defined by xS,yS,zS,SS,sigS. | - |
