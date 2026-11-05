@@ -42,6 +42,8 @@ module modstartup
    integer(KIND=selected_int_kind(6)) :: irandom = 43 !    * number to seed the randomizer with
    integer :: krand = huge(0)  ! returns the largest integer that is not an infinity
    real :: randu = 0.01, randthl = 0.0, randqt = 0.0 !    * uvw,thl and qt amplitude of randomization
+   logical :: lEBclockrestored = .false. ! readrestartfiles restored tEB/tnextEB from the initf file;
+                                         ! readinitfiles must then not re-anchor them at btime
 
    contains
 
@@ -2159,8 +2161,12 @@ module modstartup
       ntimee = nint(timee/dtmax)
       tnextrestart = btime + trestart
       tnextfielddump = btime + tfielddump
-      tEB = btime
-      tnextEB = btime + dtEB
+      if (.not. lEBclockrestored) then
+         ! cold start, or a warm start without the energy-balance interval state in
+         ! the initf file: the EB interval starts afresh at btime
+         tEB = btime
+         tnextEB = btime + dtEB
+      end if
       tfac = btime
       tnextfac = btime + dtfac
       deallocate (height, th0av)
@@ -2180,13 +2186,14 @@ module modstartup
       use modglobal, only:ib, ie, ih, jb, je, jh, kb, ke, kh, startfile, timee, totavtime, &
          ifinput, nsv, dt, cexpnr, lreadmean, lreadminl, &
          totinletav, lreadscal, ltempeq, dzf, numol, prandtlmoli, &
-         lreadfacT, nfcts, nfaclyrs, lEB, iwallmom, iwalltemp, iwallmoist, ifacrestartversion
+         lreadfacT, nfcts, nfaclyrs, lEB, iwallmom, iwalltemp, iwallmoist, ifacrestartversion, &
+         tEB, tnextEB
       use modmpi, only:cmyid, cmyidx, cmyidy, myid, comm3d, mpierr, my_real, mpi_logical
       use modsubgriddata, only:ekm
       use modinlet, only:zinterpolate1d, zinterpolatet1d, zinterpolatew1d, zinterpolate2d, &
          Uinl, Urec, Wrec, Utav, Tinl, Trec, &
          kbin, kein, lzinzsim, utaui, Ttav, ttaui
-      use initfac, only:facT, facwsoil, facqsat, fachurel, facf
+      use initfac, only:facT, facwsoil, facqsat, fachurel, facf, fachfi, facefi
 
       real, dimension(ib:ie, jb:je, kb:ke)  ::  dummy3d
       real, dimension(ib:ie, kbin:kein)    ::  Utavin
@@ -2201,7 +2208,7 @@ module modstartup
       character(50) :: namefac
       logical :: lfacrestart = .false.
       integer :: ifacversion, nfctsfile, nfaclyrsfile, iostatfac
-      real :: timeefac
+      real :: timeefac, tEBfac, tnextEBfac
       real dummy
       integer i, j, k, n
       !********************************************************************
@@ -2280,12 +2287,34 @@ module modstartup
                if (iostatfac == 0) read (ifinput, iostat=iostatfac) (fachurel(n), n=1, nfcts)
                if (iostatfac == 0) read (ifinput, iostat=iostatfac) ((facf(n, j), n=1, nfcts), j=1, 5)
                if (iostatfac == 0) read (ifinput, iostat=iostatfac) timeefac
+               ! format version 2: the energy-balance interval in progress at the checkpoint
+               ! (time of the last and next EB update, and the fluxes accumulated since the
+               ! last one, rank-0 arrays). Restoring it continues that interval; without it
+               ! the interval restarts at btime and the accumulated flux is lost.
+               if ((lEB) .and. (iostatfac == 0)) then
+                  read (ifinput, iostat=iostatfac) tEBfac, tnextEBfac
+                  if (iostatfac == 0) read (ifinput, iostat=iostatfac) (fachfi(n), n=1, nfcts)
+                  if (iostatfac == 0) read (ifinput, iostat=iostatfac) (facefi(n), n=1, nfcts)
+                  if (iostatfac == 0) then
+                     tEB = tEBfac
+                     tnextEB = tnextEBfac
+                     lEBclockrestored = .true.
+                  else
+                     fachfi = 0.
+                     facefi = 0.
+                  end if
+               end if
                close (ifinput)
                write (*, *) 'Restored facet state from ', trim(namefac), ' (format version ', ifacversion, &
                   ', timee ', timeefac, ')'
+               if (lEBclockrestored) then
+                  write (*, *) 'Energy-balance interval restored from restart: tEB = ', tEB, &
+                     ' tnextEB = ', tnextEB
+               end if
                if (iostatfac /= 0) then
-                  write (*, *) '*** WARNING: ', trim(namefac), ' is truncated relative to format version ', &
-                     ifacrestartversion, '; the missing facet quantities keep their initial values.'
+                  write (*, *) '*** WARNING: ', trim(namefac), ' was written by an older format than version ', &
+                     ifacrestartversion, '; the missing facet quantities keep their initial values'
+                  if (lEB) write (*, *) '*** and the energy-balance interval restarts at btime.'
                end if
             end if
 
@@ -2294,6 +2323,9 @@ module modstartup
             call MPI_BCAST(facqsat(0:nfcts), nfcts + 1, MY_REAL, 0, comm3d, mpierr)
             call MPI_BCAST(fachurel(0:nfcts), nfcts + 1, MY_REAL, 0, comm3d, mpierr)
             call MPI_BCAST(facf(0:nfcts, 1:5), (nfcts + 1)*5, MY_REAL, 0, comm3d, mpierr)
+            ! tEB and the accumulators are used on rank 0 only; tnextEB is tested on every rank
+            call MPI_BCAST(lEBclockrestored, 1, MPI_LOGICAL, 0, comm3d, mpierr)
+            if (lEBclockrestored) call MPI_BCAST(tnextEB, 1, MY_REAL, 0, comm3d, mpierr)
          else
             if (myid == 0) then
                write (*, *) '*** WARNING: facet restart file ', trim(namefac), ' not found.'

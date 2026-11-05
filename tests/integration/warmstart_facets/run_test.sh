@@ -31,9 +31,16 @@ UDALES_RUNTIME_MODULES="${UDALES_RUNTIME_MODULES:-intel/2025a netCDF/4.9.2-iimpi
 UDALES_PYTHON_MODULES="${UDALES_PYTHON_MODULES:-}"
 PYTHON="${PYTHON:-python3}"
 
-# Simulation schedule. The reference runs for 2*T, checkpoints at T, and the
-# restarted run continues from T for another T.
+# Simulation schedule. The reference runs for T_TOTAL and checkpoints at
+# T_RESTART; the restarted run continues from there to T_TOTAL.
+# T_RESTART is a multiple of DTEB, so that checkpoint coincides with an
+# energy-balance update. T_RESTART_MID deliberately is not: the checkpoint then
+# falls inside an EB interval, which exercises the interval state (tEB, tnextEB
+# and the accumulated fluxes) carried in format version 2 of the initf file.
+# Without it the restarted run re-anchors the EB clock at the restart time and
+# drops the flux accumulated since the last EB update.
 T_RESTART="${T_RESTART:-10.}"
+T_RESTART_MID="${T_RESTART_MID:-12.}"
 T_TOTAL="${T_TOTAL:-20.}"
 DTEB="${DTEB:-5}"
 NFACLYRS=5
@@ -142,15 +149,18 @@ earliest_restart() {
         | head -1
 }
 
-# run_chain <tag> <nprocx> <nprocy>
-# Reference cold start followed by a warm-started continuation.
+# run_chain <tag> <nprocx> <nprocy> [trestart]
+# Reference cold start followed by a warm-started continuation. The checkpoint
+# time defaults to T_RESTART; the restarted run always runs on to T_TOTAL.
 run_chain() {
-    local tag="$1" npx="$2" npy="$3"
+    local tag="$1" npx="$2" npy="$3" trestart="${4:-$T_RESTART}"
     local np=$((npx * npy))
+    local rst_runtime
+    rst_runtime="$(awk -v a="$T_TOTAL" -v b="$trestart" 'BEGIN{printf "%g", a-b}')"
 
     local ref_dir
-    ref_dir="$(stage "ref_${tag}" "$npx" "$npy" 1 "$T_TOTAL" "$T_RESTART" .false. '')"
-    echo "--- reference chain [${tag}] (${npx}x${npy}), runtime=${T_TOTAL}, trestart=${T_RESTART}"
+    ref_dir="$(stage "ref_${tag}" "$npx" "$npy" 1 "$T_TOTAL" "$trestart" .false. '')"
+    echo "--- reference chain [${tag}] (${npx}x${npy}), runtime=${T_TOTAL}, trestart=${trestart}"
     if ! run_udales "$ref_dir" "$np"; then
         fail "reference run [${tag}] did not complete"
         tail -n 60 "${ref_dir}/run.log" || true
@@ -169,11 +179,11 @@ run_chain() {
     echo "--- checkpoint stem: ${stem}"
 
     local rst_dir
-    rst_dir="$(stage "rst_${tag}" "$npx" "$npy" 2 "$T_RESTART" "$T_TOTAL" .true. \
+    rst_dir="$(stage "rst_${tag}" "$npx" "$npy" 2 "$rst_runtime" "$T_TOTAL" .true. \
         "${stem}_xxx_xxx.${CASE_ID}")"
     cp "${ref_dir}/${stem}"_*_*."${CASE_ID}" "$rst_dir"/
     cp "${ref_dir}/${stem/initd/initf}.${CASE_ID}" "$rst_dir"/ 2>/dev/null || true
-    echo "--- restart chain [${tag}], runtime=${T_RESTART}"
+    echo "--- restart chain [${tag}], runtime=${rst_runtime}"
     if ! run_udales "$rst_dir" "$np"; then
         fail "restart run [${tag}] did not complete"
         tail -n 60 "${rst_dir}/run.log" || true
@@ -182,6 +192,10 @@ run_chain() {
     if ! grep -q "Restored facet state from ${stem/initd/initf}" "${rst_dir}/run.log"; then
         fail "restart run [${tag}] did not report restoring the facet state"
         grep -i "facet" "${rst_dir}/run.log" || true
+    fi
+    if ! grep -q "Energy-balance interval restored from restart" "${rst_dir}/run.log"; then
+        fail "restart run [${tag}] did not report restoring the energy-balance interval state"
+        grep -i "energy-balance" "${rst_dir}/run.log" || true
     fi
 
     printf '%s\n' "$ref_dir" "$rst_dir" "$stem" > "${ROOT_RUN_DIR}/chain_${tag}.paths"
@@ -197,6 +211,8 @@ echo "=========================================="
 
 run_chain 2x2 2 2 || true
 run_chain 2x1 2 1 || true
+# checkpoint inside an energy-balance interval (see T_RESTART_MID above)
+run_chain mid_2x2 2 2 "$T_RESTART_MID" || true
 
 # ---------------------------------------------------------------------------
 # Negative control: lreadfacT = .false. reproduces the pre-fix behaviour, i.e.
@@ -281,6 +297,29 @@ if command -v module >/dev/null 2>&1 && [ -n \"\$UDALES_PYTHON_MODULES\" ]; then
 \"\$PYTHON\" '${SCRIPT_DIR}/compare_facT.py' \$COMPARE_ARGS" || fail "facT comparison"
 else
     fail "the 2x2 reference/restart chain did not produce outputs to compare"
+fi
+
+# ---------------------------------------------------------------------------
+# Mid-interval checkpoint. The first facT record after the restart must be at
+# the reference's next EB time (the restored tnextEB), not dtEB after the
+# restart, and must match the reference there: the flux accumulated between the
+# last EB update and the checkpoint has been carried across.
+# ---------------------------------------------------------------------------
+if [ -f "${ROOT_RUN_DIR}/chain_mid_2x2.paths" ]; then
+    module_setup=""
+    if [ -f /etc/profile.d/modules.sh ]; then
+        module_setup="source /etc/profile.d/modules.sh >/dev/null 2>&1 || true; "
+    fi
+    refmid="$(sed -n 1p "${ROOT_RUN_DIR}/chain_mid_2x2.paths")"
+    rstmid="$(sed -n 2p "${ROOT_RUN_DIR}/chain_mid_2x2.paths")"
+    echo "--- mid-interval checkpoint at t = ${T_RESTART_MID} (dtEB = ${DTEB})"
+    export COMPARE_ARGS="--reference ${refmid}/facT.${CASE_ID}.nc --restart ${rstmid}/facT.${CASE_ID}.nc"
+    export UDALES_PYTHON_MODULES PYTHON
+    bash -c "${module_setup}\
+if command -v module >/dev/null 2>&1 && [ -n \"\$UDALES_PYTHON_MODULES\" ]; then module load \$UDALES_PYTHON_MODULES >/dev/null 2>&1; fi; \
+\"\$PYTHON\" '${SCRIPT_DIR}/compare_facT.py' \$COMPARE_ARGS" || fail "mid-interval facT comparison"
+else
+    fail "the mid-interval reference/restart chain did not produce outputs to compare"
 fi
 
 echo "=========================================="

@@ -58,6 +58,17 @@ Assertions (`compare_facT.py`):
   2x2 and 2x1 restarts, which guards the facet broadcasts in
   `readrestartfiles`.
 
+A third chain checkpoints **inside** an energy-balance interval
+(`T_RESTART_MID = 12` with `dtEB = 5`, so the last EB update before the
+checkpoint was at `t = 10`). Between EB updates the solver accumulates the facet
+heat and moisture fluxes and divides them by the elapsed interval at the next
+update; format version 2 of the `initf` file carries that interval state (`tEB`,
+`tnextEB`, `fachfi`, `facefi`). The restarted run must therefore perform its
+first EB update at the reference's `t = 15`, not at `12 + 5 = 17`, and match the
+reference there. Against a build that writes format version 1 the restarted
+run's first `facT` record sits at `t = 17`, which the comparator rejects because
+the reference has no record at that time.
+
 Two further runs check the operational edges:
 
 - **Backward compatibility**: a restart directory with the `initf...` file
@@ -103,13 +114,14 @@ bash tests/integration/warmstart_facets/run_test.sh
 ```
 
 Other knobs: `CASE_SOURCE`, `MPIEXEC`, `MPI_LAUNCH_EXTRA_ARGS`, `TMPDIR_PARENT`,
-`PYTHON`, and the schedule variables `T_RESTART`, `T_TOTAL`, `DTEB`.
+`PYTHON`, and the schedule variables `T_RESTART`, `T_RESTART_MID`, `T_TOTAL`,
+`DTEB`.
 
 ## CI policy
 
 `class: experimental`, `kind: integration`, `component: solver`,
 `platform: hpc`, `cost: medium`. Case 064 is a 64^3 energy-balance case and is
 heavier than the current members of the `supported` merge gate, so this suite is
-deliberately **not** in that gate. It runs six short solver invocations.
+deliberately **not** in that gate. It runs eight short solver invocations.
 
 On failure the run directory is preserved and its path printed.

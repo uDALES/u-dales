@@ -43,11 +43,12 @@ contains
     use modglobal, only : ib,ie,ih,jb,je,jh,kb,ke,kh,trestart,tnextrestart,timee,&
                           cexpnr,rk3step,ifoutput,nsv,dt,ntrun,&
                           iinletgen,timee,nstore,&
-                          nfcts,nfaclyrs,lEB,iwallmom,iwalltemp,iwallmoist,ifacrestartversion
+                          nfcts,nfaclyrs,lEB,iwallmom,iwalltemp,iwallmoist,ifacrestartversion,&
+                          tEB,tnextEB
     use modmpi,    only : cmyidx,cmyidy,myid,slabsum,excjs,comm3d
     use modsubgriddata, only : ekm
     use modinletdata, only   : nstepread
-    use initfac,   only : facT,facwsoil,facqsat,fachurel,facf
+    use initfac,   only : facT,facwsoil,facqsat,fachurel,facf,fachfi,facefi
 
     implicit none
     logical :: lexitnow = .false.
@@ -141,6 +142,18 @@ contains
         write(ifoutput)  (fachurel(n),n=1,nfcts)
         write(ifoutput)  ((facf(n,j),n=1,nfcts),j=1,5)
         write(ifoutput)  timee
+        if (lEB) then
+          ! Energy-balance interval state (format version 2). The energy balance is
+          ! evaluated every dtEB; in between, intqH accumulates the facet heat and
+          ! moisture fluxes into fachfi/facefi (rank-0 arrays), which the next EB step
+          ! divides by the elapsed interval timee - tEB. Storing the interval clock and
+          ! the accumulators lets a restart that falls between two EB steps continue
+          ! the interval in progress instead of restarting it at btime and dropping
+          ! the flux accumulated since the last update.
+          write(ifoutput)  tEB, tnextEB
+          write(ifoutput)  (fachfi(n),n=1,nfcts)
+          write(ifoutput)  (facefi(n),n=1,nfcts)
+        end if
 
         write(*,*) '-------------------------'
         write(*,*) 'Saving initf restart file'
