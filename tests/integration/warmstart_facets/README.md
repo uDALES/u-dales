@@ -62,18 +62,19 @@ A third chain checkpoints **inside** an energy-balance interval
 (`T_RESTART_MID = 12` with `dtEB = 5`, so the last EB update before the
 checkpoint was at `t = 10`). Between EB updates the solver accumulates the facet
 heat and moisture fluxes and divides them by the elapsed interval at the next
-update; format version 2 of the `initf` file carries that interval state (`tEB`,
-`tnextEB`, `fachfi`, `facefi`). The restarted run must therefore perform its
-first EB update at the reference's `t = 15`, not at `12 + 5 = 17`, and match the
-reference there. Against a build that writes format version 1 the restarted
-run's first `facT` record sits at `t = 17`, which the comparator rejects because
-the reference has no record at that time.
+update; the `initf` file carries that interval state (`tEB`, `tnextEB`,
+`fachfi`, `facefi`). The restarted run must therefore perform its first EB
+update at the reference's `t = 15`, not at `12 + 5 = 17`, and match the
+reference there. Without the interval state the restarted run's first `facT`
+record would sit at `t = 17`, which the comparator rejects because the reference
+has no record at that time.
 
 Two further runs check the operational edges:
 
-- **Backward compatibility**: a restart directory with the `initf...` file
-  deleted (as produced by any older uDALES) must still complete and must emit
-  the rank-0 fallback warning naming the missing file and `Tfacinit.inp`.
+- **Missing `initf...` aborts**: with `lreadfacT = .true.` the facet
+  initialiser does not read `Tfacinit*.inp` on a warm start, so a restart
+  directory without the facet restart file has no facet state. The run must
+  abort with an error naming the file and pointing at `lreadfacT = .false.`.
 - **`lreadfacT = .false.`** must not read the file even when it is present.
 
 Tolerances are set relative to single-precision resolution at ~300 K, because

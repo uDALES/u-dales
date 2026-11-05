@@ -269,9 +269,10 @@ module modglobal
    integer, parameter :: ifnamopt = 3
 
    !< Format version of the initf facet restart file (written by modsave, read by modstartup).
-   !< 1: header, facT, facwsoil (lEB), facqsat, fachurel, facf, timee
-   !< 2: as 1, then (lEB only) tEB, tnextEB, fachfi, facefi - the energy-balance interval state
-   integer, parameter :: ifacrestartversion = 2
+   !< Records: (version, nfcts, nfaclyrs) header, facT, facwsoil (lEB only), facqsat, fachurel,
+   !< facf, timee, then (lEB only) tEB, tnextEB, fachfi, facefi. A file with another version
+   !< is rejected on reading.
+   integer, parameter :: ifacrestartversion = 1
 
    real, parameter :: pi = 3.141592653589793116
    real, parameter :: grav = 9.81 !<    *gravity acceleration.

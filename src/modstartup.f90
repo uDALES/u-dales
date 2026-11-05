@@ -2253,8 +2253,9 @@ module modstartup
 
       ! Read the facet state written by writerestartfiles. The facet arrays are global
       ! rather than domain-decomposed, so the file has no rank fields and is read by
-      ! rank 0 and broadcast. This overwrites the Tfacinit.inp initialisation done in
-      ! readfacetfiles, which is called before readinitfiles in program.f90.
+      ! rank 0 and broadcast. With lreadfacT, readfacetfiles (called before readinitfiles
+      ! in program.f90) has not read Tfacinit*.inp, so this is the only source of the
+      ! facet state: a missing, mismatched or truncated file aborts the run.
       if ((nfcts > 0) .and. (lreadfacT) .and. &
           ((lEB) .or. (iwalltemp == 2) .or. (iwallmom == 2) .or. (iwallmoist == 2))) then
          namefac = 'initf        .'
@@ -2269,7 +2270,16 @@ module modstartup
          if (lfacrestart) then
             if (myid == 0) then
                open (unit=ifinput, file=trim(namefac), form='unformatted', status='old')
-               read (ifinput) ifacversion, nfctsfile, nfaclyrsfile
+               read (ifinput, iostat=iostatfac) ifacversion, nfctsfile, nfaclyrsfile
+               if (iostatfac /= 0) then
+                  write (0, *) 'ERROR: cannot read the header of facet restart file ', trim(namefac)
+                  call MPI_ABORT(MPI_COMM_WORLD, 1, mpierr)
+               end if
+               if (ifacversion /= ifacrestartversion) then
+                  write (0, *) 'ERROR: facet restart file ', trim(namefac), ' has format version ', ifacversion, &
+                     ' but this build reads version ', ifacrestartversion
+                  call MPI_ABORT(MPI_COMM_WORLD, 1, mpierr)
+               end if
                if ((nfctsfile /= nfcts) .or. (nfaclyrsfile /= nfaclyrs)) then
                   write (0, *) 'ERROR: facet restart file ', trim(namefac), ' does not match this simulation'
                   write (0, *) '       file       : nfcts = ', nfctsfile, ' nfaclyrs = ', nfaclyrsfile
@@ -2277,44 +2287,37 @@ module modstartup
                   call MPI_ABORT(MPI_COMM_WORLD, 1, mpierr)
                end if
                ! only indices 1:nfcts are stored, index 0 is the sentinel set by readfacetfiles
-               read (ifinput) ((facT(n, j), n=1, nfcts), j=1, nfaclyrs + 1)
-               if (lEB) read (ifinput) (facwsoil(n), n=1, nfcts)
-               ! trailing records are read with iostat so that a file written by another
-               ! version of the format degrades gracefully instead of crashing
-               iostatfac = 0
-               timeefac = timee
-               read (ifinput, iostat=iostatfac) (facqsat(n), n=1, nfcts)
+               read (ifinput, iostat=iostatfac) ((facT(n, j), n=1, nfcts), j=1, nfaclyrs + 1)
+               if ((iostatfac == 0) .and. (lEB)) read (ifinput, iostat=iostatfac) (facwsoil(n), n=1, nfcts)
+               if (iostatfac == 0) read (ifinput, iostat=iostatfac) (facqsat(n), n=1, nfcts)
                if (iostatfac == 0) read (ifinput, iostat=iostatfac) (fachurel(n), n=1, nfcts)
                if (iostatfac == 0) read (ifinput, iostat=iostatfac) ((facf(n, j), n=1, nfcts), j=1, 5)
                if (iostatfac == 0) read (ifinput, iostat=iostatfac) timeefac
-               ! format version 2: the energy-balance interval in progress at the checkpoint
-               ! (time of the last and next EB update, and the fluxes accumulated since the
-               ! last one, rank-0 arrays). Restoring it continues that interval; without it
-               ! the interval restarts at btime and the accumulated flux is lost.
-               if ((lEB) .and. (iostatfac == 0)) then
+               ! the energy-balance interval in progress at the checkpoint: time of the last
+               ! and next EB update and the fluxes accumulated since the last one (rank-0
+               ! arrays). Restoring it continues that interval instead of restarting it at
+               ! btime, which would drop the accumulated flux.
+               if ((iostatfac == 0) .and. (lEB)) then
                   read (ifinput, iostat=iostatfac) tEBfac, tnextEBfac
                   if (iostatfac == 0) read (ifinput, iostat=iostatfac) (fachfi(n), n=1, nfcts)
                   if (iostatfac == 0) read (ifinput, iostat=iostatfac) (facefi(n), n=1, nfcts)
-                  if (iostatfac == 0) then
-                     tEB = tEBfac
-                     tnextEB = tnextEBfac
-                     lEBclockrestored = .true.
-                  else
-                     fachfi = 0.
-                     facefi = 0.
-                  end if
                end if
                close (ifinput)
+               if (iostatfac /= 0) then
+                  write (0, *) 'ERROR: facet restart file ', trim(namefac), ' is truncated or corrupt (iostat ', &
+                     iostatfac, '); the facet state cannot be restored'
+                  call MPI_ABORT(MPI_COMM_WORLD, 1, mpierr)
+               end if
+               if (lEB) then
+                  tEB = tEBfac
+                  tnextEB = tnextEBfac
+                  lEBclockrestored = .true.
+               end if
                write (*, *) 'Restored facet state from ', trim(namefac), ' (format version ', ifacversion, &
                   ', timee ', timeefac, ')'
                if (lEBclockrestored) then
                   write (*, *) 'Energy-balance interval restored from restart: tEB = ', tEB, &
                      ' tnextEB = ', tnextEB
-               end if
-               if (iostatfac /= 0) then
-                  write (*, *) '*** WARNING: ', trim(namefac), ' was written by an older format than version ', &
-                     ifacrestartversion, '; the missing facet quantities keep their initial values'
-                  if (lEB) write (*, *) '*** and the energy-balance interval restarts at btime.'
                end if
             end if
 
@@ -2327,11 +2330,14 @@ module modstartup
             call MPI_BCAST(lEBclockrestored, 1, MPI_LOGICAL, 0, comm3d, mpierr)
             if (lEBclockrestored) call MPI_BCAST(tnextEB, 1, MY_REAL, 0, comm3d, mpierr)
          else
+            ! No fallback: readfacetfiles did not read Tfacinit*.inp for this warm start,
+            ! so without the file there is no facet state at all.
             if (myid == 0) then
-               write (*, *) '*** WARNING: facet restart file ', trim(namefac), ' not found.'
-               write (*, *) '*** Facet temperatures are re-initialised from Tfacinit.inp.'//cexpnr//','
-               write (*, *) '*** so the surface energy balance history is NOT continuous across this restart.'
+               write (0, *) 'ERROR: facet restart file ', trim(namefac), ' not found.'
+               write (0, *) '       A warm start with lreadfacT = .true. needs the initf file written with the initd set.'
+               write (0, *) '       Set lreadfacT = .false. to re-seed the facet temperatures from Tfacinit.inp.'//cexpnr
             end if
+            call MPI_ABORT(MPI_COMM_WORLD, 1, mpierr)
          end if
       end if
 

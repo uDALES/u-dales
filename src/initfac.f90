@@ -27,7 +27,7 @@
    module initfac
       use mpi
       use modglobal, only : ifinput, nfcts, cexpnr, libm, bldT, flrT, rsmin, wsoil, wfc, &
-                           nfaclyrs, lEB, lvfsparse, nnz, lfacTlyrs, lwritefac
+                           nfaclyrs, lEB, lvfsparse, nnz, lfacTlyrs, lwritefac, lwarmstart, lreadfacT
       use modmpi,   only : myid, comm3d, mpierr, MY_REAL, nprocs, cmyid
       use netcdf
       implicit none
@@ -297,6 +297,14 @@
               end if !lEB
 
               if ((lEB) .or. (iwalltemp == 2) .or. (iwallmom == 2) .or. (iwallmoist==2)) then
+                if (lwarmstart .and. lreadfacT) then
+                 ! Warm start: the facet state (facT, facwsoil, facqsat, fachurel, facf) is
+                 ! restored from the initf restart file in readrestartfiles, so neither
+                 ! Tfacinit.inp nor Tfacinit_layers.inp is read and facT stays unset until
+                 ! then (it is not used in between). readrestartfiles aborts if the file is
+                 ! missing or unreadable; set lreadfacT = .false. to re-seed from Tfacinit*.inp.
+                 write(*,*) 'Warm start: facet state will be read from the initf restart file; Tfacinit*.inp not read'
+                else
                 ! initial facet temperatures
                  if (lfacTlyrs) then
                     open (ifinput, file='Tfacinit_layers.inp.'//cexpnr)
@@ -343,18 +351,20 @@
 
                  end if ! lfacTlyrs
 
-                 do n = 1,nfaclyrs
-                   facT(0, n) = 288.
-                 end do
-                 facT(0, nfaclyrs+1) = 299.
-
-                 ! assign initial soil moisture for outermost layer
+                 ! initial saturation humidity and (green roofs) relative humidity
                  do n = 1, nfcts
                     facqsat(n) = qsat(facT(n,1))
                     if (faclGR(n)) then
                        fachurel(n) = 0.5*(1. - cos(3.14159*wsoil/wfc))
                     end if
                  end do
+                end if ! warm start with lreadfacT
+
+                 ! sentinel facet 0 (not part of the restart file)
+                 do n = 1,nfaclyrs
+                   facT(0, n) = 288.
+                 end do
+                 facT(0, nfaclyrs+1) = 299.
 
              end if !((lEB) .or. (iwalltemp == 2) .or. (iwallmoist==2))
 

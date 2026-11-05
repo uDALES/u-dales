@@ -143,7 +143,7 @@ contains
         write(ifoutput)  ((facf(n,j),n=1,nfcts),j=1,5)
         write(ifoutput)  timee
         if (lEB) then
-          ! Energy-balance interval state (format version 2). The energy balance is
+          ! Energy-balance interval state. The energy balance is
           ! evaluated every dtEB; in between, intqH accumulates the facet heat and
           ! moisture fluxes into fachfi/facefi (rank-0 arrays), which the next EB step
           ! divides by the elapsed interval timee - tEB. Storing the interval clock and

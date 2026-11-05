@@ -36,7 +36,7 @@ PYTHON="${PYTHON:-python3}"
 # T_RESTART is a multiple of DTEB, so that checkpoint coincides with an
 # energy-balance update. T_RESTART_MID deliberately is not: the checkpoint then
 # falls inside an EB interval, which exercises the interval state (tEB, tnextEB
-# and the accumulated fluxes) carried in format version 2 of the initf file.
+# and the accumulated fluxes) carried in the initf file.
 # Without it the restarted run re-anchors the EB clock at the restart time and
 # drops the flux accumulated since the last EB update.
 T_RESTART="${T_RESTART:-10.}"
@@ -237,27 +237,28 @@ if [ -f "${ROOT_RUN_DIR}/chain_2x2.paths" ]; then
     fi
 
     # -----------------------------------------------------------------------
-    # Backward compatibility: a restart directory without an initf file (as
-    # written by any older uDALES) must still run, and must warn loudly.
+    # No fallback: with lreadfacT (the default) readfacetfiles does not read
+    # Tfacinit*.inp, so a restart directory without the initf file has no facet
+    # state at all and the run must abort with an explicit message.
     # -----------------------------------------------------------------------
-    compat_dir="$(stage compat_2x2 2 2 2 1. "$T_TOTAL" .true. \
+    missing_dir="$(stage missing_2x2 2 2 2 1. "$T_TOTAL" .true. \
         "${stem}_xxx_xxx.${CASE_ID}")"
-    cp "${ref_dir}/${stem}"_*_*."${CASE_ID}" "$compat_dir"/
-    rm -f "${compat_dir}/initf"*
-    echo "--- backward compatibility: no initf file present"
-    if ! run_udales "$compat_dir" 4; then
-        fail "restart without a facet restart file did not complete"
-        tail -n 60 "${compat_dir}/run.log" || true
+    cp "${ref_dir}/${stem}"_*_*."${CASE_ID}" "$missing_dir"/
+    rm -f "${missing_dir}/initf"*
+    echo "--- missing initf file: the warm start must abort"
+    if run_udales "$missing_dir" 4; then
+        fail "restart without a facet restart file completed instead of aborting"
     else
-        if ! grep -q "facet restart file .* not found" "${compat_dir}/run.log"; then
-            fail "restart without a facet restart file did not warn about the fallback"
+        if ! grep -q "ERROR: facet restart file .* not found" "${missing_dir}/run.log"; then
+            fail "restart without a facet restart file aborted without the expected error message"
+            tail -n 40 "${missing_dir}/run.log" || true
         fi
-        if ! grep -q "re-initialised from Tfacinit.inp" "${compat_dir}/run.log"; then
-            fail "fallback warning does not name Tfacinit.inp"
+        if ! grep -q "lreadfacT = .false." "${missing_dir}/run.log"; then
+            fail "the missing-file error does not point at lreadfacT = .false."
         fi
-        if grep -q "Restored facet state from" "${compat_dir}/run.log"; then
-            fail "restart without a facet restart file claimed to restore facet state"
-        fi
+    fi
+    if grep -q "Restored facet state from" "${missing_dir}/run.log"; then
+        fail "restart without a facet restart file claimed to restore facet state"
     fi
 fi
 
