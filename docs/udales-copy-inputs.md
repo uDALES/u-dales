@@ -40,3 +40,5 @@ u-dales/tools/copy_inputs.sh experiments/001 009
 # ("warmstart"), use the 'w' flag. E.g.: copy_inputs.sh old_exp_id new_exp_id w
 u-dales/tools/copy_inputs.sh experiments/001 009 w
 ```
+
+With the `w` flag the newest restart set found in the source case's output directory is linked into the new case under the new experiment number: the `initd` flow fields, the `inits` scalar fields if present, and the `initf` facet state if present. `lwarmstart` and `startfile` are set in the new `namoptions` accordingly. The simulation then starts at the time stored in the restart set, so set `runtime` to the remaining simulated time yourself.

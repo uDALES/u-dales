@@ -367,6 +367,16 @@ module modibm
        end do
        close (ifinput)
 
+       ! The facet arrays run from 1 to nfcts, so a facet id outside that range would be
+       ! read out of bounds by the wall functions. Reject it here with a clear message.
+       do n = 1, bound_info%nfctsecs
+         if ((bound_info%secfacids(n) < 1) .or. (bound_info%secfacids(n) > ubound(facz0, 1))) then
+           write (0, *) 'ERROR: ', trim(fname_sec), ' line ', n + 1, ': facet id ', bound_info%secfacids(n), &
+             ' is outside 1..', ubound(facz0, 1)
+           call MPI_ABORT(MPI_COMM_WORLD, 1, mpierr)
+         end if
+       end do
+
        do n = 1,bound_info%nfctsecs
          m = bound_info%secbndptids(n)
          !bound_info%bndvec(n,1) = xgrid(bound_info%bndpts(m,1)) - bound_info%intpts(n,1)

@@ -46,6 +46,14 @@ This page collects common problems and their fixes, grouped by the stage of the 
 
 **`MEM=<value> is not a memory size`** (ECMWF) — `MEM` needs a number and a unit, e.g. `MEM="16G"` or the PBS spelling `MEM="16gb"`; both are accepted in any case and normalised for Slurm. A bare number such as `16` is rejected as ambiguous, as are forms like `16gib`.
 
+**`ERROR: scalar restart file inits... not found`** — a warm start with `nsv > 0` and `lreadscal = .true.` (the default) needs the `inits` files written together with the `initd` set. Link them into the case directory (`copy_inputs.sh ... w` does this), or set `lreadscal = .false.` in `&SCALARS` to start the scalars from `scalar.inp.<expnr>`.
+
+**`ERROR: facet restart file initf... not found`** — a warm start with facets and `lreadfacT = .true.` (the default) needs the `initf` file written together with the `initd` set; `Tfacinit*.inp` is not read in that case. Link the file into the case directory, or set `lreadfacT = .false.` in `&RUN` to re-seed the facet temperatures from `Tfacinit.inp.<expnr>`.
+
+**`ERROR: facet restart file ... has format version`**, **`... does not match this simulation`**, **`... is truncated or corrupt`** — the `initf` file was written by a different uDALES version, or with a different `nfcts` or `nfaclyrs`, or is incomplete. Restart from a set written by the current build with the same facet configuration, or set `lreadfacT = .false.`.
+
+**`ERROR: facet_sections_... line N: facet id X is outside 1..nfcts`** — a facet-section input file refers to a facet that does not exist. Regenerate the IBM inputs with the preprocessing for the current geometry.
+
 **`ERROR: no restartfile set`** — `lwarmstart` or `lstratstart` was set to `.true.` in the `RUN` namelist without a corresponding `startfile`. Set `startfile` to the name of an existing restart file (`initdNNNNNNNN_xxx_xxx.000`), see the [`RUN` namelist](udales-namoptions-overview.md#namelist-run).
 
 **`ERROR: invalid itree_mode. Supported values are 1 (drag only), 2 (sveg), 99 (legacy SEB).`** / **`ERROR: legacy tree SEB (itree_mode=99) cannot be combined with lEB=.true.`** — `ltrees=.true.` requires `itree_mode` to be one of the supported drag/SEB modes, and the legacy tree SEB mode (`99`) cannot be combined with the building energy balance (`lEB=.true.`). Check the `TREES` namelist against `src/modstartup.f90`.
