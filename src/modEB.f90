@@ -550,12 +550,12 @@ contains
       end if !myid==0
 
       !write (*, *) "bcasting facT"
-      call MPI_BCAST(facT(0:nfcts, 1:nfaclyrs+1), (nfaclyrs+1)*(nfcts + 1), MY_REAL, 0, comm3d, mpierr)
+      call MPI_BCAST(facT(1:nfcts, 1:nfaclyrs+1), (nfaclyrs+1)*nfcts, MY_REAL, 0, comm3d, mpierr)
       call MPI_BCAST(tnextEB, 1, MY_REAL, 0, comm3d, mpierr)
-      call MPI_BCAST(facqsat(0:nfcts), nfcts + 1, MY_REAL, 0, comm3d, mpierr)
-      call MPI_BCAST(facf(0:nfcts, 1:5), (nfcts + 1)*5, MY_REAL, 0, comm3d, mpierr)
-      call MPI_BCAST(fachurel(0:nfcts), nfcts + 1, MY_REAL, 0, comm3d, mpierr)
-      !call MPI_BCAST(facwsoil(0:nfcts), nfcts + 1, MY_REAL, 0, comm3d, mpierr)
+      call MPI_BCAST(facqsat(1:nfcts), nfcts, MY_REAL, 0, comm3d, mpierr)
+      call MPI_BCAST(facf(1:nfcts, 1:5), nfcts*5, MY_REAL, 0, comm3d, mpierr)
+      call MPI_BCAST(fachurel(1:nfcts), nfcts, MY_REAL, 0, comm3d, mpierr)
+      !call MPI_BCAST(facwsoil(1:nfcts), nfcts, MY_REAL, 0, comm3d, mpierr)
     end if !time>tnextEB
 
   end subroutine EB

@@ -72,7 +72,7 @@ use mpi
       courant, diffnr, author, &
       libm, lles, &
       lper2inout, lwalldist, &
-      lreadmean, &
+      lreadmean, lreadfacT, &
       nprocx, nprocy, &
       lrandomize, runmode
    namelist/DOMAIN/ &
@@ -698,6 +698,7 @@ contains
       ! Broadcast SCALARS namelist parameters to all processes
       !-----------------------------------------------------------------|
       call MPI_BCAST(lreadscal, 1, MPI_LOGICAL, 0, comm3d, mpierr)
+     call MPI_BCAST(lreadfacT, 1, MPI_LOGICAL, 0, comm3d, mpierr) ! switch to read the facet state from the initf restart file (warm start)
       call MPI_BCAST(lscasrc, 1, MPI_LOGICAL, 0, comm3d, mpierr)
       call MPI_BCAST(lscasrcl, 1, MPI_LOGICAL, 0, comm3d, mpierr)
       call MPI_BCAST(lscasrcr, 1, MPI_LOGICAL, 0, comm3d, mpierr)

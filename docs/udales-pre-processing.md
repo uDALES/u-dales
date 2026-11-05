@@ -92,6 +92,7 @@ uDALES requires a number of input files, all suffixed by the experiment number, 
 - `lscale.inp`: large-scale forcings (described in DALES documentation).
 - `facets.inp`: column of facet types and three columns (x,y,z) of surface normal components (nfcts x 4).
 - `Tfacinit.inp`: list of initial facet temperatures (nfcts x 1).
+- `Tfacinit_layers.inp`: initial temperature of every facet layer (nfcts x nfaclyrs); written and read only when `lfacTlyrs = .true.`.
 - `factypes.inp`: a description of the properties of different types of facet (described below). This is copied to the experiment directory automatically. Each row describes a wall type, with the first 6 columns being: wall type id, a boolean for whether it is a 'green' facet or not, momentum roughness length, heat roughness length, albedo, and emissivity. Assuming that each facet is composed of 3 layers, the next 3 columns give the thickness of each, the next 3 give the volumetric heat capacity, the next 3 give the heat conductivity, and the final 4 give the thermal diffusivity at each interface between the layers.
 - `scalar.inp`: if using scalars, the initial scalar profiles.
 - `timedepnudge.inp`: if using time-dependent nudging (described in DALES documentation).

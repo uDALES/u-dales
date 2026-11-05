@@ -13,7 +13,8 @@ Numerical comparison (max absolute error, # comments skipped):
   heatpump.inp.<exp>
   trees.inp.<exp>         veg.inp.<exp>          veg_params.inp.<exp>
   scalar.inp.<exp>        scalarsourcep.inp.N.<exp>  scalarsourcel.inp.N.<exp>  (N = 1, 2, ...)
-  Tfacinit.inp.<exp>      timedeplw.inp.<exp>      timedepsw.inp.<exp>      Sdir.txt
+  Tfacinit.inp.<exp>      Tfacinit_layers.inp.<exp>
+  timedeplw.inp.<exp>     timedepsw.inp.<exp>      Sdir.txt
   facet_sections_c/u/v/w.txt
   fluid_boundary_c/u/v/w.txt
   solid_c/u/v/w.txt
@@ -273,7 +274,7 @@ def run_comparison(dir1: str, exp_str1: str, dir2: str, exp_str2: str, tolerance
     for tag in (
         "facetarea.inp", "facets.inp", "facets_unused",
         "factypes.inp", "svf.inp", "vfsparse.inp", "netsw.inp", "sveg.inp",
-        "Tfacinit.inp", "heatpump.inp",
+        "Tfacinit.inp", "Tfacinit_layers.inp", "heatpump.inp",
         "trees.inp", "veg.inp", "veg_params.inp",
     ):
         compare_numeric_file(

@@ -98,7 +98,7 @@ if [ ! -d $DA_EXPDIR/$src ]; then
 fi
 
 # list of files to copy
-declare -a tocopy=("/namoptions." "/facetarea.inp." "/facets.inp." "/facets_unused." "/factypes.inp." "/heatpump.inp." "/lad.inp." "/lscale.inp." "/netsw.inp." "/probe.inp." "/prof.inp." "/purifs.inp." "/scalar.inp." "/scals.inp." "/sveg.inp." "/svf.inp." "/Tfacinit.inp." "/timedeplw.inp." "/timedepnudge.inp." "/timedepsw.inp." "/trees.inp." "/veg.inp." "/veg_params.inp." "/vf.nc.inp." "/vfsparse.inp.")
+declare -a tocopy=("/namoptions." "/facetarea.inp." "/facets.inp." "/facets_unused." "/factypes.inp." "/heatpump.inp." "/lad.inp." "/lscale.inp." "/netsw.inp." "/probe.inp." "/prof.inp." "/purifs.inp." "/scalar.inp." "/scals.inp." "/sveg.inp." "/svf.inp." "/Tfacinit.inp." "/Tfacinit_layers.inp." "/timedeplw.inp." "/timedepnudge.inp." "/timedepsw.inp." "/trees.inp." "/veg.inp." "/veg_params.inp." "/vf.nc.inp." "/vfsparse.inp.")
 
 # copy and rename files
 case $case in
@@ -186,6 +186,19 @@ elif [ $start == "w" ]; then
 
     else
       echo "Info: no scalar restart files found in $DA_WORKDIR/$src."
+  fi
+
+  # facet warmstart file (surface energy balance state). This file is written by rank 0
+  # only and has no _<px>_<py> rank fields, so it is matched on the run counter of the
+  # momentum restart file rather than globbed like initd/inits.
+  facetfilen="initf"${startfilen#initd}
+  facetwarmstart=$DA_WORKDIR/$src"/"$facetfilen"."$src
+  if [ -f "$facetwarmstart" ]; then
+    ln -s $facetwarmstart $DA_EXPDIR/$tar/
+  else
+    echo "Info: no facet restart file $facetfilen.$src found in $DA_WORKDIR/$src."
+    echo "Info: facet temperatures will be re-initialised from Tfacinit.inp.$tar,"
+    echo "Info: so the surface energy balance will not continue across the restart."
   fi
 
   # rename links
