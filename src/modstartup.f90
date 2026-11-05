@@ -2286,7 +2286,6 @@ module modstartup
                   write (0, *) '       namoptions : nfcts = ', nfcts, ' nfaclyrs = ', nfaclyrs
                   call MPI_ABORT(MPI_COMM_WORLD, 1, mpierr)
                end if
-               ! only indices 1:nfcts are stored, index 0 is the sentinel set by readfacetfiles
                read (ifinput, iostat=iostatfac) ((facT(n, j), n=1, nfcts), j=1, nfaclyrs + 1)
                if ((iostatfac == 0) .and. (lEB)) read (ifinput, iostat=iostatfac) (facwsoil(n), n=1, nfcts)
                if (iostatfac == 0) read (ifinput, iostat=iostatfac) (facqsat(n), n=1, nfcts)
@@ -2322,10 +2321,10 @@ module modstartup
             end if
 
             ! facwsoil is allocated on rank 0 only and used only there, so it is not broadcast
-            call MPI_BCAST(facT(0:nfcts, 1:nfaclyrs + 1), (nfcts + 1)*(nfaclyrs + 1), MY_REAL, 0, comm3d, mpierr)
-            call MPI_BCAST(facqsat(0:nfcts), nfcts + 1, MY_REAL, 0, comm3d, mpierr)
-            call MPI_BCAST(fachurel(0:nfcts), nfcts + 1, MY_REAL, 0, comm3d, mpierr)
-            call MPI_BCAST(facf(0:nfcts, 1:5), (nfcts + 1)*5, MY_REAL, 0, comm3d, mpierr)
+            call MPI_BCAST(facT(1:nfcts, 1:nfaclyrs + 1), nfcts*(nfaclyrs + 1), MY_REAL, 0, comm3d, mpierr)
+            call MPI_BCAST(facqsat(1:nfcts), nfcts, MY_REAL, 0, comm3d, mpierr)
+            call MPI_BCAST(fachurel(1:nfcts), nfcts, MY_REAL, 0, comm3d, mpierr)
+            call MPI_BCAST(facf(1:nfcts, 1:5), nfcts*5, MY_REAL, 0, comm3d, mpierr)
             ! tEB and the accumulators are used on rank 0 only; tnextEB is tested on every rank
             call MPI_BCAST(lEBclockrestored, 1, MPI_LOGICAL, 0, comm3d, mpierr)
             if (lEBclockrestored) call MPI_BCAST(tnextEB, 1, MY_REAL, 0, comm3d, mpierr)
