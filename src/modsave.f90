@@ -138,6 +138,12 @@ contains
         if (lEB) then
           write(ifoutput)  (facwsoil(n),n=1,nfcts)   ! rank-0 array, only allocated for lEB
         end if
+        ! facqsat, fachurel and facf are derived quantities (from facT, facwsoil and
+        ! netsw) that the energy balance recomputes at every EB step. They are stored
+        ! anyway so that the wall functions, which read them directly, see the
+        ! checkpoint's exact values in the steps between the restart and the first EB
+        ! update; facf in particular depends on netsw at the time of the last update,
+        ! which cannot be recovered from the inputs without replaying that update.
         write(ifoutput)  (facqsat(n),n=1,nfcts)
         write(ifoutput)  (fachurel(n),n=1,nfcts)
         write(ifoutput)  ((facf(n,j),n=1,nfcts),j=1,5)
