@@ -392,10 +392,6 @@ contains
     ! This has to follow init_vegetation_legacy, which fills veg%laiv.
     call init_vegetation_cache
 
-#if defined(_GPU)
-    call init_vegetation_device
-#endif
-
     vegetation_ready = .true.
 
   end subroutine init_vegetation
@@ -651,8 +647,10 @@ contains
 #if defined(_GPU)
   !> Mirror the point lists and the startup cache onto the device.
   !!
-  !! Called from init_vegetation, alongside modibm's init_ibm_device: none of
-  !! this changes after startup, so it crosses the bus exactly once.
+  !! Called from program.f90 right after initCUDA, alongside modibm's
+  !! init_ibm_device, so that all device initialisation happens in one place
+  !! once every host initialisation is complete. None of this changes after
+  !! startup, so it crosses the bus exactly once.
   subroutine init_vegetation_device
     use modglobal, only : nsv, ltreedump
     implicit none

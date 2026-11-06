@@ -15,7 +15,7 @@ been stable for a suitable period.
 
 | Selection | Cases | Intended use |
 | --- | --- | --- |
-| `smoke` | four 8 x 8 x 8 cases | Debug development and trusted pull requests |
+| `smoke` | four 8 x 8 x 8 cases plus the surface-energy-balance case | Debug development and trusted pull requests |
 | `scalar-sources` | two serial and two two-rank cases | scalar-source parity and global positioning |
 | `nightly` | 29 serial cases | single-GPU scheduled regression |
 | `mpi` | dry (`ipoiss` 0 and 3), scalar-source, IBM, TKE-statistics and vegetation two-rank cases | manually dispatched two-GPU check |

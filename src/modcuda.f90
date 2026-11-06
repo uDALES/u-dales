@@ -30,7 +30,8 @@ module modcuda
                              sbshr, sbbuo, sbdiss, zlt, damp, csz, &
                              cn, cm, ch1, ch2, ce1, ce2, dampmin, prandtli, c_vreman
    use modsurfdata,    only: thvs
-   use initfac,        only: facT, fachf, facef, fachfi, facefi, facqsat, fachurel, facf
+   use initfac,        only: facT, fachf, facef, fachfi, facefi, facqsat, fachurel, facf, &
+                             facnorm, facz0, facz0h, faclGR
    use modinletdata,   only: u0driver, umdriver, v0driver, vmdriver, w0driver, wmdriver, &
                              thl0driver, thlmdriver, qt0driver, qtmdriver, &
                              sv0driver, svmdriver
@@ -103,11 +104,19 @@ module modcuda
 
    real, device, allocatable :: scalar_source_tendency_d(:,:,:,:)
 
-   ! IBM facet quantities that cross the bus inside the time loop. They are
-   ! declared here, rather than in modibm, so that the transfers can live in the
-   ! four update routines below: modibm already uses modcuda, so the reverse
-   ! dependency would be circular. The IBM geometry that never changes stays in
-   ! modibm and is transferred once by init_ibm_device.
+   ! Every facet-indexed device array lives here, and every transfer of facet
+   ! state - the once-only mirrors, the gated refresh inside the time loop, the
+   ! accumulator handover and the restart pull - is a routine of this module:
+   ! initFacetsDevice, updateFacetPropsDevice, updateFacIntegralsHost and
+   ! updateHostForRestart. modibm already uses modcuda, so the arrays cannot be
+   ! declared there without a circular dependency; only the IBM geometry that
+   ! is derived from modibm's own types (sections, masks, point lists) stays in
+   ! modibm, mirrored by init_ibm_device, which program.f90 calls right after
+   ! initCUDA.
+   !
+   ! Fixed facet properties, mirrored once by initFacetsDevice.
+   real, device, allocatable :: facnorm_d(:,:), facz0_d(:), facz0h_d(:)
+   logical, device, allocatable :: faclGR_d(:)
    real, device, allocatable :: facT1_d(:)                  ! outdoor surface temperature
    ! Green-roof properties. The energy balance rewrites all of these whenever it
    ! solves, so they are refreshed alongside facT rather than mirrored once.
@@ -527,7 +536,7 @@ module modcuda
 
          if (libm .and. nfcts > 0) then
             allocate(fac_stage(1:nfcts))
-            allocate(fachf_stage(0:nfcts))
+            allocate(fachf_stage(1:nfcts))
             allocate(facef_stage(1:nfcts))
          end if
 
@@ -551,6 +560,7 @@ module modcuda
          end if
 
          call uploadPrognosticFieldsDevice
+         call initFacetsDevice
 
          ! The tendencies start empty, exactly as initfields starts the host
          ! ones - allocate(up(...)) ; up=0. and so on. This used to be done by
@@ -675,14 +685,86 @@ module modcuda
 
          if (lfacets_on_device .and. .not. lfacetprops_dirty) return
 
-         if (allocated(facT1_d))    facT1_d    = facT(0:nfcts,1)
-         if (allocated(facqsat_d))  facqsat_d  = facqsat(0:nfcts)
-         if (allocated(fachurel_d)) fachurel_d = fachurel(0:nfcts)
-         if (allocated(facf_d))     facf_d     = facf(0:nfcts,1:5)
+         if (allocated(facT1_d))    facT1_d    = facT(1:nfcts,1)
+         if (allocated(facqsat_d))  facqsat_d  = facqsat(1:nfcts)
+         if (allocated(fachurel_d)) fachurel_d = fachurel(1:nfcts)
+         if (allocated(facf_d))     facf_d     = facf(1:nfcts,1:5)
 
          lfacets_on_device = .true.
          lfacetprops_dirty = .false.
       end subroutine updateFacetPropsDevice
+
+      !> Allocate every facet-indexed device array and give it its starting
+      !! value from the host.
+      !!
+      !! Called from initCUDA, i.e. after readinitfiles. That ordering is the
+      !! point: on a warm start readinitfiles restores facT, facqsat, fachurel,
+      !! facf and the energy-balance accumulators from the initf restart file,
+      !! and anything mirrored before it would carry the cold-start values (or,
+      !! with lreadfacT, the zeros the allocation left) into the wall functions.
+      !! This used to live in modibm::init_ibm_device, which initibm ran before
+      !! readinitfiles, and a warm start divided by a zero surface temperature.
+      !!
+      !! What exists follows the host: the same switches that make initibm read
+      !! the momentum and the cell-centred section sets. Facet-sized arrays are
+      !! allocated on every rank whether or not it owns a section, so the
+      !! accumulators simply stay zero on a rank with nothing to add.
+      subroutine initFacetsDevice
+         use modglobal, only : libm, nfcts, iwallmom, ltempeq, lmoist, nsv, lwritefac
+         implicit none
+         logical :: lmomsec, lheatsec
+
+         if (.not. (libm .and. nfcts > 0)) return
+
+         lmomsec  = iwallmom > 1
+         lheatsec = ltempeq .or. lmoist .or. nsv > 0 .or. lwritefac
+
+         if (lmomsec .or. lheatsec) then
+            allocate(facnorm_d(nfcts,3)); facnorm_d = facnorm
+            allocate(facz0_d(1:nfcts));   facz0_d   = facz0
+            allocate(facz0h_d(1:nfcts));  facz0h_d  = facz0h
+            if (allocated(facT)) allocate(facT1_d(1:nfcts))
+         end if
+         if (lmomsec) then
+            allocate(fac_tau_d(nfcts))
+         end if
+         if (lheatsec) then
+            allocate(faclGR_d(1:nfcts)); faclGR_d = faclGR
+            if (allocated(facqsat)) then
+               allocate(facqsat_d(1:nfcts))
+               allocate(fachurel_d(1:nfcts))
+               allocate(facf_d(1:nfcts,5))
+            end if
+            allocate(fac_htc_d(nfcts), fac_cth_d(nfcts))
+            allocate(fac_pres_d(nfcts), fac_pres2_d(nfcts))
+            ! Per-stage accumulators of the wall functions: cleared on every
+            ! stage by integrateFacFluxDevice, so they start clean.
+            allocate(fachf_d(1:nfcts), facef_d(nfcts))
+            fachf_d = 0.
+            facef_d = 0.
+            ! Their per-rank time integrals live here across the whole interval
+            ! between energy balances (see integrateFacFluxDevice). They start
+            ! from the host arrays: zero on a cold start, and on a warm start
+            ! the flux restored from the checkpoint on rank 0, so the interval
+            ! in progress continues. intqH is compiled out on a GPU build, so
+            ! nothing else ever adds to the host copies.
+            allocate(fachfi_d(1:nfcts), facefi_d(nfcts))
+            if (allocated(fachfi)) then
+               fachfi_d = fachfi(1:nfcts)
+            else
+               fachfi_d = 0.
+            end if
+            if (allocated(facefi)) then
+               facefi_d = facefi(1:nfcts)
+            else
+               facefi_d = 0.
+            end if
+         end if
+
+         ! The surface state the energy balance rewrites goes up through the
+         ! same gated routine the time loop uses; lfacetprops_dirty starts set.
+         call updateFacetPropsDevice
+      end subroutine initFacetsDevice
 
       !> Integrate the energy balance accumulators on the device. Nothing copies.
       !!
@@ -742,7 +824,7 @@ module modcuda
 
          if (allocated(fachfi_d) .and. allocated(fachfi)) then
             fachf_stage = fachfi_d
-            fachfi(0:nfcts) = fachf_stage
+            fachfi(1:nfcts) = fachf_stage
             fachfi_d = 0.
          end if
          if (allocated(facefi_d) .and. allocated(facefi)) then
@@ -752,12 +834,134 @@ module modcuda
          end if
       end subroutine updateFacIntegralsHost
 
+      !> Bring the per-rank facet flux integrals down for a restart file, and
+      !! leave the device copies as they are. Part of updateHostForRestart.
+      !!
+      !! writerestartfiles checkpoints the energy-balance interval in progress
+      !! (tEB, tnextEB and the accumulated fluxes) so that a warm start can
+      !! continue it. On a GPU build the accumulators live on the device between
+      !! energy balances and the host copies are what the last balance left
+      !! behind - zero - so the host has to be refreshed before the write. Unlike
+      !! updateFacIntegralsHost this does not clear the device side: the interval
+      !! is not over, the next energy balance still needs everything that has
+      !! accumulated so far, and the host copy becomes stale again the moment
+      !! the next step adds to the device. The next updateFacIntegralsHost
+      !! assigns over it, so nothing is counted twice.
+      subroutine pullFacIntegralsForRestart
+         use modglobal, only : nfcts, lEB
+         implicit none
+
+         if (.not. lEB) return
+
+         if (allocated(fachfi_d) .and. allocated(fachfi)) then
+            fachf_stage = fachfi_d
+            fachfi(1:nfcts) = fachf_stage
+         end if
+         if (allocated(facefi_d) .and. allocated(facefi)) then
+            facef_stage = facefi_d
+            facefi(1:nfcts) = facef_stage
+         end if
+      end subroutine pullFacIntegralsForRestart
+
 #if defined(UDALES_DEBUG)
       !> Arm the host/device assertions. Called once, as the loop starts.
       subroutine enableDeviceHostChecks
          implicit none
          lchecks_armed = .true.
+         ! Initialisation is over: everything the host holds - cold-start
+         ! values or a restored checkpoint - must be on the device by now,
+         ! accumulators included.
+         call assertFacetStateMatchesDevice('loop start', .true.)
       end subroutine enableDeviceHostChecks
+
+      !> Assert that the facet device arrays equal their host originals.
+      !!
+      !! The fixed mirrors (facnorm, facz0, facz0h, faclGR) must always match.
+      !! The energy-balance state (facT, facqsat, fachurel, facf) must match
+      !! whenever lfacetprops_dirty is clear: the flag is the only licence for
+      !! the two to differ, and only until updateFacetPropsDevice runs. The
+      !! time integrals (fachfi, facefi) diverge by design between energy
+      !! balances, so they are checked only where the caller knows they must
+      !! agree - at loop start, after initFacetsDevice seeded them.
+      !!
+      !! The checks are exact: every one of these arrays reaches the device by
+      !! plain assignment, so a single differing element is a stale mirror.
+      subroutine assertFacetStateMatchesDevice(where, lintegrals)
+         use modmpi,    only : myid
+         use modglobal, only : nfcts
+         use initfac,   only : lfacetprops_dirty
+         implicit none
+         character(len=*), intent(in) :: where
+         logical,          intent(in) :: lintegrals
+
+         logical, allocatable :: lback(:)
+
+         if (.not. lchecks_armed) return
+         if (nfcts < 1) return
+
+         if (allocated(facnorm_d)) call check2(where, 'facnorm', facnorm(1:nfcts,1:3), facnorm_d)
+         if (allocated(facz0_d))   call check1(where, 'facz0',   facz0(1:nfcts),  facz0_d)
+         if (allocated(facz0h_d))  call check1(where, 'facz0h',  facz0h(1:nfcts), facz0h_d)
+         if (allocated(faclGR_d)) then
+            allocate(lback(1:nfcts))
+            lback = faclGR_d
+            if (any(lback .neqv. faclGR(1:nfcts))) then
+               write(*,'(A,I0,3A)') 'Stale facet mirror on rank ', myid, &
+                    ': faclGR_d differs from faclGR at ', trim(where), '.'
+               error stop 1
+            end if
+            deallocate(lback)
+         end if
+
+         if (.not. lfacetprops_dirty) then
+            if (allocated(facT1_d))    call check1(where, 'facT(:,1)', facT(1:nfcts,1),  facT1_d)
+            if (allocated(facqsat_d))  call check1(where, 'facqsat',   facqsat(1:nfcts), facqsat_d)
+            if (allocated(fachurel_d)) call check1(where, 'fachurel',  fachurel(1:nfcts), fachurel_d)
+            if (allocated(facf_d))     call check2(where, 'facf',      facf(1:nfcts,1:5), facf_d)
+         end if
+
+         if (lintegrals) then
+            if (allocated(fachfi_d) .and. allocated(fachfi)) call check1(where, 'fachfi', fachfi(1:nfcts), fachfi_d)
+            if (allocated(facefi_d) .and. allocated(facefi)) call check1(where, 'facefi', facefi(1:nfcts), facefi_d)
+         end if
+
+      contains
+
+         subroutine check1(where, name, host, dev)
+            implicit none
+            character(len=*), intent(in) :: where, name
+            real,             intent(in) :: host(:)
+            real, device,     intent(in) :: dev(:)
+            real, allocatable :: back(:)
+            allocate(back(size(dev)))
+            back = dev
+            if (any(back /= host)) then
+               write(*,'(A,I0,7A,I0,A,I0,A,ES12.4)') 'Stale facet mirror on rank ', myid, &
+                    ': ', trim(name), ' differs from ', trim(name), '_d at ', trim(where), &
+                    ' - ', count(back /= host), ' of ', size(host), ' elements, worst ', maxval(abs(back - host))
+               error stop 1
+            end if
+            deallocate(back)
+         end subroutine check1
+
+         subroutine check2(where, name, host, dev)
+            implicit none
+            character(len=*), intent(in) :: where, name
+            real,             intent(in) :: host(:,:)
+            real, device,     intent(in) :: dev(:,:)
+            real, allocatable :: back(:,:)
+            allocate(back(size(dev,1), size(dev,2)))
+            back = dev
+            if (any(back /= host)) then
+               write(*,'(A,I0,7A,I0,A,I0,A,ES12.4)') 'Stale facet mirror on rank ', myid, &
+                    ': ', trim(name), ' differs from ', trim(name), '_d at ', trim(where), &
+                    ' - ', count(back /= host), ' of ', size(host), ' elements, worst ', maxval(abs(back - host))
+               error stop 1
+            end if
+            deallocate(back)
+         end subroutine check2
+
+      end subroutine assertFacetStateMatchesDevice
 #endif
 
       !> Send the six slab averages the host reduces back up to the device.
@@ -776,6 +980,13 @@ module modcuda
          pulled = .false.
 
          call updateFacetPropsDevice
+#if defined(UDALES_DEBUG)
+         ! The one routine that may move facet state onto the device has just
+         ! run, so from here to the end of the step the mirrors must equal the
+         ! host arrays. A host write that forgot to raise lfacetprops_dirty, or
+         ! an upload that happened before the host state was final, shows here.
+         call assertFacetStateMatchesDevice('updateDevice', .false.)
+#endif
 
          u0av_d = u0av
          v0av_d = v0av
@@ -1109,6 +1320,10 @@ module modcuda
          if (nsv > 0) call pull_sv0
          if (loneeqn) call pull_e120
 
+         ! The facet flux integrals, which the restart file stores alongside the
+         ! fields; they are not pulled anywhere else between energy balances.
+         call pullFacIntegralsForRestart
+
 #if defined(UDALES_DEBUG)
          call assertHostMatchesDevice('restart')
 #endif
@@ -1438,6 +1653,9 @@ module modcuda
          integer :: n
 
          if (.not. lchecks_armed) return
+
+         ! The facet mirrors are part of every reader's contract too.
+         call assertFacetStateMatchesDevice(label, .false.)
 
          select case (label)
 

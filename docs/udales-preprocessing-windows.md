@@ -28,7 +28,7 @@ The preprocessing stack contains:
 
 Install and make available on PATH:
 
-- Python 3.9+
+- Python 3.10+
 - CMake
 - Ninja
 - GCC/GFortran (for example from conda-forge)

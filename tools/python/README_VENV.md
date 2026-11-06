@@ -3,7 +3,7 @@
 This document describes how to create the Python virtual environment required
 for uDALES preprocessing, post-processing, and tests.
 
-Python 3.9 or newer is required. Older interpreters are not supported.
+Python 3.10 or newer is required. Older interpreters are not supported.
 
 ---
 
@@ -21,6 +21,9 @@ bash tools/python/setup_venv.sh common
 
 # For the Imperial HPC machine
 bash tools/python/setup_venv.sh icl
+
+# For the ECMWF Atos HPC
+bash tools/python/setup_venv.sh ecmwf
 ```
 
 Then activate and use:
@@ -39,7 +42,7 @@ directly for a case that runs View3D, export `PREPROC_NCPU` first; use the
 
 ### Windows (PowerShell)
 
-Requires Python 3.9+, CMake, Ninja, GCC, and GFortran on `PATH`
+Requires Python 3.10+, CMake, Ninja, GCC, and GFortran on `PATH`
 (e.g. from conda-forge). Run from the repository root:
 
 ```powershell
@@ -86,7 +89,7 @@ bash tools/python/setup_venv.sh <build_system> [build_target]
 
 | Argument | Allowed values | Default | Description |
 |---|---|---|---|
-| `build_system` | `common`, `icl` (Linux only) | Linux: required; Windows: `common` | `common` — local Linux/WSL/Windows; `icl` — Imperial College London HPC cluster (Linux only, loads environment modules) |
+| `build_system` | `common`, `icl`, `ecmwf` (Linux only) | Linux: required; Windows: `common` | `common` — local Linux/WSL/Windows; `icl` — Imperial College London HPC cluster; `ecmwf` — ECMWF Atos HPC2020 (both Linux only, load environment modules) |
 | `build_target` | `view3d`, `preprocessing_tools` | `preprocessing_tools` | `view3d` — View3D executable only; `preprocessing_tools` — View3D + f2py extension modules |
 
 ### Environment variable overrides
@@ -107,6 +110,9 @@ bash tools/python/setup_venv.sh common view3d
 
 # ICL cluster, full build
 bash tools/python/setup_venv.sh icl preprocessing_tools
+
+# ECMWF Atos HPC, full build
+bash tools/python/setup_venv.sh ecmwf preprocessing_tools
 
 # Use a specific Python interpreter
 PYTHON_BIN=/opt/pbs/python/bin/python3 bash tools/python/setup_venv.sh common

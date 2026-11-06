@@ -51,10 +51,14 @@ GPU coverage has dedicated selections because it requires NVHPC and CUDA
 hardware:
 
 - `gpu-build`: isolated CPU and GPU builds for the requested build type
-- `gpu-smoke`: Debug build, CUDA initializer self-test, and two tiny parity cases
+- `gpu-smoke`: Debug build, CUDA device self-tests, four tiny parity cases and the
+  surface-energy-balance parity case (the one that checks the facet flux handover)
 - `gpu-nightly`: Release build and representative IBM, vegetation, and SEB parity
-- `gpu-mpi`: Debug two-rank parity on two GPUs
-- `gpu-full`: the full single- and multi-GPU matrix
+- `gpu-mpi`: Debug two-rank parity on two GPUs, the two-rank Poisson checks and
+  the warm-start facet-state chains on the Debug GPU build with the device
+  self-tests on
+- `gpu-full`: the full single- and multi-GPU matrix, the four-rank Poisson checks
+  and the warm-start facet-state chains on the Release GPU build
 
 For Python-library-only validation, use the dedicated dispatcher selection:
 
@@ -188,6 +192,10 @@ between multiple components rather than one isolated API.
   no-tree case `100` and the vegetation case `526`
 - `python_preproc_against_matlab/`: preprocessing parity test between the
   MATLAB and Python entry points on no-tree case `100`
+- `warmstart_facets/`: warm-start facet-state continuity regression for issue
+  #269 on the energy-balance case `064`; with `UDALES_GPU_BUILD` it also
+  warm-starts the GPU build from CPU and GPU checkpoints and compares the
+  facet temperatures across builds
 - `udbase_against_matlab/`: Python-vs-MATLAB parity checks on committed cases
 - `udprep/`: preprocessing integration checks on committed cases and binaries
 - `gpu/`: strict same-commit CPU/GPU output parity on deterministic committed
@@ -207,6 +215,8 @@ between multiple components rather than one isolated API.
 - `526/`: reduced tree case used by `regression/new_vegetation_module_against_v2.2/`
 - `526/`: also used by `integration/processor_boundaries/` for the vegetation
   decomposition check
+- `064/`: energy-balance case used by `integration/warmstart_facets/` for the
+  warm-start facet continuity regression
 
 To run the direct shortwave reference test:
 

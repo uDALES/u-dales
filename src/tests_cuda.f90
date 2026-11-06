@@ -31,6 +31,7 @@ module tests_cuda
                         ekm_d, ekh_d, pres0_d, fachf_d, facef_d, fachfi_d, facefi_d, &
                         integrateFacFluxDevice, updateFacIntegralsHost, &
                         facT1_d, facqsat_d, fachurel_d, facf_d, updateFacetPropsDevice, &
+                        facnorm_d, facz0_d, facz0h_d, faclGR_d, &
                         dxdydzfi_d, dxdydzhi_d, dvcell_d, dxhi_d, dzhi_d, dzh_d, dzf_d, dzfi_d, &
                         col_d, col_stage, IIu_d, IIv_d, IIw_d, IIc_d, updateDevice, &
                         e12p_d, resetTendenciesDevice, &
@@ -82,7 +83,7 @@ module tests_cuda
    use modtstep,    only : tstep_limits, diffgeom, diffgeom_d
    use modheatpump, only : heatpump, nhppoints_local, idhppts_local_d, &
                            thl_dot_hp, w_hp_exhaust
-   use initfac,     only : fachf, facef, fachfi, facefi, facT, facqsat, fachurel, facf, faclGR, &
+   use initfac,     only : fachf, facef, fachfi, facefi, facT, facqsat, fachurel, facf, faclGR, facnorm, facz0, facz0h, &
                            lfacetprops_dirty
    use modibm,      only : mask_u, mask_v, mask_w, mask_c, &
                            mask_u_d, mask_v_d, mask_w_d, mask_c_d, &
@@ -94,7 +95,7 @@ module tests_cuda
                            wallfunmom, wallfunmom_dir_device, fac_tau_d, fac_tau_raw, &
                            bottom_set_tau_cuda, bottom_update_tau_cuda, &
                            bound_info_type, &
-                           wallfunheat, wallfunheat_dir_device, bound_info_c, faclGR_d, &
+                           wallfunheat, wallfunheat_dir_device, bound_info_c, &
                            fac_htc_raw, fac_cth_raw, fac_pres_raw, fac_pres2_raw, &
                            fac_htc_d, fac_cth_d, fac_pres_d, fac_pres2_d, &
                            check_ibm_section_cache, &
@@ -147,6 +148,9 @@ contains
          ! below it that drives a wall function, vegetation, masscorr or the
          ! boundary conditions adds into a tendency.
          call test_tendency_reset
+         ! Also before anything below perturbs the facet arrays: this compares
+         ! the device facet state with the host as initialisation left them.
+         call test_facet_state_initial_upload
          call test_initfield_extended_halos
          call test_kappa_limiter
          call test_kappa_scalar_advection
@@ -2270,6 +2274,7 @@ contains
 
       real, parameter :: probe = 3.25
       real, allocatable :: fachf_s(:), facef_s(:), fachfi_s(:), facefi_s(:)
+      real, allocatable :: fachfi_d_s(:), facefi_d_s(:)
       real, allocatable :: back(:)
       integer :: saved_rk3step, stage
       real    :: saved_dt, want
@@ -2286,7 +2291,15 @@ contains
       saved_rk3step = rk3step
       saved_dt      = dt
       dt = 0.25
-      allocate(back(0:nfcts))
+      allocate(back(1:nfcts))
+
+      ! The device accumulators are not necessarily empty here: on a warm start
+      ! init_ibm_device seeded them with the flux integrated before the
+      ! checkpoint. Keep what they hold and put it back at the end, so running
+      ! the self-tests cannot change the restarted run.
+      allocate(fachfi_d_s(1:nfcts), facefi_d_s(1:nfcts))
+      fachfi_d_s = fachfi_d
+      facefi_d_s = facefi_d
 
       ! One time step, played through the way the loop runs it: the wall
       ! functions add their share to whatever is on the device, the integration
@@ -2346,11 +2359,85 @@ contains
          deallocate(facefi_s)
       end if
       fachf_d  = 0.
-      fachfi_d = 0.
       if (allocated(facef_d))  facef_d  = 0.
-      if (allocated(facefi_d)) facefi_d = 0.
+      fachfi_d = fachfi_d_s
+      facefi_d = facefi_d_s
+      deallocate(fachfi_d_s, facefi_d_s)
 
    end subroutine test_facflux_handover
+
+   !> Verify that the facet state reached the device as the host holds it now.
+   !!
+   !! Runs before any self-test touches the facet arrays, so what it sees is
+   !! what initCUDA (initFacetsDevice) uploaded: the fixed mirrors, the surface
+   !! state the energy balance rewrites, and the flux integrals. On a cold
+   !! start those are the input values; on a warm start they are whatever
+   !! readinitfiles restored from the initf file, which is the case this is
+   !! for. The mirrors used to be filled from inside initibm, before
+   !! readinitfiles, so a warm start ran the wall functions on a surface
+   !! temperature of zero - a configuration no device self-test ran against and
+   !! no parity case warm-started. Exact comparison: all of these cross by
+   !! plain assignment.
+   subroutine test_facet_state_initial_upload
+      implicit none
+
+      if (.not. allocated(facz0_d)) return
+
+      call expect1('facz0',  facz0(1:nfcts),  facz0_d)
+      call expect1('facz0h', facz0h(1:nfcts), facz0h_d)
+      call expect2('facnorm', facnorm(1:nfcts,1:3), facnorm_d)
+      if (allocated(faclGR_d)) call expectl('faclGR', faclGR(1:nfcts), faclGR_d)
+      if (allocated(facT1_d) .and. allocated(facT)) call expect1('facT(:,1)', facT(1:nfcts,1), facT1_d)
+      if (allocated(facqsat_d) .and. allocated(facqsat)) then
+         call expect1('facqsat',  facqsat(1:nfcts),  facqsat_d)
+         call expect1('fachurel', fachurel(1:nfcts), fachurel_d)
+         call expect2('facf',     facf(1:nfcts,1:5), facf_d)
+      end if
+      if (allocated(fachfi_d) .and. allocated(fachfi)) call expect1('fachfi', fachfi(1:nfcts), fachfi_d)
+      if (allocated(facefi_d) .and. allocated(facefi)) call expect1('facefi', facefi(1:nfcts), facefi_d)
+      if (lfacetprops_dirty) call fail_cuda_selftest('lfacetprops_dirty still set after initialisation')
+
+   contains
+
+      subroutine expect1(name, host, dev)
+         implicit none
+         character(len=*), intent(in) :: name
+         real,             intent(in) :: host(:)
+         real, device,     intent(in) :: dev(:)
+         real, allocatable :: back(:)
+         allocate(back(size(dev)))
+         back = dev
+         if (size(back) /= size(host)) call fail_cuda_selftest('facet mirror '//name//' has the wrong size')
+         if (any(back /= host)) call fail_cuda_selftest('facet mirror '//name//' does not hold the host value after initialisation')
+         deallocate(back)
+      end subroutine expect1
+
+      subroutine expect2(name, host, dev)
+         implicit none
+         character(len=*), intent(in) :: name
+         real,             intent(in) :: host(:,:)
+         real, device,     intent(in) :: dev(:,:)
+         real, allocatable :: back(:,:)
+         allocate(back(size(dev,1), size(dev,2)))
+         back = dev
+         if (any(shape(back) /= shape(host))) call fail_cuda_selftest('facet mirror '//name//' has the wrong shape')
+         if (any(back /= host)) call fail_cuda_selftest('facet mirror '//name//' does not hold the host value after initialisation')
+         deallocate(back)
+      end subroutine expect2
+
+      subroutine expectl(name, host, dev)
+         implicit none
+         character(len=*), intent(in) :: name
+         logical,          intent(in) :: host(:)
+         logical, device,  intent(in) :: dev(:)
+         logical, allocatable :: back(:)
+         allocate(back(size(dev)))
+         back = dev
+         if (any(back .neqv. host)) call fail_cuda_selftest('facet mirror '//name//' does not hold the host value after initialisation')
+         deallocate(back)
+      end subroutine expectl
+
+   end subroutine test_facet_state_initial_upload
 
    !> Verify that the facet properties on the device follow the host.
    !!
@@ -2383,15 +2470,15 @@ contains
       if (.not. allocated(facT1_d)) return
 
       allocate(facT_s, source=facT)
-      allocate(back(0:nfcts))
+      allocate(back(1:nfcts))
       saved_rk3step = rk3step
 
       ! Move the host value, then ask for the refresh the time loop would do.
-      facT(0:nfcts,1) = facT(0:nfcts,1) + 7.5
+      facT(1:nfcts,1) = facT(1:nfcts,1) + 7.5
       lfacetprops_dirty = .true.
       call updateFacetPropsDevice
       back = facT1_d
-      if (maxval(abs(back - facT(0:nfcts,1))) > 64.*epsilon(1.)*maxval(abs(facT(0:nfcts,1)))) then
+      if (maxval(abs(back - facT(1:nfcts,1))) > 64.*epsilon(1.)*maxval(abs(facT(1:nfcts,1)))) then
          call fail_cuda_selftest('facet property facT is stale on the device')
       end if
 
@@ -2400,18 +2487,18 @@ contains
          allocate(fachurel_s, source=fachurel)
          allocate(facf_s, source=facf)
 
-         facqsat(0:nfcts)  = facqsat(0:nfcts) + 0.125
-         fachurel(0:nfcts) = fachurel(0:nfcts) + 0.0625
-         facf(0:nfcts,4)   = facf(0:nfcts,4) + 11.
-         facf(0:nfcts,5)   = facf(0:nfcts,5) + 13.
+         facqsat(1:nfcts)  = facqsat(1:nfcts) + 0.125
+         fachurel(1:nfcts) = fachurel(1:nfcts) + 0.0625
+         facf(1:nfcts,4)   = facf(1:nfcts,4) + 11.
+         facf(1:nfcts,5)   = facf(1:nfcts,5) + 13.
          lfacetprops_dirty = .true.
          call updateFacetPropsDevice
 
          back = facqsat_d
-         if (maxval(abs(back - facqsat(0:nfcts))) > 1.e-10) &
+         if (maxval(abs(back - facqsat(1:nfcts))) > 1.e-10) &
             call fail_cuda_selftest('facet property facqsat is stale on the device')
          back = fachurel_d
-         if (maxval(abs(back - fachurel(0:nfcts))) > 1.e-10) &
+         if (maxval(abs(back - fachurel(1:nfcts))) > 1.e-10) &
             call fail_cuda_selftest('facet property fachurel is stale on the device')
          call check_facf_column(4)
          call check_facf_column(5)
@@ -2421,11 +2508,11 @@ contains
       end if
 
       ! The gate is real: a change made without the flag must not cross.
-      facT(0:nfcts,1) = facT(0:nfcts,1) + 3.25
+      facT(1:nfcts,1) = facT(1:nfcts,1) + 3.25
       lfacetprops_dirty = .false.
       call updateFacetPropsDevice
       back = facT1_d
-      if (maxval(abs(back - facT(0:nfcts,1))) < 1.) then
+      if (maxval(abs(back - facT(1:nfcts,1))) < 1.) then
          call fail_cuda_selftest('the facet property refresh ignores its dirty flag')
       end if
 
@@ -2442,9 +2529,9 @@ contains
          implicit none
          integer, intent(in) :: col
          real, allocatable :: b2(:,:)
-         allocate(b2(0:nfcts,5))
+         allocate(b2(1:nfcts,5))
          b2 = facf_d
-         if (maxval(abs(b2(0:nfcts,col) - facf(0:nfcts,col))) > 1.e-10) then
+         if (maxval(abs(b2(1:nfcts,col) - facf(1:nfcts,col))) > 1.e-10) then
             call fail_cuda_selftest('facet property facf is stale on the device')
          end if
          deallocate(b2)

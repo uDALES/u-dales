@@ -27,7 +27,7 @@ module modibm
    use modcuda, only : facT1_d, fachf_d, facef_d, fac_tau_d, &
                        fac_htc_d, fac_cth_d, fac_pres_d, fac_pres2_d, fac_stage, &
                        facqsat_d, fachurel_d, facf_d, fachfi_d, facefi_d, &
-                       updateFacetPropsDevice
+                       facnorm_d, facz0_d, facz0h_d, faclGR_d
 #endif
    use modibmdata
    !use wf_uno
@@ -68,7 +68,7 @@ module modibm
              init_ibm_device, &
              diffu_corr_device, diffv_corr_device, diffw_corr_device, diffc_corr_device, &
              wallfunmom_dir_device, &
-             wallfunheat_dir_device, faclGR_d, check_ibm_section_cache
+             wallfunheat_dir_device, check_ibm_section_cache
 #endif
 
     abstract interface
@@ -102,8 +102,10 @@ module modibm
 
 #if defined(_GPU)
    ! Device mirrors of the IBM geometry. All of it is built once in initibm and
-   ! never changes afterwards, so a single transfer at the end of initibm is
-   ! enough - there is no per-step counterpart to this.
+   ! never changes afterwards, so a single transfer is enough - there is no
+   ! per-step counterpart to this. The transfer is init_ibm_device, which
+   ! program.f90 calls right after initCUDA, together with the other device
+   ! initialisation.
    real,    device, allocatable :: mask_u_d(:,:,:), mask_v_d(:,:,:), mask_w_d(:,:,:), mask_c_d(:,:,:)
    ! The boundary-point lists live in bound_info_type, whose allocatable
    ! components a kernel cannot reach, so they are mirrored as flat arrays in
@@ -147,17 +149,10 @@ module modibm
    integer, device, allocatable :: c_recids_u_d(:,:), c_recids_v_d(:,:), c_recids_w_d(:,:), c_recids_c_d(:,:)
    logical, device, allocatable :: c_lskipsec_d(:), c_lcomprec_d(:)
 
-   ! Facet properties. facz0 and facz0h are indexed from 0 on the host. facT1_d
-   ! lives in modcuda instead, because it is refreshed inside the time loop.
-   real, device, allocatable :: facnorm_d(:,:), facz0_d(:), facz0h_d(:)
-   ! facqsat_d, fachurel_d and facf_d live in modcuda: the energy balance
-   ! rewrites them during the run, so they are refreshed there with facT.
-   ! faclGR is fixed geometry and stays here.
-   logical, device, allocatable :: faclGR_d(:)
-
-   ! The per-facet accumulators live in modcuda: fachf_d and facef_d cross the
-   ! bus inside the time loop, and the rest are kept beside them so that all the
-   ! facet transfers are declared in one place.
+   ! Everything indexed by facet (facnorm_d, facz0_d, facz0h_d, faclGR_d,
+   ! facT1_d, the green-roof properties and the accumulators) is declared and
+   ! transferred in modcuda - see initFacetsDevice there - so that all facet
+   ! transfers are in one place and happen after readinitfiles.
    ! Per-section moisture tendency increment, scattered into qtp in a second
    ! pass. Keeping it out of the main kernel means that kernel never takes qtp
    ! as an argument, which matters because qtp_d does not exist when lmoist is
@@ -442,11 +437,6 @@ module modibm
        end if
      end if
 
-#if defined(_GPU)
-     ! Last, so that the mirrored masks include the halos filled by the
-     ! exchanges above.
-     call init_ibm_device
-#endif
 
    end subroutine initibm
 
@@ -456,9 +446,15 @@ module modibm
    !! Which of these arrays exist depends on iwallmom, ltempeq, lmoist, nsv and
    !! lwritefac. Rather than restating those conditions - and drifting from them
    !! later - this mirrors whatever initibm actually allocated.
+   !!
+   !! Geometry only. The facet state (temperatures, green-roof properties,
+   !! accumulators) is mirrored by modcuda::initFacetsDevice, because it is
+   !! not final until readinitfiles has run - a warm start restores it there -
+   !! and this routine used to run before that, from inside initibm. It is now
+   !! called from program.f90, after initCUDA, so that every device
+   !! initialisation happens in one place and after all host initialisation.
    subroutine init_ibm_device
      use modglobal, only : libm, ib, ie, ih, jb, je, jh, kb, ke, kh, iwallmom, nfcts
-     use initfac,   only : facnorm, facz0, facz0h, facT, faclGR, facqsat, fachurel, facf
      implicit none
 
      if (.not. libm) return
@@ -533,11 +529,6 @@ module modibm
                           w_recids_u_d, w_recids_v_d, w_recids_w_d, w_recids_c_d, &
                           w_lskipsec_d, w_lcomprec_d)
 
-       allocate(facnorm_d(nfcts,3));  facnorm_d = facnorm
-       allocate(facz0_d(0:nfcts));    facz0_d   = facz0
-       allocate(facz0h_d(0:nfcts));   facz0h_d  = facz0h
-       if (allocated(facT)) allocate(facT1_d(0:nfcts))
-       allocate(fac_tau_d(nfcts))
 
        allocate(rhs_ibm_d(ib-ih:ie+ih,jb-jh:je+jh,kb:ke+kh))
 
@@ -551,38 +542,6 @@ module modibm
                             c_recids_u_d, c_recids_v_d, c_recids_w_d, c_recids_c_d, &
                             c_lskipsec_d, c_lcomprec_d)
 
-       if (.not. allocated(facnorm_d)) then
-         allocate(facnorm_d(nfcts,3)); facnorm_d = facnorm
-         allocate(facz0_d(0:nfcts));   facz0_d   = facz0
-         allocate(facz0h_d(0:nfcts));  facz0h_d  = facz0h
-       end if
-       if (.not. allocated(facT1_d) .and. allocated(facT)) allocate(facT1_d(0:nfcts))
-
-       allocate(faclGR_d(0:nfcts)); faclGR_d = faclGR
-       if (allocated(facqsat)) then
-         allocate(facqsat_d(0:nfcts))
-         allocate(fachurel_d(0:nfcts))
-         allocate(facf_d(0:nfcts,5))
-       end if
-
-       ! Filled straight away, not left to the first updateDevice. The solver
-       ! would be fine either way, but the CUDA self-tests run before the time
-       ! loop and would otherwise read an uninitialised surface temperature -
-       ! zero, which divides through in the stability functions and hands the
-       ! comparison NaN on the device and finite values on the host.
-       call updateFacetPropsDevice
-
-       allocate(fac_htc_d(nfcts), fac_cth_d(nfcts))
-       allocate(fac_pres_d(nfcts), fac_pres2_d(nfcts))
-       allocate(fachf_d(0:nfcts), facef_d(nfcts))
-       fachf_d = 0.
-       facef_d = 0.
-       ! The per-rank time integrals of the two above. They live here across
-       ! the whole interval between energy balances, which is what keeps the
-       ! accumulators off the bus entirely - see integrateFacFluxDevice.
-       allocate(fachfi_d(0:nfcts), facefi_d(nfcts))
-       fachfi_d = 0.
-       facefi_d = 0.
        if (bound_info_c%nfctsecsrank > 0) then
          allocate(qflux_sec_d(bound_info_c%nfctsecsrank))
          allocate(hflux_sec_d(bound_info_c%nfctsecsrank))
@@ -1039,7 +998,7 @@ module modibm
      integer, device, intent(in)    :: recids_w(nsec,3), recids_c(nsec,3)
      logical, device, intent(in)    :: lskipsec(nsec), lcomprec(nsec)
      real,    device, intent(inout) :: f_htc(nfct), f_cth(nfct), f_pres(nfct), f_pres2(nfct)
-     real,    device, intent(inout) :: f_hf(0:nfct), f_ef(nfct)
+     real,    device, intent(inout) :: f_hf(nfct), f_ef(nfct)
      real,    intent(out) :: totheat_out, totq_out
 
      integer :: sec, fac, i, j, k, iwt, iwq
@@ -1774,6 +1733,16 @@ module modibm
                            !bound_info%intpts(n,1),  bound_info%intpts(n,2), bound_info%intpts(n,3)
        end do
        close (ifinput)
+
+       ! The facet arrays run from 1 to nfcts, so a facet id outside that range would be
+       ! read out of bounds by the wall functions. Reject it here with a clear message.
+       do n = 1, bound_info%nfctsecs
+         if ((bound_info%secfacids(n) < 1) .or. (bound_info%secfacids(n) > ubound(facz0, 1))) then
+           write (0, *) 'ERROR: ', trim(fname_sec), ' line ', n + 1, ': facet id ', bound_info%secfacids(n), &
+             ' is outside 1..', ubound(facz0, 1)
+           call MPI_ABORT(MPI_COMM_WORLD, 1, mpierr)
+         end if
+       end do
 
        do n = 1,bound_info%nfctsecs
          m = bound_info%secbndptids(n)

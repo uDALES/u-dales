@@ -9,11 +9,14 @@
 #
 # Arguments:
 #   build_system   Build environment to use (required).
-#                  Allowed values : common | icl
+#                  Allowed values : common | icl | ecmwf
 #                    common - local Linux / WSL system (no module loading)
 #                    icl    - Imperial College London HPC cluster
 #                             (loads CMake/3.31.3-GCCcore-14.2.0 and
 #                              Python/3.13.1-GCCcore-14.2.0 modules)
+#                    ecmwf  - ECMWF Atos HPC2020 (loads prgenv/gnu,
+#                             gcc/14.2.0, python3/3.13.16-01 and
+#                             cmake/4.2.4 modules)
 #
 #   build_target   CMake target to build.
 #                  Allowed values : view3d | preprocessing_tools
@@ -50,12 +53,15 @@
 #   # Full build on the ICL cluster
 #   tools/build_preprocessing.sh icl preprocessing_tools
 #
+#   # Full build on the ECMWF Atos HPC
+#   tools/build_preprocessing.sh ecmwf preprocessing_tools
+#
 set -euo pipefail
 
-# Usage: ./tools/build_preprocessing.sh [common / icl] [target]
+# Usage: ./tools/build_preprocessing.sh [common / icl / ecmwf] [target]
 if (( $# < 1 ))
 then
- echo "The build type <common / icl> must be set."
+ echo "The build type <common / icl / ecmwf> must be set."
  echo "usage: from being in u-dales directory run: tools/build_preprocessing.sh <build type> [target]"
  echo "default target: view3d"
  echo "available targets: view3d, preprocessing_tools (view3d + f2py modules)"
@@ -158,8 +164,9 @@ clean_previous_outputs() {
     rm -f -- "${f2py_outputs[@]}"
 }
 
-if [[ "$system" != "common" && "$system" != "icl" ]]; then
+if [[ "$system" != "common" && "$system" != "icl" && "$system" != "ecmwf" ]]; then
     echo "This configuration is not available"
+    echo "available build types: common, icl, ecmwf"
     exit 1
 fi
 
@@ -173,6 +180,21 @@ if [ "$system" == "icl" ]
 then
     module load CMake/3.31.3-GCCcore-14.2.0
     module load Python/3.13.1-GCCcore-14.2.0
+elif [ "$system" == "ecmwf" ]
+then
+    # ECMWF Atos HPC2020 (hostnames such as ac6-101). The system defaults
+    # (/usr/bin/python3 3.6, gcc 8.5) are too old, so load ECMWF's
+    # own modules from /usr/local/apps. The preprocessing tools are serial
+    # C/Fortran and f2py, so the GNU toolchain is used here (f2py/meson look
+    # for gfortran by default), independent of the Intel stack that
+    # build_executable.sh uses for the solver.
+    if ! command -v module >/dev/null 2>&1; then
+        echo "Environment modules are not available; cannot use build type 'ecmwf'."
+        exit 1
+    fi
+    module load prgenv/gnu gcc/14.2.0 python3/3.13.16-01 cmake/4.2.4
+    export CC=gcc FC=gfortran
+    echo "Building preprocessing target '${target}' on ECMWF."
 elif [ "$system" == "common" ]
 then
     echo "Building preprocessing target '${target}' on local system."

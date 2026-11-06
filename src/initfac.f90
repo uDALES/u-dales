@@ -27,7 +27,7 @@
    module initfac
       use mpi
       use modglobal, only : ifinput, nfcts, cexpnr, libm, bldT, flrT, rsmin, wsoil, wfc, &
-                           nfaclyrs, lEB, lvfsparse, nnz, lfacTlyrs, lwritefac
+                           nfaclyrs, lEB, lvfsparse, nnz, lfacTlyrs, lwritefac, lwarmstart, lreadfacT
       use modmpi,   only : myid, comm3d, mpierr, MY_REAL, nprocs, cmyid
       use netcdf
       implicit none
@@ -142,27 +142,27 @@
         ! used by LES solver - needed on every rank
         allocate (facets(nfcts)); facets = 0
         allocate (facnorm(nfcts,3)); facnorm = 0.
-        allocate (facz0(0:nfcts)); facz0 = 0.
-        allocate (facz0h(0:nfcts)); facz0h = 0.
-        allocate (faca(0:nfcts)); faca = 0.
-        allocate (faclGR(0:nfcts)); faclGR = .false.
+        allocate (facz0(1:nfcts)); facz0 = 0.
+        allocate (facz0h(1:nfcts)); facz0h = 0.
+        allocate (faca(1:nfcts)); faca = 0.
+        allocate (faclGR(1:nfcts)); faclGR = .false.
 
         ! only used by SEB
         if (myid==0) then
-          !allocate (facalb(0:nfcts)); facalb = 0.
-          allocate (facem(0:nfcts)); facem = 0.
-          allocate (facd(0:nfcts, nfaclyrs)); facd = 0.
-          allocate (faccp(0:nfcts, nfaclyrs)); faccp = 0.
-          allocate (faclam(0:nfcts, nfaclyrs+1)); faclam = 0.
-          !allocate (fackappa(0:nfcts, nfaclyrs+1)); fackappa = 0.
+          !allocate (facalb(1:nfcts)); facalb = 0.
+          allocate (facem(1:nfcts)); facem = 0.
+          allocate (facd(1:nfcts, nfaclyrs)); facd = 0.
+          allocate (faccp(1:nfcts, nfaclyrs)); faccp = 0.
+          allocate (faclam(1:nfcts, nfaclyrs+1)); faclam = 0.
+          !allocate (fackappa(1:nfcts, nfaclyrs+1)); fackappa = 0.
         end if
 
         ! quantities needed when temperature/humidity of facets is specified
         if (lEB .or. iwallmom==2 .or. iwalltemp==2 .or. iwallmoist==2) then
-           allocate (facT(0:nfcts, nfaclyrs+1)); facT = 0.
-           allocate (fachurel(0:nfcts)); fachurel = 0;
-           allocate (facqsat(0:nfcts)); facqsat = 0;
-           allocate (facf(0:nfcts, 5)); facf = 0.; facf(:,4) = 200.; facf(:,5) = 50. ! standard plant & soil resistance for grass (Manickathan2018) in s/m
+           allocate (facT(1:nfcts, nfaclyrs+1)); facT = 0.
+           allocate (fachurel(1:nfcts)); fachurel = 0;
+           allocate (facqsat(1:nfcts)); facqsat = 0;
+           allocate (facf(1:nfcts, 5)); facf = 0.; facf(:,4) = 200.; facf(:,5) = 50. ! standard plant & soil resistance for grass (Manickathan2018) in s/m
            if (myid==0) then
              allocate (Tfacinit(1:nfcts)); Tfacinit = 0.
              allocate (Tfacinit_layers(1:nfcts, nfaclyrs))
@@ -171,7 +171,7 @@
 
         ! quantities associated with surface energy balance
         if (lEB) then
-           allocate (fachf(0:nfcts)); fachf = 0.
+           allocate (fachf(1:nfcts)); fachf = 0.
            allocate (facef(1:nfcts)); facef = 0.
            allocate (fachfsum(1:nfcts)); fachfsum = 0.
            allocate (facefsum(1:nfcts)); facefsum = 0.
@@ -181,11 +181,11 @@
            ! same everywhere, so each rank can integrate its own partial flux
            ! with no communication and no transfer - and the reduction that
            ! used to run twice per step runs once per energy balance instead.
-           allocate (fachfi(0:nfcts)); fachfi = 0.
+           allocate (fachfi(1:nfcts)); fachfi = 0.
            allocate (facefi(1:nfcts)); facefi = 0.
            if (myid==0) then
              allocate (facTdash(1:nfcts,nfaclyrs+1)); facTdash = 0.
-             allocate (facwsoil(0:nfcts)); facwsoil = 0;
+             allocate (facwsoil(1:nfcts)); facwsoil = 0;
              allocate (svf(1:nfcts)); svf = 0.
              allocate (netsw(1:nfcts)); netsw = 0.
              allocate (facLWin(1:nfcts)); facLWin = 0.
@@ -334,6 +334,14 @@
               end if !lEB
 
               if ((lEB) .or. (iwalltemp == 2) .or. (iwallmom == 2) .or. (iwallmoist==2)) then
+                if (lwarmstart .and. lreadfacT) then
+                 ! Warm start: the facet state (facT, facwsoil, facqsat, fachurel, facf) is
+                 ! restored from the initf restart file in readrestartfiles, so neither
+                 ! Tfacinit.inp nor Tfacinit_layers.inp is read and facT stays unset until
+                 ! then (it is not used in between). readrestartfiles aborts if the file is
+                 ! missing or unreadable; set lreadfacT = .false. to re-seed from Tfacinit*.inp.
+                 write(*,*) 'Warm start: facet state will be read from the initf restart file; Tfacinit*.inp not read'
+                else
                 ! initial facet temperatures
                  if (lfacTlyrs) then
                     open (ifinput, file='Tfacinit_layers.inp.'//cexpnr)
@@ -380,36 +388,32 @@
 
                  end if ! lfacTlyrs
 
-                 do n = 1,nfaclyrs
-                   facT(0, n) = 288.
-                 end do
-                 facT(0, nfaclyrs+1) = 299.
-
-                 ! assign initial soil moisture for outermost layer
+                 ! initial saturation humidity and (green roofs) relative humidity
                  do n = 1, nfcts
                     facqsat(n) = qsat(facT(n,1))
                     if (faclGR(n)) then
                        fachurel(n) = 0.5*(1. - cos(3.14159*wsoil/wfc))
                     end if
                  end do
+                end if ! warm start with lreadfacT
 
              end if !((lEB) .or. (iwalltemp == 2) .or. (iwallmoist==2))
 
             end if !(myid .eq. 0)
 
-            call MPI_BCAST(facz0(0:nfcts), nfcts + 1, MY_REAL, 0, comm3d, mpierr)
-            call MPI_BCAST(facz0h(0:nfcts), nfcts + 1, MY_REAL, 0, comm3d, mpierr)
-            call MPI_BCAST(faca(0:nfcts), nfcts + 1, MY_REAL, 0, comm3d, mpierr)
+            call MPI_BCAST(facz0(1:nfcts), nfcts, MY_REAL, 0, comm3d, mpierr)
+            call MPI_BCAST(facz0h(1:nfcts), nfcts, MY_REAL, 0, comm3d, mpierr)
+            call MPI_BCAST(faca(1:nfcts), nfcts, MY_REAL, 0, comm3d, mpierr)
             call MPI_BCAST(facets, nfcts, MPI_Integer, 0, comm3d, mpierr)
             call MPI_BCAST(facnorm, nfcts*3, MY_REAL, 0, comm3d, mpierr)
-            call MPI_BCAST(faclGR(0:nfcts), nfcts + 1, mpi_logical, 0, comm3d, mpierr)
+            call MPI_BCAST(faclGR(1:nfcts), nfcts, mpi_logical, 0, comm3d, mpierr)
 
-            !call MPI_BCAST(facalb(0:nfcts), nfcts + 1, MY_REAL, 0, comm3d, mpierr)
-            !call MPI_BCAST(facem(0:nfcts), nfcts + 1, MY_REAL, 0, comm3d, mpierr)
-            !call MPI_BCAST(facd(0:nfcts,1:nfaclyrs),(nfcts+1)*nfaclyrs, MY_REAL, 0, comm3d, mpierr)
-            !call MPI_BCAST(faccp(0:nfcts, 1:nfaclyrs), (nfcts + 1)*nfaclyrs, MY_REAL, 0, comm3d, mpierr)
-            !call MPI_BCAST(faclam(0:nfcts, 1:nfaclyrs), (nfcts + 1)*nfaclyrs, MY_REAL, 0, comm3d, mpierr)
-            !call MPI_BCAST(fackappa(0:nfcts, 1:nfaclyrs+1), (nfcts + 1)*(nfaclyrs+1), MY_REAL, 0, comm3d, mpierr)
+            !call MPI_BCAST(facalb(1:nfcts), nfcts, MY_REAL, 0, comm3d, mpierr)
+            !call MPI_BCAST(facem(1:nfcts), nfcts, MY_REAL, 0, comm3d, mpierr)
+            !call MPI_BCAST(facd(1:nfcts,1:nfaclyrs),nfcts*nfaclyrs, MY_REAL, 0, comm3d, mpierr)
+            !call MPI_BCAST(faccp(1:nfcts, 1:nfaclyrs), nfcts*nfaclyrs, MY_REAL, 0, comm3d, mpierr)
+            !call MPI_BCAST(faclam(1:nfcts, 1:nfaclyrs), nfcts*nfaclyrs, MY_REAL, 0, comm3d, mpierr)
+            !call MPI_BCAST(fackappa(1:nfcts, 1:nfaclyrs+1), nfcts*(nfaclyrs+1), MY_REAL, 0, comm3d, mpierr)
 
             if (lEB) then
               ! no need to broadcast - only used by rank 0
@@ -420,18 +424,18 @@
               !call MPI_BCAST(facef(1:nfcts), nfcts, MY_REAL, 0, comm3d, mpierr)
               !call MPI_BCAST(facefi(1:nfcts), nfcts, MY_REAL, 0, comm3d, mpierr)
               !call MPI_BCAST(facefsum(1:nfcts), nfcts, MY_REAL, 0, comm3d, mpierr)
-              !call MPI_BCAST(fachf(0:nfcts), nfcts + 1, MY_REAL, 0, comm3d, mpierr)
-              !call MPI_BCAST(fachfi(0:nfcts), nfcts + 1, MY_REAL, 0, comm3d, mpierr)
+              !call MPI_BCAST(fachf(1:nfcts), nfcts, MY_REAL, 0, comm3d, mpierr)
+              !call MPI_BCAST(fachfi(1:nfcts), nfcts, MY_REAL, 0, comm3d, mpierr)
               !call MPI_BCAST(fachfsum(1:nfcts), nfcts, MY_REAL, 0, comm3d, mpierr)
-              !call MPI_BCAST(facwsoil(0:nfcts), nfcts + 1, MY_REAL, 0, comm3d, mpierr)
-              !call MPI_BCAST(facf(0:nfcts, 1:5), (nfcts + 1)*5, MY_REAL, 0, comm3d, mpierr)
+              !call MPI_BCAST(facwsoil(1:nfcts), nfcts, MY_REAL, 0, comm3d, mpierr)
+              !call MPI_BCAST(facf(1:nfcts, 1:5), nfcts*5, MY_REAL, 0, comm3d, mpierr)
             end if
 
-            if ((lEB) .or. (iwalltemp == 2) .or. (iwallmom == 2)) then
-               call MPI_BCAST(facT(0:nfcts, 1:nfaclyrs+1), (nfcts + 1)*(nfaclyrs+1), MY_REAL, 0, comm3d, mpierr)
+            if ((lEB) .or. (iwalltemp == 2) .or. (iwallmom == 2) .or. (iwallmoist == 2)) then
+               call MPI_BCAST(facT(1:nfcts, 1:nfaclyrs+1), nfcts*(nfaclyrs+1), MY_REAL, 0, comm3d, mpierr)
                !call MPI_BCAST(Tfacinit(1:nfcts), nfcts, MY_REAL, 0, comm3d, mpierr)
-               call MPI_BCAST(fachurel(0:nfcts), nfcts + 1, MY_REAL, 0, comm3d, mpierr)
-               call MPI_BCAST(facqsat(0:nfcts), nfcts + 1, MY_REAL, 0, comm3d, mpierr)
+               call MPI_BCAST(fachurel(1:nfcts), nfcts, MY_REAL, 0, comm3d, mpierr)
+               call MPI_BCAST(facqsat(1:nfcts), nfcts, MY_REAL, 0, comm3d, mpierr)
                if (myid==0) then
                   deallocate(Tfacinit)
                   deallocate(Tfacinit_layers)

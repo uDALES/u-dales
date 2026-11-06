@@ -48,7 +48,7 @@ then
 fi
 
 ## go to experiment directory
-pushd $1
+pushd "$1"
 inputdir=$(pwd)
 
 ## set experiment number via path
@@ -65,15 +65,20 @@ else
 fi
 
 ## check if required variables are set
-if [ -z $DA_WORKDIR ]; then
+if [ -z "$DA_WORKDIR" ]; then
     echo "Output top-level directory DA_WORKDIR must be set inside $inputdir/config.sh"
     exit 1
 fi;
-if [ -z $DA_BUILD ]; then
+if [ -z "$DA_BUILD" ]; then
     echo "Executable DA_BUILD must be set inside $inputdir/config.sh"
     exit 1
 fi;
-if [ -z $DA_TOOLSDIR ]; then
+if [ ! -x "$DA_BUILD" ]; then
+    echo "Executable DA_BUILD=$DA_BUILD does not exist or is not executable"
+    echo "Build it first with: tools/build_executable.sh <icl|hx1|gpuhx1> release"
+    exit 1
+fi
+if [ -z "$DA_TOOLSDIR" ]; then
     echo "Script directory DA_TOOLSDIR must be set inside $inputdir/config.sh"
     exit 1
 fi;
@@ -113,7 +118,7 @@ if [ -z "${UDALES_SYSTEM:-}" ]; then
     #    under /sw-eb.
     # 3. The PBS server from /etc/pbs.conf: pbs-6 serves HX1; Imperial's other
     #    server is CX3's.
-    pbs_server=$(sed -n 's/^PBS_SERVER=//p' /etc/pbs.conf 2>/dev/null)
+    pbs_server=$(sed -n 's/^PBS_SERVER=//p' /etc/pbs.conf 2>/dev/null) || true
     case "$(hostname -s)" in
         hx1-*)         UDALES_SYSTEM=hx1; cluster_tell="hostname $(hostname -s)" ;;
         cx3-*|login-*) UDALES_SYSTEM=cx3; cluster_tell="hostname $(hostname -s)" ;;
@@ -263,16 +268,18 @@ if [ "$UDALES_TARGET" = "gpu" ]; then
     if [ -n "$gpu_type" ]; then
         pbs_select="${pbs_select}:gpu_type=${gpu_type}"
     fi
-    # One rank per GPU; bind.sh pins each to its own device.
-    # launch="mpirun -n ${NP} ${DA_TOOLSDIR}/bind.sh ${DA_BUILD}"
+    # One rank per GPU; bind.sh pins each to its own device. The executable and
+    # its namoptions are appended where the job script is written, after the
+    # executable has been copied into the output directory.
+    # launch="mpirun -n ${NP} ${DA_TOOLSDIR}/bind.sh"
     # With stack 3 mpirun takes the node list from PBS itself (tm launch), so
     # the same line serves one node or several; --map-by ppr pins NGPU ranks
     # to each node, which is what bind.sh's local-rank -> GPU mapping expects.
-    launch="mpirun --map-by ppr:${NGPU}:node -n ${NP} ${DA_TOOLSDIR}/bind.sh ${DA_BUILD}"
+    launch="mpirun --map-by ppr:${NGPU}:node -n ${NP} ${DA_TOOLSDIR}/bind.sh"
 else
     NP=$(( NNODE * NCPU ))
     pbs_select="select=${NNODE}:ncpus=${NCPU}:mpiprocs=${NCPU}:mem=${MEM}"
-    launch="mpirun -v6 -n ${NP} ${DA_BUILD}"
+    launch="mpirun -v6 -n ${NP}"
 fi
 
 pbs_directives="#PBS -l walltime=${WALLTIME}
@@ -292,12 +299,22 @@ if [ -n "${PLACE:-}" ]; then
 fi
 
 ## set the output directory
-outdir=$DA_WORKDIR/$exp
+outdir="$DA_WORKDIR/$exp"
+
+## create output directory and copy the inputs
+## The executable is copied in with the inputs and the run uses that copy:
+## $DA_BUILD usually lives in the repo on $HOME, whose I/O bandwidth is throttled
+## from the compute nodes, and it pins the binary for the run so a rebuild while
+## the job is queued cannot change what executes.
+mkdir -p "$outdir"
+cp -r -P "$inputdir"/* "$outdir"
+cp "$DA_BUILD" "$outdir/u-dales"
+pushd "$outdir"
 
 echo "writing job.$exp with $NP MPI ranks."
 
 ## write new job.exp file for HPC
-cat <<EOF > job.$exp
+cat <<EOF > "job.$exp"
 #!/bin/bash
 ${pbs_directives}
 ${job_modules}
@@ -305,7 +322,7 @@ EOF
 
 ## Report how long this job waited in the queue, from PBS's own timestamps.
 ## Quoted heredoc: nothing below is expanded at submit time.
-cat <<'EOF' >> job.$exp
+cat <<'EOF' >> "job.$exp"
 queue_wait_line() {
     local info qt st w
     if [ -n "${PBS_JOBID:-}" ] && command -v qstat >/dev/null 2>&1; then
@@ -323,18 +340,19 @@ queue_wait_line() {
 }
 EOF
 
-## The queue-wait line goes into output.exp.log ahead of this run's solver
-## output (master's convention, shared with local_execute.sh and hpc_gather.sh).
-cat <<EOF >> job.$exp
-mkdir -p $outdir
-cp -r $inputdir/* $outdir
-pushd $outdir
-queue_wait_line >> $outdir/output.$exp.log
-echo "cluster: $UDALES_SYSTEM ($cluster_tell), target: $UDALES_TARGET" >> $outdir/output.$exp.log
-${launch} $outdir/namoptions.$exp >> $outdir/output.$exp.log 2>&1
+## The queue-wait line goes into output.exp.log ahead of this run's solver output.
+## The run uses the copy of the executable made above ($outdir/u-dales); on a GPU
+## target ${launch} ends in bind.sh, which hands each rank its own device.
+cat <<EOF >> "job.$exp"
+pushd "$outdir"
+queue_wait_line >> "$outdir/output.$exp.log"
+echo "cluster: $UDALES_SYSTEM ($cluster_tell), target: $UDALES_TARGET" >> "$outdir/output.$exp.log"
+${launch} "$outdir/u-dales" "$outdir/namoptions.$exp" >> "$outdir/output.$exp.log" 2>&1
 EOF
 
 ## submit job.exp file to queue
-qsub job.$exp
+qsub "job.$exp"
 
 echo "job.$exp submitted."
+
+popd

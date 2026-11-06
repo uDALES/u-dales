@@ -132,9 +132,16 @@ Post-build contract for coding agents:
 
 For cluster work, prefer the repo wrappers in `tools/` over ad hoc module and
 launcher combinations. In particular, use `tools/build_executable.sh`,
-`tools/build_preprocessing.sh`, `tools/hpc_execute.sh`, and
-`tools/hpc_gather.sh` as the source of truth for build and run environment
-selection.
+`tools/build_preprocessing.sh`, and the machine-specific run/gather scripts
+(`tools/hpc_execute.sh`/`tools/hpc_gather.sh` for CX3 and HX1,
+`tools/archer_execute.sh`/`tools/archer_gather.sh` for ARCHER2,
+`tools/ecmwf_execute.sh`/`tools/ecmwf_gather.sh` for ECMWF HPC2020,
+`tools/local_execute.sh` for workstations) as the source of truth for build
+and run environment selection. `bin/ud_run <machine> sim|gather <case>` is
+the user-facing entry point that dispatches to those scripts; `<machine>` uses
+the `build_executable.sh` names (`icl`, `hx1`, `archer`, `ecmwf`, `common`).
+Keep the module lines in each `*_execute.sh`/`*_gather.sh` in step with the
+matching `build_executable.sh` block.
 
 ## Python Environment
 

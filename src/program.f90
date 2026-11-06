@@ -53,7 +53,8 @@ program uDALES
   use modibm,            only : initibm,createmasks,ibmwallfun,ibmnorm,bottom
   use vegetation,        only : init_vegetation, vegetation_forcing
 #if defined(_GPU)
-  use vegetation,        only : updateVegDiagHost
+  use vegetation,        only : updateVegDiagHost, init_vegetation_device
+  use modibm,            only : init_ibm_device
 #endif
   ! Purifier forcing is not yet supported by the GPU execution path.
   ! use modpurifiers,      only : createpurifiers,purifiers
@@ -157,7 +158,16 @@ program uDALES
   !call fielddump
 
 #if defined(_GPU)
+  ! Device initialisation, all of it, and only once every host initialisation
+  ! above is complete - readinitfiles included, so that a warm start's restored
+  ! state is what goes up. modcuda owns the fields, the grid and the facet
+  ! state; the IBM and vegetation geometry mirrors stay with modibm and
+  ! vegetation because both use modcuda and the reverse dependency would be
+  ! circular, so they are called from here rather than from inside initibm and
+  ! init_vegetation.
   call initCUDA
+  call init_ibm_device
+  call init_vegetation_device
 #if defined(UDALES_DEBUG)
   call run_cuda_selftests_if_requested
   call enableDeviceHostChecks

@@ -9,7 +9,8 @@
       "dry-poisson-fft",
       "thermo-scalar-wall",
       "temperature-kappa",
-      "stability-wall"
+      "stability-wall",
+      "surface-energy-balance"
     ],
     "scalar-sources": [
       "thermo-scalar-wall",
