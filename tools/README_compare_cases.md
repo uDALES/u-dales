@@ -28,7 +28,7 @@ Use `icl` instead of `common` on the Imperial HPC cluster.
 
 ### Requirements
 
-- Python 3.9 or newer (the script checks and reports if your version is too old)
+- Python 3.10 or newer (the script checks and reports if your version is too old)
 
 ### Setup (run once from the repo root)
 

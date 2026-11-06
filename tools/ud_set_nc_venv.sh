@@ -32,19 +32,20 @@ echo "u-dales NetCDF Environment Setup"
 echo "========================================"
 echo ""
 
-# ud_compare_outputs.py requires Python >= 3.9 (f-strings + netCDF4/xarray dependency floors)
+# Python >= 3.10 is required: the patched pip (>= 26.2.2, emSign CA incident, Oct 2026)
+# only supports 3.10+, and ud_compare_outputs.py needs modern netCDF4/xarray anyway.
 if command -v python3 &>/dev/null; then
     PYTHON=python3
 elif command -v python &>/dev/null && python -c "import sys; sys.exit(0 if sys.version_info.major == 3 else 1)" &>/dev/null; then
     PYTHON=python
 else
-    print_red "Error: neither 'python3' nor 'python' (Python 3) found. Please install Python 3.9 or newer and try again."
+    print_red "Error: neither 'python3' nor 'python' (Python 3) found. Please install Python 3.10 or newer and try again."
     exit 1
 fi
 
 # Verify minimum version
-if ! $PYTHON -c "import sys; sys.exit(0 if sys.version_info >= (3, 9) else 1)" &>/dev/null; then
-    print_red "Error: Python 3.9 or newer is required (found $($PYTHON --version)). Please upgrade and try again."
+if ! $PYTHON -c "import sys; sys.exit(0 if sys.version_info >= (3, 10) else 1)" &>/dev/null; then
+    print_red "Error: Python 3.10 or newer is required (found $($PYTHON --version)). Please upgrade and try again."
     exit 1
 fi
 print_green "Using $($PYTHON --version)"

@@ -19,3 +19,14 @@ Route execution to `udales-exec` (ICL/CX3 profile). Key facts it needs:
   loaded (supplies `libpython3.9.so.1.0`). A `libpython3.9.so.1.0 missing` error means
   that module isn't loaded — the venv is fine, not broken.
 
+
+## ECMWF Atos HPC2020
+
+Fingerprint:
+- `hostname` → `ac6-101.bullx` style names (`bullx` domain)
+- Lmod modules with `prgenv/*` families; `MODULEPATH` under `/usr/local/apps/modulefiles/lmod`
+- `sbatch` at `/usr/local/bin/sbatch`, no `qsub`; `$SCRATCH` = `/ec/res4/scratch/<user>`
+- `account` command lists Slurm accounts
+
+Route execution to `udales-exec` (ECMWF HPC2020 profile). Machine name for
+`tools/build_executable.sh` and `bin/ud_run` is `ecmwf`.
