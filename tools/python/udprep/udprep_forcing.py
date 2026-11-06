@@ -159,7 +159,7 @@ class ForcingSection(Section):
         drivertimeidx: Optional[int]) -> None:
         """Overwrite prof.inp columns 1-5 with time-averaged driver simulation output.
 
-        Loads xytdump.<driverjobnr>.nc from *driveroutpath* and replaces the thl,
+        Loads stats_xyt.<driverjobnr>.nc from *driveroutpath* and replaces the thl,
         qt, u, v, and tke columns of *pr* with the slice at *drivertimeidx*.
         Issues a warning and leaves *pr* unchanged if the file is missing or the
         index is out of range.
@@ -175,7 +175,7 @@ class ForcingSection(Section):
         else:
             raise FileNotFoundError(f"prof.inp file {path} not found for updating from driver output.")
         
-        path = Path(driveroutpath) / f"xytdump.{driverjobnr}.nc"
+        path = Path(driveroutpath) / f"stats_xyt.{driverjobnr}.nc"
         if not path.exists():
             warnings.warn(
                 f"Driver output file {path} not found; original prof.inp is kept without updating.",
@@ -184,15 +184,15 @@ class ForcingSection(Section):
             return
 
         simdriver = UDBase(driverjobnr, driveroutpath, load_geometry=False, suppress_load_warnings=True)
-        u   = simdriver.load_stat_xyt('uxyt')
-        v   = simdriver.load_stat_xyt('vxyt')
-        thl = simdriver.load_stat_xyt('thlxyt')
-        qt  = simdriver.load_stat_xyt('qtxyt')
-        tke = simdriver.load_stat_xyt('tketxyc')
+        u   = simdriver.load_stat_xyt('u')
+        v   = simdriver.load_stat_xyt('v')
+        thl = simdriver.load_stat_xyt('thl')
+        qt  = simdriver.load_stat_xyt('qt')
+        tke = simdriver.load_stat_xyt('tke')
 
         if drivertimeidx is not None and 0 < drivertimeidx <= u.shape[1]:
             warnings.warn(
-                f"Using driver simulation output xytdump.{driverjobnr}.nc data "
+                f"Using driver simulation output stats_xyt.{driverjobnr}.nc data "
                 "for prof.inp generation.",
                 stacklevel=1,
             )

@@ -184,8 +184,8 @@ def run_and_compare(cases_dir, path_to_exes, is_patch=False):
         # We do not compare precursor sims
         if not case_id in precursor_sims:
             # TODO: concatenate filedumps?
-            compare_outputs.compare(model_output_dirs[0] / f'fielddump.000.{test_case_dir.name}.nc',
-                                    model_output_dirs[1] / f'fielddump.000.{test_case_dir.name}.nc',
+            compare_outputs.compare(model_output_dirs[0] / f'ins_field.000.{test_case_dir.name}.nc',
+                                    model_output_dirs[1] / f'ins_field.000.{test_case_dir.name}.nc',
                                     model_output_dirs[0].parent)
 
 def get_mpi_process_count(namelist_path: Path) -> int:

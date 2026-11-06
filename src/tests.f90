@@ -20,6 +20,7 @@ module tests
   implicit none
   save
   public :: tests_read_sparse_ijk, tests_2decomp_init_exit, tests_mpi_operators
+  public :: init_tests, exit_tests, tests_roundtrip, tests_zgrid_metrics
 
 contains
 
@@ -46,7 +47,7 @@ contains
   !> Returns .true. if all tests pass, .false. otherwise
   logical function tests_read_sparse_ijk()
     use modglobal,    only : runmode
-    use readinput, only : read_sparse_ijk
+    use readsparsefiles, only : read_sparse_ijk
     use modibm,       only : initibm
     use modibm,       only : solid_info_u, solid_info_v, solid_info_w, solid_info_c
     use modibm,       only : bound_info_u, bound_info_v, bound_info_w, bound_info_c
@@ -427,5 +428,174 @@ contains
     end function compare_real_2d_jk
 
   end function tests_mpi_operators
+
+  !> Verify the vertical grid metrics after initglobal (TEST_ZGRID_METRICS).
+  !!
+  !! The solver reads only the cell centres zf from prof.inp and derives every
+  !! other vertical metric (zh, dzf, dzh, their inverses and the kappa-scheme
+  !! copies). The rest of the code relies on identities of that construction —
+  !! most importantly that each centre is the midpoint of its own faces (which
+  !! makes the plain 0.5 half-to-full-level averages exact on stretched grids)
+  !! and that dzh is the mean of the adjacent dzf. This test asserts those
+  !! identities for the grid actually loaded, so it validates uniform and
+  !! stretched prof.inp files alike, and fails when a stretched grid is
+  !! combined with a Poisson configuration whose vertical eigenvalues assume
+  !! equidistant spacing (ipoiss /= FFT2D with Gaussian elimination in z).
+  logical function tests_zgrid_metrics()
+    use modglobal, only : kb, ke, kh, zf, zh, dzf, dzh, dzfi, dzhi, dzfiq, &
+                          dzfi5, dzhiq, dzf2, dzh2i, dzfc, dzfci, dzhci, &
+                          delta, dxf, dy, ipoiss, POISS_FFT2D, BCzp
+    implicit none
+
+    real :: tol, stretch
+    integer :: k, i, nfail
+    logical :: stretched
+
+    nfail = 0
+    tol = 1000.*epsilon(zh(kb))*max(1., zh(ke+1))
+
+    call expect(abs(zh(kb)) <= tol, 'zh(kb) is 0')
+
+    do k = kb, ke
+      call expect(dzf(k) > 0., 'dzf positive')
+      call expect(abs(dzf(k) - (zh(k+1) - zh(k))) <= tol, 'dzf = zh(k+1)-zh(k)')
+      ! the midpoint identity: 0.5*(w(k)+w(k+1)) style averages depend on it
+      call expect(abs(zf(k) - 0.5*(zh(k) + zh(k+1))) <= tol, 'zf is the midpoint of its faces')
+      if (k > kb) call expect(zf(k) > zf(k-1), 'zf strictly increasing')
+    end do
+
+    call expect(abs(dzh(kb) - dzf(kb)) <= tol, 'dzh(kb) ghost convention')
+    do k = kb + 1, ke
+      call expect(abs(dzh(k) - (zf(k) - zf(k-1))) <= tol, 'dzh = zf(k)-zf(k-1)')
+      call expect(abs(dzh(k) - 0.5*(dzf(k-1) + dzf(k))) <= tol, 'dzh is the mean of adjacent dzf')
+    end do
+    call expect(abs(dzf(kb-1) - dzf(kb)) <= tol, 'dzf bottom ghost convention')
+    call expect(abs(dzf(ke+1) - dzf(ke)) <= tol, 'dzf top ghost convention')
+
+    do k = kb, ke + kh
+      call expect(abs(dzfi(k)*dzf(k) - 1.) <= tol, 'dzfi = 1/dzf')
+      call expect(abs(dzhi(k)*dzh(k) - 1.) <= tol, 'dzhi = 1/dzh')
+      call expect(abs(dzfiq(k) - 0.25*dzfi(k)) <= tol, 'dzfiq = dzfi/4')
+      call expect(abs(dzhiq(k) - 0.25*dzhi(k)) <= tol, 'dzhiq = dzhi/4')
+      call expect(abs(dzfi5(k) - 0.5*dzfi(k)) <= tol, 'dzfi5 = dzfi/2')
+      call expect(abs(dzf2(k) - dzf(k)*dzf(k)) <= tol*dzf(k), 'dzf2 = dzf**2')
+      call expect(abs(dzh2i(k) - dzhi(k)*dzhi(k)) <= tol*dzhi(k)*dzhi(k), 'dzh2i = dzhi**2')
+    end do
+
+    ! kappa-scheme copies exist only when a kappa advection scheme is selected
+    if (allocated(dzfc)) then
+      do k = kb, ke
+        call expect(abs(dzfc(k) - dzf(k)) <= tol, 'dzfc matches dzf on the interior')
+        call expect(abs(dzfci(k)*dzfc(k) - 1.) <= tol, 'dzfci = 1/dzfc')
+        call expect(abs(dzhci(k) - dzhi(k)) <= tol*dzhi(k), 'dzhci matches dzhi on the interior')
+      end do
+    end if
+
+    do k = kb, ke
+      i = lbound(delta, 1)
+      call expect(abs(delta(i,k) - (dxf(i)*dy*dzf(k))**(1./3.)) <= tol, &
+                  'delta = (dxf*dy*dzf)**(1/3)')
+    end do
+
+    ! a stretched grid must not be combined with the Poisson branches whose
+    ! vertical eigenvalues hard-code dzfi(1) (modpois: "Assumes equidistant")
+    stretch = maxval(dzf(kb:ke))/minval(dzf(kb:ke))
+    stretched = stretch > 1. + 100.*epsilon(stretch)
+    if (stretched) then
+      call expect(ipoiss == POISS_FFT2D .and. BCzp == 1, &
+                  'stretched grid requires ipoiss=0 with BCzp=1 (vertical Gaussian elimination)')
+    end if
+
+    if (myid == 0) then
+      write(*,'(A,ES10.2,A,L1)') 'zgrid metrics: max/min dzf = ', stretch, ', stretched = ', stretched
+      if (nfail == 0) then
+        write(*,*) 'PASS: all vertical grid metric checks passed'
+      else
+        write(*,'(A,I0,A)') 'FAIL: ', nfail, ' vertical grid metric checks failed'
+      end if
+    end if
+
+    tests_zgrid_metrics = (nfail == 0)
+
+  contains
+
+    subroutine expect(condition, label)
+      logical, intent(in) :: condition
+      character(*), intent(in) :: label
+      if (.not. condition) then
+        nfail = nfail + 1
+        if (myid == 0) write(*,'(A,A,A,I0)') 'FAIL zgrid metric: ', label, ' at k=', k
+      end if
+    end subroutine expect
+
+  end function tests_zgrid_metrics
+
+  !> Prepare for the input round-trip test (TEST_ROUNDTRIP).  Unlike the other
+  !! test runmodes, this one is dispatched directly after initrunparams, so it
+  !! sets up its own decomposition and finalizes MPI itself in exit_tests.
+  subroutine init_tests
+    use mpi
+    use modmpi,     only : nprocx, nprocy
+    use modstartup, only : init2decomp
+    implicit none
+
+    integer :: ierr, myid
+
+    call MPI_COMM_RANK(MPI_COMM_WORLD, myid, ierr)
+
+    if (nprocx * nprocy > 32) then
+      if (myid == 0) then
+        write(*,*) 'ERROR: input round-trip test refuses to run with more than 32 MPI ranks.'
+        write(*,*) 'Requested nprocx*nprocy =', nprocx * nprocy
+      end if
+      call MPI_ABORT(MPI_COMM_WORLD, 1, ierr)
+    end if
+
+    call init2decomp
+
+  end subroutine init_tests
+
+  subroutine exit_tests
+    use mpi
+    implicit none
+
+    integer :: ierr
+
+    call decomp_2d_finalize
+    call MPI_FINALIZE(ierr)
+  end subroutine exit_tests
+
+  !> Input round-trip test: the last rank writes the interpreted namelist
+  !! state so it can be compared against the input namelists with f90nml.
+  subroutine tests_roundtrip
+    use mpi
+    use modmpi,         only : nprocx, nprocy
+    use readnamelists, only : writenamelists
+    implicit none
+
+    integer :: ierr, nprocs, myid, last_proc
+
+    call MPI_COMM_RANK(MPI_COMM_WORLD, myid, ierr)
+    call MPI_COMM_SIZE(MPI_COMM_WORLD, nprocs, ierr)
+    last_proc = nprocs - 1
+
+    if (myid == 0) then
+      write(*,*) '========================================='
+      write(*,*) 'INPUT ROUND-TRIP TEST'
+      write(*,*) '========================================='
+      write(*,*) 'Total processes:', nprocs
+      write(*,*) 'Requested nprocx*nprocy:', nprocx * nprocy
+      write(*,*) 'Last process ID:', last_proc
+      write(*,*) '========================================='
+    end if
+
+    call MPI_BARRIER(MPI_COMM_WORLD, ierr)
+
+    if (myid == last_proc) then
+      write(*,*) '  Last process (', myid, ') received ALL INPUT VALUES:'
+      call writenamelists
+    end if
+
+  end subroutine tests_roundtrip
 
 end module tests

@@ -1,0 +1,414 @@
+"""Exercise thermodynamic NetCDF output paths."""
+
+from __future__ import annotations
+
+import os
+import re
+import shutil
+import subprocess
+import tempfile
+import unittest
+from pathlib import Path
+
+import f90nml
+import numpy as np
+from netCDF4 import Dataset
+
+
+ROOT = Path(__file__).resolve().parents[3]
+CASE = 994
+FIXTURE = ROOT / "tests" / "system" / "experiments" / str(CASE)
+EXECUTABLE = Path(os.environ.get("UDALES_EXE", ROOT / "bin" / "u-dales")).resolve()
+
+
+class AirTemperatureOutputTest(unittest.TestCase):
+    def _run_case(
+        self,
+        case_dir: Path,
+        fieldvars: str,
+        slicevars: str,
+        probevars: str,
+        *,
+        ltempeq: bool = True,
+        lmoist: bool = True,
+        receptor_height: float = 1.1,
+        receptor_heights: list[float] | None = None,
+        ltdump: bool = True,
+        expected_error: str | None = None,
+    ) -> None:
+        if not EXECUTABLE.is_file():
+            self.skipTest(f"uDALES executable not found: {EXECUTABLE}")
+        mpiexec = shutil.which(os.environ.get("MPIEXEC", "mpiexec"))
+        if mpiexec is None:
+            self.skipTest("MPI launcher not found")
+
+        shutil.copytree(FIXTURE, case_dir, dirs_exist_ok=True)
+
+        namelist = f90nml.read(case_dir / f"namoptions.{CASE}")
+        run = namelist["run"]
+        run.update(runtime=3.0, dtmax=1.0)
+        namelist["physics"]["ltempeq"] = ltempeq
+        namelist["physics"]["lmoist"] = lmoist
+        output = namelist["output"]
+        output.pop("tfielddump", None)
+        output.update(
+            fieldvars=fieldvars,
+            slicevars=slicevars,
+            probevars=probevars,
+            receptor_height=receptor_height,
+            ltdump=ltdump,
+            lislicedump=True,
+            ljslicedump=True,
+            lkslicedump=True,
+            ltislicedump=True,
+            ltjslicedump=True,
+            ltkslicedump=True,
+            lprobedump=True,
+            lxydump=True,
+            lytdump=True,
+            lydump=True,
+            tinstantdump=1.0,
+            tstatsdump=1.0,
+            tsample=1.0,
+            nislice=1,
+            njslice=1,
+            nkslice=1,
+            islice=[32],
+            jslice=[16],
+            kslice=[12],
+            nprobe=1,
+        )
+        if receptor_heights is not None:
+            output["nreceptor_heights"] = len(receptor_heights)
+            output["receptor_heights"] = receptor_heights
+        namelist.write(case_dir / f"namoptions.{CASE}", force=True)
+        (case_dir / f"probe.inp.{CASE}").write_text("# i j k\n32 16 12\n", encoding="ascii")
+
+        profile_path = case_dir / f"prof.inp.{CASE}"
+        profile = np.loadtxt(profile_path, comments="#")
+        profile[:, 2] = 0.012
+        np.savetxt(profile_path, profile, header="SDBL flow\nz thl qt u v tke", comments="# ")
+
+        version = subprocess.run([mpiexec, "--version"], capture_output=True, text=True, check=False).stdout
+        command = [mpiexec]
+        if re.search(r"Open MPI|OpenRTE", version, flags=re.IGNORECASE):
+            command.append("--oversubscribe")
+        command += ["-n", "8", str(EXECUTABLE), f"namoptions.{CASE}"]
+        result = subprocess.run(command, cwd=case_dir, capture_output=True, text=True, timeout=120, check=False)
+        if expected_error is None:
+            self.assertEqual(result.returncode, 0, result.stdout[-4000:] + result.stderr[-4000:])
+        else:
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn(expected_error, result.stdout + result.stderr)
+
+    def test_moist_output_families(self) -> None:
+        with tempfile.TemporaryDirectory(prefix="udales_air_temp_") as tmp:
+            case_dir = Path(tmp)
+            self._run_case(case_dir, "th,ta,rh,qt,ql,pa", "th,ta,rh,qt,ql,pa", "th,ta,rh,qt,ql,pa")
+
+            families = (
+                "ins_field", "ins_islice", "ins_jslice", "ins_kslice", "ins_probe",
+                "stats_t", "stats_islice", "stats_jslice", "stats_kslice",
+                "stats_xyt", "stats_xy", "stats_yt", "stats_y",
+            )
+            for family in families:
+                with self.subTest(family=family):
+                    files = list(case_dir.glob(f"{family}.*.{CASE}.nc"))
+                    files += list(case_dir.glob(f"{family}.{CASE}.nc"))
+                    self.assertTrue(files, f"No {family} files found")
+                    for path in files:
+                        with Dataset(path) as ds:
+                            self.assertIn("thl", ds.variables)
+                            self.assertIn("tha", ds.variables)
+                            self.assertIn("rh", ds.variables)
+                            self.assertIn("pabs", ds.variables)
+                            self.assertIn("ql", ds.variables)
+                            self.assertEqual(ds["tha"].getncattr("units"), "K")
+                            self.assertEqual(ds["rh"].getncattr("units"), "%")
+                            self.assertEqual(ds["pabs"].getncattr("units"), "Pa")
+                            self.assertEqual(ds["ql"].getncattr("units"), "kg/kg")
+                            values = np.asarray(ds["tha"][:])
+                            rh = np.asarray(ds["rh"][:])
+                            pabs = np.asarray(ds["pabs"][:])
+                            ql = np.asarray(ds["ql"][:])
+                            self.assertTrue(np.isfinite(values).all())
+                            self.assertTrue(np.isfinite(rh).all())
+                            self.assertTrue(np.isfinite(pabs).all())
+                            self.assertTrue(np.isfinite(ql).all())
+                            self.assertGreater(values.min(), 150.0)
+                            self.assertLess(values.max(), 350.0)
+                            self.assertGreaterEqual(rh.min(), 0.0)
+                            self.assertGreater(rh.max(), 0.0)
+                            self.assertLess(rh.max(), 110.0)
+                            self.assertGreater(pabs.min(), 5.0e4)
+                            self.assertLess(pabs.max(), 1.1e5)
+                            self.assertGreaterEqual(ql.min(), 0.0)
+
+            field_file = next(case_dir.glob(f"ins_field.*.{CASE}.nc"))
+            with Dataset(field_file) as ds:
+                thl = np.asarray(ds["thl"][:])
+                ql = np.asarray(ds["ql"][:])
+                temp = np.asarray(ds["tha"][:])
+                rh = np.asarray(ds["rh"][:])
+                qt = np.asarray(ds["qt"][:])
+                pabs = np.asarray(ds["pabs"][:])
+                self.assertGreater(ds["qt"][:].max(), 0.0)
+                self.assertGreaterEqual(ql.min(), 0.0)
+                exner = (temp - (2.26e6 / 1004.0) * ql) / thl
+                self.assertTrue(np.isfinite(exner).all())
+                self.assertTrue(((exner > 0.9) & (exner < 1.1)).all())
+                self.assertLess(np.max(np.abs(exner - exner.mean(axis=(-2, -1), keepdims=True))), 2e-6)
+
+                pressure = 1.0e5 * exner ** (1004.0 / 287.04)
+                np.testing.assert_allclose(pabs, pressure, rtol=2e-5, atol=1.0)
+                epsilon = 287.04 / 461.5
+                qv = qt - ql
+                vapor_pressure = qv * pressure / (epsilon + (1.0 - epsilon) * qv)
+                saturation_vapor_pressure = 610.78 * np.exp(17.27 * (temp - 273.16) / (temp - 35.86))
+                expected_rh = 100.0 * vapor_pressure / saturation_vapor_pressure
+                np.testing.assert_allclose(rh, expected_rh, rtol=2e-5, atol=2e-4)
+
+            with (
+                Dataset(case_dir / f"ins_field.001.{CASE}.nc") as field,
+                Dataset(case_dir / f"ins_islice.001.{CASE}.nc") as islice,
+                Dataset(case_dir / f"ins_jslice.000.{CASE}.nc") as jslice,
+                Dataset(case_dir / f"ins_kslice.001.{CASE}.nc") as kslice,
+                Dataset(case_dir / f"ins_probe.{CASE}.nc") as probe,
+            ):
+                expected = float(field["tha"][0, 11, 15, 15])
+                self.assertAlmostEqual(float(islice["tha"][0, 11, 15, 0]), expected, places=4)
+                self.assertAlmostEqual(float(jslice["tha"][0, 11, 0, 31]), expected, places=4)
+                self.assertAlmostEqual(float(kslice["tha"][0, 0, 15, 15]), expected, places=4)
+                self.assertAlmostEqual(float(probe["tha"][0, 0]), expected, places=4)
+
+                expected_rh = float(field["rh"][0, 11, 15, 15])
+                self.assertAlmostEqual(float(islice["rh"][0, 11, 15, 0]), expected_rh, places=4)
+                self.assertAlmostEqual(float(jslice["rh"][0, 11, 0, 31]), expected_rh, places=4)
+                self.assertAlmostEqual(float(kslice["rh"][0, 0, 15, 15]), expected_rh, places=4)
+                self.assertAlmostEqual(float(probe["rh"][0, 0]), expected_rh, places=4)
+
+                expected_pabs = float(field["pabs"][0, 11, 15, 15])
+                self.assertAlmostEqual(float(islice["pabs"][0, 11, 15, 0]), expected_pabs, places=2)
+                self.assertAlmostEqual(float(jslice["pabs"][0, 11, 0, 31]), expected_pabs, places=2)
+                self.assertAlmostEqual(float(kslice["pabs"][0, 0, 15, 15]), expected_pabs, places=2)
+                self.assertAlmostEqual(float(probe["pabs"][0, 0]), expected_pabs, places=2)
+
+                expected_ql = float(field["ql"][0, 11, 15, 15])
+                self.assertAlmostEqual(float(islice["ql"][0, 11, 15, 0]), expected_ql, places=7)
+                self.assertAlmostEqual(float(jslice["ql"][0, 11, 0, 31]), expected_ql, places=7)
+                self.assertAlmostEqual(float(kslice["ql"][0, 0, 15, 15]), expected_ql, places=7)
+                self.assertAlmostEqual(float(probe["ql"][0, 0]), expected_ql, places=7)
+
+            with (
+                Dataset(case_dir / f"stats_t.001.{CASE}.nc") as full,
+                Dataset(case_dir / f"stats_islice.001.{CASE}.nc") as islice,
+                Dataset(case_dir / f"stats_jslice.000.{CASE}.nc") as jslice,
+                Dataset(case_dir / f"stats_kslice.001.{CASE}.nc") as kslice,
+            ):
+                expected = float(full["tha"][0, 11, 15, 15])
+                self.assertAlmostEqual(float(islice["tha"][0, 11, 15, 0]), expected, places=4)
+                self.assertAlmostEqual(float(jslice["tha"][0, 11, 0, 31]), expected, places=4)
+                self.assertAlmostEqual(float(kslice["tha"][0, 0, 15, 15]), expected, places=4)
+
+                expected_rh = float(full["rh"][0, 11, 15, 15])
+                self.assertAlmostEqual(float(islice["rh"][0, 11, 15, 0]), expected_rh, places=4)
+                self.assertAlmostEqual(float(jslice["rh"][0, 11, 0, 31]), expected_rh, places=4)
+                self.assertAlmostEqual(float(kslice["rh"][0, 0, 15, 15]), expected_rh, places=4)
+
+                expected_pabs = float(full["pabs"][0, 11, 15, 15])
+                self.assertAlmostEqual(float(islice["pabs"][0, 11, 15, 0]), expected_pabs, places=2)
+                self.assertAlmostEqual(float(jslice["pabs"][0, 11, 0, 31]), expected_pabs, places=2)
+                self.assertAlmostEqual(float(kslice["pabs"][0, 0, 15, 15]), expected_pabs, places=2)
+
+                expected_ql = float(full["ql"][0, 11, 15, 15])
+                self.assertAlmostEqual(float(islice["ql"][0, 11, 15, 0]), expected_ql, places=7)
+                self.assertAlmostEqual(float(jslice["ql"][0, 11, 0, 31]), expected_ql, places=7)
+                self.assertAlmostEqual(float(kslice["ql"][0, 0, 15, 15]), expected_ql, places=7)
+
+    def test_instantaneous_ta_selection_is_independent(self) -> None:
+        baseline_thl = {}
+        selections = (
+            ("th", ("thl",), ("tha", "rh")),
+            ("th,ta", ("thl", "tha"), ("rh",)),
+            ("ta", ("tha",), ("thl", "rh")),
+            ("rh", ("rh",), ("thl", "tha")),
+        )
+        for selected, present, absent in selections:
+            with self.subTest(selected=selected), tempfile.TemporaryDirectory(prefix="udales_air_temp_") as tmp:
+                case_dir = Path(tmp)
+                self._run_case(case_dir, selected, selected, selected)
+                for family in ("ins_field", "ins_islice", "ins_jslice", "ins_kslice", "ins_probe"):
+                    files = list(case_dir.glob(f"{family}.*.{CASE}.nc"))
+                    files += list(case_dir.glob(f"{family}.{CASE}.nc"))
+                    self.assertTrue(files)
+                    for path in files:
+                        with Dataset(path) as ds:
+                            for variable in present:
+                                self.assertIn(variable, ds.variables)
+                            for variable in absent:
+                                self.assertNotIn(variable, ds.variables)
+                            if selected == "th":
+                                baseline_thl[path.name] = np.asarray(ds["thl"][:])
+                            elif selected == "th,ta":
+                                np.testing.assert_array_equal(ds["thl"][:], baseline_thl[path.name])
+
+    def test_ta_requires_temperature_equation(self) -> None:
+        with tempfile.TemporaryDirectory(prefix="udales_air_temp_") as tmp:
+            self._run_case(
+                Path(tmp), "ta", "ta", "ta", ltempeq=False,
+                expected_error="'ta' output requires ltempeq=.true.",
+            )
+
+    def test_rh_requires_temperature_and_moisture_equations(self) -> None:
+        configurations = (
+            {"ltempeq": False, "lmoist": True},
+            {"ltempeq": True, "lmoist": False},
+        )
+        for configuration in configurations:
+            with self.subTest(**configuration), tempfile.TemporaryDirectory(prefix="udales_rh_") as tmp:
+                self._run_case(
+                    Path(tmp), "rh", "rh", "rh", **configuration,
+                    expected_error="'rh' output requires ltempeq=.true. and lmoist=.true.",
+                )
+
+    def test_ql_requires_moisture_equation(self) -> None:
+        with tempfile.TemporaryDirectory(prefix="udales_ql_") as tmp:
+            self._run_case(
+                Path(tmp), "ql", "ql", "ql", lmoist=False,
+                expected_error="'ql' output requires lmoist=.true.",
+            )
+
+    def test_pabs_does_not_require_thermodynamic_equations(self) -> None:
+        with tempfile.TemporaryDirectory(prefix="udales_pabs_") as tmp:
+            case_dir = Path(tmp)
+            self._run_case(case_dir, "pa", "pa", "pa", ltempeq=False, lmoist=False)
+            families = (
+                "ins_field", "ins_islice", "ins_jslice", "ins_kslice", "ins_probe",
+                "stats_t", "stats_islice", "stats_jslice", "stats_kslice",
+                "stats_xyt", "stats_xy", "stats_yt", "stats_y",
+            )
+            for family in families:
+                files = list(case_dir.glob(f"{family}.*.{CASE}.nc"))
+                files += list(case_dir.glob(f"{family}.{CASE}.nc"))
+                self.assertTrue(files, f"No {family} files found")
+                for path in files:
+                    with Dataset(path) as ds:
+                        self.assertIn("pabs", ds.variables)
+                        self.assertEqual(ds["pabs"].getncattr("units"), "Pa")
+                        self.assertGreater(np.asarray(ds["pabs"][:]).min(), 5.0e4)
+
+    def test_pedestrian_wind_speed_is_stats_only(self) -> None:
+        with tempfile.TemporaryDirectory(prefix="udales_pedestrian_wind_") as tmp:
+            case_dir = Path(tmp)
+            receptor_height = 2.25
+            self._run_case(
+                case_dir, "u0,v0,w0", "u0,v0,w0", "u0,v0,w0",
+                receptor_height=receptor_height,
+            )
+
+            stats_files = sorted(case_dir.glob(f"stats_t.*.{CASE}.nc"))
+            self.assertTrue(stats_files, "No stats_t files found")
+            found_fill_value = False
+            for path in stats_files:
+                with Dataset(path) as ds:
+                    self.assertNotIn("ws_1p1", ds.variables)
+                    self.assertIn("receptor_height", ds.variables)
+                    height = ds["receptor_height"]
+                    self.assertEqual(height.dimensions, ())
+                    self.assertEqual(height.getncattr("standard_name"), "height")
+                    self.assertEqual(height.getncattr("units"), "m")
+                    self.assertEqual(height.getncattr("positive"), "up")
+                    self.assertAlmostEqual(float(np.asarray(height[...]).item()), receptor_height)
+
+                    for name in ("ws_local", "ws_10"):
+                        with self.subTest(file=path.name, variable=name):
+                            self.assertIn(name, ds.variables)
+                            variable = ds[name]
+                            self.assertEqual(variable.dimensions, ("time", "yt", "xt"))
+                            self.assertEqual(variable.getncattr("units"), "m/s")
+                            if name == "ws_local":
+                                self.assertEqual(variable.getncattr("coordinates"), "receptor_height")
+                            values = np.ma.asarray(variable[:])
+                            valid_values = values.compressed()
+                            self.assertGreater(valid_values.size, 0)
+                            self.assertTrue(np.isfinite(valid_values).all())
+                            self.assertGreaterEqual(valid_values.min(), 0.0)
+                            found_fill_value = found_fill_value or np.ma.getmaskarray(values).any()
+            self.assertTrue(found_fill_value, "Expected solid cells to use the NetCDF fill value")
+
+            for family in ("ins_field", "ins_islice", "ins_jslice", "ins_kslice", "ins_probe"):
+                files = list(case_dir.glob(f"{family}.*.{CASE}.nc"))
+                files += list(case_dir.glob(f"{family}.{CASE}.nc"))
+                self.assertTrue(files, f"No {family} files found")
+                for path in files:
+                    with Dataset(path) as ds:
+                        self.assertNotIn("ws_local", ds.variables)
+                        self.assertNotIn("ws_1p1", ds.variables)
+                        self.assertNotIn("ws_10", ds.variables)
+                        self.assertNotIn("receptor_height", ds.variables)
+
+            self._run_case(
+                case_dir, "u0,v0,w0", "u0,v0,w0", "u0,v0,w0",
+                receptor_height=3.25,
+                expected_error="differs from configured value",
+            )
+
+    def test_pedestrian_wind_speed_in_kslice_only(self) -> None:
+        with tempfile.TemporaryDirectory(prefix="udales_kslice_wind_") as tmp:
+            case_dir = Path(tmp)
+            self._run_case(case_dir, "u0,v0,w0", "u0,v0,w0", "u0,v0,w0", ltdump=False)
+            self.assertFalse(list(case_dir.glob(f"stats_t.*.{CASE}.nc")))
+            files = sorted(case_dir.glob(f"stats_kslice.*.{CASE}.nc"))
+            self.assertTrue(files)
+            for path in files:
+                with Dataset(path) as ds:
+                    self.assertEqual(ds["receptor_height"].dimensions, ())
+                    for name in ("ws_local", "ws_10"):
+                        self.assertEqual(ds[name].dimensions, ("time", "yt", "xt"))
+                        values = np.ma.asarray(ds[name][:]).compressed()
+                        self.assertGreater(values.size, 0)
+                        self.assertTrue(np.isfinite(values).all())
+
+    def test_multiple_receptor_heights_in_stats_and_kslice(self) -> None:
+        with tempfile.TemporaryDirectory(prefix="udales_multiheight_wind_") as tmp:
+            case_dir = Path(tmp)
+            heights = [2.25, 3.25]
+            self._run_case(case_dir, "u0,v0,w0", "u0,v0,w0", "u0,v0,w0",
+                           receptor_height=heights[0], receptor_heights=heights)
+            t_files = sorted(case_dir.glob(f"stats_t.*.{CASE}.nc"))
+            k_files = sorted(case_dir.glob(f"stats_kslice.*.{CASE}.nc"))
+            self.assertTrue(t_files)
+            self.assertEqual(len(t_files), len(k_files))
+            for t_path, k_path in zip(t_files, k_files):
+                with Dataset(t_path) as t_ds, Dataset(k_path) as k_ds:
+                    for ds in (t_ds, k_ds):
+                        self.assertEqual(ds["ws_local"].dimensions,
+                                         ("time", "receptor_height", "yt", "xt"))
+                        self.assertEqual(ds["ws_10"].dimensions, ("time", "yt", "xt"))
+                        np.testing.assert_allclose(ds["receptor_height"][:], heights)
+                        values = np.ma.asarray(ds["ws_local"][:])
+                        self.assertGreater(values[:, 0].compressed().size, 0)
+                        self.assertGreater(values[:, 1].compressed().size, 0)
+                        self.assertTrue(np.isfinite(values.compressed()).all())
+                    np.testing.assert_allclose(t_ds["ws_local"][:], k_ds["ws_local"][:])
+                    np.testing.assert_allclose(t_ds["ws_10"][:], k_ds["ws_10"][:])
+
+            self._run_case(case_dir, "u0,v0,w0", "u0,v0,w0", "u0,v0,w0",
+                           receptor_height=heights[0], receptor_heights=[2.25, 4.25],
+                           expected_error="values differ from configured heights")
+
+            if all(shutil.which(tool) for tool in ("ncpdq", "ncrcat", "ncks")):
+                gather = subprocess.run(
+                    ["bash", str(ROOT / "tools" / "nco_concatenate_field_x.sh"),
+                     "stats_kslice", "u,xm", "gathered_kslice.nc"],
+                    cwd=case_dir, capture_output=True, text=True, check=False,
+                )
+                self.assertEqual(gather.returncode, 0, gather.stdout + gather.stderr)
+                with Dataset(case_dir / "gathered_kslice.nc") as ds:
+                    self.assertEqual(ds["ws_local"].dimensions,
+                                     ("time", "receptor_height", "yt", "xt"))
+                    np.testing.assert_allclose(ds["receptor_height"][:], heights)
+
+
+if __name__ == "__main__":
+    unittest.main()

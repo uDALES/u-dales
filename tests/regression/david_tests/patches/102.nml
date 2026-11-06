@@ -4,7 +4,7 @@ lwarmstart   = .false.
 /
 
 &OUTPUT
-tfielddump = 4.
+tinstantdump = 4.
 tstatsdump = 4.
 /
 

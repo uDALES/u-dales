@@ -33,8 +33,9 @@ RUNTIME_MODULES = os.environ.get(
 DEFAULT_SCRATCH_ROOT = Path(os.environ.get("UDALES_SCRATCH_ROOT", "/tmp")).resolve()
 CACHED_FFTW_MODULE = REPO_ROOT / "build" / "debug" / "findFFTW-src" / "FindFFTW.cmake"
 
-ABS_TOL = 1.0e-9
+# stats_t and stats_tree are written as single-precision NetCDF variables.
 NO_TREE_GLOBAL_ABS_TOL = 2.0e-8
+TREE_GLOBAL_ABS_TOL = 5.0e-8
 LOG_ATOL = 1.0e-12
 LOG_RTOL = 1.0e-10
 
@@ -70,18 +71,18 @@ CASES = (
     CaseSpec(
         case_id=100,
         source_dir=REPO_ROOT / "tests" / "cases" / "100",
-        prefix="tdump",
-        fields=("ut", "vt", "wt"),
+        prefix="stats_t",
+        fields=("u", "v", "w"),
         vegetation_enabled=False,
         abs_tol=NO_TREE_GLOBAL_ABS_TOL,
     ),
     CaseSpec(
         case_id=526,
         source_dir=REPO_ROOT / "tests" / "cases" / "526",
-        prefix="treedump",
+        prefix="stats_tree",
         fields=("tr_u", "tr_v", "tr_w"),
         vegetation_enabled=True,
-        abs_tol=ABS_TOL,
+        abs_tol=TREE_GLOBAL_ABS_TOL,
     ),
 )
 
@@ -148,15 +149,15 @@ def _support_mask(field: str, veg_mask: np.ndarray) -> np.ndarray:
     return support
 
 
-def _parse_tile_indices(path: Path, prefix: str, case_id: int) -> Tuple[int, int]:
-    match = re.match(rf"{re.escape(prefix)}\.(\d{{3}})\.(\d{{3}})\.{case_id}\.nc$", path.name)
+def _parse_tile_index(path: Path, prefix: str, case_id: int) -> int:
+    match = re.match(rf"{re.escape(prefix)}\.(\d{{3}})\.{case_id}\.nc$", path.name)
     if not match:
         raise RuntimeError(f"Unexpected output file name: {path.name}")
-    return int(match.group(1)), int(match.group(2))
+    return int(match.group(1))
 
 
 def _load_available_times(run_dir: Path, spec: CaseSpec) -> np.ndarray:
-    files = sorted(run_dir.glob(f"{spec.prefix}.*.*.{spec.case_id}.nc"))
+    files = sorted(run_dir.glob(f"{spec.prefix}.*.{spec.case_id}.nc"))
     if not files:
         raise RuntimeError(f"No {spec.prefix} outputs found in {run_dir}")
     with nc.Dataset(files[0]) as ds:
@@ -190,9 +191,8 @@ def _load_global_fields(run_dir: Path, spec: CaseSpec, target_time: float) -> Di
     jtot = _read_int_setting(namelist, "jtot")
     ktot = _read_int_setting(namelist, "ktot")
     nprocx = _read_int_setting(namelist, "nprocx")
-    nprocy = _read_int_setting(namelist, "nprocy")
 
-    files = sorted(run_dir.glob(f"{spec.prefix}.*.*.{spec.case_id}.nc"))
+    files = sorted(run_dir.glob(f"{spec.prefix}.*.{spec.case_id}.nc"))
     if not files:
         raise RuntimeError(f"No {spec.prefix} outputs found in {run_dir}")
 
@@ -200,7 +200,7 @@ def _load_global_fields(run_dir: Path, spec: CaseSpec, target_time: float) -> Di
         field: np.zeros((ktot, jtot, itot), dtype=np.float64) for field in spec.fields
     }
     for path in files:
-        px, py = _parse_tile_indices(path, spec.prefix, spec.case_id)
+        px = _parse_tile_index(path, spec.prefix, spec.case_id)
         with nc.Dataset(path) as ds:
             if "time" not in ds.variables:
                 raise RuntimeError(f"Missing time variable in {path}")
@@ -214,10 +214,9 @@ def _load_global_fields(run_dir: Path, spec: CaseSpec, target_time: float) -> Di
             sample = np.asarray(ds.variables[spec.fields[0]][record], dtype=np.float64)
             nz, ny, nx = sample.shape
             istart = px * (itot // nprocx)
-            jstart = py * (jtot // nprocy)
             for field in spec.fields:
                 arr = np.asarray(ds.variables[field][record], dtype=np.float64)
-                fields[field][:nz, jstart : jstart + ny, istart : istart + nx] = arr
+                fields[field][:nz, :ny, istart : istart + nx] = arr
     return fields
 
 
@@ -253,6 +252,10 @@ def _run_case(path_to_exe: Path, run_dir: Path, case_id: int, nprocs: int) -> Pa
     diag_log = run_dir / "fortran_diagnostics.log"
 
     for stale in run_dir.glob("monitor*.txt"):
+        stale.unlink()
+    for stale in run_dir.glob(f"stats_tree.*.{case_id}.nc"):
+        stale.unlink()
+    for stale in run_dir.glob(f"stats_t.*.{case_id}.nc"):
         stale.unlink()
     for stale in run_dir.glob(f"treedump.*.*.{case_id}.nc"):
         stale.unlink()

@@ -167,6 +167,7 @@ def main() -> int:
 
     print(f"Wrote {result.timedepsw_path}")
     print(f"Wrote {result.netsw_path}")
+    print(f"Wrote {result.shortwave_forcing_path}")
     if result.sdir_nc_path is not None:
         print(f"Wrote {result.sdir_nc_path}")
     if result.timedepsveg_path is not None:

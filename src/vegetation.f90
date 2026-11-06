@@ -56,7 +56,7 @@ contains
   subroutine init_vegetation
     use modglobal,  only : ltrees,ltreedump,itree_mode,TREE_MODE_SVEG,TREE_MODE_LEGACY_SEB,ib,ie,jb,je,kb,ke,ih,jh,kh,cexpnr,nsv
     use modmpi,     only : myid,comm3d,mpierr,MY_REAL
-    use readinput,  only : read_sparse_ijk, read_sparse_real
+    use readsparsefiles, only : read_sparse_ijk, read_sparse_real
     use decomp_2d,  only : exchange_halo_x, exchange_halo_y, exchange_halo_z
     implicit none
     integer :: i,j,k,m

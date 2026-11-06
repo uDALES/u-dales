@@ -23,16 +23,16 @@ and executes the same case with:
 
 The test file has two variants:
 
-- a no-tree comparison on case `100` that reconstructs `tdump.*.*.100.nc` and
-  compares `ut`, `vt`, and `wt` between serial and decomposed runs
-- a tree-forcing comparison on case `526` based on `treedump.*.*.526.nc`
+- a no-tree comparison on case `100` that reconstructs `stats_t.*.100.nc` and
+  compares `u`, `v`, and `w` between serial and decomposed runs
+- a tree-forcing comparison on case `526` based on `stats_tree.*.526.nc`
 
 Note:
 
-- the no-tree `tdump` comparison allows a very small residual in the global
-  `wt` check for `y`/`xy` splits because `tdump` is written as single-precision
+- the no-tree `stats_t` comparison allows a very small residual in the global
+  `w` check for `y`/`xy` splits because `stats_t` is written as single-precision
   NetCDF output (`NF90_FLOAT`) even though the solver runs in `r8`
-- the vegetation `treedump` comparison remains exact in the current one-step
+- the vegetation `stats_tree` comparison remains exact in the current one-step
   diagnostic
 
 Status:

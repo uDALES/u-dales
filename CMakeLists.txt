@@ -142,3 +142,10 @@ target_include_directories(u-dales PUBLIC ${FFTW_INCLUDE_DIRS})
 #add_dependencies(u-dales fishpack-cmake-project)
 #add_dependencies(u-dales vfftpack-cmake-project)
 add_dependencies(u-dales 2decomp-fft)
+
+# Report where the executable landed, so DA_BUILD can be set from the build log.
+# The executable is no longer copied to bin/: it stays in the build tree, which
+# keeps debug and release builds distinct instead of overwriting one another.
+add_custom_command(TARGET u-dales POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E echo "u-dales executable: $<TARGET_FILE:u-dales>"
+)
