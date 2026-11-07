@@ -8,7 +8,10 @@ if ! command -v module >/dev/null 2>&1 && [ -f /etc/profile.d/modules.sh ]; then
     source /etc/profile.d/modules.sh
 fi
 
-if command -v module >/dev/null 2>&1; then
+# Load the Imperial (ICL) toolchain only where it exists. On other clusters
+# (e.g. ECMWF) the caller provides the runtime via MPIEXEC and the module set
+# used to build UDALES_BUILD; an unknown module name must not abort the test.
+if command -v module >/dev/null 2>&1 && module avail intel/2025a 2>&1 | grep -q intel; then
     module load intel/2025a netCDF/4.9.2-iimpi-2023a netCDF-Fortran/4.6.1-iimpi-2023a FFTW/3.3.9-intel-2021a CMake/3.29.3-GCCcore-13.3.0 git/2.45.1-GCCcore-13.3.0
 fi
 

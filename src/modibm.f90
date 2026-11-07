@@ -367,6 +367,16 @@ module modibm
        end do
        close (ifinput)
 
+       ! The facet arrays run from 1 to nfcts, so a facet id outside that range would be
+       ! read out of bounds by the wall functions. Reject it here with a clear message.
+       do n = 1, bound_info%nfctsecs
+         if ((bound_info%secfacids(n) < 1) .or. (bound_info%secfacids(n) > ubound(facz0, 1))) then
+           write (0, *) 'ERROR: ', trim(fname_sec), ' line ', n + 1, ': facet id ', bound_info%secfacids(n), &
+             ' is outside 1..', ubound(facz0, 1)
+           call MPI_ABORT(MPI_COMM_WORLD, 1, mpierr)
+         end if
+       end do
+
        do n = 1,bound_info%nfctsecs
          m = bound_info%secbndptids(n)
          !bound_info%bndvec(n,1) = xgrid(bound_info%bndpts(m,1)) - bound_info%intpts(n,1)
@@ -1479,7 +1489,7 @@ module modibm
      use modfields, only : u0, v0, w0, thl0, thlp, qt0, qtp, pres0
      use initfac,   only : facT, facz0, facz0h, facnorm, fachf, facef, facqsat, fachurel, facf, faclGR, faca
      use modmpi,    only : comm3d, mpi_sum, mpierr, my_real
-     use modibmdata, only : bctfxm, bctfxp, bctfyp, bctfz
+     use modibmdata, only : bctfxm, bctfxp, bctfym, bctfyp, bctfz
      use decomp_2d, only : zstart
 
      integer i, j, k, sec, fac
@@ -1568,7 +1578,7 @@ module modibm
              flux = bctfyp
            !elseif (all(abs(norm + yhat) < eps1)) then
            elseif (is_equal(norm, -yhat)) then
-             flux = bctfxm
+             flux = bctfym
            !elseif (all(abs(norm - zhat) < eps1)) then
            elseif (is_equal(norm, zhat)) then
              flux = bctfz
@@ -1810,9 +1820,9 @@ module modibm
      real ::  interp_velocity_w(3)
      integer, intent(in) :: i, j, k
 
-     interp_velocity_w(1) = 0.25 * (u0(i,j,k) + u0(i+1,j,k) + u0(i,j-1,k) + u0(i+1,j-1,k))
-     interp_velocity_w(2) = v0(i,j,k)
-     interp_velocity_w(3) = 0.25 * (w0(i,j,k) + w0(i,j,k+1) + w0(i,j-1,k) + w0(i,j-1,k+1)) !only for equidistant grid!
+     interp_velocity_w(1) = 0.25 * (u0(i,j,k) + u0(i+1,j,k) + u0(i,j,k-1) + u0(i+1,j,k-1)) !only for equidistant grid!
+     interp_velocity_w(2) = 0.25 * (v0(i,j,k) + v0(i,j+1,k) + v0(i,j,k-1) + v0(i,j+1,k-1)) !only for equidistant grid!
+     interp_velocity_w(3) = w0(i,j,k)
 
      return
    end function interp_velocity_w

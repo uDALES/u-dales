@@ -27,7 +27,7 @@ then
 fi
 
 ## go to experiment directory
-pushd $1
+pushd "$1"
 inputdir=$(pwd)
 
 ## set experiment number via path
@@ -44,11 +44,11 @@ else
 fi
 
 ## check if required variables are set
-if [ -z $DA_WORKDIR ]; then
+if [ -z "$DA_WORKDIR" ]; then
     echo "Output top-level directory DA_WORKDIR must be set inside $inputdir/config.sh"
     exit 1
 fi;
-if [ -z $DA_TOOLSDIR ]; then
+if [ -z "$DA_TOOLSDIR" ]; then
     echo "Script directory DA_TOOLSDIR must be set inside $inputdir/config.sh"
     exit 1
 fi;
@@ -74,7 +74,7 @@ if [ -z "${UDALES_SYSTEM:-}" ]; then
     #    under /sw-eb.
     # 3. The PBS server from /etc/pbs.conf: pbs-6 serves HX1; Imperial's other
     #    server is CX3's.
-    pbs_server=$(sed -n 's/^PBS_SERVER=//p' /etc/pbs.conf 2>/dev/null)
+    pbs_server=$(sed -n 's/^PBS_SERVER=//p' /etc/pbs.conf 2>/dev/null) || true
     case "$(hostname -s)" in
         hx1-*)         UDALES_SYSTEM=hx1; cluster_tell="hostname $(hostname -s)" ;;
         cx3-*|login-*) UDALES_SYSTEM=cx3; cluster_tell="hostname $(hostname -s)" ;;
@@ -123,17 +123,17 @@ module load NCO/5.2.9-foss-2024a'
             exit 1
         fi
         gather_modules="module load netCDF/4.9.2-gompi-2023a UDUNITS/2.2.28-GCCcore-12.3.0 GSL/2.7-GCC-12.3.0
-export PATH=$nco_bin:\$PATH"
+export PATH=\"$nco_bin\":\$PATH"
         ;;
 esac
 
 ## set the output directory
-outdir=$DA_WORKDIR/$exp
+outdir="$DA_WORKDIR/$exp"
 
 echo "writing post-job.$exp."
 
 ## write post-job.exp file for HPC
-cat <<EOF > post-job.$exp
+cat <<EOF > "post-job.$exp"
 #!/bin/bash
 #PBS -l walltime=${WALLTIME}
 #PBS -l select=1:ncpus=1:mem=${MEM}
@@ -142,7 +142,7 @@ EOF
 
 ## Report how long this job waited in the queue, from PBS's own timestamps.
 ## Quoted heredoc: nothing below is expanded at submit time.
-cat <<'EOF' >> post-job.$exp
+cat <<'EOF' >> "post-job.$exp"
 queue_wait_line() {
     local info qt st w
     if [ -n "${PBS_JOBID:-}" ] && command -v qstat >/dev/null 2>&1; then
@@ -160,13 +160,13 @@ queue_wait_line() {
 }
 EOF
 
-cat <<EOF >> post-job.$exp
-queue_wait_line >> $outdir/output.$exp.log
-echo "cluster: $UDALES_SYSTEM ($cluster_tell)" >> $outdir/output.$exp.log
-$DA_TOOLSDIR/gather_outputs.sh $outdir >> $outdir/output.$exp.log 2>&1
+cat <<EOF >> "post-job.$exp"
+queue_wait_line >> "$outdir/output.$exp.log"
+echo "cluster: $UDALES_SYSTEM ($cluster_tell)" >> "$outdir/output.$exp.log"
+"$DA_TOOLSDIR/gather_outputs.sh" "$outdir" >> "$outdir/output.$exp.log" 2>&1
 EOF
 
 ## submit post-job.exp file to queue
-qsub post-job.$exp
+qsub "post-job.$exp"
 
 echo "post-job.$exp submitted."
