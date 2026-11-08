@@ -162,6 +162,9 @@ between multiple components rather than one isolated API.
 - `directshortwave/`: Python-driven preprocessing integration tests for direct
   shortwave on committed cases `100` and `525`
 - `ibm_sparse_input/`: MPI validation for `read_sparse_ijk()` using `runmode = 1004`
+- `zgrid_metrics/`: vertical grid metric identities for a uniform and a
+  stretched profile using `runmode = 1006`, including the rejection of a
+  stretched grid with an equidistant-only Poisson configuration
 - `mpi_operators/`: direct MPI operator validation for `runmode = 1005` on
   the Xie/Castro case `100` across `1x1`, `2x1`, `1x2`, and `2x2`
 - `processor_boundaries/`: MPI decomposition parity checks on the Xie/Castro
@@ -181,6 +184,8 @@ between multiple components rather than one isolated API.
   no-tree decomposition check
 - `100/`: also used by `integration/mpi_operators/` for the direct MPI
   operator check
+- `100/`: also used by `integration/zgrid_metrics/` for the vertical grid
+  metric checks (uniform profile and a test-local stretched profile)
 - `100/`: also used by `integration/python_preproc_against_matlab/`
 - `525/`: flat-terrain tree case used by `integration/directshortwave/`
 - `526/`: reduced tree case used by `regression/new_vegetation_module_against_v2.2/`

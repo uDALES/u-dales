@@ -1794,7 +1794,7 @@ module modibm
 
      interp_velocity_u(1) = u0(i,j,k)
      interp_velocity_u(2) = 0.25 * (v0(i,j,k) + v0(i,j+1,k) + v0(i-1,j,k) + v0(i-1,j+1,k))
-     interp_velocity_u(3) = 0.25 * (w0(i,j,k) + w0(i,j,k+1) + w0(i-1,j,k) + w0(i-1,j,k+1)) !only for equidistant grid!
+     interp_velocity_u(3) = 0.25 * (w0(i,j,k) + w0(i,j,k+1) + w0(i-1,j,k) + w0(i-1,j,k+1)) ! zf(k) is the midpoint of zh(k), zh(k+1): exact on any grid
 
      return
    end function interp_velocity_u
@@ -1808,7 +1808,7 @@ module modibm
 
      interp_velocity_v(1) = 0.25 * (u0(i,j,k) + u0(i+1,j,k) + u0(i,j-1,k) + u0(i+1,j-1,k))
      interp_velocity_v(2) = v0(i,j,k)
-     interp_velocity_v(3) = 0.25 * (w0(i,j,k) + w0(i,j,k+1) + w0(i,j-1,k) + w0(i,j-1,k+1)) !only for equidistant grid!
+     interp_velocity_v(3) = 0.25 * (w0(i,j,k) + w0(i,j,k+1) + w0(i,j-1,k) + w0(i,j-1,k+1)) ! zf(k) is the midpoint of zh(k), zh(k+1): exact on any grid
 
      return
    end function interp_velocity_v
@@ -1816,12 +1816,17 @@ module modibm
 
    function interp_velocity_w(i, j, k)
      ! interpolates the velocity at w-grid location i,j,k
+     use modglobal, only :  dzf, dzh
      use modfields, only :  u0, v0, w0
      real ::  interp_velocity_w(3)
      integer, intent(in) :: i, j, k
 
-     interp_velocity_w(1) = 0.25 * (u0(i,j,k) + u0(i+1,j,k) + u0(i,j,k-1) + u0(i+1,j,k-1)) !only for equidistant grid!
-     interp_velocity_w(2) = 0.25 * (v0(i,j,k) + v0(i,j+1,k) + v0(i,j,k-1) + v0(i,j+1,k-1)) !only for equidistant grid!
+     ! zh(k) is not midway between zf(k-1) and zf(k) on a stretched grid: linear
+     ! interpolation weights level k by dzf(k-1) and level k-1 by dzf(k) (sum 2*dzh(k))
+     interp_velocity_w(1) = 0.5 * ((u0(i,j,k  ) + u0(i+1,j,k  ))*dzf(k-1) &
+                                 + (u0(i,j,k-1) + u0(i+1,j,k-1))*dzf(k  )) / (2.*dzh(k))
+     interp_velocity_w(2) = 0.5 * ((v0(i,j,k  ) + v0(i,j+1,k  ))*dzf(k-1) &
+                                 + (v0(i,j,k-1) + v0(i,j+1,k-1))*dzf(k  )) / (2.*dzh(k))
      interp_velocity_w(3) = w0(i,j,k)
 
      return
@@ -1870,12 +1875,21 @@ module modibm
 
    real function interp_temperature_w(i, j, k)
      ! interpolates the temperature at w-grid location i,j,k
+     use modglobal, only :  dzf, dzh
      use modfields, only :  thl0
      integer, intent(in) :: i, j, k
+     real :: wk, wkm
 
-     !interp_temperature_w = 0.5 * (thl0(i,j,k) + thl0(i,j,k-1))
-     interp_temperature_w = 0.5 * (thl0(i,j,k  )*mask_c(i,j,k  )*(2.-mask_c(i,j,k-1)) &
-                                +  thl0(i,j,k-1)*mask_c(i,j,k-1)*(2.-mask_c(i,j,k  )))
+     ! linear interpolation between zf(k-1) and zf(k) to zh(k) weights level k by
+     ! dzf(k-1) and level k-1 by dzf(k); a solid neighbour (mask_c = 0) drops out and
+     ! the fluid value is used on its own, as before
+     wk  = dzf(k-1)*mask_c(i,j,k  )
+     wkm = dzf(k  )*mask_c(i,j,k-1)
+     if (wk + wkm > 0.) then
+       interp_temperature_w = (thl0(i,j,k)*wk + thl0(i,j,k-1)*wkm) / (wk + wkm)
+     else
+       interp_temperature_w = 0.
+     end if
 
      return
    end function interp_temperature_w

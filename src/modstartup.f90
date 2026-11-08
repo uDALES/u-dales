@@ -2144,7 +2144,8 @@ module modstartup
       do k = kb + 1, ke
          whls(k) = (wfls(k)*dzf(k - 1) + wfls(k - 1)*dzf(k))/(2*dzh(k))
       end do
-      whls(ke + 1) = (wfls(ke) + dzf(ke)*(wfls(ke) - wfls(ke - 1))/dzh(ke)) ! tg3315 31/07/18 removed a 0.5
+      ! zh(ke+1) lies half a cell above zf(ke): extrapolate over dzf(ke)/2 (as in DALES)
+      whls(ke + 1) = wfls(ke) + 0.5*dzf(ke)*(wfls(ke) - wfls(ke - 1))/dzh(ke)
 
       !    idtmax = floor(dtmax/tres)
       btime = timee
