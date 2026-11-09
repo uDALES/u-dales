@@ -966,14 +966,11 @@ class UDVis:
         if zt.size == 0 or not np.all(np.isfinite(zt)):
             raise ValueError("zt data not found")
 
-        z_faces = np.empty(zt.size + 1, dtype=float)
-        z_faces[0] = 0.0
-        for k, center in enumerate(zt):
-            z_faces[k + 1] = 2.0 * center - z_faces[k]
+        import udgrid
 
-        zm = z_faces[:-1]
-        ztop = z_faces[-1]
-        return np.diff(np.append(zm, ztop))
+        # zsize = 0 skips the consistency check against the namelist domain height
+        _, dzt = udgrid.z_grid_from_profile(zt, 0.0)
+        return dzt
 
     def plot_dz_variation(self, save: bool = True, show: bool = False):
         """Plot vertical grid-spacing variation from prof.inp.<expnr>.
