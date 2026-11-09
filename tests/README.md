@@ -173,6 +173,8 @@ between multiple components rather than one isolated API.
   MATLAB and Python entry points on no-tree case `100`
 - `warmstart_facets/`: warm-start facet-state continuity regression for issue
   #269 on the energy-balance case `064`
+- `stretched_grid/`: preprocessing and a short solver run of the energy-balance
+  case `064` on an exponentially stretched vertical grid
 - `udbase_against_matlab/`: Python-vs-MATLAB parity checks on committed cases
 - `udprep/`: preprocessing integration checks on committed cases and binaries
 
@@ -193,6 +195,8 @@ between multiple components rather than one isolated API.
   decomposition check
 - `064/`: energy-balance case used by `integration/warmstart_facets/` for the
   warm-start facet continuity regression
+- `064/`: also used by `integration/stretched_grid/`, which preprocesses and
+  runs it again on a stretched vertical grid
 
 To run the direct shortwave reference test:
 

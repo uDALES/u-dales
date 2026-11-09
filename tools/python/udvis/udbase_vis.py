@@ -17,6 +17,7 @@ from matplotlib.collections import PatchCollection
 from matplotlib.patches import Polygon as mplPolygon
 import numpy as np
 
+import udgrid
 from .scene import (
     BUILDING_RGB,
     GROUND_RGB,
@@ -965,8 +966,6 @@ class UDVis:
         zt = np.asarray(zt, dtype=float).reshape(-1)
         if zt.size == 0 or not np.all(np.isfinite(zt)):
             raise ValueError("zt data not found")
-
-        import udgrid
 
         # zsize = 0 skips the consistency check against the namelist domain height
         _, dzt = udgrid.z_grid_from_profile(zt, 0.0)
