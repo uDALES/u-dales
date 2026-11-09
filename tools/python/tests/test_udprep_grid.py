@@ -71,6 +71,22 @@ class TestGridSection(unittest.TestCase):
         np.testing.assert_allclose(sim.zm, section.zm)
         np.testing.assert_allclose(sim.zt, section.zt)
 
+    def test_uniform_zgrid_has_ktot_levels_for_awkward_float_steps(self):
+        # np.arange(0, zsize, zsize/ktot) returns ktot+1 faces for these pairs,
+        # which used to give a zero top spacing.
+        for ktot, zsize in ((112, 75.0), (112, 150.0), (112, 300.0)):
+            with self.subTest(ktot=ktot, zsize=zsize):
+                self.assertEqual(np.arange(0.0, zsize, zsize / ktot).size, ktot + 1)
+                section, sim = make_grid_section(ktot=ktot, zsize=zsize)
+                section._refresh_derived_grid_params()
+                section.generate_zgrid()
+
+                self.assertEqual(sim.zm.size, ktot)
+                self.assertEqual(sim.zt.size, ktot)
+                self.assertEqual(sim.dzt.size, ktot)
+                np.testing.assert_allclose(sim.dzt, zsize / ktot)
+                np.testing.assert_allclose(sim.zt, sim.zm + 0.5 * zsize / ktot)
+
     def test_refresh_derived_params_uses_computed_hlin_when_not_set(self):
         section, _ = make_grid_section(hlin=None, lzstretch=True, lstretchexp=True)
         section._refresh_derived_grid_params()
@@ -262,6 +278,19 @@ class TestGridSection(unittest.TestCase):
         section._refresh_derived_grid_params()
         with self.assertWarns(RuntimeWarning):
             section.generate_zgrid()
+
+    def test_warn_large_spacing_checks_the_largest_not_the_last(self):
+        # A double-tanh stretch is finest at both ends, so the largest spacing
+        # sits in the middle of the stretched region.
+        section, _ = make_grid_section(dzlin=1.0)
+        with self.assertWarns(RuntimeWarning):
+            section._warn_large_top_spacing(np.array([1.0, 2.0, 4.0, 2.0, 1.0]), 1.0)
+
+        import warnings
+
+        with warnings.catch_warnings():
+            warnings.simplefilter("error")
+            section._warn_large_top_spacing(np.array([1.0, 2.0, 2.9, 2.0, 1.0]), 1.0)
 
     def test_stretched_grid_round_trips_through_profile_reconstruction(self):
         # prof.inp carries only the cell centres zt. The solver — and the
