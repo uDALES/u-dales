@@ -8,14 +8,18 @@ env:
   # the requested ranks against the CPUs granted to it (tools/mpi_env.sh,
   # tests/integration/mpi_env.py) and fails with both numbers otherwise. The
   # hosted Linux runner exposes 4 CPUs as 2 cores with 2 hardware threads each;
-  # Open MPI counts one slot per core by default, so tell it to count hardware
-  # threads as CPUs. That is a mapping choice, not oversubscription: four ranks
-  # on four CPUs. The first variable is for Open MPI 4 (ORTE), the second for
-  # Open MPI 5 (PRRTE). Both are ignored by other MPIs. The macOS runner has
-  # three CPUs, so the supported-macos selection runs the MPI tests on at most
-  # two ranks (tests/test_suites.yml).
+  # Open MPI counts one slot per core and binds one rank per core by default, so
+  # tell it to treat hardware threads as CPUs (what `mpiexec --use-hwthread-cpus`
+  # does). That is a mapping choice, not oversubscription: four ranks on four
+  # CPUs. Open MPI 4 (ORTE) takes slots and binding from the one hwloc variable.
+  # Open MPI 5 (PRRTE) keeps the two apart: the hwloc variable sets the CPU unit
+  # used for binding and prte_set_default_slots the slot count (a mapping-policy
+  # qualifier alone leaves the slots at one per core). All are ignored by other
+  # MPIs. The macOS runner has three CPUs, so the supported-macos selection runs
+  # the MPI tests on at most two ranks (tests/test_suites.yml).
   OMPI_MCA_hwloc_base_use_hwthreads_as_cpus: "true"
-  PRTE_MCA_rmaps_default_mapping_policy: ":hwtcpus"
+  PRTE_MCA_hwloc_base_use_hwthreads_as_cpus: "true"
+  PRTE_MCA_prte_set_default_slots: "hwthreads"
 
 jobs:
   build-and-supported-tests:

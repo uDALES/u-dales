@@ -208,9 +208,10 @@ scheduler for physical cores (Slurm: `--hint=nomultithread`): the launcher
 binds one rank per core and refuses an allocation of four hardware threads on
 two cores. Outside a scheduler Open MPI counts one slot per core; on a
 hyperthreaded laptop with fewer cores than ranks it stops with "not enough
-slots", and `OMPI_MCA_hwloc_base_use_hwthreads_as_cpus=true` lets it run one
-rank per hardware thread instead (this is what GitHub Actions does on its
-4-vCPU runner). The hosted macOS CI runner has three CPUs, so the
+slots", and `MPI_LAUNCH_EXTRA_ARGS=--use-hwthread-cpus` lets it run one rank
+per hardware thread instead (GitHub Actions does the same on its 4-vCPU runner
+through the equivalent MCA variables in `.github/workflows/ci.yml`). The
+hosted macOS CI runner has three CPUs, so the
 `supported-macos` selection runs the MPI tests on at most two ranks
 (`ZGRID_MODES`, `UDALES_TEST_NPROCX/NPROCY`) and leaves the fixed 2x2 ibm sparse
 input test to Linux and HPC.

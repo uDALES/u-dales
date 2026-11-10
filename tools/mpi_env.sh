@@ -15,8 +15,8 @@
 # On nodes with hyperthreading request physical cores from the scheduler (Slurm:
 # --hint=nomultithread): the launcher binds one rank per core and refuses an allocation of
 # hardware threads that puts two ranks on one core. Outside a scheduler Open MPI counts
-# one slot per core; on a hyperthreaded laptop with fewer cores than ranks set
-# OMPI_MCA_hwloc_base_use_hwthreads_as_cpus=true to run one rank per hardware thread.
+# one slot per core; on a hyperthreaded laptop with fewer cores than ranks pass
+# MPI_LAUNCH_EXTRA_ARGS=--use-hwthread-cpus to run one rank per hardware thread.
 #
 # Open MPI's session directory is placed under TMPDIR (default /tmp): the default location
 # can exceed the socket path length on macOS. Other MPIs ignore these variables.
