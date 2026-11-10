@@ -78,8 +78,11 @@ cp "$DA_BUILD" "$outdir/u-dales"
 ## go to execution and output directory
 pushd "$outdir"
 
-## execute program with mpi
-mpiexec -n $NCPU --oversubscribe ./u-dales "namoptions.$exp" 2>&1 | tee -a "output.$exp.log"
+## execute program with mpi: one rank per CPU, never oversubscribed (tools/mpi_env.sh
+## resolves the launcher and fails with the requested and available counts otherwise)
+source "$DA_TOOLSDIR/mpi_env.sh"
+mpi_preflight "$NCPU" || exit 1
+"$MPIEXEC" $MPI_LAUNCH_EXTRA_ARGS -n $NCPU ./u-dales "namoptions.$exp" 2>&1 | tee -a "output.$exp.log"
 
 ## Merge output files across outputs.
 gather_start=$(date +%s.%N)

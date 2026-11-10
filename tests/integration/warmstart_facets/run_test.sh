@@ -45,21 +45,9 @@ T_TOTAL="${T_TOTAL:-20.}"
 DTEB="${DTEB:-5}"
 NFACLYRS=5
 
-if [ -z "${MPIEXEC:-}" ] && command -v mpiifort >/dev/null 2>&1; then
-    MPIEXEC="$(dirname "$(command -v mpiifort)")/mpiexec"
-else
-    MPIEXEC="${MPIEXEC:-mpiexec}"
-fi
-MPI_LAUNCH_EXTRA_ARGS="${MPI_LAUNCH_EXTRA_ARGS:-}"
-MPI_VERSION_OUTPUT="$("$MPIEXEC" --version 2>/dev/null || true)"
-
-if printf '%s\n' "$MPI_VERSION_OUTPUT" | grep -Eqi "Open MPI|OpenRTE"; then
-    MPI_LAUNCH_EXTRA_ARGS="--oversubscribe ${MPI_LAUNCH_EXTRA_ARGS}"
-    TMPDIR="${TMPDIR:-/tmp}"
-    export TMPDIR
-    export OMPI_MCA_prte_tmpdir_base="${OMPI_MCA_prte_tmpdir_base:-$TMPDIR}"
-    export PRTE_MCA_prte_tmpdir_base="${PRTE_MCA_prte_tmpdir_base:-$TMPDIR}"
-fi
+# launcher, extra arguments and the one-rank-per-CPU pre-flight check (never oversubscribe)
+# shellcheck disable=SC1091
+source "${REPO_ROOT}/tools/mpi_env.sh"
 
 if [ ! -f "$UDALES_BUILD" ]; then
     echo "ERROR: u-dales executable not found at: $UDALES_BUILD"
@@ -127,6 +115,7 @@ stage() {
 run_udales() {
     local run_dir="$1" np="$2"
     local module_setup=""
+    mpi_preflight "$np" || return 1
     if [ -f /etc/profile.d/modules.sh ]; then
         module_setup="source /etc/profile.d/modules.sh >/dev/null 2>&1 || true; "
     fi

@@ -66,7 +66,11 @@ build stack, so load it in its own step for the Python/test phase.
 
 MPI launcher notes:
 - prefer the module-provided `mpiexec`
-- if Open MPI is used, set `TMPDIR=/tmp` and `--oversubscribe` for login-node runs
+- never oversubscribe: the runners check the requested ranks against the CPUs granted
+  (`tools/mpi_env.sh`, `tests/integration/mpi_env.py`) and fail with both numbers; run
+  multi-rank tests inside an allocation with as many CPUs as ranks
+- with Open MPI the session directory is placed under `TMPDIR` (default `/tmp`) by the
+  same helpers
 - interactive runs can be slow; prefer repo wrappers
 
 Gotchas (learned the hard way):
