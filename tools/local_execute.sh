@@ -19,12 +19,12 @@
 
 # Usage: ./tools/local_execute.sh <PATH_TO_CASE>
 
-set -e
+set -euo pipefail
 
 if (( $# < 1 ))
 then
     echo "The path to case folder must be set."
-    exit
+    exit 1
 fi
 
 ## go to experiment directory
@@ -42,24 +42,24 @@ if [ -f config.sh ]; then
 fi
 
 ## check if required variables are set
-if [ -z "$DA_WORKDIR" ]; then
+if [ -z "${DA_WORKDIR:-}" ]; then
     echo "Output top-level directory DA_WORKDIR must be set inside $inputdir/config.sh"
-    exit
+    exit 1
 fi;
-if [ -z "$DA_BUILD" ]; then
+if [ -z "${DA_BUILD:-}" ]; then
     echo "Executable DA_BUILD must be set inside $inputdir/config.sh"
-    exit
+    exit 1
 fi;
 if [ ! -x "$DA_BUILD" ]; then
     echo "Executable DA_BUILD=$DA_BUILD does not exist or is not executable"
     echo "Build it first with: tools/build_executable.sh common release"
     exit 1
 fi
-if [ -z "$DA_TOOLSDIR" ]; then
+if [ -z "${DA_TOOLSDIR:-}" ]; then
     echo "Script directory DA_TOOLSDIR must be set inside $inputdir/config.sh"
-    exit
+    exit 1
 fi;
-if [ -z $NCPU ]; then
+if [ -z "${NCPU:-}" ]; then
     echo "Number of CPU cores NCPU must be set inside $inputdir/config.sh"
     echo "NCPU must be equal to the product of nprocx and nprocy set in $inputdir/namoptions.$exp"
     exit 1

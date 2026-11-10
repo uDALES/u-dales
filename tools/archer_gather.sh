@@ -1,6 +1,6 @@
 #!/bin/bash
 
-set -e
+set -euo pipefail
 
 if (( $# < 1 ))
 then
@@ -25,15 +25,15 @@ else
 fi
 
 ## check if required variables are set
-if [ -z "$DA_TOOLSDIR" ]; then
+if [ -z "${DA_TOOLSDIR:-}" ]; then
     echo "Script directory DA_TOOLSDIR must be set inside $outdir/config.sh"
     exit 1
 fi;
-if [ -z $WALLTIME ]; then
+if [ -z "${WALLTIME:-}" ]; then
     echo "Wall clock time WALLTIME must be set inside $outdir/config.sh"
     exit 1
 fi;
-if [ -z $QOS ]; then
+if [ -z "${QOS:-}" ]; then
     echo "Job quota QOS must be set inside $outdir/config.sh"
     exit 1
 fi;
@@ -50,7 +50,7 @@ cat <<EOF > "post-job.$exp.slurm"
 #SBATCH --account=n02-ASSURE
 #SBATCH --partition=standard
 #SBATCH --qos=${QOS}
-
+set -eo pipefail
 module load cray-hdf5 cray-netcdf nco gsl
 "$DA_TOOLSDIR/gather_outputs.sh" "$outdir" >> "$outdir/output.$exp.log" 2>&1
 EOF

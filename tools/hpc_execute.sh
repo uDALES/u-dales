@@ -17,7 +17,7 @@
 
 # Copyright (C) 2016-2019 the uDALES Team.
 
-set -e
+set -euo pipefail
 
 if (( $# < 1 ))
 then
@@ -44,11 +44,11 @@ else
 fi
 
 ## check if required variables are set
-if [ -z "$DA_WORKDIR" ]; then
+if [ -z "${DA_WORKDIR:-}" ]; then
     echo "Output top-level directory DA_WORKDIR must be set inside $inputdir/config.sh"
     exit 1
 fi;
-if [ -z "$DA_BUILD" ]; then
+if [ -z "${DA_BUILD:-}" ]; then
     echo "Executable DA_BUILD must be set inside $inputdir/config.sh"
     exit 1
 fi;
@@ -57,25 +57,25 @@ if [ ! -x "$DA_BUILD" ]; then
     echo "Build it first with: tools/build_executable.sh <icl|hx1> release"
     exit 1
 fi
-if [ -z "$DA_TOOLSDIR" ]; then
+if [ -z "${DA_TOOLSDIR:-}" ]; then
     echo "Script directory DA_TOOLSDIR must be set inside $inputdir/config.sh"
     exit 1
 fi;
-if [ -z $NNODE ]; then
+if [ -z "${NNODE:-}" ]; then
     echo "Number of nodes NNODE must be set inside $inputdir/config.sh"
     echo "Product of NNODE and NCPU set in $inputdir/config.sh must be equal to the product of nprocx and nprocy set in $inputdir/namoptions.$exp"
     exit 1
 fi;
-if [ -z $NCPU ]; then
+if [ -z "${NCPU:-}" ]; then
     echo "Number of CPU cores on each node NCPU must be set inside $inputdir/config.sh"
     echo "Product of NNODE and NCPU set in $inputdir/config.sh must be equal to the product of nprocx and nprocy set in $inputdir/namoptions.$exp"
     exit 1
 fi;
-if [ -z $WALLTIME ]; then
+if [ -z "${WALLTIME:-}" ]; then
     echo "Wall clock time WALLTIME must be set inside $inputdir/config.sh"
     exit 1
 fi;
-if [ -z $MEM ]; then
+if [ -z "${MEM:-}" ]; then
     echo "Memory requirement MEM must be set inside $inputdir/config.sh"
     exit 1
 fi;
@@ -160,6 +160,7 @@ echo "writing job.$exp."
 cat <<EOF > "job.$exp"
 #!/bin/bash
 ${pbs_directives}
+set -eo pipefail
 ${job_modules}
 EOF
 

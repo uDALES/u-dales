@@ -17,7 +17,7 @@
 
 # Copyright (C) 2016-2019 the uDALES Team.
 
-set -e
+set -euo pipefail
 
 if (( $# < 1 ))
 then
@@ -44,19 +44,19 @@ else
 fi
 
 ## check if required variables are set
-if [ -z "$DA_WORKDIR" ]; then
+if [ -z "${DA_WORKDIR:-}" ]; then
     echo "Output top-level directory DA_WORKDIR must be set inside $inputdir/config.sh"
     exit 1
 fi;
-if [ -z "$DA_TOOLSDIR" ]; then
+if [ -z "${DA_TOOLSDIR:-}" ]; then
     echo "Script directory DA_TOOLSDIR must be set inside $inputdir/config.sh"
     exit 1
 fi;
-if [ -z $WALLTIME ]; then
+if [ -z "${WALLTIME:-}" ]; then
     echo "Wall clock time WALLTIME must be set inside $inputdir/config.sh"
     exit 1
 fi;
-if [ -z $MEM ]; then
+if [ -z "${MEM:-}" ]; then
     echo "Memory requirement MEM must be set inside $inputdir/config.sh"
     exit 1
 fi;
@@ -137,6 +137,7 @@ cat <<EOF > "post-job.$exp"
 #!/bin/bash
 #PBS -l walltime=${WALLTIME}
 #PBS -l select=1:ncpus=1:mem=${MEM}
+set -eo pipefail
 ${gather_modules}
 EOF
 
