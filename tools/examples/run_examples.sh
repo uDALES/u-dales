@@ -28,8 +28,13 @@
 # DA_BUILD, DA_WORKDIR and DA_TOOLSDIR default to the paths below and can be
 # overridden from the environment. The number of MPI ranks for each case is
 # taken from nprocx*nprocy in its namoptions file.
+#
+# uDALES runs one MPI rank per CPU and never oversubscribes (see
+# tools/mpi_env.sh): cases 001 and 999 use 8 ranks and the others 4, so the
+# full sweep needs 8 CPUs. On a machine with 4 CPUs pass the 4-rank cases
+# explicitly, e.g. ./tools/examples/run_examples.sh 002 101 102 201 949 950.
 
-set -e
+set -euo pipefail
 
 if [ ! -d src ]; then
   echo "Please run this script from the root folder"
