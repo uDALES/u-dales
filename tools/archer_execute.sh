@@ -73,7 +73,7 @@ outdir="$DA_WORKDIR/$exp"
 ## the job is queued cannot change what executes.
 mkdir -p "$outdir"
 cp -r -P "$inputdir"/* "$outdir"
-cp "$DA_BUILD" "$outdir/u-dales"
+cp --preserve=mode "$DA_BUILD" "$outdir/u-dales"
 pushd "$outdir"
 
 echo "writing job.$exp.slurm"

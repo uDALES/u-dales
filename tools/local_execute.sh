@@ -73,7 +73,7 @@ echo "Starting job for case $exp..."
 ## copy files to output directory
 mkdir -p "$outdir"
 cp -r ./* "$outdir"
-cp "$DA_BUILD" "$outdir/u-dales"
+cp -p "$DA_BUILD" "$outdir/u-dales"  # -p, not --preserve: macOS cp has no long options
 
 ## go to execution and output directory
 pushd "$outdir"

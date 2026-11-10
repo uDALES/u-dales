@@ -176,7 +176,7 @@ outdir="$DA_WORKDIR/$exp"
 ## so a rebuild while the job is queued cannot change it.
 mkdir -p "$outdir"
 cp -r -P "$inputdir"/* "$outdir"
-cp "$DA_BUILD" "$outdir/u-dales"
+cp --preserve=mode "$DA_BUILD" "$outdir/u-dales"
 pushd "$outdir"
 
 echo "writing job.$exp.slurm"

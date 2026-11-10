@@ -125,6 +125,10 @@ module load NCO/5.2.9-foss-2024a'
         gather_modules="module load netCDF/4.9.2-gompi-2023a UDUNITS/2.2.28-GCCcore-12.3.0 GSL/2.7-GCC-12.3.0
 export PATH=\"$nco_bin\":\$PATH"
         ;;
+    *)
+        echo "Unknown UDALES_SYSTEM '$UDALES_SYSTEM': set it to cx3 or hx1."
+        exit 1
+        ;;
 esac
 
 ## set the output directory

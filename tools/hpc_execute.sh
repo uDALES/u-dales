@@ -128,6 +128,10 @@ case "$UDALES_SYSTEM" in
     cx3) job_modules='module load tools/prod
 module load intel/2021a netCDF/4.8.0-iimpi-2021a netCDF-Fortran/4.5.3-iimpi-2021a FFTW/3.3.9-intel-2021a CMake/3.20.1-GCCcore-10.3.0 git/2.32.0-GCCcore-10.3.0-nodocs' ;;
     hx1) job_modules='module load intel/2023a netCDF/4.9.2-iimpi-2023a netCDF-Fortran/4.6.1-iimpi-2023a FFTW/3.3.10-intel-compilers-2023.1.0' ;;
+    *)
+        echo "Unknown UDALES_SYSTEM '$UDALES_SYSTEM': set it to cx3 or hx1."
+        exit 1
+        ;;
 esac
 
 ## Optional PBS placement from config.sh, e.g. PLACE=excl to have the node to
@@ -151,7 +155,7 @@ outdir="$DA_WORKDIR/$exp"
 ## the job is queued cannot change what executes.
 mkdir -p "$outdir"
 cp -r -P "$inputdir"/* "$outdir"
-cp "$DA_BUILD" "$outdir/u-dales"
+cp --preserve=mode "$DA_BUILD" "$outdir/u-dales"
 pushd "$outdir"
 
 echo "writing job.$exp."
