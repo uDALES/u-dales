@@ -7,7 +7,8 @@
 # test asserts the identities of the solver's face recursion and the derived
 # metric arrays, and that a stretched grid is rejected when combined with a
 # Poisson configuration whose vertical eigenvalues assume equidistant spacing
-# (here BCzp=2), which must make the run fail.
+# (here BCzp=2), which must make the run fail: initglobal refuses the
+# combination before the test runs, and the test itself checks the same rule.
 
 set -u
 
@@ -104,7 +105,7 @@ run_mode() {
             failures=$((failures + 1))
         fi
     else
-        if [ "$run_rc" -eq 0 ] || ! grep -q "stretched grid requires ipoiss=0" "${run_dir}/run.log"; then
+        if [ "$run_rc" -eq 0 ] || ! grep -Eq "non-equidistant vertical grid is not supported|stretched grid requires ipoiss=0" "${run_dir}/run.log"; then
             echo "FAIL: TEST_ZGRID_METRICS [$label] was expected to reject the configuration (rc=$run_rc)"
             tail -n 60 "${run_dir}/run.log" || true
             failures=$((failures + 1))

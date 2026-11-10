@@ -54,7 +54,7 @@ contains
   !! LAD/drag fields with halo exchanges, and precompute staggered face
   !! lists used by vegetation_forcing.
   subroutine init_vegetation
-    use modglobal,  only : ltrees,ltreedump,itree_mode,TREE_MODE_SVEG,TREE_MODE_LEGACY_SEB,ib,ie,jb,je,kb,ke,ih,jh,kh,cexpnr,nsv
+    use modglobal,  only : ltrees,ltreedump,itree_mode,TREE_MODE_SVEG,TREE_MODE_LEGACY_SEB,ib,ie,jb,je,kb,ke,ih,jh,kh,cexpnr,nsv,dzf,dzh
     use modmpi,     only : myid,comm3d,mpierr,MY_REAL
     use readsparsefiles, only : read_sparse_ijk, read_sparse_real
     use decomp_2d,  only : exchange_halo_x, exchange_halo_y, exchange_halo_z
@@ -293,9 +293,12 @@ contains
       veg_vp = 0.
     end if
 
-    ! w-faces (k-1/k); no z-halos, so start at kb+1
+    ! w-faces (k-1/k); no z-halos, so start at kb+1. zh(k) is not midway between
+    ! zf(k-1) and zf(k) on a stretched grid: weight level k by dzf(k-1), k-1 by dzf(k)
     dcoef_f = 0.0
-    dcoef_f(:,:,kb+1:ke) = 0.5*(dcoef_3d(ib:ie, jb:je, kb:ke-1) + dcoef_3d(ib:ie, jb:je, kb+1:ke))
+    do k = kb+1, ke
+      dcoef_f(:,:,k) = (dcoef_3d(ib:ie, jb:je, k)*dzf(k-1) + dcoef_3d(ib:ie, jb:je, k-1)*dzf(k)) / (2.*dzh(k))
+    end do
     mask_f = (dcoef_f > 0.0)
     npts_w = count(mask_f)
     if (npts_w > 0) then
@@ -349,7 +352,7 @@ contains
   !! energy balance (heat/moisture), and scalar deposition.  Called once
   !! per timestep from the main time loop.
   subroutine vegetation_forcing
-    use modglobal,  only : lmoist,ltempeq,nsv,itree_mode,TREE_MODE_SVEG,TREE_MODE_LEGACY_SEB
+    use modglobal,  only : lmoist,ltempeq,nsv,itree_mode,TREE_MODE_SVEG,TREE_MODE_LEGACY_SEB,dzf,dzh
     use modfields,  only : um,vm,wm,up,vp,wp,svp,svm
     implicit none
     integer :: i,j,k,m,n,npts
@@ -396,10 +399,11 @@ contains
       j = ijk_w(mf,2)
       k = ijk_w(mf,3)
       dcoefv = dcoef_w(mf)
+      ! u, v at the w face zh(k): weight level k by dzf(k-1) and level k-1 by dzf(k)
       veg_wp(mf) = - dcoefv * wm(i,j,k) * &
                          sqrt( wm(i,j,k)**2 &
-                         + (0.25*(um(i,j,k) + um(i+1,j,k) + um(i,j,k-1) + um(i+1,j,k-1)))**2 &
-                         + (0.25*(vm(i,j,k) + vm(i,j+1,k) + vm(i,j,k-1) + vm(i,j+1,k-1)))**2 )
+                         + (0.5*((um(i,j,k) + um(i+1,j,k))*dzf(k-1) + (um(i,j,k-1) + um(i+1,j,k-1))*dzf(k))/(2.*dzh(k)))**2 &
+                         + (0.5*((vm(i,j,k) + vm(i,j+1,k))*dzf(k-1) + (vm(i,j,k-1) + vm(i,j+1,k-1))*dzf(k))/(2.*dzh(k)))**2 )
       wp(i,j,k) = wp(i,j,k) + veg_wp(mf)
     end do
 

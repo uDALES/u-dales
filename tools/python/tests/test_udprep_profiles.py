@@ -395,6 +395,7 @@ class TestForcingSection(unittest.TestCase):
         driver_dir.mkdir()
         (driver_dir / "stats_xyt.999.nc").touch()
         fields = {
+            "zt": np.array([0.5, 2.0, 4.5]),  # same grid as the case: values are copied
             "thl": np.array([[300., 301.], [302., 303.], [304., 305.]]),
             "qt": np.array([[0.010, 0.011], [0.012, 0.013], [0.014, 0.015]]),
             "u": np.array([[1., 2.], [3., 4.], [5., 6.]]),
@@ -426,6 +427,83 @@ class TestForcingSection(unittest.TestCase):
         # prof.inp must remain unchanged — u column still 5.0
         data = np.loadtxt(self.workdir / "prof.inp.321", skiprows=2)
         np.testing.assert_allclose(data[:, 3], 5.0, rtol=1e-5)
+
+    # ---- update_prof_from_driver ----------------------------------------------
+
+    def test_driver_profile_on_same_grid_is_copied(self):
+        z = np.array([0.5, 2.0, 4.5])
+        values = np.array([1.0, 2.0, 3.0])
+
+        out = ForcingSection._driver_profile_on_grid(z.astype(np.float32), values, z)
+
+        np.testing.assert_array_equal(out, values)
+
+    def test_driver_profile_on_different_grid_is_interpolated_by_height(self):
+        # driver: uniform 1 m cells; target: stretched centres
+        zdriver = np.array([0.5, 1.5, 2.5, 3.5, 4.5, 5.5])
+        values = 10.0 + 2.0 * zdriver
+        ztarget = np.array([0.5, 2.0, 4.5])
+
+        out = ForcingSection._driver_profile_on_grid(zdriver, values, ztarget)
+
+        np.testing.assert_allclose(out, 10.0 + 2.0 * ztarget)
+
+    def test_driver_profile_same_size_different_heights_is_not_copied_by_index(self):
+        zdriver = np.array([1.0, 3.0, 5.0])
+        values = np.array([1.0, 3.0, 5.0])
+        ztarget = np.array([0.5, 2.0, 4.5])
+
+        with self.assertWarns(UserWarning):  # 0.5 m lies below the lowest driver centre
+            out = ForcingSection._driver_profile_on_grid(zdriver, values, ztarget)
+
+        np.testing.assert_allclose(out, [1.0, 2.0, 4.5])
+
+    def test_update_prof_from_driver_interpolates_onto_case_grid(self):
+        import udbase
+
+        section = ForcingSection(
+            "forcing",
+            {"thl0": 295.0, "qt0": 0.005, "u0": 3.0, "v0": 0.0, "tke": 0.2, "lapse": 0.0},
+            sim=self.sim,
+            defaults={},
+        )
+        section.generate_prof()
+        section.write_prof()
+
+        zdriver = np.array([0.5, 1.5, 2.5, 3.5, 4.5, 5.5])
+        fields = {
+            "zt": zdriver.astype(np.float32),
+            "u": np.column_stack([zdriver, 2.0 * zdriver]),
+            "v": np.column_stack([0.0 * zdriver, 0.1 * zdriver]),
+            "thl": np.column_stack([290.0 + zdriver, 300.0 + zdriver]),
+            "qt": np.column_stack([0.0 * zdriver, 0.001 * zdriver]),
+            "tke": np.column_stack([0.0 * zdriver, 0.5 + 0.0 * zdriver]),
+        }
+
+        class FakeDriver:
+            def __init__(self, *args, **kwargs):
+                pass
+
+            def load_stat_xyt(self, var):
+                return fields[var]
+
+        (self.workdir / "stats_xyt.900.nc").write_bytes(b"")
+        original = udbase.UDBase
+        udbase.UDBase = FakeDriver
+        try:
+            with _warnings.catch_warnings():
+                _warnings.simplefilter("ignore")
+                section.update_prof_from_driver("900", str(self.workdir), 2)
+        finally:
+            udbase.UDBase = original
+
+        data = np.loadtxt(self.workdir / "prof.inp.321", skiprows=2)
+        zt = self.sim.zt
+        np.testing.assert_allclose(data[:, 1], 300.0 + zt, rtol=1e-5)
+        np.testing.assert_allclose(data[:, 2], 0.001 * zt, rtol=1e-5)
+        np.testing.assert_allclose(data[:, 3], 2.0 * zt, rtol=1e-5)
+        np.testing.assert_allclose(data[:, 4], 0.1 * zt, rtol=1e-5)
+        np.testing.assert_allclose(data[:, 5], 0.5, rtol=1e-5)
 
 if __name__ == "__main__":
     unittest.main()

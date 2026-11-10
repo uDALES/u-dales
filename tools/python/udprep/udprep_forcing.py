@@ -152,6 +152,33 @@ class ForcingSection(Section):
         self.sim.pr = pr
         self.write_prof(force=True)  # overwrite prof.inp with updated profiles
 
+    @staticmethod
+    def _driver_profile_on_grid(zdriver: np.ndarray, values: np.ndarray, ztarget: np.ndarray) -> np.ndarray:
+        """Return a driver profile on the cell centres *ztarget* of this case.
+
+        The driver and the driven simulation may use different vertical grids
+        (different ktot or stretching). Copying by level index would then assign
+        values to the wrong heights, so the profile is interpolated linearly
+        unless the two sets of cell centres coincide. Target levels outside the
+        driver range take the nearest driver value.
+        """
+        zdriver = np.asarray(zdriver, dtype=float).reshape(-1)
+        values = np.asarray(values, dtype=float).reshape(-1)
+        ztarget = np.asarray(ztarget, dtype=float).reshape(-1)
+        if zdriver.size != values.size:
+            raise ValueError(
+                f"driver profile has {values.size} levels but its zt coordinate has {zdriver.size}"
+            )
+        if zdriver.size == ztarget.size and np.allclose(zdriver, ztarget, rtol=1e-5, atol=1e-8):
+            return values.copy()
+        if ztarget.min() < zdriver.min() - 1e-8 or ztarget.max() > zdriver.max() + 1e-8:
+            warnings.warn(
+                "Target grid extends beyond the driver cell centres "
+                f"({zdriver.min():.6g}..{zdriver.max():.6g} m); nearest driver values are used there.",
+                stacklevel=2,
+            )
+        return np.interp(ztarget, zdriver, values)
+
     def update_prof_from_driver(
         self,
         driverjobnr: str,
@@ -196,11 +223,10 @@ class ForcingSection(Section):
                 "for prof.inp generation.",
                 stacklevel=1,
             )
-            pr[:, 1] = thl[:, drivertimeidx - 1]
-            pr[:, 2] = qt[:,  drivertimeidx - 1]
-            pr[:, 3] = u[:,   drivertimeidx - 1]
-            pr[:, 4] = v[:,   drivertimeidx - 1]
-            pr[:, 5] = tke[:, drivertimeidx - 1]
+            zdriver = np.asarray(simdriver.load_stat_xyt('zt'), dtype=float).reshape(-1)
+            columns = (thl, qt, u, v, tke)
+            for col, data in enumerate(columns, start=1):
+                pr[:, col] = self._driver_profile_on_grid(zdriver, data[:, drivertimeidx - 1], pr[:, 0])
         else:
             warnings.warn(
                 "drivertimeidx is not set or out of bounds for driver output; "

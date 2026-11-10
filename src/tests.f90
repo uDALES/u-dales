@@ -433,18 +433,20 @@ contains
   !!
   !! The solver reads only the cell centres zf from prof.inp and derives every
   !! other vertical metric (zh, dzf, dzh, their inverses and the kappa-scheme
-  !! copies). The rest of the code relies on identities of that construction —
+  !! copies). The rest of the code relies on identities of that construction,
   !! most importantly that each centre is the midpoint of its own faces (which
   !! makes the plain 0.5 half-to-full-level averages exact on stretched grids)
   !! and that dzh is the mean of the adjacent dzf. This test asserts those
   !! identities for the grid actually loaded, so it validates uniform and
-  !! stretched prof.inp files alike, and fails when a stretched grid is
-  !! combined with a Poisson configuration whose vertical eigenvalues assume
-  !! equidistant spacing (ipoiss /= FFT2D with Gaussian elimination in z).
+  !! stretched prof.inp files alike. On a stretched grid it also requires a
+  !! Poisson configuration that solves the vertical direction by Gaussian
+  !! elimination (ipoiss=0 with BCzp=1, or ipoiss=3); the other branches
+  !! assume equidistant spacing in their vertical eigenvalues and are already
+  !! rejected by initglobal before this test runs.
   logical function tests_zgrid_metrics()
     use modglobal, only : kb, ke, kh, zf, zh, dzf, dzh, dzfi, dzhi, dzfiq, &
                           dzfi5, dzhiq, dzf2, dzh2i, dzfc, dzfci, dzhci, &
-                          delta, dxf, dy, ipoiss, POISS_FFT2D, BCzp
+                          delta, dxf, dy, ipoiss, POISS_FFT2D, POISS_FFT2D_2DECOMP, BCzp
     implicit none
 
     real :: tol, stretch
@@ -497,13 +499,14 @@ contains
                   'delta = (dxf*dy*dzf)**(1/3)')
     end do
 
-    ! a stretched grid must not be combined with the Poisson branches whose
-    ! vertical eigenvalues hard-code dzfi(1) (modpois: "Assumes equidistant")
+    ! a stretched grid must only be combined with a Poisson solve that treats the
+    ! vertical direction by Gaussian elimination; the FFT branches hard-code
+    ! dzfi(1) in their vertical eigenvalues (modpois: "Assumes equidistant")
     stretch = maxval(dzf(kb:ke))/minval(dzf(kb:ke))
     stretched = stretch > 1. + 100.*epsilon(stretch)
     if (stretched) then
-      call expect(ipoiss == POISS_FFT2D .and. BCzp == 1, &
-                  'stretched grid requires ipoiss=0 with BCzp=1 (vertical Gaussian elimination)')
+      call expect((ipoiss == POISS_FFT2D .and. BCzp == 1) .or. ipoiss == POISS_FFT2D_2DECOMP, &
+                  'stretched grid requires ipoiss=0 with BCzp=1 or ipoiss=3 (vertical Gaussian elimination)')
     end if
 
     if (myid == 0) then

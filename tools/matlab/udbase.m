@@ -193,7 +193,13 @@ classdef udbase < dynamicprops
 
             if (obj.lfprof) 
                 obj.zt  = data(:, 1); % cell centred coordinates provided.
-                obj.zm  = [0; 0.5 * (obj.zt(1:end-1)+obj.zt(2:end)); obj.zsize];
+                % Faces from the solver's recursion zh(1) = 0, zh(k+1) = 2*zf(k) - zh(k),
+                % which makes every centre the midpoint of its own faces. Midpoints of
+                % adjacent centres are not the faces on a stretched grid.
+                obj.zm  = zeros(length(obj.zt) + 1, 1);
+                for k = 1:length(obj.zt)
+                    obj.zm(k+1) = 2 * obj.zt(k) - obj.zm(k);
+                end
                 obj.dzt = diff(obj.zm);
                 obj.dzm = [2*obj.zt(1); diff(obj.zt)];
 

@@ -167,6 +167,9 @@ between multiple components rather than one isolated API.
   compares input and output namelists with `f90nml`; `test_sourcecode.py`
   performs a static consistency check between Fortran namelist definitions,
   MPI broadcasts, and the schema used for tooling/editor support
+- `zgrid_metrics/`: vertical grid metric identities for a uniform and a
+  stretched profile using `runmode = 1006`, including the rejection of a
+  stretched grid with an equidistant-only Poisson configuration
 - `mpi_operators/`: direct MPI operator validation for `runmode = 1005` on
   the Xie/Castro case `100` across `1x1`, `2x1`, `1x2`, and `2x2`
 - `processor_boundaries/`: MPI decomposition parity checks on the Xie/Castro
@@ -175,6 +178,8 @@ between multiple components rather than one isolated API.
   MATLAB and Python entry points on no-tree case `100`
 - `warmstart_facets/`: warm-start facet-state continuity regression for issue
   #269 on the energy-balance case `064`
+- `stretched_grid/`: preprocessing and a short solver run of the energy-balance
+  case `064` on an exponentially stretched vertical grid
 - `udbase_against_matlab/`: Python-vs-MATLAB parity checks on committed cases
 - `udprep/`: preprocessing integration checks on committed cases and binaries
 
@@ -186,6 +191,8 @@ between multiple components rather than one isolated API.
   no-tree decomposition check
 - `100/`: also used by `integration/mpi_operators/` for the direct MPI
   operator check
+- `100/`: also used by `integration/zgrid_metrics/` for the vertical grid
+  metric checks (uniform profile and a test-local stretched profile)
 - `100/`: also used by `integration/python_preproc_against_matlab/`
 - `525/`: flat-terrain tree case used by `integration/directshortwave/`
 - `526/`: reduced tree case used by `regression/new_vegetation_module_against_v2.2/`
@@ -193,6 +200,8 @@ between multiple components rather than one isolated API.
   decomposition check
 - `064/`: energy-balance case used by `integration/warmstart_facets/` for the
   warm-start facet continuity regression
+- `064/`: also used by `integration/stretched_grid/`, which preprocesses and
+  runs it again on a stretched vertical grid
 
 To run the direct shortwave reference test:
 

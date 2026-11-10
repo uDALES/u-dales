@@ -453,10 +453,10 @@ module instant
       !     do i = ib, ie
       !       dudx(i,j,k) = (um(i+1,j,k) - um(i,j,k)) * dxfi(i)
       !       dvdy(i,j,k) = (vm(i,j+1,k) - vm(i,j,k)) * dyi
-      !       dwdz(i,j,k) = (wm(i,j,k+1) - wm(i,j,k)) * dzhi(k)
+      !       dwdz(i,j,k) = (wm(i,j,k+1) - wm(i,j,k)) * dzfi(k) ! cell-centred: spans the cell
       !       div(i,j,k)  = (um(i+1,j,k) - um(i,j,k)) * dxfi(i) + &
       !                      (vm(i,j+1,k) - vm(i,j,k)) * dyi + &
-      !                      (wm(i,j,k+1) - wm(i,j,k)) * dzhi(k)
+      !                      (wm(i,j,k+1) - wm(i,j,k)) * dzfi(k)
       !     end do
       !   end do
       ! end do
