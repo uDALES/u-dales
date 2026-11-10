@@ -2,7 +2,7 @@
 # Setup script to create NetCDF virtual environment for u-dales testing
 # Run this once before using ud_test_sim.sh
 
-set -e
+set -euo pipefail
 
 # Resolve the directory where this script lives
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"

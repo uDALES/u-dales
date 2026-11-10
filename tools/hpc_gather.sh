@@ -17,7 +17,7 @@
 
 # Copyright (C) 2016-2019 the uDALES Team.
 
-set -e
+set -euo pipefail
 
 if (( $# < 1 ))
 then
@@ -44,19 +44,19 @@ else
 fi
 
 ## check if required variables are set
-if [ -z "$DA_WORKDIR" ]; then
+if [ -z "${DA_WORKDIR:-}" ]; then
     echo "Output top-level directory DA_WORKDIR must be set inside $inputdir/config.sh"
     exit 1
 fi;
-if [ -z "$DA_TOOLSDIR" ]; then
+if [ -z "${DA_TOOLSDIR:-}" ]; then
     echo "Script directory DA_TOOLSDIR must be set inside $inputdir/config.sh"
     exit 1
 fi;
-if [ -z $WALLTIME ]; then
+if [ -z "${WALLTIME:-}" ]; then
     echo "Wall clock time WALLTIME must be set inside $inputdir/config.sh"
     exit 1
 fi;
-if [ -z $MEM ]; then
+if [ -z "${MEM:-}" ]; then
     echo "Memory requirement MEM must be set inside $inputdir/config.sh"
     exit 1
 fi;
@@ -125,6 +125,10 @@ module load NCO/5.2.9-foss-2024a'
         gather_modules="module load netCDF/4.9.2-gompi-2023a UDUNITS/2.2.28-GCCcore-12.3.0 GSL/2.7-GCC-12.3.0
 export PATH=\"$nco_bin\":\$PATH"
         ;;
+    *)
+        echo "Unknown UDALES_SYSTEM '$UDALES_SYSTEM': set it to cx3 or hx1."
+        exit 1
+        ;;
 esac
 
 ## set the output directory
@@ -137,6 +141,7 @@ cat <<EOF > "post-job.$exp"
 #!/bin/bash
 #PBS -l walltime=${WALLTIME}
 #PBS -l select=1:ncpus=1:mem=${MEM}
+set -eo pipefail
 ${gather_modules}
 EOF
 

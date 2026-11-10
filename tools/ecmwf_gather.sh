@@ -20,7 +20,7 @@
 ## Submit the gather_outputs.sh post-processing of a finished uDALES run on the
 ## ECMWF Atos HPC2020 (Slurm).
 
-set -e
+set -euo pipefail
 
 if (( $# < 1 ))
 then
@@ -51,19 +51,19 @@ else
 fi
 
 ## check if required variables are set
-if [ -z "$DA_WORKDIR" ]; then
+if [ -z "${DA_WORKDIR:-}" ]; then
     echo "Output top-level directory DA_WORKDIR must be set inside $inputdir/config.sh"
     exit 1
 fi;
-if [ -z "$DA_TOOLSDIR" ]; then
+if [ -z "${DA_TOOLSDIR:-}" ]; then
     echo "Script directory DA_TOOLSDIR must be set inside $inputdir/config.sh"
     exit 1
 fi;
-if [ -z "$WALLTIME" ]; then
+if [ -z "${WALLTIME:-}" ]; then
     echo "Wall clock time WALLTIME (HH:MM:SS, at most 48:00:00) must be set inside $inputdir/config.sh"
     exit 1
 fi;
-if [ -z "$MEM" ]; then
+if [ -z "${MEM:-}" ]; then
     echo "Memory requirement MEM must be set inside $inputdir/config.sh"
     echo "  export MEM=\"16G\"   # or the PBS spelling MEM=\"16gb\"; nf allows up to 128G"
     exit 1
@@ -126,6 +126,7 @@ cat <<EOF > "post-job.$exp.slurm"
 #SBATCH --cpus-per-task=1
 #SBATCH --mem=${mem_slurm}
 #SBATCH --output=slurm-%j.out
+set -eo pipefail
 module load prgenv/intel intel/2021.4.0 netcdf4/4.10.0 nco/5.3.7
 "$DA_TOOLSDIR/gather_outputs.sh" "$outdir" >> "$outdir/output.$exp.log" 2>&1
 EOF
