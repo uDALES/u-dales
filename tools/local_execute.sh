@@ -19,16 +19,16 @@
 
 # Usage: ./tools/local_execute.sh <PATH_TO_CASE>
 
-set -e
+set -euo pipefail
 
 if (( $# < 1 ))
 then
     echo "The path to case folder must be set."
-    exit
+    exit 1
 fi
 
 ## go to experiment directory
-pushd $1
+pushd "$1"
 inputdir=$(pwd)
 
 ## set experiment number via path
@@ -42,47 +42,56 @@ if [ -f config.sh ]; then
 fi
 
 ## check if required variables are set
-if [ -z $DA_WORKDIR ]; then
+if [ -z "${DA_WORKDIR:-}" ]; then
     echo "Output top-level directory DA_WORKDIR must be set inside $inputdir/config.sh"
-    exit
+    exit 1
 fi;
-if [ -z $DA_BUILD ]; then
+if [ -z "${DA_BUILD:-}" ]; then
     echo "Executable DA_BUILD must be set inside $inputdir/config.sh"
-    exit
+    exit 1
 fi;
-if [ -z $DA_TOOLSDIR ]; then
+if [ ! -x "$DA_BUILD" ]; then
+    echo "Executable DA_BUILD=$DA_BUILD does not exist or is not executable"
+    echo "Build it first with: tools/build_executable.sh common release"
+    exit 1
+fi
+if [ -z "${DA_TOOLSDIR:-}" ]; then
     echo "Script directory DA_TOOLSDIR must be set inside $inputdir/config.sh"
-    exit
+    exit 1
 fi;
-if [ -z $NCPU ]; then
+if [ -z "${NCPU:-}" ]; then
     echo "Number of CPU cores NCPU must be set inside $inputdir/config.sh"
     echo "NCPU must be equal to the product of nprocx and nprocy set in $inputdir/namoptions.$exp"
     exit 1
 fi;
 
 ## set the experiment output directory
-outdir=$DA_WORKDIR/$exp
+outdir="$DA_WORKDIR/$exp"
 
 echo "Starting job for case $exp..."
 
 ## copy files to output directory
-mkdir -p $outdir
-cp -r ./* $outdir
+mkdir -p "$outdir"
+cp -r ./* "$outdir"
+cp -p "$DA_BUILD" "$outdir/u-dales"  # -p, not --preserve: macOS cp has no long options
 
 ## go to execution and output directory
-pushd $outdir
+pushd "$outdir"
 
-## execute program with mpi
-mpiexec -n $NCPU --oversubscribe $DA_BUILD namoptions.$exp 2>&1 | tee -a output.$exp.log
+## execute program with mpi: one rank per CPU, never oversubscribed (tools/mpi_env.sh
+## resolves the launcher and fails with the requested and available counts otherwise)
+source "$DA_TOOLSDIR/mpi_env.sh"
+mpi_preflight "$NCPU" || exit 1
+"$MPIEXEC" $MPI_LAUNCH_EXTRA_ARGS -n $NCPU ./u-dales "namoptions.$exp" 2>&1 | tee -a "output.$exp.log"
 
 ## Merge output files across outputs.
 gather_start=$(date +%s.%N)
 if (($NCPU > 1 )); then
-    echo "Merging outputs across cores into one..." | tee -a output.$exp.log
-    $DA_TOOLSDIR/gather_outputs.sh $outdir 2>&1 | tee -a output.$exp.log
+    echo "Merging outputs across cores into one..." | tee -a "output.$exp.log"
+    "$DA_TOOLSDIR/gather_outputs.sh" "$outdir" 2>&1 | tee -a "output.$exp.log"
 fi
 gather_end=$(date +%s.%N)
-echo "Wall time for phase [gather outputs] : $(echo "$gather_end $gather_start" | awk '{printf "%.6f", $1 - $2}') seconds" | tee -a output.$exp.log
+echo "Wall time for phase [gather outputs] : $(echo "$gather_end $gather_start" | awk '{printf "%.6f", $1 - $2}') seconds" | tee -a "output.$exp.log"
 
 popd
 

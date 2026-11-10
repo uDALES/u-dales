@@ -81,12 +81,14 @@ module modglobal
    integer, parameter :: TEST_2DCOMP_INIT_EXIT = 1003
    integer, parameter :: TEST_SPARSE_IJK = 1004
    integer, parameter :: TEST_MPI_OPERATORS = 1005
+   integer, parameter :: TEST_ZGRID_METRICS = 1006
    integer :: runmode = RUN_COLDSTART
 
    logical :: lwarmstart = .false. !<   flag for "cold" or "warm" start
    logical :: lstratstart = .false.
    logical :: lfielddump = .false. !< switch to enable the fielddump
-   logical :: lreadscal = .false. !<   flag for reading scalar pollutant field (warm start)
+   logical :: lreadscal = .true. !<   warm start: read the scalar fields from the inits restart file (.false.: start them from scalar.inp)
+   logical :: lreadfacT = .true. !<   warm start: read the facet state from the initf restart file (.false.: re-seed from Tfacinit*.inp)
 
    !Switches for boundary conditions
    !momentum (m), temperature (T), humidity (q) and scalars (s)
@@ -266,6 +268,12 @@ module modglobal
    integer, parameter :: ifinput = 1
    integer, parameter :: ifoutput = 2
    integer, parameter :: ifnamopt = 3
+
+   !< Format version of the initf facet restart file (written by modsave, read by modstartup).
+   !< Records: (version, nfcts, nfaclyrs) header, facT, facwsoil (lEB only), facqsat, fachurel,
+   !< facf, timee, then (lEB only) tEB, tnextEB, fachfi, facefi. A file with another version
+   !< is rejected on reading.
+   integer, parameter :: ifacrestartversion = 1
 
    real, parameter :: pi = 3.141592653589793116
    real, parameter :: grav = 9.81 !<    *gravity acceleration.
@@ -800,14 +808,16 @@ contains
       ! *** Check whether the grid is equidistant *****
       !--------------------------------------------------
 
-      !if (myid == 0) then
-      !do k=kb,ke+kh
-      !if (.not.(dzf(k).eq.dzf(1)))
-      !      write (6, *) &
-      !      'WARNING, You are working with a non-equidistant grid!!!!'
-      !end if
-      !end do
-      !end if ! end if myid==0
+      ! A stretched vertical grid is supported by the tridiagonal (Gaussian elimination) Poisson
+      ! solves, but the z cosine transform (ipoiss = 0 with BCzp = 2) and the 3D FFT (ipoiss = 2)
+      ! assume equidistant levels, so refuse those combinations rather than solve the wrong system.
+      if (maxval(abs(dzf(kb:ke) - dzf(kb))) > 1.e-6*dzf(kb)) then
+         if (ipoiss == POISS_FFT3D .or. (ipoiss == POISS_FFT2D .and. BCzp /= 1)) then
+            if (nrank == 0) write (*, *) 'ERROR: non-equidistant vertical grid is not supported by ', &
+                                         'ipoiss, BCzp = ', ipoiss, BCzp, '; use BCzp = 1 or ipoiss = 3'
+            stop 1
+         end if
+      end if
 
       dzhi = 1./dzh
       dzfi = 1./dzf

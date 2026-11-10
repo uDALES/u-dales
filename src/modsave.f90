@@ -42,10 +42,13 @@ contains
     use modfields, only : u0,v0,w0,thl0,qt0,ql0,ql0h,e120,sv0,mindist,wall,pres0
     use modglobal, only : ib,ie,ih,jb,je,jh,kb,ke,kh,trestart,tnextrestart,timee,&
                           cexpnr,rk3step,ifoutput,nsv,dt,ntrun,&
-                          iinletgen,timee,nstore
+                          iinletgen,timee,nstore,&
+                          nfcts,nfaclyrs,lEB,iwallmom,iwalltemp,iwallmoist,ifacrestartversion,&
+                          tEB,tnextEB
     use modmpi,    only : cmyidx,cmyidy,myid,slabsum,excjs,comm3d
     use modsubgriddata, only : ekm
     use modinletdata, only   : nstepread
+    use initfac,   only : facT,facwsoil,facqsat,fachurel,facf,fachfi,facefi
 
     implicit none
     logical :: lexitnow = .false.
@@ -117,6 +120,52 @@ contains
         open  (ifoutput,file=name,form='unformatted')
         write(ifoutput) ((((sv0(i,j,k,n),i=ib-ih,ie+ih),j=jb-jh,je+jh),k=kb,ke+kh),n=1,nsv)
         write(ifoutput)  timee
+
+        close (ifoutput)
+      end if
+
+      ! Facet state (surface energy balance). The facet arrays are global rather than
+      ! domain-decomposed, so this file is written by rank 0 only and carries no rank
+      ! fields in its name. Same guard as the facet allocation in initfac.
+      if ((nfcts > 0) .and. (myid == 0) .and. &
+          ((lEB) .or. (iwalltemp == 2) .or. (iwallmom == 2) .or. (iwallmoist == 2))) then
+        name  = 'initf        .'
+        write (name(6:13) ,'(i8.8)') ntrun
+        name(15:17) = cexpnr
+        open  (ifoutput,file=name,form='unformatted',status='replace')
+        write(ifoutput)  ifacrestartversion, nfcts, nfaclyrs
+        write(ifoutput)  ((facT(n,j),n=1,nfcts),j=1,nfaclyrs+1)
+        if (lEB) then
+          write(ifoutput)  (facwsoil(n),n=1,nfcts)   ! rank-0 array, only allocated for lEB
+        end if
+        ! facqsat, fachurel and facf are derived quantities (from facT, facwsoil and
+        ! netsw) that the energy balance recomputes at every EB step. They are stored
+        ! anyway so that the wall functions, which read them directly, see the
+        ! checkpoint's exact values in the steps between the restart and the first EB
+        ! update; facf in particular depends on netsw at the time of the last update,
+        ! which cannot be recovered from the inputs without replaying that update.
+        write(ifoutput)  (facqsat(n),n=1,nfcts)
+        write(ifoutput)  (fachurel(n),n=1,nfcts)
+        write(ifoutput)  ((facf(n,j),n=1,nfcts),j=1,5)
+        write(ifoutput)  timee
+        if (lEB) then
+          ! Energy-balance interval state. The energy balance is
+          ! evaluated every dtEB; in between, intqH accumulates the facet heat and
+          ! moisture fluxes into fachfi/facefi (rank-0 arrays), which the next EB step
+          ! divides by the elapsed interval timee - tEB. Storing the interval clock and
+          ! the accumulators lets a restart that falls between two EB steps continue
+          ! the interval in progress instead of restarting it at btime and dropping
+          ! the flux accumulated since the last update.
+          write(ifoutput)  tEB, tnextEB
+          write(ifoutput)  (fachfi(n),n=1,nfcts)
+          write(ifoutput)  (facefi(n),n=1,nfcts)
+        end if
+
+        write(*,*) '-------------------------'
+        write(*,*) 'Saving initf restart file'
+        write(*,*) 'ntrun ::: ', ntrun
+        write(*,*) 'timee ::: ', timee
+        write(*,*) '-------------------------'
 
         close (ifoutput)
       end if

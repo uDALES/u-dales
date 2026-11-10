@@ -385,16 +385,17 @@ end subroutine advecw_2nd
      do k = kb + 1, ke + 1
         do j = jb, je
            do i = ib, ie
+              ! the face value is reconstructed from the upwind cell centre over half of
+              ! that cell (rlim carries the 0.5), so the spacing is the upwind cell's dzf
               if (w0(i, j, k) > 0) then
                  d1 = (var(i, j, k - 1) - var(i, j, k - 2))*dzhci(k - 1)
                  d2 = (var(i, j, k) - var(i, j, k - 1))*dzhci(k)
-                 cf = var(i, j, k - 1)
+                 cf = var(i, j, k - 1) + dzfc(k - 1)*rlim(d1, d2)
               else
                  d1 = (var(i, j, k) - var(i, j, k + 1))*dzhci(k + 1)
                  d2 = (var(i, j, k - 1) - var(i, j, k))*dzhci(k)
-                 cf = var(i, j, k)
+                 cf = var(i, j, k) + dzfc(k)*rlim(d1, d2)
               end if
-              cf = cf + dzfc(k)*rlim(d1, d2)
               duml(i, j, k) = cf*w0(i, j, k)*dzfci(k) !tg3315 swapped
               dumu(i, j, k - 1) = -cf*w0(i, j, k)*dzfci(k - 1)
            end do

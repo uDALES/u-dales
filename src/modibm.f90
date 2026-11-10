@@ -272,7 +272,7 @@ module modibm
 
    subroutine initibmwallfun(fname_bnd, fname_sec, dir, bound_info)
      use modglobal, only : ifinput, ib, itot, ih, jb, jtot, jh, kb, ke, ktot, kh, &
-                           xf, yf, zf, xh, yh, zh, dx, dy, dzf, xhat, yhat, zhat, eps1
+                           xf, yf, zf, xh, yh, zh, dx, dy, xhat, yhat, zhat, eps1
      use modmpi,    only : myid, comm3d, MY_REAL, mpierr
      use initfac,   only : facnorm, facz0
      use decomp_2d, only : zstart, zend
@@ -297,7 +297,7 @@ module modibm
      real, dimension(6,3) :: inter
      real, dimension(6) :: inter_dists
      real :: xc, yc, zc, xl, yl, zl, xu, yu, zu
-     integer n, m, norm_align, dir_align, pos, p
+     integer n, m, norm_align, dir_align, pos, p, kc
      character(80) :: chmess
 
      integer, dimension(:), allocatable :: ids_loc
@@ -367,6 +367,16 @@ module modibm
        end do
        close (ifinput)
 
+       ! The facet arrays run from 1 to nfcts, so a facet id outside that range would be
+       ! read out of bounds by the wall functions. Reject it here with a clear message.
+       do n = 1, bound_info%nfctsecs
+         if ((bound_info%secfacids(n) < 1) .or. (bound_info%secfacids(n) > ubound(facz0, 1))) then
+           write (0, *) 'ERROR: ', trim(fname_sec), ' line ', n + 1, ': facet id ', bound_info%secfacids(n), &
+             ' is outside 1..', ubound(facz0, 1)
+           call MPI_ABORT(MPI_COMM_WORLD, 1, mpierr)
+         end if
+       end do
+
        do n = 1,bound_info%nfctsecs
          m = bound_info%secbndptids(n)
          !bound_info%bndvec(n,1) = xgrid(bound_info%bndpts(m,1)) - bound_info%intpts(n,1)
@@ -403,8 +413,20 @@ module modibm
            xu = xc + dx/2.
            yl = yc - dy/2.
            yu = yc + dy/2.
-           zl = zc - dzf(1)/2. ! assumes equidistant
-           zu = zc + dzf(1)/2. ! assumes equidistant
+           ! vertical edges from the grid itself, so that stretched grids are handled:
+           ! a cell centred on zf(kc) spans zh(kc)..zh(kc+1); one centred on zh(kc) spans zf(kc-1)..zf(kc)
+           kc = bound_info%bndpts(m,3)
+           if (dir_align == 3) then
+             if (kc > kb) then
+               zl = zf(kc-1)
+             else
+               zl = 2.*zh(kb) - zf(kb) ! mirror image of zf(kb) below the bottom face
+             end if
+             zu = zf(kc)
+           else
+             zl = zh(kc)
+             zu = zh(kc+1)
+           end if
 
            ! points on planes
            pxl = (/xl, yc, zc/)
@@ -415,7 +437,9 @@ module modibm
            pzu = (/xc, yc, zu/)
 
            p0 = (/xc, yc, zc/)
-           p1 = p0 + norm * sqrt(3.)*(dx*dy*dzf(1))**(1./3.)
+           ! segment as long as the cell diagonal, so it always leaves the cell. This is never shorter
+           ! than the former sqrt(3)*(dx*dy*dz)**(1/3), so intersections found before are unchanged.
+           p1 = p0 + norm * sqrt(dx**2 + dy**2 + (zu - zl)**2)
 
            call plane_line_intersection(xhat, pxl, p0, p1, inter(1,:), check(1), inter_dists(1))
            call plane_line_intersection(xhat, pxu, p0, p1, inter(2,:), check(2), inter_dists(2))
@@ -1304,7 +1328,7 @@ module modibm
 
    subroutine wallfunmom(dir, rhs, bound_info)
      use modglobal, only : ib, ie, ih, jb, je, jh, kb, ke, kh, xf, yf, zf, xh, yh, zh, &
-                           dx, dy, dzf, iwallmom, xhat, yhat, zhat, vec0, nfcts, lwritefac, rk3step
+                           dx, dy, dzf, dzh, iwallmom, xhat, yhat, zhat, vec0, nfcts, lwritefac, rk3step
      use modfields, only : u0, v0, w0, thl0
      use initfac,   only : facT, facz0, facz0h, facnorm, faca
      use decomp_2d, only : zstart
@@ -1318,7 +1342,7 @@ module modibm
      real dist, stress, stress_dir, area, vol, momvol, Tair, &
           utan, ctm, a, a_is, a_xn, a_yn, a_zn, stress_ix, stress_iy, stress_iz, xrec, yrec, zrec
      real, dimension(3) :: uvec, norm, strm, span, stressvec
-     logical :: valid
+     logical :: valid, lwgrid
      real, dimension(1:nfcts) :: fac_tau_loc, fac_tau
      !real, dimension(:), allocatable :: fac_tau, fac_pres
 
@@ -1336,6 +1360,9 @@ module modibm
        interp_velocity_ptr => interp_velocity_w
        interp_temperature_ptr => interp_temperature_w
      end select
+
+     ! w lives on zh(k), so its control volume is dzh(k) thick; u and v live on zf(k) (dzf(k)).
+     lwgrid = (alignment(dir) == 3)
 
      fac_tau_loc = 0.
 
@@ -1427,7 +1454,11 @@ module modibm
 
        stress_dir = sign(stress_dir, dot_product(uvec, dir))
 
-       vol = dx*dy*dzf(k)
+       if (lwgrid) then
+         vol = dx*dy*dzh(k)
+       else
+         vol = dx*dy*dzf(k)
+       end if
        momvol = stress_dir * area / vol
        rhs(i,j,k) = rhs(i,j,k) - momvol
        fac_tau_loc(fac) = fac_tau_loc(fac) + stress_dir * area ! output stresses on facets
@@ -1453,12 +1484,12 @@ module modibm
 
 
    subroutine wallfunheat
-     use modglobal, only : ib, ie, jb, je, xf, yf, zf, xh, yh, zh, dx, dy, dzh, &
+     use modglobal, only : ib, ie, jb, je, xf, yf, zf, xh, yh, zh, dx, dy, dzf, &
                            xhat, yhat, zhat, vec0, ltempeq, lmoist, iwalltemp, iwallmoist, lEB, lwritefac, nfcts, rk3step, totheatflux, totqflux
      use modfields, only : u0, v0, w0, thl0, thlp, qt0, qtp, pres0
      use initfac,   only : facT, facz0, facz0h, facnorm, fachf, facef, facqsat, fachurel, facf, faclGR, faca
      use modmpi,    only : comm3d, mpi_sum, mpierr, my_real
-     use modibmdata, only : bctfxm, bctfxp, bctfyp, bctfz
+     use modibmdata, only : bctfxm, bctfxp, bctfym, bctfyp, bctfz
      use decomp_2d, only : zstart
 
      integer i, j, k, sec, fac
@@ -1547,7 +1578,7 @@ module modibm
              flux = bctfyp
            !elseif (all(abs(norm + yhat) < eps1)) then
            elseif (is_equal(norm, -yhat)) then
-             flux = bctfxm
+             flux = bctfym
            !elseif (all(abs(norm - zhat) < eps1)) then
            elseif (is_equal(norm, zhat)) then
              flux = bctfz
@@ -1562,7 +1593,8 @@ module modibm
          ! flux [Km/s]
          ! fluid volumetric sensible heat source/sink = flux * area / volume [K/s]
          ! facet sensible heat flux = volumetric heat capacity of air * flux * sectionarea / facetarea [W/m^2]
-         thlp(i,j,k) = thlp(i,j,k) - flux * area / (dx*dy*dzh(k))
+         ! volume of the scalar cell centred on zf(k) is dx*dy*dzf(k) (dzh(k) is the centre-to-centre distance)
+         thlp(i,j,k) = thlp(i,j,k) - flux * area / (dx*dy*dzf(k))
 
          totheatflux = totheatflux + flux*area ! [Km^3s^-1] This sums the flux over all facets (unconditional, mirrors totqflux; decouples periodicEBcorr from lEB)
 
@@ -1602,7 +1634,7 @@ module modibm
          ! fluid volumetric latent heat source/sink = flux * area / volume [kg/kg / s]
          ! facet latent heat flux = volumetric heat capacity of air * flux * sectionarea / facetarea [W/m^2]
          totqflux = totqflux + flux*area ! [Km^3s^-1] This sums the flux over all facets
-         qtp(i,j,k) = qtp(i,j,k) - flux * area / (dx*dy*dzh(k))
+         qtp(i,j,k) = qtp(i,j,k) - flux * area / (dx*dy*dzf(k))
 
          if (lEB) then
            facef(fac) = facef(fac) + flux * area ! [Km^2/s] (will be divided by facetarea(fac) in modEB)
@@ -1762,7 +1794,7 @@ module modibm
 
      interp_velocity_u(1) = u0(i,j,k)
      interp_velocity_u(2) = 0.25 * (v0(i,j,k) + v0(i,j+1,k) + v0(i-1,j,k) + v0(i-1,j+1,k))
-     interp_velocity_u(3) = 0.25 * (w0(i,j,k) + w0(i,j,k+1) + w0(i-1,j,k) + w0(i-1,j,k+1)) !only for equidistant grid!
+     interp_velocity_u(3) = 0.25 * (w0(i,j,k) + w0(i,j,k+1) + w0(i-1,j,k) + w0(i-1,j,k+1)) ! zf(k) is the midpoint of zh(k), zh(k+1): exact on any grid
 
      return
    end function interp_velocity_u
@@ -1776,7 +1808,7 @@ module modibm
 
      interp_velocity_v(1) = 0.25 * (u0(i,j,k) + u0(i+1,j,k) + u0(i,j-1,k) + u0(i+1,j-1,k))
      interp_velocity_v(2) = v0(i,j,k)
-     interp_velocity_v(3) = 0.25 * (w0(i,j,k) + w0(i,j,k+1) + w0(i,j-1,k) + w0(i,j-1,k+1)) !only for equidistant grid!
+     interp_velocity_v(3) = 0.25 * (w0(i,j,k) + w0(i,j,k+1) + w0(i,j-1,k) + w0(i,j-1,k+1)) ! zf(k) is the midpoint of zh(k), zh(k+1): exact on any grid
 
      return
    end function interp_velocity_v
@@ -1784,13 +1816,18 @@ module modibm
 
    function interp_velocity_w(i, j, k)
      ! interpolates the velocity at w-grid location i,j,k
+     use modglobal, only :  dzf, dzh
      use modfields, only :  u0, v0, w0
      real ::  interp_velocity_w(3)
      integer, intent(in) :: i, j, k
 
-     interp_velocity_w(1) = 0.25 * (u0(i,j,k) + u0(i+1,j,k) + u0(i,j-1,k) + u0(i+1,j-1,k))
-     interp_velocity_w(2) = v0(i,j,k)
-     interp_velocity_w(3) = 0.25 * (w0(i,j,k) + w0(i,j,k+1) + w0(i,j-1,k) + w0(i,j-1,k+1)) !only for equidistant grid!
+     ! zh(k) is not midway between zf(k-1) and zf(k) on a stretched grid: linear
+     ! interpolation weights level k by dzf(k-1) and level k-1 by dzf(k) (sum 2*dzh(k))
+     interp_velocity_w(1) = 0.5 * ((u0(i,j,k  ) + u0(i+1,j,k  ))*dzf(k-1) &
+                                 + (u0(i,j,k-1) + u0(i+1,j,k-1))*dzf(k  )) / (2.*dzh(k))
+     interp_velocity_w(2) = 0.5 * ((v0(i,j,k  ) + v0(i,j+1,k  ))*dzf(k-1) &
+                                 + (v0(i,j,k-1) + v0(i,j+1,k-1))*dzf(k  )) / (2.*dzh(k))
+     interp_velocity_w(3) = w0(i,j,k)
 
      return
    end function interp_velocity_w
@@ -1838,12 +1875,21 @@ module modibm
 
    real function interp_temperature_w(i, j, k)
      ! interpolates the temperature at w-grid location i,j,k
+     use modglobal, only :  dzf, dzh
      use modfields, only :  thl0
      integer, intent(in) :: i, j, k
+     real :: wk, wkm
 
-     !interp_temperature_w = 0.5 * (thl0(i,j,k) + thl0(i,j,k-1))
-     interp_temperature_w = 0.5 * (thl0(i,j,k  )*mask_c(i,j,k  )*(2.-mask_c(i,j,k-1)) &
-                                +  thl0(i,j,k-1)*mask_c(i,j,k-1)*(2.-mask_c(i,j,k  )))
+     ! linear interpolation between zf(k-1) and zf(k) to zh(k) weights level k by
+     ! dzf(k-1) and level k-1 by dzf(k); a solid neighbour (mask_c = 0) drops out and
+     ! the fluid value is used on its own, as before
+     wk  = dzf(k-1)*mask_c(i,j,k  )
+     wkm = dzf(k  )*mask_c(i,j,k-1)
+     if (wk + wkm > 0.) then
+       interp_temperature_w = (thl0(i,j,k)*wk + thl0(i,j,k-1)*wkm) / (wk + wkm)
+     else
+       interp_temperature_w = 0.
+     end if
 
      return
    end function interp_temperature_w
