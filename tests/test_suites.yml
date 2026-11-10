@@ -154,16 +154,9 @@ groups:
     includes:
       - python-library
     suites:
-      - label: "supported: ibm sparse input integration"
-        class: supported
-        kind: integration
-        component: ibm
-        platform: hpc
-        cost: medium
-        env_UDALES_BUILD: "{repo_root}/build/{build_type_lower}/u-dales"
-        command:
-          - "bash"
-          - "{tests_dir}/integration/ibm_sparse_input/run_test.sh"
+      # The hosted macOS runner has three CPUs and uDALES never oversubscribes:
+      # the ibm sparse input test needs its fixed 2x2 decomposition and runs on
+      # Linux and HPC only; the other MPI tests run here on at most two ranks.
       - label: "supported: vertical grid metrics integration"
         class: supported
         kind: integration
@@ -171,6 +164,7 @@ groups:
         platform: hpc
         cost: medium
         env_UDALES_BUILD: "{repo_root}/build/{build_type_lower}/u-dales"
+        env_ZGRID_MODES: "uniform stretched stretched_badpois"
         command:
           - "bash"
           - "{tests_dir}/integration/zgrid_metrics/run_test.sh"
@@ -181,6 +175,8 @@ groups:
         platform: hpc
         cost: medium
         env_UDALES_BUILD: "{repo_root}/build/{build_type_lower}/u-dales"
+        env_UDALES_TEST_NPROCX: "1"
+        env_UDALES_TEST_NPROCY: "2"
         command:
           - "{python}"
           - "{tests_dir}/integration/stretched_grid/test_stretched_grid.py"

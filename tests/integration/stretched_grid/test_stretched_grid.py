@@ -21,7 +21,7 @@ import sys
 import tempfile
 import unittest
 from pathlib import Path
-from typing import Optional, Tuple
+from typing import Optional
 
 import numpy as np
 
@@ -36,8 +36,9 @@ RUNTIME_MODULES = os.environ.get(
     "intel/2025a netCDF/4.9.2-iimpi-2023a netCDF-Fortran/4.6.1-iimpi-2023a "
     "FFTW/3.3.9-intel-2021a CMake/3.29.3-GCCcore-13.3.0 git/2.45.1-GCCcore-13.3.0",
 )
-NPROCX = 2
-NPROCY = 2
+# decomposition of the solver run; the macOS CI runner has three CPUs and uses 1x2
+NPROCX = int(os.environ.get("UDALES_TEST_NPROCX", "2"))
+NPROCY = int(os.environ.get("UDALES_TEST_NPROCY", "2"))
 DZLIN = 0.5
 HLIN = 8.0
 # (block, key, value): linear spacing DZLIN up to HLIN, exponential stretch above
@@ -85,20 +86,11 @@ def _facet_section_sums(case_dir: Path, grid: str, nfcts: int) -> np.ndarray:
     return sums
 
 
-def _mpi_exec_and_args() -> Tuple[str, str]:
-    mpiexec = os.environ.get("MPIEXEC")
-    if not mpiexec:
-        mpiifort = shutil.which("mpiifort")
-        mpiexec = str(Path(mpiifort).parent / "mpiexec") if mpiifort else "mpiexec"
+# launcher resolution and the one-rank-per-CPU pre-flight check shared by the runners
+sys.path.insert(0, str(REPO_ROOT / "tests" / "integration"))
+import mpi_env  # noqa: E402
 
-    extra_args = os.environ.get("MPI_LAUNCH_EXTRA_ARGS", "").strip()
-    try:
-        version = subprocess.run([mpiexec, "--version"], check=False, capture_output=True, text=True).stdout
-    except OSError:
-        version = ""
-    if re.search(r"Open MPI|OpenRTE", version, flags=re.IGNORECASE) and "--oversubscribe" not in extra_args:
-        extra_args = f"--oversubscribe {extra_args}".strip()
-    return mpiexec, extra_args
+_mpi_exec_and_args = mpi_env.mpi_exec_and_args
 
 
 def _shell_prefix() -> str:
@@ -203,6 +195,10 @@ class TestStretchedGrid(unittest.TestCase):
         if launcher_issue is not None:
             self.skipTest(f"MPI launcher is not usable in this environment: {launcher_issue}")
 
+        try:
+            mpi_env.preflight(NPROCX * NPROCY)
+        except RuntimeError as exc:
+            self.fail(str(exc))
         mpiexec, extra_args = _mpi_exec_and_args()
         command = (
             f"{_shell_prefix()}export HDF5_USE_FILE_LOCKING=FALSE && cd '{self.case_dir}' && "

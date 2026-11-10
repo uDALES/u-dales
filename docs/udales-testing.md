@@ -59,7 +59,9 @@ python tests/run_tests.py experimental
   integration suites (IBM sparse input, MPI operators, processor
   boundaries). These need a compiled uDALES build; the MPI suites read the
   build path from `UDALES_BUILD` (set per suite by the manifest as
-  `build/<build-type-lower>/u-dales`) and expect `mpiexec` on `PATH`. The
+  `build/<build-type-lower>/u-dales`) and launch through `tools/mpi_env.sh` /
+  `tests/integration/mpi_env.py` (`MPIEXEC`, else `mpiexec` on `PATH`; one rank
+  per CPU, never oversubscribed; see `tests/README.md`). The
   regression suite additionally needs `--branch-a`/`--branch-b` (default
   `master`/`HEAD`) and builds both branches itself.
 - `supported-macos` — a temporary macOS compatibility selection:
