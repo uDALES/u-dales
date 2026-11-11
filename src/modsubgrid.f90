@@ -354,11 +354,11 @@ contains
          end do
        end if
 
-       ekh(:,:,:) = ekm(:,:,:)*prandtli              ! Eddy diffusivity from eddy viscosity, Kh = Km/Pr
+       ! Interior only: the halo of ekm is uninitialized here and is filled by
+       ! closurebc below (whole-array operations read garbage and trap in Debug, #347)
+       ekh(ib:ie,jb:je,kb:ke) = ekm(ib:ie,jb:je,kb:ke)*prandtli + numol*prandtlmoli   ! Kh = Km/Pr + molecular diffusivity
+       ekm(ib:ie,jb:je,kb:ke) = ekm(ib:ie,jb:je,kb:ke) + numol                        ! add molecular viscosity
        ! ekh(:,:,:) = max(ekh(:,:,:),ekmin)
-
-       ekm(:,:,:) = ekm(:,:,:) + numol               ! add molecular viscosity
-       ekh(:,:,:) = ekh(:,:,:) + numol*prandtlmoli   ! add molecular diffusivity
 
     ! TKE scheme
     elseif (loneeqn ) then
