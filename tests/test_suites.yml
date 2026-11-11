@@ -149,6 +149,16 @@ groups:
         command:
           - "{python}"
           - "{tests_dir}/integration/stretched_grid/test_stretched_grid.py"
+      - label: "supported: SGS TKE top boundary condition"
+        class: supported
+        kind: regression
+        component: solver
+        platform: hpc
+        cost: medium
+        env_UDALES_BUILD: "{repo_root}/build/{build_type_lower}/u-dales"
+        command:
+          - "{python}"
+          - "{tests_dir}/integration/tke_top_bc/test_tke_top_bc.py"
 
   supported-macos:
     includes:
