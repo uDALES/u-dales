@@ -1,11 +1,14 @@
 #!/usr/bin/env bash
-# HANDOFF SCRIPT — not yet run. Written 2026-07-21 for a follow-up agent/session
-# to execute the ARCHER2 staged #330 replication campaign. See
-# .github/skills/udales-perf/references/machines.md ("ARCHER2 — 2026-07-21")
-# for what has already been established (single-point release/debug timing,
-# MPI viability, the debug-build FPE-crash finding at src/modsubgrid.f90:357)
-# and what is still missing: the actual B0-B4 staged before/after numbers that
-# mirror the #330 PR's own campaign (currently only run on ICL CX3).
+# ARCHER2 staged #330 replication campaign. Written 2026-07-21; RUN on
+# 2026-07-21 (18 jobs, all completed) — the resulting base/B0-B4 table is in
+# .github/skills/udales-perf/references/machines.md ("ARCHER2 — 2026-07-21").
+# Kept as the reproducible driver for that table, and as the template for
+# re-running the staged campaign on another machine or after a rebase.
+#
+# Two defects found during that run are fixed below: the 2decomp-fft
+# submodule must be initialised in each detached worktree before CMake can
+# configure, and the final "results land in" message pointed at the wrong
+# directory (bench_archer2.sh writes to the PARENT project dir, not the repo).
 #
 # WHY THIS EXISTS
 # ----------------
@@ -46,14 +49,12 @@
 # WHAT THIS SCRIPT DELIBERATELY DOES NOT DO
 # ------------------------------------------
 # - Does not touch the main /work/.../u-dales checkout's branch/HEAD.
-# - Does not attempt Debug-build timing for any stage: the tip of this branch
-#   (B4/HEAD) was already confirmed to crash with a genuine SIGFPE before
-#   step 1 for the Debug build of this exact benchmark case (uninitialized
-#   halo read at src/modsubgrid.f90:357, independent of the -ei flag — see
-#   machines.md gotchas). That bug likely predates B0-B4 (it is in the SGS
-#   closure, untouched by any of these commits per their subjects above), so
-#   assume all six Debug builds crash identically; do not waste queue time
-#   confirming this per-stage unless investigating that bug specifically.
+# - Does not attempt Debug-build timing for any stage: all six staged
+#   commits predate the #347 fix (uninitialized halo read in the Vreman
+#   closure, src/modsubgrid.f90), so their Debug builds crash with SIGFPE
+#   before step 1 on this machine. A Debug timing of the fixed branch is
+#   recorded in machines.md; do not waste queue time confirming the crash
+#   per-stage.
 # - Does not run scaling (Phase 5) — single node, 64 ranks, same as the
 #   existing ARCHER2 entry.
 # - Does not append the final table to machines.md — that is the last step
@@ -118,8 +119,10 @@ for entry in "${STAGES[@]}"; do
 
     (
         cd "$wtdir"
-        # View3D/f2py preprocessing extras are NOT needed to build/run the
-        # solver binary benchmarked here, so the submodule is left alone.
+        # A detached worktree starts with empty submodule dirs. CMake needs
+        # 2decomp-fft (add_subdirectory) to configure; tools/View3D is only
+        # for preprocessing and is deliberately left uninitialised.
+        git submodule update --init 2decomp-fft
         ./tools/build_executable.sh archer release
     )
 
@@ -144,8 +147,8 @@ done
 echo
 echo "All stages submitted (chained). Watch with:"
 echo "  squeue -u \$USER"
-echo "Results land in:"
-echo "  $REPO/experiments/900/results.csv"
+echo "Results land in (bench_archer2.sh writes to the parent project dir):"
+echo "  $(dirname "$REPO")/experiments/900/results.csv"
 echo
 echo "When done, reclaim disk with, for each stage:"
 echo "  git -C $REPO worktree remove $WORKTREE_ROOT/<tag>"
