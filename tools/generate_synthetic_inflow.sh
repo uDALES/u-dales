@@ -7,14 +7,14 @@
 
 #!/usr/bin/env bash
 
-set -e
+set -euo pipefail
 
 if (( $# < 1 )) 
 then
     echo "The path to case/experiment folder must be set."
 	echo "usage: FROM THE PARENT DIRECTORY ./u-dales/tools/generate_synthetic_inflow.sh <PATH_TO_CASE> "
 	echo "... execution terminated"
-    exit 0
+    exit 1
 fi
 
 ## go to experiment directory
@@ -34,17 +34,17 @@ fi;
 popd
 
 ## check if required variables are set
-if [ -z $DA_TOOLSDIR ]; then
+if [ -z "${DA_TOOLSDIR:-}" ]; then
     echo "Script directory DA_TOOLSDIR must be set"
-    exit
+    exit 1
 fi;
-if [ -z $DA_EXPDIR ]; then
+if [ -z "${DA_EXPDIR:-}" ]; then
     echo "Experiment directory DA_EXPDIR must be set"
-    exit
+    exit 1
 fi;
-if [ -z $DA_WORKDIR ]; then
+if [ -z "${DA_WORKDIR:-}" ]; then
     echo "Work directory DA_WORKDIR must be set"
-    exit
+    exit 1
 fi;
 
 if [ -d $DA_WORKDIR/$exp ]; then
@@ -72,7 +72,7 @@ else
   case=1
 fi
 
-if [ case==1 ]; then
+if [ "$case" == 1 ]; then
 
 	## compiling synthetic inflow generator source code
 	gfortran -O2 -fopenmp $DA_TOOLSDIR/syntheticInflow/modSyntheticInflow.f90 -o synInflow_executable

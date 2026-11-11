@@ -108,7 +108,7 @@ contains
         wpu = -Qpu/Apu
         case(7) ! purifier that takes from above and below and feeds outwards
         Apu = (purif(n,4)-purif(n,3)+1)*dy*(xh(purif(n,2)+1)-xh(purif(n,1)))*2 ! *2 due to geometry of purifier
-        dpu = zh(purif(n,6)+1) - zh(purif(n,5))/2 ! half distance to travel before purification?
+        dpu = 0.5*(zh(purif(n,6)+1) - zh(purif(n,5))) ! half the purifier height: distance travelled before purification
         udpu = Qpu/Apu ! new term to be used at purifier faces
         case(8) ! one cell purifier that intakes from all side and outputs upwards
         Apu = 2*(purif(n,4)-purif(n,3)+1)*dy*(xh(purif(n,2)+1)-xh(purif(n,1))) + &

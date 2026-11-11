@@ -19,11 +19,13 @@ monitor*.txt
 outputs/
 examples/*/blocks.*.png
 tmp/*
-bin/
 tools/python/examples/*.stl
 # Restart and driver files
 examples/*/init*
 examples/*/*driver*
+
+# bin directory
+bin/u-dales
 
 # macOS specific
 .DS_Store

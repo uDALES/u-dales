@@ -4,6 +4,24 @@ on: [push, pull_request]
 
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+  # uDALES runs one MPI rank per CPU and never oversubscribes: every runner checks
+  # the requested ranks against the CPUs granted to it (tools/mpi_env.sh,
+  # tests/integration/mpi_env.py) and fails with both numbers otherwise. The
+  # hosted Linux runner exposes 4 CPUs as 2 cores with 2 hardware threads each;
+  # Open MPI counts one slot per core and binds one rank per core by default, so
+  # tell it to treat hardware threads as CPUs (what `mpiexec --use-hwthread-cpus`
+  # does). That is a mapping choice, not oversubscription: four ranks on four
+  # CPUs. Open MPI 4 (ORTE) takes slots and binding from the one hwloc variable.
+  # Open MPI 5 (PRRTE) keeps the two apart, as --use-hwthread-cpus does
+  # internally: the HWTCPUS mapping qualifier sets the CPU unit used for mapping
+  # and binding, prte_set_default_slots the slot count (either alone fails: the
+  # qualifier leaves one slot per core, the slot count leaves core binding). All
+  # are ignored by other MPIs. The macOS runner has three CPUs, so the
+  # supported-macos selection runs the MPI tests on at most two ranks
+  # (tests/test_suites.yml).
+  OMPI_MCA_hwloc_base_use_hwthreads_as_cpus: "true"
+  PRTE_MCA_rmaps_default_mapping_policy: ":hwtcpus"
+  PRTE_MCA_prte_set_default_slots: "hwthreads"
 
 jobs:
   build-and-supported-tests:
@@ -150,6 +168,7 @@ jobs:
       shell: bash -l {0}
       env:
         PYVISTA_OFF_SCREEN: "true"
+        MPLBACKEND: Agg
       run: xvfb-run -a python -m unittest discover -s tools/python/tests -p "test_udbase_vis.py"
 
   docs:

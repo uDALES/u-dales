@@ -72,6 +72,8 @@ module ibm_preproc_mod
         integer                                  :: nfluid_IB_u, nfluid_IB_v, nfluid_IB_w, nfluid_IB_c, &
                                                     nfacsecs_u, nfacsecs_v, nfacsecs_w, nfacsecs_c
 
+        real   , dimension(ktot+1)               :: zedges_t, zedges_m
+
         real    :: max_height, L_char
         integer :: i
         real(8) :: start_time, end_time
@@ -207,31 +209,39 @@ module ibm_preproc_mod
 
         !!!!!!! MF2C: Matching Facets to Cells and Writing Facet Sections Files !!!!!!!
 
+        !! Vertical cell edges (valid on stretched grids):
+        !! cells centred on zt(k) span the faces zm(k)..zm(k+1);
+        !! cells centred on zm(k) (w grid) span the centres zt(k-1)..zt(k)
+        zedges_t(1:ktot) = zm
+        zedges_t(ktot+1) = 2.*zt(ktot) - zm(ktot)
+        zedges_m(1) = 2.*zm(1) - zt(1)
+        zedges_m(2:ktot+1) = zt
+
         !! Computation of facet sections for each grid type
         ! u-grid
         call matchFacetsToCells(facets, faceNormals, n_fcts, vertices, n_vert, &
-            fluid_IB_u, solid_IB_u, fluid_IB_xyz_u, nfluid_IB_u, xm, yt, zt, itot, jtot, ktot, &
+            fluid_IB_u, solid_IB_u, fluid_IB_xyz_u, nfluid_IB_u, xm, yt, zt, zedges_t, itot, jtot, ktot, &
             diag_neighbs, periodic_x, periodic_y,  n_threads, &
             secfacids_u, secbndptids_u, secareas_u, bnddst_u, nfacsecs_u)
         write(*,*) 'Computation of facet_sections_u done.'
 
         ! v-grid
         call matchFacetsToCells(facets, faceNormals, n_fcts, vertices, n_vert, &
-            fluid_IB_v, solid_IB_v, fluid_IB_xyz_v, nfluid_IB_v, xt, ym, zt, itot, jtot, ktot, &
+            fluid_IB_v, solid_IB_v, fluid_IB_xyz_v, nfluid_IB_v, xt, ym, zt, zedges_t, itot, jtot, ktot, &
             diag_neighbs, periodic_x, periodic_y,  n_threads, &
             secfacids_v, secbndptids_v, secareas_v, bnddst_v, nfacsecs_v)
         write(*,*) 'Computation of facet_sections_v done.'
 
         ! w-grid
         call matchFacetsToCells(facets, faceNormals, n_fcts, vertices, n_vert, &
-            fluid_IB_w, solid_IB_w, fluid_IB_xyz_w, nfluid_IB_w, xt, yt, zm, itot, jtot, ktot, &
+            fluid_IB_w, solid_IB_w, fluid_IB_xyz_w, nfluid_IB_w, xt, yt, zm, zedges_m, itot, jtot, ktot, &
             diag_neighbs, periodic_x, periodic_y, n_threads, &
             secfacids_w, secbndptids_w, secareas_w, bnddst_w, nfacsecs_w)
         write(*,*) 'Computation of facet_sections_w done.'
 
         ! c-grid
         call matchFacetsToCells(facets, faceNormals, n_fcts, vertices, n_vert, &
-            fluid_IB_c, solid_IB_c, fluid_IB_xyz_c, nfluid_IB_c, xt, yt, zt, itot, jtot, ktot, &
+            fluid_IB_c, solid_IB_c, fluid_IB_xyz_c, nfluid_IB_c, xt, yt, zt, zedges_t, itot, jtot, ktot, &
             diag_neighbs, periodic_x, periodic_y, n_threads, &
             secfacids_c, secbndptids_c, secareas_c, bnddst_c, nfacsecs_c)
         write(*,*) 'Computation of facet_sections_c done.'

@@ -26,6 +26,7 @@ import re
 import shutil
 import struct
 import subprocess
+import sys
 import tempfile
 import unittest
 from pathlib import Path
@@ -65,21 +66,11 @@ E12_INIT = 0.1
 # --------------------------------------------------------------------------- #
 
 
-def _mpi_exec_and_args() -> Tuple[str, str]:
-    mpiexec = os.environ.get("MPIEXEC")
-    if not mpiexec:
-        mpiifort = shutil.which("mpiifort")
-        mpiexec = str(Path(mpiifort).parent / "mpiexec") if mpiifort else "mpiexec"
-    extra_args = os.environ.get("MPI_LAUNCH_EXTRA_ARGS", "").strip()
-    try:
-        version = subprocess.run(
-            [mpiexec, "--version"], check=False, capture_output=True, text=True
-        ).stdout
-    except OSError:
-        version = ""
-    if re.search(r"Open MPI|OpenRTE", version, flags=re.IGNORECASE) and "--oversubscribe" not in extra_args:
-        extra_args = f"--oversubscribe {extra_args}".strip()
-    return mpiexec, extra_args
+# launcher resolution and the one-rank-per-CPU pre-flight check shared by the runners
+sys.path.insert(0, str(REPO_ROOT / "tests" / "integration"))
+import mpi_env  # noqa: E402
+
+_mpi_exec_and_args = mpi_env.mpi_exec_and_args
 
 
 def _shell_prefix() -> str:
@@ -94,6 +85,7 @@ def _shell_prefix() -> str:
 
 
 def _run(run_dir: Path, nprocs: int) -> subprocess.CompletedProcess:
+    mpi_env.preflight(nprocs)
     mpiexec, extra_args = _mpi_exec_and_args()
     command = (
         f"{_shell_prefix()}cd '{run_dir}' && "
