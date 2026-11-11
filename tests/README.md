@@ -175,6 +175,8 @@ between multiple components rather than one isolated API.
   #269 on the energy-balance case `064`
 - `stretched_grid/`: preprocessing and a short solver run of the energy-balance
   case `064` on an exponentially stretched vertical grid
+- `sgs_statistics/`: SGS statistics validation for `runmode = 1007` on the
+  stretched-grid case `300` across `1x1`, `2x1`, `1x2` and `2x2`
 - `udbase_against_matlab/`: Python-vs-MATLAB parity checks on committed cases
 - `udprep/`: preprocessing integration checks on committed cases and binaries
 
@@ -283,6 +285,11 @@ and skips when the working tree has uncommitted changes; commit first to run it.
   warm-start facet continuity regression
 - `064/`: also used by `integration/stretched_grid/`, which preprocesses and
   runs it again on a stretched vertical grid
+- `300/`: small 16x16x32 case with a **stretched** vertical grid and
+  `libm = .false.`, used by `integration/sgs_statistics/`. The non-uniform `zf`
+  is the point of the fixture: on a uniform grid a `dzf`/`dzh` confusion in the
+  SGS stencils is invisible. It carries only `namoptions.300`, `prof.inp.300`
+  and `lscale.inp.300` — no IBM or facet input is needed.
 
 To run the direct shortwave reference test:
 
@@ -302,6 +309,13 @@ To run the direct MPI operator test:
 
 ```bash
 cd tests/integration/mpi_operators
+./run_test.sh
+```
+
+To run the SGS statistics test (experimental, not part of the merge gate):
+
+```bash
+cd tests/integration/sgs_statistics
 ./run_test.sh
 ```
 

@@ -256,6 +256,16 @@ groups:
         command:
           - "bash"
           - "{tests_dir}/integration/warmstart_facets/run_test.sh"
+      - label: "experimental: sgs statistics integration"
+        class: experimental
+        kind: integration
+        component: solver
+        platform: any
+        cost: fast
+        env_UDALES_BUILD: "{repo_root}/build/{build_type_lower}/u-dales"
+        command:
+          - "bash"
+          - "{tests_dir}/integration/sgs_statistics/run_test.sh"
       - label: "experimental: mpi averaging regression"
         class: experimental
         kind: regression
