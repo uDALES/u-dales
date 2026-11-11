@@ -154,7 +154,7 @@ groups:
         kind: regression
         component: solver
         platform: hpc
-        cost: medium
+        cost: fast
         env_UDALES_BUILD: "{repo_root}/build/{build_type_lower}/u-dales"
         command:
           - "{python}"

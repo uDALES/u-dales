@@ -20,6 +20,8 @@ Current consumers:
   - `526/` as the staged base case for vegetation decomposition checks
 - `integration/sgs_statistics/run_test.sh`
   - `300/` as the staged base case for the SGS statistics kernel test (`runmode = 1007`)
+- `integration/tke_top_bc/test_tke_top_bc.py`
+  - `300/` switched to the one-equation SGS model, one run per `BCtopm`
 - `integration/ibm_sparse_input/run_test.sh`
   - `101/` as the staged base case for the `read_sparse_ijk()` IBM test
 - `integration/directshortwave/test_directshortwave.py`
