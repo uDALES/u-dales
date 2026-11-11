@@ -100,8 +100,9 @@ explicit flag: `ps` on a running job shows `ftn_driver.exe -hcpu=x86-rome
 Benchmark case: same frozen case as CX3 (`simulations/benchmark-standard-900`,
 neutral urban IBM LES, Xie–Castro staggered cubes, Vreman SGS, FFT2D
 Poisson, 256×256×128, nprocx=8×nprocy=8=64 ranks, dt=0.05 s, runtime=50 s →
-1001 steps). Metric: `TOTAL CPU time` / nsteps. Debug variant: runtime=5 s
-(→101 steps planned; see Gotchas — it never reached step 1).
+1001 steps). Metric: `TOTAL CPU time` / nsteps. Debug variant: initially
+could not run at all (SIGFPE before step 1, see below); after the #347 fix
+the full 1001-step Debug case was run.
 
 Node classes probed: `standard` partition, `short`/`standard` QoS, 1 node
 (128-core AMD EPYC 7742 "Rome" ×2 = 64 used, `--tasks-per-node=64
@@ -129,27 +130,35 @@ Results (release, commit `edd3c0d169`, 3 reps, tag `perfbranch`):
 min 0.35466 s/step, spread ~1.5% across reps/nodes — consistent with
 exclusive whole-node allocation (no pairing needed to see this level of
 repeatability). This single point is the current `performance`-branch tip
-(commit `edd3c0d169`, i.e. B4 + local commissioning commits) — it is NOT
-yet the staged B0-B4 replication of the #330 PR (see PENDING note below).
+(commit `edd3c0d169`, i.e. B4 + local commissioning commits). It agrees
+closely with the staged B4 result below (0.35382 s/step minimum).
 
-**PENDING — staged B0-B4 replication not yet run on this machine.** The PR
-measured six specific commits in sequence (see the CX3 entry's results
-table for the reference numbers: base 0.4289, B0 0.4219, B1 0.4218,
-B2 0.3986, B3 0.3773, B4 0.3269 s/step, 1.312x cumulative). A handoff
-script that builds and benchmarks the same six commits on ARCHER2 via git
-worktrees + the existing `bench_archer2.sh` (using its `BENCH_BIN`/
-`BENCH_COMMIT` overrides) has been written but deliberately NOT executed:
-`.github/skills/udales-perf/scripts/stage_campaign_archer2.sh` — read its
-header for the exact commit SHAs (`base`=`6f5c4494`, `B0`=`fb90a0cb`,
-`B1`=`8a0bb7c2`, `B2`=`ae25ba0e`, `B3`=`9ac67d41`, `B4`=`ec47eaeb`) and
-run instructions. The next agent should run it, then append the resulting
-six-row table + deltas here, in the same format as the CX3 entry, without
-removing this paragraph until that table is in place.
+Staged #330 replication (2026-07-21): six cumulative commits built in
+detached worktrees and measured with three exclusive-node reps each, chained
+serially. Values are min-over-reps; incremental change is relative to the
+preceding row and cumulative change is relative to base. Negative change is
+faster.
 
-Debug/release ratio: **not measured** — the Debug build crashes with
-SIGFPE before completing even step 1 (before its first stdout line),
-100% reproducible across two different nodes/jobs. Root-caused via core
-dump + `gdb -batch -ex bt`:
+| stage | commit     | min s/step | rep spread | incremental | cumulative |
+|-------|------------|------------|------------|-------------|------------|
+| base  | `6f5c4494` | 0.44732    | 1.86%      | —           | —          |
+| B0    | `fb90a0cb` | 0.44900    | 3.63%      | +0.38%      | +0.38%     |
+| B1    | `8a0bb7c2` | 0.44460    | 0.29%      | -0.98%      | -0.61%     |
+| B2    | `ae25ba0e` | 0.42535    | 0.14%      | -4.33%      | -4.91%     |
+| B3    | `9ac67d41` | 0.40624    | 1.20%      | -4.49%      | -9.18%     |
+| B4    | `ec47eaeb` | 0.35382    | 1.15%      | -12.90%     | -20.90%    |
+
+Overall base-to-B4 speedup: **1.264x**. B0's +0.38% result is smaller than
+its 3.63% within-stage spread, so this campaign does not resolve the flags-only
+effect on ARCHER2; the later B2-B4 gains are substantially larger and give a
+clear cumulative improvement. All 18 jobs completed, all rows contain 1001
+steps, and no timing harvest failed. Raw results are in
+`/work/n02/n02/dip_assure/udupdate/experiments/900/results.csv` for this run.
+
+Debug/release ratio: **4.93x** (after the #347 fix, see below). The
+unfixed Debug build crashes with SIGFPE before completing even step 1
+(before its first stdout line), 100% reproducible across two different
+nodes/jobs. Root-caused via core dump + `gdb -batch -ex bt`:
 ```
 #0 closure () at src/modsubgrid.f90:357   -- ekh(:,:,:) = ekm(:,:,:)*prandtli
 #1 subgrid () at src/modsubgrid.f90:139
@@ -166,13 +175,54 @@ reverted immediately after configure) still crashes identically, so this is
 a real `-K trap=inv,ovf` catching genuine garbage in the halo, not an
 `-ei`-only false positive. Release silently computes over the same garbage
 and it is presumably overwritten by the following `closurebc` call, so the
-result is likely harmless in practice — but it is a real uninitialized-read
-and should be fixed (either restrict the multiply to `ib:ie,jb:je,kb:ke`, or
-move it after `closurebc`, or zero-init `ekm`/`ekh` on allocation). Worth a
-follow-up issue; not fixed as part of this commissioning pass. Not hit on
-CX3/Intel for the same case/flags in the prior campaign — likely just a
-difference in what garbage bit pattern happened to be sitting in the
+result is likely harmless in practice — but it is a real uninitialized-read.
+Not hit on CX3/Intel for the same case/flags in the prior campaign — likely
+just a difference in what garbage bit pattern happened to be sitting in the
 freshly-allocated halo memory on each machine, not a toolchain-specific bug.
+
+Tracked as issue #347 and fixed on `performance` (commit `9ceec4d0`): the
+three whole-array passes are replaced by two array-section statements over
+`ib:ie,jb:je,kb:ke` (`ekh = ekm*prandtli + numol*prandtlmoli`, then
+`ekm = ekm + numol`); the halo is left to the `closurebc` call that follows.
+Interior arithmetic is unchanged. With the fix, a Debug smoke run (11 steps,
+64 ranks) and the **full 1001-step Debug benchmark** (job 14468490) both
+completed with empty stderr and no trap/NaN:
+
+| build | commit tested | nsteps | total CPU time (s) | s/step |
+|-------|---------------|--------|---------------------|--------|
+| Debug | fix on top of `edd3c0d169` (explicit-loop form) | 1001 | 1745.78 | 1.744 |
+
+1.744 / 0.35382 (staged B4 release min) = **4.93x** Debug/release (CX3:
+≈12.6x; the Intel and CCE Debug flag sets differ, so the ratios are not
+directly comparable). Note: the Debug run used the explicit
+`do k/j/i` form of the fix; the committed array-section form is
+arithmetically identical and compiles in Debug and Release (CCE 16.0.1), but
+has not itself been re-run as a Slurm job.
+
+### Large case: Paris (experiment 200), 64 nodes — 2026-07-24
+
+Production-derived case comparing only `base` (`6f5c4494`) and `B4`
+(`ec47eaeb`): 768×512×256 (~101 M cells), nprocx=128 × nprocy=64 = 8192
+ranks on 64 standard nodes (128 ranks/node, SMT off), 382,406 facets /
+~23.6 M facet-section entries, adaptive timestep retained (`ladaptive=.true.`,
+`dtmax=10.`), runtime=100 s → 223 steps in every run. Three alternating
+B4/base rounds chained with `--dependency=afterok`. Metric as above.
+
+| round | B4 job   | B4 s/step | base job | base s/step | B4 gain | speedup |
+|-------|----------|-----------|----------|-------------|---------|---------|
+| 1     | 14484995 | 0.173416  | 14484996 | 0.184809    | 6.16%   | 1.0657x |
+| 2     | 14484997 | 0.183452  | 14484998 | 0.185591    | 1.15%   | 1.0117x |
+| 3     | 14484999 | 0.172742  | 14485000 | 0.186858    | 7.55%   | 1.0817x |
+
+Min-over-rounds: base 0.184809, B4 0.172742 s/step → **−6.53%, 1.070x**. B4
+won every paired round, but its within-version spread (6.20%) is much larger
+than base's (1.11%) and the paired gain ranged 1.15–7.55%, so treat the
+magnitude as indicative. The gain is well below the single-node standard
+case (−20.9%), plausibly because at 8192 ranks the per-rank balance of
+compute vs. MPI vs. IBM work is very different — the Tier-2 communication
+batch (#330) is the relevant follow-up, not more single-node loop work. All
+six runs: Slurm `COMPLETED`, exit `0:0`, 223 steps, no solver/MPI/NaN/FPE
+errors.
 
 Gotchas:
 - Slurm `#SBATCH` `-o/-e` default to the submission cwd exactly like PBS —
@@ -195,6 +245,21 @@ Gotchas:
   straight away — useful for root-causing Debug-only trap crashes without
   needing to reproduce interactively.
 - ARCHER2 login node compiles are slow for at least one file: `-O3` on
-  `src/modstatsdump.f90` (2172 lines) took ~565 s (single-core `optcg`
-  backend at ~100% CPU) — budget for this, it is not a hang.
+  `src/modstatsdump.f90` (2172 lines) took ~250–590 s depending on login
+  node load (single-core `optcg` backend at ~100% CPU); a full incremental
+  Release relink on 2026-11-11 took 16 min wall. Budget for this, it is not
+  a hang.
+- `namoptions` filename is stored in `character(90)` in the code. The first
+  Paris B4 calibration job died before entering the solver because the
+  absolute path passed on the command line was 101 chars and was silently
+  truncated (the MPI probe had passed, so this looked like a solver fault).
+  Always `cd` into the snapshot run dir and launch with a relative name:
+  `srun ... ./u-dales.<stage> namoptions.<N>`.
+- `stage_campaign_archer2.sh` as first committed did not initialise the
+  `2decomp-fft` submodule in each detached worktree, so CMake configure
+  failed; `git submodule update --init 2decomp-fft` was run by hand in each
+  worktree for the 2026-07-21 campaign. Its final message also printed the
+  results path under the repo, whereas `bench_archer2.sh` writes to the
+  parent project dir (`../experiments/900/results.csv`). Both fixed in the
+  script on 2026-11-11.
 
