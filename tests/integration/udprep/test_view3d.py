@@ -1,11 +1,20 @@
 from __future__ import annotations
 
 import os
+import subprocess
 import unittest
+from pathlib import Path
 
 from tools.python.tests._common import REPO_ROOT, copy_case
 from udprep import UDPrep
-from udgeom.view3d import count_sparse_entries, resolve_view3d_exe
+from udgeom.view3d import (
+    count_sparse_entries,
+    read_view3d_output,
+    resolve_view3d_exe,
+)
+
+
+DATA_DIR = Path(__file__).resolve().parent / "data"
 
 
 class TestView3D(unittest.TestCase):
@@ -87,6 +96,56 @@ class TestView3D(unittest.TestCase):
         self.assertEqual(cached_paths["svf"], paths["svf"])
         self.assertIs(vf_cached, vf)
         self.assertIs(svf_cached, svf)
+
+    def test_adjacent_obstructor_does_not_increase_view_factor(self):
+        source = DATA_DIR / "view3d_adjacent_obstructor.vs3"
+        obstructed_input = self.case_dir / source.name
+        unobstructed_input = self.case_dir / "view3d_unobstructed.vs3"
+        obstructed_input.write_bytes(source.read_bytes())
+        unobstructed_input.write_text(
+            "\n".join(
+                line
+                for line in source.read_text(encoding="ascii").splitlines()
+                if not line.startswith("O 3 ")
+            )
+            + "\n",
+            encoding="ascii",
+        )
+
+        exe = resolve_view3d_exe()
+        obstructed_output = self.case_dir / "view3d_obstructed.out"
+        unobstructed_output = self.case_dir / "view3d_unobstructed.out"
+        env = os.environ.copy()
+        env["VIEW3D_NUM_THREADS"] = "1"
+        env["OMP_NUM_THREADS"] = "1"
+        for input_path, output_path in (
+            (obstructed_input, obstructed_output),
+            (unobstructed_input, unobstructed_output),
+        ):
+            subprocess.run(
+                [str(exe), str(input_path), str(output_path)],
+                cwd=self.case_dir,
+                env=env,
+                check=True,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                text=True,
+            )
+
+        obstructed = read_view3d_output(
+            obstructed_output, nfacets=2, outformat=2
+        )
+        unobstructed = read_view3d_output(
+            unobstructed_output, nfacets=2, outformat=2
+        )
+        self.assertLessEqual(
+            float(obstructed[0, 1]),
+            float(unobstructed[0, 1]) + 1.0e-6,
+        )
+        self.assertLess(
+            float(obstructed[0, 1]),
+            float(unobstructed[0, 1]) - 1.0e-3,
+        )
 
 
 if __name__ == "__main__":

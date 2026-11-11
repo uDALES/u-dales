@@ -1,13 +1,13 @@
 &RUN
 iexpnr       = 300
-runmode      = 1006
+runmode      = 1007
 runtime      = 10.
 trestart     = 10.
 dtmax        = 0.5
 ladaptive    = .true.
 libm         = .false.
 lles         = .true.
-nprocx       = 1
+nprocx       = 2
 nprocy       = 1
 /
 

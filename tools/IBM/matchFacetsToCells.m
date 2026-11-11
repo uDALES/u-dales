@@ -1,7 +1,11 @@
 function [facet_sections] = matchFacetsToCells(TR, fluid_IB, solid_IB, ...
-    fluid_IB_xyz, solid_IB_xyz, xgrid, ygrid, zgrid, diag_neighbs, periodic_x, periodic_y)
+    fluid_IB_xyz, solid_IB_xyz, xgrid, ygrid, zgrid, diag_neighbs, periodic_x, periodic_y, zedges)
 
 % Assumes fluid_IB etc have been created already
+%
+% zedges(k), zedges(k+1): bottom and top of the cell centred on zgrid(k). They
+% are passed in rather than taken as zgrid -+ dz/2, because on a stretched grid
+% the cell faces are not half of the first spacing away from the centre.
 
 % fluid_IB_xyz_cut = zeros(0,3);
 % fluid_IB_facids = cell(0,0);
@@ -10,7 +14,8 @@ function [facet_sections] = matchFacetsToCells(TR, fluid_IB, solid_IB, ...
 
 dx = xgrid(2) - xgrid(1);
 dy = ygrid(2) - ygrid(1);
-dz = zgrid(2) - zgrid(1);
+dz = zgrid(2) - zgrid(1); % only a common length scale in the neighbour weighting below
+zedges = zedges(:).';
 
 itot = length(xgrid);
 jtot = length(ygrid);
@@ -50,8 +55,8 @@ for facet=1:Nf
     iu = find(xmax <= [xgrid(1)-dx/2, xgrid + dx/2]+tol, 1, 'first');
     jl = find(ymin >= [ygrid-dy/2, ygrid(end)+dy/2]-tol, 1, 'last');
     ju = find(ymax <= [ygrid(1)-dy/2, ygrid + dy/2]+tol, 1, 'first');
-    kl = find(zmin >= [zgrid-dz/2, zgrid(end)+dz/2]-tol, 1, 'last'); % Think about non-equidistance
-    ku = find(zmax <= [zgrid(1)-dz/2, zgrid + dz/2]+tol, 1, 'first');
+    kl = find(zmin >= zedges-tol, 1, 'last');
+    ku = find(zmax <= zedges+tol, 1, 'first');
 
     if xmax > xgrid(end) + dx/2
         iu = length(xgrid);
@@ -110,8 +115,8 @@ for facet=1:Nf
                 xu = xgrid(i) + dx/2 + tol;
                 yl = ygrid(j) - dy/2 - tol;
                 yu = ygrid(j) + dy/2 + tol;
-                zl = zgrid(k) - dz/2 - tol;
-                zu = zgrid(k) + dz/2 + tol;
+                zl = zedges(k) - tol;
+                zu = zedges(k+1) + tol;
 
                 % Define planes corresponding to cell faces
                 xrange = [xl, xu];

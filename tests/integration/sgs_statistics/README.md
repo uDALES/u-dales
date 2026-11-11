@@ -7,7 +7,7 @@ actually applies.
 - Suite class: `experimental` (not part of the required merge gate)
 - Kind: `integration`
 - Component: `solver`
-- Runmode: `1006` (`TEST_SGS_STATS`, dispatched from `program.f90` to
+- Runmode: `1007` (`TEST_SGS_STATS`, dispatched from `program.f90` to
   `tests_sgs_statistics` in `src/tests.f90`)
 - Fixture: `tests/cases/300` — a small (16x16x32) case with a **stretched**
   vertical grid and `libm = .false.`
@@ -44,8 +44,8 @@ decompositions.
 
 - A built solver. The path is taken from `UDALES_BUILD`, defaulting to
   `build/debug/u-dales`.
-- An MPI launcher able to start 4 ranks (`--oversubscribe` is added
-  automatically for Open MPI).
+- An MPI launcher able to start 4 ranks. uDALES runs one rank per CPU and never
+  oversubscribes (see `tools/mpi_env.sh`), so 4 CPUs are needed for the `2x2` run.
 
 ## Running
 

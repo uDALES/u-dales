@@ -19,7 +19,7 @@
 
 set -euo pipefail
 
-# Usage: ./tools/build_executable.sh [icl, archer, cca, common] [debug, release]
+# Usage: ./tools/build_executable.sh [icl, hx1, ecmwf, archer, cca, common] [debug, release]
 
 if [ ! -d src ]; then
     echo "Please run this script from being inside the u-dales folder"
@@ -57,10 +57,41 @@ then
     # and zlib/1.2.11-GCCcore-10.3.0 (deps of netCDF/HDF5) from loading, producing
     # "dependent module(s) are not currently loaded" warnings.
     # module load intel/2025a netCDF/4.9.2-iimpi-2023a netCDF-Fortran/4.6.1-iimpi-2023a FFTW/3.3.9-intel-2021a CMake/3.29.3-GCCcore-13.3.0 git/2.45.1-GCCcore-13.3.0
+    module load tools/prod
     module load intel/2021a netCDF/4.8.0-iimpi-2021a netCDF-Fortran/4.5.3-iimpi-2021a FFTW/3.3.9-intel-2021a CMake/3.20.1-GCCcore-10.3.0 git/2.32.0-GCCcore-10.3.0-nodocs
     FC=mpiifort
     NETCDF_DIR=/sw-eb/software/netCDF/4.8.0-iimpi-2021a
     NETCDF_FORTRAN_DIR=/sw-eb/software/netCDF-Fortran/4.5.3-iimpi-2021a
+
+elif [ $system == "hx1" ]
+then
+    # Imperial HX1. It has its own EasyBuild tree (/gpfs/easybuild/prod) rather
+    # than CX3's /sw-eb, and it carries no iimpi-2021a netCDF at all, so the
+    # "icl" module list cannot resolve here. intel/2023a is the oldest Intel
+    # toolchain on HX1 with a complete netCDF + netCDF-Fortran pair.
+    module load intel/2023a netCDF/4.9.2-iimpi-2023a netCDF-Fortran/4.6.1-iimpi-2023a FFTW/3.3.10-intel-compilers-2023.1.0 CMake/3.26.3-GCCcore-12.3.0 git/2.41.0-GCCcore-12.3.0-nodocs
+    FC=mpiifort
+    NETCDF_DIR=/gpfs/easybuild/prod/software/netCDF/4.9.2-iimpi-2023a
+    NETCDF_FORTRAN_DIR=/gpfs/easybuild/prod/software/netCDF-Fortran/4.6.1-iimpi-2023a
+
+elif [ $system == "ecmwf" ]
+then
+    # ECMWF Atos HPC2020 (hostnames such as ac6-101). Uses ECMWF's own Lmod tree
+    # (/usr/local/apps); prgenv/intel selects the Intel-flavoured builds of the
+    # libraries below. netcdf4 ships the C and Fortran libraries in one prefix.
+    # NOTE (2026-10): MPI is hpcx-openmpi, not intel-mpi. A 2048-rank run died in
+    # its first MPI_Bcast with ~1e6 "mlx5dv_devx_obj_create(QP) failed ... syndrome
+    # 0x19c6d6" errors from UCX, reproducibly and across disjoint node sets. ECMWF
+    # support diagnosed a Mellanox firmware rate limit on QP creation, aggravated
+    # by the old libfabric (1.9) bundled with intel-mpi/2021.4, and recommend
+    # hpcx-openmpi generally; 2.21.3 is their current LTS, 2.9.0 the fallback they
+    # run IFS on. hpcx has an INTEL/2021.4 flavour, so mpif90 still wraps the same
+    # ifort and netCDF/FFTW resolve to the same prefixes.
+    #   previous line: module load ... intel-mpi/2021.4.0 ... with FC=mpiifort
+    module load prgenv/intel intel/2021.4.0 hpcx-openmpi/2.21.3 netcdf4/4.10.0 fftw/3.3.10 cmake/4.2.4
+    FC=mpif90
+    NETCDF_DIR=/usr/local/apps/netcdf4/4.10.0/INTEL/2021.4
+    NETCDF_FORTRAN_DIR=/usr/local/apps/netcdf4/4.10.0/INTEL/2021.4
 
 elif [ $system == "archer" ]
 then

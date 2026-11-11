@@ -109,6 +109,16 @@ groups:
         command:
           - "bash"
           - "{tests_dir}/integration/ibm_sparse_input/run_test.sh"
+      - label: "supported: vertical grid metrics integration"
+        class: supported
+        kind: integration
+        component: solver
+        platform: hpc
+        cost: medium
+        env_UDALES_BUILD: "{repo_root}/build/{build_type_lower}/u-dales"
+        command:
+          - "bash"
+          - "{tests_dir}/integration/zgrid_metrics/run_test.sh"
       - label: "supported: mpi operators integration"
         class: supported
         kind: integration
@@ -129,21 +139,57 @@ groups:
         command:
           - "{python}"
           - "{tests_dir}/integration/processor_boundaries/test_processor_boundaries.py"
+      - label: "supported: stretched grid integration"
+        class: supported
+        kind: integration
+        component: solver
+        platform: hpc
+        cost: medium
+        env_UDALES_BUILD: "{repo_root}/build/{build_type_lower}/u-dales"
+        command:
+          - "{python}"
+          - "{tests_dir}/integration/stretched_grid/test_stretched_grid.py"
+      - label: "supported: SGS TKE top boundary condition"
+        class: supported
+        kind: regression
+        component: solver
+        platform: hpc
+        cost: medium
+        env_UDALES_BUILD: "{repo_root}/build/{build_type_lower}/u-dales"
+        command:
+          - "{python}"
+          - "{tests_dir}/integration/tke_top_bc/test_tke_top_bc.py"
 
   supported-macos:
     includes:
       - python-library
     suites:
-      - label: "supported: ibm sparse input integration"
+      # The hosted macOS runner has three CPUs and uDALES never oversubscribes:
+      # the ibm sparse input test needs its fixed 2x2 decomposition and runs on
+      # Linux and HPC only; the other MPI tests run here on at most two ranks.
+      - label: "supported: vertical grid metrics integration"
         class: supported
         kind: integration
-        component: ibm
+        component: solver
         platform: hpc
         cost: medium
         env_UDALES_BUILD: "{repo_root}/build/{build_type_lower}/u-dales"
+        env_ZGRID_MODES: "uniform stretched stretched_badpois"
         command:
           - "bash"
-          - "{tests_dir}/integration/ibm_sparse_input/run_test.sh"
+          - "{tests_dir}/integration/zgrid_metrics/run_test.sh"
+      - label: "supported: stretched grid integration"
+        class: supported
+        kind: integration
+        component: solver
+        platform: hpc
+        cost: medium
+        env_UDALES_BUILD: "{repo_root}/build/{build_type_lower}/u-dales"
+        env_UDALES_TEST_NPROCX: "1"
+        env_UDALES_TEST_NPROCY: "2"
+        command:
+          - "{python}"
+          - "{tests_dir}/integration/stretched_grid/test_stretched_grid.py"
 
   experimental:
     suites:
@@ -200,6 +246,16 @@ groups:
           - "v2.2.0"
           - "{branch_b}"
           - "{build_type}"
+      - label: "experimental: warmstart facet continuity integration"
+        class: experimental
+        kind: integration
+        component: solver
+        platform: hpc
+        cost: medium
+        env_UDALES_BUILD: "{repo_root}/build/{build_type_lower}/u-dales"
+        command:
+          - "bash"
+          - "{tests_dir}/integration/warmstart_facets/run_test.sh"
       - label: "experimental: sgs statistics integration"
         class: experimental
         kind: integration

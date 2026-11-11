@@ -1,5 +1,5 @@
 #!/bin/bash
-# SGS statistics validation using runmode 1006 on the stretched-grid case 300.
+# SGS statistics validation using runmode 1007 on the stretched-grid case 300.
 
 set -u
 
@@ -28,23 +28,11 @@ NAMELIST_DIR="${NAMELIST_DIR:-${SCRIPT_DIR}}"
 NAMELIST="${NAMELIST:-namoptions.300}"
 TMPDIR_PARENT="${TMPDIR_PARENT:-}"
 
-if [ -z "${MPIEXEC:-}" ] && command -v mpiifort >/dev/null 2>&1; then
-    MPIEXEC="$(dirname "$(command -v mpiifort)")/mpiexec"
-else
-    MPIEXEC="${MPIEXEC:-mpiexec}"
-fi
-MPI_LAUNCH_EXTRA_ARGS="${MPI_LAUNCH_EXTRA_ARGS:-}"
-MPI_VERSION_OUTPUT="$("$MPIEXEC" --version 2>/dev/null || true)"
-
-if printf '%s\n' "$MPI_VERSION_OUTPUT" | grep -Eqi "Open MPI|OpenRTE"; then
-    MPI_LAUNCH_EXTRA_ARGS="--oversubscribe ${MPI_LAUNCH_EXTRA_ARGS}"
-    TMPDIR="${TMPDIR:-/tmp}"
-    export TMPDIR
-    export OMPI_MCA_prte_tmpdir_base="${OMPI_MCA_prte_tmpdir_base:-$TMPDIR}"
-    export PRTE_MCA_prte_tmpdir_base="${PRTE_MCA_prte_tmpdir_base:-$TMPDIR}"
-    if [ -z "$TMPDIR_PARENT" ]; then
-        TMPDIR_PARENT="$TMPDIR"
-    fi
+# launcher, extra arguments and the one-rank-per-CPU pre-flight check (never oversubscribe)
+# shellcheck disable=SC1091
+source "${REPO_ROOT}/tools/mpi_env.sh"
+if [ -z "$TMPDIR_PARENT" ]; then
+    TMPDIR_PARENT="$TMPDIR"
 fi
 
 if [ ! -f "$UDALES_BUILD" ]; then
@@ -92,6 +80,7 @@ run_mode() {
     local run_rc=0
     (
         cd "$run_dir" || exit 1
+        mpi_preflight "$np" || exit 1
         "$MPIEXEC" $MPI_LAUNCH_EXTRA_ARGS -n "$np" "$UDALES_BUILD" "$NAMELIST" > run.log 2>&1
     ) || run_rc=$?
 
@@ -109,10 +98,10 @@ run_mode() {
     fi
 }
 
-run_mode serial 1 1 1 "${NAMELIST_DIR}/namoptions.1006.serial"
-run_mode xsplit 2 1 2 "${NAMELIST_DIR}/namoptions.1006.xsplit"
-run_mode ysplit 1 2 2 "${NAMELIST_DIR}/namoptions.1006.ysplit"
-run_mode xysplit 2 2 4 "${NAMELIST_DIR}/namoptions.1006.xysplit"
+run_mode serial 1 1 1 "${NAMELIST_DIR}/namoptions.1007.serial"
+run_mode xsplit 2 1 2 "${NAMELIST_DIR}/namoptions.1007.xsplit"
+run_mode ysplit 1 2 2 "${NAMELIST_DIR}/namoptions.1007.ysplit"
+run_mode xysplit 2 2 4 "${NAMELIST_DIR}/namoptions.1007.xysplit"
 
 echo "=========================================="
 if [ "$failures" -eq 0 ]; then

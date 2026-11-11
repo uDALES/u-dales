@@ -1,6 +1,10 @@
 """Tests for HARMONIE radiation conversion helpers."""
 
+import csv
+from contextlib import redirect_stdout
 from datetime import datetime
+import io
+import json
 from pathlib import Path
 from tempfile import TemporaryDirectory
 import types
@@ -17,12 +21,14 @@ from udprep.harmonie_radiation import (
     format_forecast_offset,
     generate_timedepsw_from_harmonie,
     interpolate_flux_to_times,
+    map_atmosphere_to_facets,
     make_longwave_times,
     make_model_times,
     split_global_horizontal_erbs,
     write_netsw,
     write_timedeplw,
 )
+from udprep.radiation_timing import ShortwaveTimingRecorder, TimingSample
 
 
 class FakeAccumulationReader:
@@ -207,12 +213,315 @@ class TestShortwaveWriters(unittest.TestCase):
                     nwp_root=Path(tmp),
                     write_sdir_nc=False,
                     verbose=False,
+                    timing_prefix=case_dir / "benchmark",
                 )
 
             self.assertEqual(result.netsw_path, case_dir / "netsw.inp.300")
             np.testing.assert_allclose(
                 np.loadtxt(result.netsw_path, skiprows=1), knet[:, 0]
             )
+            summary = json.loads(
+                (case_dir / "benchmark.summary.json").read_text(encoding="ascii")
+            )
+            self.assertEqual(summary["status"], "completed")
+            self.assertIn("total_wall_seconds", summary)
+
+
+class TestShortwaveTiming(unittest.TestCase):
+    @staticmethod
+    def _nighttime_mapping_fixture():
+        class FakeRadiation:
+            lEB = False
+            maxD = 96.0
+            year, month, day = 2023, 8, 20
+            hour, minute, second = 18, 0, 0
+            timezone = 0.0
+
+            @staticmethod
+            def _shortwave_method():
+                return "scanline_f2py", 0.5
+
+        sim = types.SimpleNamespace(
+            geom=types.SimpleNamespace(
+                stl=types.SimpleNamespace(
+                    face_normals=np.array([[0.0, 0.0, 1.0]])
+                )
+            ),
+            assign_prop_to_fac=lambda _name: np.array([0.2]),
+        )
+        prep = types.SimpleNamespace(sim=sim, radiation=FakeRadiation())
+        atmosphere = ShortwaveAtmosphere(
+            times=np.array([0.0]),
+            ghi=np.array([0.0]),
+            dni=np.array([0.0]),
+            dsky=np.array([0.0]),
+            zenith=np.array([100.0]),
+            azimuth_local=np.array([180.0]),
+        )
+        return prep, atmosphere
+
+    def test_progress_detail_follows_timing_and_quiet_controls(self):
+        prep, atmosphere = self._nighttime_mapping_fixture()
+
+        concise_stream = io.StringIO()
+        with redirect_stdout(concise_stream):
+            map_atmosphere_to_facets(prep, atmosphere, verbose=True)
+        concise = concise_stream.getvalue()
+        self.assertIn("[start   1/1]", concise)
+        self.assertIn("[done   1/1] mode=night", concise)
+        self.assertIn("wall=", concise)
+        self.assertNotIn("GHI=", concise)
+        self.assertNotIn("cpu=", concise)
+        self.assertNotIn("peak_rss=", concise)
+        self.assertNotIn("pid=", concise)
+
+        with TemporaryDirectory() as tmp:
+            detailed_recorder = ShortwaveTimingRecorder(
+                Path(tmp) / "detailed", metadata={}, overwrite=False
+            )
+            detailed_stream = io.StringIO()
+            with redirect_stdout(detailed_stream):
+                map_atmosphere_to_facets(
+                    prep,
+                    atmosphere,
+                    verbose=True,
+                    timing=detailed_recorder,
+                )
+            detailed_recorder.finish(
+                status="completed", total=TimingSample(1.0, 1.0, 10.0)
+            )
+            detailed = detailed_stream.getvalue()
+            self.assertIn("GHI=", detailed)
+            self.assertIn("cpu=", detailed)
+            self.assertIn("peak_rss=", detailed)
+            self.assertIn("pid=", detailed)
+
+            quiet_recorder = ShortwaveTimingRecorder(
+                Path(tmp) / "quiet", metadata={}, overwrite=False
+            )
+            quiet_stream = io.StringIO()
+            with redirect_stdout(quiet_stream):
+                map_atmosphere_to_facets(
+                    prep,
+                    atmosphere,
+                    verbose=False,
+                    timing=quiet_recorder,
+                )
+            quiet_recorder.finish(
+                status="completed", total=TimingSample(1.0, 1.0, 10.0)
+            )
+            self.assertEqual(quiet_stream.getvalue(), "")
+            with (Path(tmp) / "quiet.timestamps.csv").open(
+                "r", encoding="ascii", newline=""
+            ) as handle:
+                self.assertEqual(len(list(csv.DictReader(handle))), 1)
+
+    def test_recorder_flushes_timestamp_csv_and_summary(self):
+        with TemporaryDirectory() as tmp:
+            prefix = Path(tmp) / "baseline"
+            recorder = ShortwaveTimingRecorder(
+                prefix,
+                metadata={"experiment": "302"},
+                overwrite=False,
+            )
+            recorder.record_stage("load", TimingSample(1.0, 0.5, 12.0))
+            recorder.record_timestamp(
+                {
+                    "index": 1,
+                    "total": 2,
+                    "model_time_seconds": 0.0,
+                    "mode": "night",
+                    "step_wall_seconds": 0.01,
+                    "step_cpu_seconds": 0.01,
+                }
+            )
+
+            with Path(f"{prefix}.timestamps.csv").open(
+                "r", encoding="ascii", newline=""
+            ) as handle:
+                rows = list(csv.DictReader(handle))
+            self.assertEqual(len(rows), 1)
+            self.assertEqual(rows[0]["mode"], "night")
+
+            running = json.loads(
+                Path(f"{prefix}.summary.json").read_text(encoding="ascii")
+            )
+            self.assertEqual(running["status"], "running")
+            self.assertEqual(running["timestamps_completed"], 1)
+
+            recorder.finish(
+                status="completed",
+                total=TimingSample(2.0, 1.0, 13.0),
+            )
+            completed = json.loads(
+                Path(f"{prefix}.summary.json").read_text(encoding="ascii")
+            )
+            self.assertEqual(completed["status"], "completed")
+            self.assertEqual(completed["peak_rss_mib"], 13.0)
+
+    def test_facet_mapping_timing_preserves_results_and_classifies_steps(self):
+        class FakeRadiation:
+            lEB = False
+            maxD = 96.0
+            year, month, day = 2023, 8, 20
+            hour, minute, second = 18, 0, 0
+            timezone = 0.0
+
+            @staticmethod
+            def _shortwave_method():
+                return "scanline_f2py", 0.5
+
+            @staticmethod
+            def _compute_knet(*_args, timing=None, **_kwargs):
+                if timing is not None:
+                    timing.update(
+                        direct_wall_seconds=0.1,
+                        direct_cpu_seconds=0.1,
+                        net_wall_seconds=0.01,
+                        net_cpu_seconds=0.01,
+                    )
+                return np.array([10.0, 20.0]), np.array([8.0, 16.0]), None
+
+        sim = types.SimpleNamespace(
+            geom=types.SimpleNamespace(
+                stl=types.SimpleNamespace(
+                    face_normals=np.array([[0.0, 0.0, 1.0], [0.0, 0.0, 1.0]])
+                )
+            ),
+            assign_prop_to_fac=lambda _name: np.array([0.2, 0.2]),
+        )
+        prep = types.SimpleNamespace(sim=sim, radiation=FakeRadiation())
+        atmosphere = ShortwaveAtmosphere(
+            times=np.array([0.0, 10.0, 20.0]),
+            ghi=np.array([450.0, 50.0, 0.0]),
+            dni=np.array([500.0, 0.0, 0.0]),
+            dsky=np.array([100.0, 50.0, 0.0]),
+            zenith=np.array([45.0, 95.0, 100.0]),
+            azimuth_local=np.array([180.0, 190.0, 200.0]),
+        )
+
+        untimed = map_atmosphere_to_facets(prep, atmosphere, verbose=False)
+        with TemporaryDirectory() as tmp:
+            prefix = Path(tmp) / "mapping"
+            recorder = ShortwaveTimingRecorder(prefix, metadata={}, overwrite=False)
+            timed = map_atmosphere_to_facets(
+                prep, atmosphere, verbose=False, timing=recorder
+            )
+            recorder.finish(
+                status="completed",
+                total=TimingSample(1.0, 1.0, 10.0),
+            )
+            with Path(f"{prefix}.timestamps.csv").open(
+                "r", encoding="ascii", newline=""
+            ) as handle:
+                rows = list(csv.DictReader(handle))
+
+        np.testing.assert_array_equal(timed[0], untimed[0])
+        np.testing.assert_array_equal(timed[1], untimed[1])
+        self.assertIsNone(timed[2])
+        self.assertEqual([row["mode"] for row in rows], ["direct", "diffuse", "night"])
+        self.assertEqual(float(rows[0]["direct_wall_seconds"]), 0.1)
+        self.assertGreaterEqual(float(rows[1]["net_wall_seconds"]), 0.0)
+
+    def test_facet_checkpoints_resume_without_recomputation(self):
+        class FakeRadiation:
+            lEB = False
+            maxD = 96.0
+            calls = 0
+
+            @staticmethod
+            def _shortwave_method():
+                return "scanline_f2py", 0.5
+
+            def _compute_knet(self, *_args, timing=None, **_kwargs):
+                self.calls += 1
+                return np.array([10.0, 20.0]), np.array([8.0, 16.0]), None
+
+        radiation = FakeRadiation()
+        sim = types.SimpleNamespace(
+            geom=types.SimpleNamespace(
+                stl=types.SimpleNamespace(
+                    face_normals=np.array([[0.0, 0.0, 1.0], [0.0, 0.0, 1.0]])
+                )
+            ),
+            assign_prop_to_fac=lambda _name: np.array([0.2, 0.2]),
+        )
+        prep = types.SimpleNamespace(sim=sim, radiation=radiation)
+        atmosphere = ShortwaveAtmosphere(
+            times=np.array([0.0, 10.0]),
+            ghi=np.array([450.0, 0.0]),
+            dni=np.array([500.0, 0.0]),
+            dsky=np.array([100.0, 0.0]),
+            zenith=np.array([45.0, 100.0]),
+            azimuth_local=np.array([180.0, 200.0]),
+        )
+
+        with TemporaryDirectory() as tmp:
+            checkpoint_dir = Path(tmp) / "checkpoints"
+            first = map_atmosphere_to_facets(
+                prep,
+                atmosphere,
+                verbose=False,
+                checkpoint_dir=checkpoint_dir,
+            )
+            self.assertEqual(radiation.calls, 1)
+            self.assertEqual(len(list(checkpoint_dir.glob("step_*.npz"))), 2)
+
+            second = map_atmosphere_to_facets(
+                prep,
+                atmosphere,
+                verbose=False,
+                checkpoint_dir=checkpoint_dir,
+                resume=True,
+            )
+
+        self.assertEqual(radiation.calls, 1)
+        np.testing.assert_array_equal(second[0], first[0])
+        np.testing.assert_array_equal(second[1], first[1])
+
+    @unittest.skipUnless(
+        "fork" in __import__("multiprocessing").get_all_start_methods(),
+        "parallel facet mapping requires multiprocessing fork support",
+    )
+    def test_parallel_facet_mapping_matches_serial(self):
+        class FakeRadiation:
+            lEB = False
+            maxD = 96.0
+
+            @staticmethod
+            def _shortwave_method():
+                return "scanline_f2py", 0.5
+
+            @staticmethod
+            def _compute_knet(*_args, timing=None, **_kwargs):
+                return np.array([10.0, 20.0]), np.array([8.0, 16.0]), None
+
+        sim = types.SimpleNamespace(
+            geom=types.SimpleNamespace(
+                stl=types.SimpleNamespace(
+                    face_normals=np.array([[0.0, 0.0, 1.0], [0.0, 0.0, 1.0]])
+                )
+            ),
+            assign_prop_to_fac=lambda _name: np.array([0.2, 0.2]),
+        )
+        prep = types.SimpleNamespace(sim=sim, radiation=FakeRadiation())
+        atmosphere = ShortwaveAtmosphere(
+            times=np.array([0.0, 10.0, 20.0]),
+            ghi=np.array([450.0, 50.0, 0.0]),
+            dni=np.array([500.0, 0.0, 0.0]),
+            dsky=np.array([100.0, 50.0, 0.0]),
+            zenith=np.array([45.0, 95.0, 100.0]),
+            azimuth_local=np.array([180.0, 190.0, 200.0]),
+        )
+
+        serial = map_atmosphere_to_facets(prep, atmosphere, verbose=False)
+        parallel = map_atmosphere_to_facets(
+            prep, atmosphere, verbose=False, workers=2
+        )
+
+        np.testing.assert_array_equal(parallel[0], serial[0])
+        np.testing.assert_array_equal(parallel[1], serial[1])
+        self.assertIsNone(parallel[2])
 
 
 if __name__ == "__main__":

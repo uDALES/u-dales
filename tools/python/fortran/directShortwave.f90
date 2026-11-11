@@ -42,20 +42,18 @@ contains
       real   , dimension(nFaces,3) :: planeIncenter
       real   , dimension(nFaces) :: areas, distIncenter, projAreas
       integer, dimension(nFaces) :: visibility, sortedFaces ! if visiblity is false then face is self-shaded, i.e. not visible to the sun
-      real   , dimension(nVertices,3) :: planeVertices, projVertices
+      real   , dimension(nVertices,3) :: planeVertices
       real   , dimension(nVertices,2) :: locVertices
-      real   , dimension(nVertices) :: distVertices
-      logical, dimension(:,:), allocatable :: mask
+      logical(kind=1), dimension(:,:), allocatable :: scratch
       integer, dimension(:,:), allocatable :: maskIDs
       real   , dimension(:), allocatable :: locCoord1, locCoord2
-      integer, dimension(:), allocatable :: counts
-      real :: xmin, xmax, xrange, ymin, ymax, yrange, temp
+      integer, dimension(:), allocatable :: counts, minY, maxY
+      real :: xmin, xmax, xrange, ymin, ymax, yrange, cosIncidence
       real, dimension(3) :: p0, u1, u2, up
       real, dimension(2) :: cor1, cor2, cor3, cor4
       real, dimension(3,3) :: matrix, invMatrix
-      integer :: i, j, n, m, id_temp, size_xi, size_eta
+      integer :: i, j, n, m, size_xi, size_eta
       logical :: flag
-      real :: start, finish
 
       ! projection
       xmin = minval(vertices(:,1))
@@ -109,8 +107,6 @@ contains
 
       ! calculate areas and determine visiblity
 
-      sortedFaces(1) = 1
-
       do n=1,nFaces
          areas(n) = 0.5*norm2(cross_product(vertices(connectivityList(n,2),:) - vertices(connectivityList(n,1),:), &
                                             vertices(connectivityList(n,3),:) - vertices(connectivityList(n,1),:)))
@@ -118,25 +114,10 @@ contains
          if (dot_product(faceNormal(n,:), nsun) > 0)  visibility(n) = 1
          planeIncenter(n,:) = matmul(invMatrix, incenter(n,:) - p0)
          distIncenter(n) = planeIncenter(n,3)
-         !write(*,*) n, distIncenter(n)
-         ! sort
-         if (n > 1) then
-            m = n
-            do while (m > 1 .and. distIncenter(m) > distIncenter(m - 1)) ! note in descending order (>)
-            ! Swap array(m) and array(m - 1)
-            temp = distIncenter(m)
-            distIncenter(m) = distIncenter(m - 1)
-            distIncenter(m - 1) = temp
-            ! Update the corresponding index
-            id_temp = sortedFaces(m)
-            sortedFaces(m) = sortedFaces(m - 1)
-            sortedFaces(m - 1) = id_temp
-            m = m - 1
-            end do
-            ! Update the index for the newly inserted element
-            sortedFaces(m) = n
-         end if
+         sortedFaces(n) = n
       end do
+
+      call stableSortIndicesDescending(distIncenter, sortedFaces, nFaces)
 
       ! open (unit=11,file='sortedFaces_fort.txt',action="write")
       ! do n=1,nFaces
@@ -153,9 +134,6 @@ contains
 
       do n=1,nVertices
          planeVertices(n,:) = matmul(invMatrix, vertices(n,:) - p0)
-         distVertices(n) = planeVertices(n,3)
-         projVertices(n,:) = vertices(n,:) + distVertices(n) * nsun
-         !write(*,*) n, projVertices(n,:)
       end do
 
       locVertices(:,1) = planeVertices(:,1) + abs(minval(planeVertices(:,1)))
@@ -172,6 +150,10 @@ contains
       !allocate(mask(size_eta, size_xi))
       allocate(maskIDs(size_eta, size_xi))
       maskIDs = 0
+      allocate(scratch(size_eta, size_xi), minY(size_xi), maxY(size_xi))
+      scratch = .false._1
+      minY = 0
+      maxY = 0
 
       ! allocate(locCoord1(sizeMask1))
       ! allocate(locCoord2(sizeMask2))
@@ -230,8 +212,6 @@ contains
          !    end do
          ! end do
 
-         call cpu_time(start)
-
          ! polygon scan conversion
          do n=1,nFaces
            !write(*,*) "n", n
@@ -239,7 +219,7 @@ contains
             !mask = .false.
             call poly2maskIDs(locVertices(connectivityList(m, :), 1) / resolution, &
                            locVertices(connectivityList(m, :), 2) / resolution, size_eta, &
-                           size_xi, maskIDs, m*visibility(m))
+                           size_xi, scratch, minY, maxY, maskIDs, m*visibility(m))
 
             ! call poly2maskIDs([locVertices(connectivityList(m, :), 1) / resolution, &
             !                    locVertices(connectivityList(m, 1), 1) / resolution], &
@@ -258,8 +238,8 @@ contains
 
       allocate(counts(nFaces))
       counts = 0
-      do i=1,size(maskIDs,1)
-         do j=1,size(maskIDs,2)
+      do j=1,size(maskIDs,2)
+         do i=1,size(maskIDs,1)
             if (maskIDs(i,j) > 0) counts(maskIDs(i,j)) = counts(maskIDs(i,j)) + 1
          end do
       end do
@@ -273,20 +253,75 @@ contains
       ! end do
       ! close (11)
 
-            call cpu_time(finish)
-
       projAreas = counts * resolution**2
 
-      Sdir = irradiance * projAreas / areas
+      ! A raster cell can be much larger than a sliver facet.  Limit the
+      ! assigned flux to the unshaded plane-incidence bound so one raster cell
+      ! cannot deposit its full power on a much smaller facet.
+      do n=1,nFaces
+         if (areas(n) > 0.) then
+            Sdir(n) = irradiance * projAreas(n) / areas(n)
+            cosIncidence = min(max(dot_product(faceNormal(n,:), nsun), 0.), 1.)
+            Sdir(n) = min(max(Sdir(n), 0.), &
+                          max(irradiance, 0.) * cosIncidence)
+         else
+            Sdir(n) = 0.
+         end if
+      end do
 
       ! write(*,*) "n", "count", "projArea", "Sdir"
       ! do n=1,1000
       !    write(*,*) n, counts(n), projAreas(n), Sdir(n)
       ! end do
 
-      print '("Time = ",f10.3," seconds.")',finish-start
-
    end subroutine calculateDirectShortwave
+
+
+   subroutine stableSortIndicesDescending(values, indices, nValues)
+      integer, intent(in) :: nValues
+      real, intent(in) :: values(nValues)
+      integer, intent(inout) :: indices(nValues)
+      integer, allocatable :: work(:)
+      integer :: width, left, middle, right, i, j, k
+
+      if (nValues <= 1) return
+      allocate(work(nValues))
+
+      width = 1
+      do while (width < nValues)
+         left = 1
+         do while (left <= nValues)
+            middle = min(left + width - 1, nValues)
+            right = min(left + 2*width - 1, nValues)
+            i = left
+            j = middle + 1
+
+            do k=left,right
+               if (i > middle) then
+                  work(k) = indices(j)
+                  j = j + 1
+               else if (j > right) then
+                  work(k) = indices(i)
+                  i = i + 1
+               else if (values(indices(i)) >= values(indices(j))) then
+                  ! Prefer the left run for equal values to preserve input order.
+                  work(k) = indices(i)
+                  i = i + 1
+               else
+                  work(k) = indices(j)
+                  j = j + 1
+               end if
+            end do
+            indices(left:right) = work(left:right)
+            left = left + 2*width
+         end do
+
+         if (width > nValues/2) exit
+         width = 2*width
+      end do
+
+      deallocate(work)
+   end subroutine stableSortIndicesDescending
 
 
    subroutine writeDirectShortwave(Sdir, nFaces)
@@ -445,43 +480,38 @@ contains
   ! end subroutine poly2maskIDs
 
     !subroutine poly2maskIDs(xpt, ypt, M, N, out, outIDs, id)
-    subroutine poly2maskIDs(xpt, ypt, M, N, outIDs, id)
+    subroutine poly2maskIDs(xpt, ypt, M, N, out, minY, maxY, outIDs, id)
         real  , intent(in) :: xpt(:), ypt(:) ! assumes x(end) != x(1)
-        real, allocatable, dimension(:) :: x, y
+        real :: x(size(xpt) + 1), y(size(ypt) + 1)
         integer, intent(in) :: M, N, id
-        !logical, intent(out) :: out(M, N)
-        logical :: out(M, N)
+        logical(kind=1), intent(inout) :: out(M, N)
+        integer, intent(inout) :: minY(N), maxY(N)
         integer, intent(inout) :: outIDs(M, N)
-        integer :: sizeX
+        integer :: sizeX, cmin, cmax
         real    :: scale = 5.0
-        integer :: minY(N), maxY(N)
 
-        ! Initialize
-        out = .false.
-        minY = 0
-        maxY = 0
+        cmin = N + 1
+        cmax = 0
         sizeX = size(xpt,1)+1 ! number of vertices
-        allocate(x(sizeX), y(sizeX))
         x(1:sizeX-1) = xpt
         y(1:sizeX-1) = ypt
         x(sizeX) = xpt(1)
         y(sizeX) = ypt(1)
 
         ! Create edges in mask to be used during parity scan
-        call poly2edgelist(x, y, sizeX, scale, M, N, out, minY, maxY)
+        call poly2edgelist(x, y, sizeX, scale, M, N, out, minY, maxY, cmin, cmax)
         ! Perform the parity scan over the output mask 'out'
-        call parityScan(out, N, minY, maxY, outIDs, id)
-
-        deallocate(x, y)
+        call parityScan(out, N, minY, maxY, outIDs, id, cmin, cmax)
 
     end subroutine poly2maskIDs
 
-    subroutine poly2edgelist(x, y, xLength, scale, M, N, out, minY, maxY)
+    subroutine poly2edgelist(x, y, xLength, scale, M, N, out, minY, maxY, cmin, cmax)
         real  , intent(inout) :: x(:), y(:)
         integer, intent(in) :: xLength, M, N
         real   , intent(in) :: scale
-        logical, intent(inout) :: out(M, N)
+        logical(kind=1), intent(inout) :: out(M, N)
         integer, intent(inout) :: minY(N), maxY(N)
+        integer, intent(inout) :: cmin, cmax
         real, allocatable, dimension(:) :: xLinePts, yLinePts
         integer :: borderSize
         integer :: i, pt, xUse, yUse
@@ -520,9 +550,11 @@ contains
                 xLinePts(pt) = scaledDown
                 yLinePts(pt) = ceiling((yLinePts(pt) + (scale - 1.0) / 2.0) / scale)
                 ! Set xUse and yUse to these scaled down x and y values for indexing into the boolean array.
-                xUse = nint(xLinePts(pt)) + 1
-                yUse = nint(yLinePts(pt)) + 1
+               xUse = nint(xLinePts(pt)) + 1
+               yUse = nint(yLinePts(pt)) + 1
                if (.not. (xUse < 2 .or. xUse > N + 1)) then
+                 cmin = min(cmin, xUse - 1)
+                 cmax = max(cmax, xUse - 1)
                  if (yUse > M + 1) then
                    if (minY(xUse - 1) == 0) then
                      minY(xUse - 1) = M + 1
@@ -698,29 +730,25 @@ contains
         end if
     end subroutine intLine
 
-    subroutine parityScan(out, N, minY, maxY, outIDs, id)
-        logical, intent(inout) :: out(:,:)
+    subroutine parityScan(out, N, minY, maxY, outIDs, id, cmin, cmax)
+        logical(kind=1), intent(inout) :: out(:,:)
         integer, intent(inout) :: outIDs(:,:)
-        integer, intent(in) :: N, id
-        integer, intent(in) :: minY(N), maxY(N)
+        integer, intent(in) :: N, id, cmin, cmax
+        integer, intent(inout) :: minY(N), maxY(N)
         logical :: pixel
-        integer :: c, r!, id_first, id_last
+        integer :: c, r, rhi
 
-        do c = 1, N
+        do c = cmin, cmax
+            if (maxY(c) == 0) cycle
+            rhi = min(maxY(c) - 1, size(out, 1))
             pixel = .false.
-            do r = minY(c), maxY(c) - 1
+            do r = minY(c), rhi
                 if (out(r, c)) pixel = .not. pixel
-                out(r, c) = pixel
-                if (out(r,c)) outIDs(r, c) = id
+                out(r, c) = .false._1
+                if (pixel) outIDs(r, c) = id
             end do
-            ! if (maxY(c) > 0) then
-            !    id_first = findloc(out(minY(c):maxY(c)-1,c), .true., 1) + minY(c) - 1
-            !    id_last  = findloc(out(minY(c):maxY(c)-1,c), .true., 1, back=.true.) + minY(c) - 1
-            !    out(id_last, c) = .false.
-            !    if (id_first+1 <= id_last-1) then
-            !       out(id_first+1:id_last-1, c) = .true.
-            !    end if
-            ! end if
+            minY(c) = 0
+            maxY(c) = 0
         end do
     end subroutine parityScan
 

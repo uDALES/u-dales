@@ -62,7 +62,7 @@ module modstatsdump
   character(80),dimension(1,4) :: tncstatmint
 
   integer :: klow,khigh
-  real    :: tsamplep,tstatsdumpp,tsample,tstatsdump
+  real    :: tsamplep,tstatsdumpp
 
 
 contains
@@ -72,17 +72,13 @@ contains
   !-------------------------
 
   subroutine initstatsdump
-    use modmpi,   only : mpierr,comm3d,mpi_logical,mpi_integer,mpi_character,cmyidx,cmyidy
-    use modglobal,only : imax,jmax,cexpnr,ifnamopt,fname_options,kb,ke,&
+    use modmpi,   only : mpierr,cmyidx,cmyidy
+    use modglobal,only : imax,jmax,cexpnr,kb,ke,&
                          lkslicedump,lislicedump,ljslicedump,ltreedump,islice,islicerank,isliceloc,jslice,jslicerank,jsliceloc
     use modstat_nc,only: open_nc, define_nc,ncinfo,writestat_dims_nc
     use modfields, only : ncstaty,ncstatyt,ncstattke,ncstatxy,ncstatkslice,ncstatislice,ncstatjslice,ncstatxyt,ncstatt,ncstattr,ncstatmint
     use decomp_2d, only : zstart, zend
     implicit none
-    integer :: ierr
-
-    namelist/NAMSTATSDUMP/ &
-         lydump,tsample,klow,khigh,tstatsdump,lytdump,ltkedump,lxydump,lxytdump,ltdump,ltreedump,lmintdump    ! maybe removed; NAMSTATSDUMP is not in use anymore
 
     !> The TKE-budget path is inoperative: the call to genstats is commented out
     !  in statsdump and nusgsav/disssgsav are never accumulated, so tkedump would
@@ -114,34 +110,6 @@ contains
 
     klow=kb
     khigh=ke
-
-    if(myid==0)then
-       open(ifnamopt,file=fname_options,status='old',iostat=ierr)
-       read (ifnamopt,NAMSTATSDUMP,iostat=ierr)
-       if (ierr > 0) then
-          write(0, *) 'ERROR: Problem in namoptions NAMSTATSDUMP'
-          write(0, *) 'iostat error: ', ierr
-          stop 1
-       endif
-       !write(6 ,NAMSTATSDUMP)
-       close(ifnamopt)
-    end if
-
-    call MPI_BCAST(klow        ,1,MPI_INTEGER,0,comm3d,ierr) !have to do this? just want nc for first CPU
-    call MPI_BCAST(khigh       ,1,MPI_INTEGER,0,comm3d,ierr)
-    call MPI_BCAST(nstatt      ,1,MPI_INTEGER,0,comm3d,ierr)
-    call MPI_BCAST(nstatmint      ,1,MPI_INTEGER,0,comm3d,ierr)
-    ! call MPI_BCAST(nstaty      ,1,MPI_INTEGER,0,comm3d,ierr)
-    call MPI_BCAST(ncstatyt    ,80,MPI_CHARACTER,0,comm3d,mpierr)
-    call MPI_BCAST(ncstaty     ,80,MPI_CHARACTER,0,comm3d,mpierr)
-    call MPI_BCAST(ncstattke   ,80,MPI_CHARACTER,0,comm3d,mpierr)
-    call MPI_BCAST(ncstatxy    ,80,MPI_CHARACTER,0,comm3d,mpierr)
-    call MPI_BCAST(ncstatxyt   ,80,MPI_CHARACTER,0,comm3d,mpierr)
-    call MPI_BCAST(ncstatt     ,80,MPI_CHARACTER,0,comm3d,mpierr)
-    call MPI_BCAST(ncstatmint     ,80,MPI_CHARACTER,0,comm3d,mpierr)
-    !call MPI_BCAST(ltdump      ,1,MPI_LOGICAL,0,comm3d,ierr)      ! maybe removed; unnecessary broadcast; this variable already broadcasted in modstartup
-    !call MPI_BCAST(ltreedump   ,1,MPI_LOGICAL,0,comm3d,ierr)      ! maybe removed; unnecessary broadcast; this variable already broadcasted in modstartup
-    call MPI_BCAST(lmintdump      ,1,MPI_LOGICAL,0,comm3d,ierr)
 
     !> Generate y-averaged NetCDF: ydump.xxx.nc
     if(lydump) then
@@ -1393,21 +1361,25 @@ contains
 
       wthltxyk=0.;uwtxyik=0.;vwtxyjk=0.;wwtxyk=0.;uvtxyij=0.;wpthlptxyk=0.;upwptxyik=0.;vpwptxyjk=0.;upvptxyij=0.;thlpthlptxy=0.;upuptxyc=0.;vpvptxyc=0.;wpwptxyc=0.;tketxyc=0.
 
+      ! The flux averages below pass lnan=.true. so that a fully masked level
+      ! reports -999. modibm sets IIw/IIuw/IIvw(:,:,kb)=0 in every IBM run, and the
+      ! lnan=.false. branch of avexy_ibm would replace kb by an unmasked sum divided
+      ! by the fluid-point count at ke (see #357).
       !> Advective flux
       if (ltempeq) then
-        call avexy_ibm(wthltxyk(kb:ke+kh),wmt(ib:ie,jb:je,kb:ke+kh)*thltk(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,kh,IIw(ib:ie,jb:je,kb:ke+kh),IIws(kb:ke+kh),.false.)
+        call avexy_ibm(wthltxyk(kb:ke+kh),wmt(ib:ie,jb:je,kb:ke+kh)*thltk(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,kh,IIw(ib:ie,jb:je,kb:ke+kh),IIws(kb:ke+kh),.true.)
       end if
-      call avexy_ibm(uwtxyik(kb:ke+kh),utik(ib:ie,jb:je,kb:ke+kh)*wtik(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,kh,IIuw(ib:ie,jb:je,kb:ke+kh),IIuws(kb:ke+kh),.false.)
-      call avexy_ibm(vwtxyjk(kb:ke+kh),vtjk(ib:ie,jb:je,kb:ke+kh)*wtjk(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,kh,IIvw(ib:ie,jb:je,kb:ke+kh),IIvws(kb:ke+kh),.false.)
-      call avexy_ibm(wwtxyk(kb:ke+kh),wmt(ib:ie,jb:je,kb:ke+kh)*wmt(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,kh,IIw(ib:ie,jb:je,kb:ke+kh),IIws(kb:ke+kh),.false.)
-      call avexy_ibm(uvtxyij(kb:ke+kh),utij(ib:ie,jb:je,kb:ke+kh)*vtij(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,kh,IIuv(ib:ie,jb:je,kb:ke+kh),IIuvs(kb:ke+kh),.false.)
+      call avexy_ibm(uwtxyik(kb:ke+kh),utik(ib:ie,jb:je,kb:ke+kh)*wtik(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,kh,IIuw(ib:ie,jb:je,kb:ke+kh),IIuws(kb:ke+kh),.true.)
+      call avexy_ibm(vwtxyjk(kb:ke+kh),vtjk(ib:ie,jb:je,kb:ke+kh)*wtjk(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,kh,IIvw(ib:ie,jb:je,kb:ke+kh),IIvws(kb:ke+kh),.true.)
+      call avexy_ibm(wwtxyk(kb:ke+kh),wmt(ib:ie,jb:je,kb:ke+kh)*wmt(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,kh,IIw(ib:ie,jb:je,kb:ke+kh),IIws(kb:ke+kh),.true.)
+      call avexy_ibm(uvtxyij(kb:ke+kh),utij(ib:ie,jb:je,kb:ke+kh)*vtij(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,kh,IIuv(ib:ie,jb:je,kb:ke+kh),IIuvs(kb:ke+kh),.true.)
       !> Turbulent fluxes
       if (ltempeq) then
-        call avexy_ibm(wpthlptxyk(kb:ke+kh),wthltk(ib:ie,jb:je,kb:ke+kh)-wmt(ib:ie,jb:je,kb:ke+kh)*thltk(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,kh,IIw(ib:ie,jb:je,kb:ke+kh),IIws(kb:ke+kh),.false.)
+        call avexy_ibm(wpthlptxyk(kb:ke+kh),wthltk(ib:ie,jb:je,kb:ke+kh)-wmt(ib:ie,jb:je,kb:ke+kh)*thltk(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,kh,IIw(ib:ie,jb:je,kb:ke+kh),IIws(kb:ke+kh),.true.)
       end if
-      call avexy_ibm(upwptxyik(kb:ke+kh),uwtik(ib:ie,jb:je,kb:ke+kh)-utik(ib:ie,jb:je,kb:ke+kh)*wtik(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,kh,IIuw(ib:ie,jb:je,kb:ke+kh),IIuws(kb:ke+kh),.false.)
-      call avexy_ibm(vpwptxyjk(kb:ke+kh),vwtjk(ib:ie,jb:je,kb:ke+kh)-vtjk(ib:ie,jb:je,kb:ke+kh)*wtjk(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,kh,IIvw(ib:ie,jb:je,kb:ke+kh),IIvws(kb:ke+kh),.false.)
-      call avexy_ibm(upvptxyij(kb:ke+kh),uvtij(ib:ie,jb:je,kb:ke+kh)-utij(ib:ie,jb:je,kb:ke+kh)*vtij(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,kh,IIuv(ib:ie,jb:je,kb:ke+kh),IIuvs(kb:ke+kh),.false.)
+      call avexy_ibm(upwptxyik(kb:ke+kh),uwtik(ib:ie,jb:je,kb:ke+kh)-utik(ib:ie,jb:je,kb:ke+kh)*wtik(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,kh,IIuw(ib:ie,jb:je,kb:ke+kh),IIuws(kb:ke+kh),.true.)
+      call avexy_ibm(vpwptxyjk(kb:ke+kh),vwtjk(ib:ie,jb:je,kb:ke+kh)-vtjk(ib:ie,jb:je,kb:ke+kh)*wtjk(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,kh,IIvw(ib:ie,jb:je,kb:ke+kh),IIvws(kb:ke+kh),.true.)
+      call avexy_ibm(upvptxyij(kb:ke+kh),uvtij(ib:ie,jb:je,kb:ke+kh)-utij(ib:ie,jb:je,kb:ke+kh)*vtij(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,kh,IIuv(ib:ie,jb:je,kb:ke+kh),IIuvs(kb:ke+kh),.true.)
 
       !> Variances and TKE
       if (ltempeq) then

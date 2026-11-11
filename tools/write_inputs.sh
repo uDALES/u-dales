@@ -30,7 +30,7 @@
 # Assuming running from top-level project directory.
 # u-dales/tools/write_inputs.sh <-m|-p> <PATH_TO_CASE> [c|l]
 
-set -e
+set -euo pipefail
 
 script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
@@ -49,8 +49,8 @@ extract_nompthreads() {
 	local nompthreads_line
 	local nompthreads_value
 
-	occurrence_count=$(grep -io "nompthreads" "$namoptions_file" | wc -l)
-	occurrence_count=${occurrence_count//[[:space:]]/}
+	# grep -c returns 1 when nothing matches; that is a count of 0, not an error
+	occurrence_count=$(grep -ic "nompthreads" "$namoptions_file" || true)
 
 	if [ "$occurrence_count" -eq 0 ]; then
 		return 0
@@ -159,6 +159,7 @@ case "$nompthreads" in
 		;;
 esac
 export PREPROC_NCPU="${nompthreads:-$default_nompthreads}"
+export NUMBA_NUM_THREADS="${NUMBA_NUM_THREADS:-$PREPROC_NCPU}"
 export PREPROC_WALLTIME="${PREPROC_WALLTIME:-24:00:00}"
 export PREPROC_MEM="${PREPROC_MEM:-128gb}"
 
@@ -211,6 +212,7 @@ export MATLAB_USE_USERWORK=0
 export PYTHONUNBUFFERED=1
 export GFORTRAN_UNBUFFERED_PRECONNECTED=1
 export PREPROC_NCPU="$PREPROC_NCPU"
+export NUMBA_NUM_THREADS="$NUMBA_NUM_THREADS"
 export PREPROC_MEM="$PREPROC_MEM"
 export VIEW3D_CONFIG="$VIEW3D_CONFIG"
 source_view3d_config() {

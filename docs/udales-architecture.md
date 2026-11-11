@@ -11,7 +11,8 @@ This page is a tour of the uDALES source code for developers who are about to mo
 - `tools/SEB/` — surface energy balance preprocessing utilities.
 - `tools/syntheticInflow/` — synthetic-inflow generation tooling.
 - `tools/View3D/` — external view-factor calculator (git submodule) used for radiation preprocessing.
-- `tools/*.sh` — build and run wrappers (`build_executable.sh`, `hpc_execute.sh`, ...).
+- `tools/*.sh` — build and run wrappers (`build_executable.sh`, `local_execute.sh`, `hpc_execute.sh`, `archer_execute.sh`, `ecmwf_execute.sh` and the matching `*_gather.sh`, ...).
+- `bin/` — the built solver (`u-dales`) plus helper commands, including `ud_run <machine> sim|gather <case>`, the single entry point that dispatches to the machine-specific run and gather scripts in `tools/`.
 - `examples/` — runnable example cases (`001`, `002`, ..., `999`) with reference inputs.
 - `tests/` — unit, system, integration and regression tests; see `tests/README.md`.
 - `docs/` — this documentation (MkDocs).
