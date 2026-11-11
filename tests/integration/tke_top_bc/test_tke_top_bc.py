@@ -36,7 +36,7 @@ import numpy as np
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
 TEST_DIR = Path(__file__).resolve().parent
-CASE_ID = 526
+CASE_ID = 300
 CASE_DIR = REPO_ROOT / "tests" / "cases" / str(CASE_ID)
 
 UDALES_BUILD = Path(os.environ.get("UDALES_BUILD", REPO_ROOT / "build" / "release" / "u-dales"))
@@ -54,7 +54,7 @@ E12MIN = 5.0e-5
 BCTOPM = {"freeslip": 1, "noslip": 2, "pressure": 3}
 
 NPROCX, NPROCY = 2, 2
-RUNTIME = 40.0
+RUNTIME = 2.0
 DTMAX = 0.2
 #: Initial e12 profile.  It must sit well above E12MIN or the two conditions
 #: are numerically indistinguishable and the test cannot fail.
@@ -102,12 +102,20 @@ def _run(run_dir: Path, nprocs: int) -> subprocess.CompletedProcess:
 
 
 def _write_case(run_dir: Path, bctopm: int) -> None:
-    """Case 526 switched to the one-equation SGS model with a given lid.
+    """Case 300 switched to the one-equation SGS model with a given lid.
 
-    ``ldelta = .true.`` is required: with the stability-dependent length scale
-    the one-equation closure divides by ``sqrt(grav/thvs*|dthvdz|)``
-    (modsubgrid.f90) and raises a floating-point exception on this case.  That
-    is a separate defect and not what this test is about.
+    Case 300 is the 16x16x32 stretched-grid case without buildings.  The lid
+    condition is a plane operation on ``e120(:,:,ke+1)`` in ``modboundary``
+    and nothing about it depends on the domain size or on the immersed
+    boundaries, so the smallest case that runs the one-equation model is the
+    right one; the stretched grid additionally exercises ``dzf(ke+1)`` and
+    ``dzh2i(ke+1)`` in the top-face term of ``diffe``.
+
+    ``ldelta = .true.`` keeps the stability-dependent length scale out of the
+    test: that branch divides by ``sqrt(grav/thvs*dthvdz)`` (modsubgrid.f90)
+    and raised a floating-point exception on the tree case this test was first
+    written against.  That is a separate defect and not what this test is
+    about.
     """
     shutil.copytree(CASE_DIR, run_dir, dirs_exist_ok=True)
 
@@ -120,16 +128,19 @@ def _write_case(run_dir: Path, bctopm: int) -> None:
         "runtime": f"{RUNTIME:g}",
         "trestart": f"{RUNTIME:g}",
         "dtmax": f"{DTMAX:g}",
-        "BCtopm": str(bctopm),
         "nprocx": str(NPROCX),
         "nprocy": str(NPROCY),
     }
     for key, value in edits.items():
         text, n = re.subn(rf"(?m)^(\s*{key}\s*=\s*).*$", lambda m: m.group(1) + value, text)
-        if n == 0:
-            text = text.replace("loneeqn      = .true.", f"loneeqn      = .true.\n{key} = {value}")
+        if n != 1:
+            raise RuntimeError(f"expected exactly one '{key}' setting in namoptions.{CASE_ID}, found {n}")
     # Output costs wall-clock and disk and nothing here reads it.
     text = re.sub(r"(?m)^(\s*l\w*dump\s*=\s*).*$", r"\g<1>.false.", text)
+    # The case carries no &BC group, so the lid is selected by adding one.
+    if re.search(r"(?m)^\s*&BC\b", text):
+        raise RuntimeError(f"namoptions.{CASE_ID} already has a &BC group; the test expects to add it")
+    text = text.rstrip("\n") + f"\n\n&BC\nBCtopm       = {bctopm}\n/\n"
     (run_dir / f"namoptions.{CASE_ID}").write_text(text, encoding="utf-8")
 
     prof = run_dir / f"prof.inp.{CASE_ID}"
