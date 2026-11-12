@@ -1,5 +1,5 @@
 # Core dependencies for uDALES Python tools
-# Requires Python >= 3.9. Older interpreters such as Python 3.6 do not
+# Requires Python >= 3.10. Older interpreters such as Python 3.6 do not
 # support this codebase (for example, `from __future__ import annotations`).
 numpy>=1.20.0
 scipy>=1.7.0
@@ -12,6 +12,10 @@ shapely>=2.0.0
 triangle
 matplotlib>=3.3.0
 f90nml>=1.4.4
+# certifi is pulled in transitively (requests, netCDF4); the explicit floor forces
+# the CA bundle that dropped the compromised emSign roots (Oct 2026), also when
+# re-running this file in an existing venv.
+certifi>=2026.10.19
 # numba is only needed for the numba-accelerated direct-shortwave kernels
 numba>=0.60.0
 # pvlib is only needed for the pvlib solar-position backend

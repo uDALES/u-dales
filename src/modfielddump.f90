@@ -380,7 +380,7 @@ contains
   subroutine fielddump
     use modfields, only : u0,v0,w0,div,dudx,dvdy,dwdz  !ILS13 21.04.2015 changed to u0 from um  etc
     use modglobal, only : ib,ie,ih,jb,je,jh,ke,kb,kh,rk3step,timee,&
-                          tfielddump, tnextfielddump, lfielddump, rk3step,dyi,dxfi,dzhi
+                          tfielddump, tnextfielddump, lfielddump, rk3step,dyi,dxfi,dzfi
     !use modmpi,    only : myid,cmyid
     !use modsubgriddata, only : ekm,sbshr
     use modstat_nc, only : writestat_nc
@@ -400,10 +400,10 @@ contains
         do i=ib,ie
           dudx(i,j,k) = (u0(i+1,j,k) - u0(i,j,k) )*dxfi(i)
           dvdy(i,j,k) = (v0(i,j+1,k) - v0(i,j,k) )*dyi
-          dwdz(i,j,k) = (w0(i,j,k+1) - w0(i,j,k) )*dzhi(k)
+          dwdz(i,j,k) = (w0(i,j,k+1) - w0(i,j,k) )*dzfi(k) ! cell-centred: spans the cell, not centre to centre
           div(i,j,k) = (u0(i+1,j,k) - u0(i,j,k) )*dxfi(i) + &
             (v0(i,j+1,k) - v0(i,j,k) )*dyi + &
-            (w0(i,j,k+1) - w0(i,j,k) )*dzhi(k)
+            (w0(i,j,k+1) - w0(i,j,k) )*dzfi(k)
         end do
       end do
     end do

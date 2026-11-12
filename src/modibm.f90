@@ -272,7 +272,7 @@ module modibm
 
    subroutine initibmwallfun(fname_bnd, fname_sec, dir, bound_info)
      use modglobal, only : ifinput, ib, itot, ih, jb, jtot, jh, kb, ke, ktot, kh, &
-                           xf, yf, zf, xh, yh, zh, dx, dy, dzf, xhat, yhat, zhat, eps1
+                           xf, yf, zf, xh, yh, zh, dx, dy, xhat, yhat, zhat, eps1
      use modmpi,    only : myid, comm3d, MY_REAL, mpierr
      use initfac,   only : facnorm, facz0
      use decomp_2d, only : zstart, zend
@@ -285,6 +285,11 @@ module modibm
      real, dimension(jb:jtot+jh) :: ygrid
      real, dimension(kb:ktot+kh) :: zgrid
      logical, dimension(bound_info%nfctsecs) :: lfctsecsrank
+     integer, parameter :: nchunk = 262144   ! sections per broadcast chunk (~20 MB of buffers)
+     integer :: c0, nc, nn
+     integer, allocatable :: ibuf1(:), ibuf2(:), ibufu(:,:), ibufv(:,:), ibufw(:,:), ibufc(:,:)
+     real,    allocatable :: rbuf1(:), rbuf2(:), rbuf3(:,:)
+     logical, allocatable :: lbuf1(:), lbuf2(:)
      logical, dimension(:), allocatable :: lbndptsrank
      real, dimension(3) :: norm, p0, p1, pxl, pxu, pyl, pyu, pzl, pzu
      integer, dimension(6) :: check
@@ -292,7 +297,7 @@ module modibm
      real, dimension(6,3) :: inter
      real, dimension(6) :: inter_dists
      real :: xc, yc, zc, xl, yl, zl, xu, yu, zu
-     integer n, m, norm_align, dir_align, pos, p
+     integer n, m, norm_align, dir_align, pos, p, kc
      character(80) :: chmess
 
      integer, dimension(:), allocatable :: ids_loc
@@ -309,23 +314,29 @@ module modibm
      ! Build lbndptsrank lookup array for determining which sections are on this rank
      allocate(lbndptsrank(bound_info%nbndpts))
      lbndptsrank = .false.
+     allocate(ibuf1(nchunk), ibuf2(nchunk), rbuf1(nchunk), rbuf2(nchunk), rbuf3(nchunk,3), &
+              ibufu(nchunk,3), ibufv(nchunk,3), ibufw(nchunk,3), ibufc(nchunk,3), lbuf1(nchunk), lbuf2(nchunk))
      do m = 1, bound_info%nbndptsrank
        lbndptsrank(bound_info%bndptsrank(m)) = .true.
      end do
 
-     allocate(bound_info%secfacids(bound_info%nfctsecs))
-     allocate(bound_info%secareas(bound_info%nfctsecs))
-     allocate(bound_info%secbndptids(bound_info%nfctsecs))
-     !allocate(bound_info%intpts(bound_info%nfctsecs,3))
-     allocate(bound_info%bnddst(bound_info%nfctsecs))
-     !allocate(bound_info%bndvec(bound_info%nfctsecs,3))
-     allocate(bound_info%recpts(bound_info%nfctsecs,3))
-     allocate(bound_info%recids_u(bound_info%nfctsecs,3))
-     allocate(bound_info%recids_v(bound_info%nfctsecs,3))
-     allocate(bound_info%recids_w(bound_info%nfctsecs,3))
-     allocate(bound_info%recids_c(bound_info%nfctsecs,3))
-     allocate(bound_info%lcomprec(bound_info%nfctsecs))
-     allocate(bound_info%lskipsec(bound_info%nfctsecs))
+     ! The global (all-sections) arrays are needed only on rank 0, which reads the file
+     ! and does the reconstruction geometry; they are then handed out in chunks so that
+     ! the other ranks never hold nfctsecs-sized arrays (about 1 GB per rank for a
+     ! city-scale case, and the start-up memory peak of the model).
+     if (myid == 0) then
+       allocate(bound_info%secfacids(bound_info%nfctsecs))
+       allocate(bound_info%secareas(bound_info%nfctsecs))
+       allocate(bound_info%secbndptids(bound_info%nfctsecs))
+       allocate(bound_info%bnddst(bound_info%nfctsecs))
+       allocate(bound_info%recpts(bound_info%nfctsecs,3))
+       allocate(bound_info%recids_u(bound_info%nfctsecs,3))
+       allocate(bound_info%recids_v(bound_info%nfctsecs,3))
+       allocate(bound_info%recids_w(bound_info%nfctsecs,3))
+       allocate(bound_info%recids_c(bound_info%nfctsecs,3))
+       allocate(bound_info%lcomprec(bound_info%nfctsecs))
+       allocate(bound_info%lskipsec(bound_info%nfctsecs))
+     end if
 
      dir_align = alignment(dir)
      select case(dir_align)
@@ -355,6 +366,16 @@ module modibm
                            !bound_info%intpts(n,1),  bound_info%intpts(n,2), bound_info%intpts(n,3)
        end do
        close (ifinput)
+
+       ! The facet arrays run from 1 to nfcts, so a facet id outside that range would be
+       ! read out of bounds by the wall functions. Reject it here with a clear message.
+       do n = 1, bound_info%nfctsecs
+         if ((bound_info%secfacids(n) < 1) .or. (bound_info%secfacids(n) > ubound(facz0, 1))) then
+           write (0, *) 'ERROR: ', trim(fname_sec), ' line ', n + 1, ': facet id ', bound_info%secfacids(n), &
+             ' is outside 1..', ubound(facz0, 1)
+           call MPI_ABORT(MPI_COMM_WORLD, 1, mpierr)
+         end if
+       end do
 
        do n = 1,bound_info%nfctsecs
          m = bound_info%secbndptids(n)
@@ -392,8 +413,20 @@ module modibm
            xu = xc + dx/2.
            yl = yc - dy/2.
            yu = yc + dy/2.
-           zl = zc - dzf(1)/2. ! assumes equidistant
-           zu = zc + dzf(1)/2. ! assumes equidistant
+           ! vertical edges from the grid itself, so that stretched grids are handled:
+           ! a cell centred on zf(kc) spans zh(kc)..zh(kc+1); one centred on zh(kc) spans zf(kc-1)..zf(kc)
+           kc = bound_info%bndpts(m,3)
+           if (dir_align == 3) then
+             if (kc > kb) then
+               zl = zf(kc-1)
+             else
+               zl = 2.*zh(kb) - zf(kb) ! mirror image of zf(kb) below the bottom face
+             end if
+             zu = zf(kc)
+           else
+             zl = zh(kc)
+             zu = zh(kc+1)
+           end if
 
            ! points on planes
            pxl = (/xl, yc, zc/)
@@ -404,7 +437,9 @@ module modibm
            pzu = (/xc, yc, zu/)
 
            p0 = (/xc, yc, zc/)
-           p1 = p0 + norm * sqrt(3.)*(dx*dy*dzf(1))**(1./3.)
+           ! segment as long as the cell diagonal, so it always leaves the cell. This is never shorter
+           ! than the former sqrt(3)*(dx*dy*dz)**(1/3), so intersections found before are unchanged.
+           p1 = p0 + norm * sqrt(dx**2 + dy**2 + (zu - zl)**2)
 
            call plane_line_intersection(xhat, pxl, p0, p1, inter(1,:), check(1), inter_dists(1))
            call plane_line_intersection(xhat, pxu, p0, p1, inter(2,:), check(2), inter_dists(2))
@@ -533,34 +568,23 @@ module modibm
        end do
      end if ! myid==0
 
-     call MPI_BCAST(bound_info%secfacids,   bound_info%nfctsecs,   MPI_INTEGER, 0, comm3d, mpierr)
-     call MPI_BCAST(bound_info%secareas,    bound_info%nfctsecs,   MY_REAL,     0, comm3d, mpierr)
-     call MPI_BCAST(bound_info%secbndptids, bound_info%nfctsecs,   MPI_INTEGER, 0, comm3d, mpierr)
-     !call MPI_BCAST(bound_info%intpts,      bound_info%nfctsecs*3, MY_REAL,     0, comm3d, mpierr)
-     !call MPI_BCAST(bound_info%bndvec,      bound_info%nfctsecs*3, MY_REAL,     0, comm3d, mpierr)
-     call MPI_BCAST(bound_info%bnddst,      bound_info%nfctsecs,   MY_REAL,     0, comm3d, mpierr)
-     call MPI_BCAST(bound_info%recpts,      bound_info%nfctsecs*3, MY_REAL,     0, comm3d, mpierr)
-     call MPI_BCAST(bound_info%recids_u,    bound_info%nfctsecs*3, MPI_INTEGER, 0, comm3d, mpierr)
-     call MPI_BCAST(bound_info%recids_v,    bound_info%nfctsecs*3, MPI_INTEGER, 0, comm3d, mpierr)
-     call MPI_BCAST(bound_info%recids_w,    bound_info%nfctsecs*3, MPI_INTEGER, 0, comm3d, mpierr)
-     call MPI_BCAST(bound_info%recids_c,    bound_info%nfctsecs*3, MPI_INTEGER, 0, comm3d, mpierr)
-     call MPI_BCAST(bound_info%lskipsec,    bound_info%nfctsecs,   MPI_LOGICAL, 0, comm3d, mpierr)
-     call MPI_BCAST(bound_info%lcomprec,    bound_info%nfctsecs,   MPI_LOGICAL, 0, comm3d, mpierr)
-
-     ! Determine whether section needs to be updated by this rank
+     ! Pass 1: hand out the section -> boundary-point ids in chunks; a section belongs to
+     ! this rank when its boundary point does. (lfctsecsrank is a logical per section.)
      bound_info%nfctsecsrank = 0
-     do n = 1, bound_info%nfctsecs
-       if (lbndptsrank(bound_info%secbndptids(n))) then
-          lfctsecsrank(n) = .true.
-          bound_info%nfctsecsrank = bound_info%nfctsecsrank + 1
-        else
-          lfctsecsrank(n) = .false.
-       end if
+     do c0 = 1, bound_info%nfctsecs, nchunk
+       nc = min(nchunk, bound_info%nfctsecs - c0 + 1)
+       if (myid == 0) ibuf1(1:nc) = bound_info%secbndptids(c0:c0+nc-1)
+       call MPI_BCAST(ibuf1, nc, MPI_INTEGER, 0, comm3d, mpierr)
+       do n = 1, nc
+         if (lbndptsrank(ibuf1(n))) then
+           lfctsecsrank(c0+n-1) = .true.
+           bound_info%nfctsecsrank = bound_info%nfctsecsrank + 1
+         else
+           lfctsecsrank(c0+n-1) = .false.
+         end if
+       end do
      end do
-
-     ! Store indices of sections on current rank - only loop through these sections
      allocate(bound_info%fctsecsrank(bound_info%nfctsecsrank))
-     ! allocate local arrays
      allocate(bound_info%secfacids_loc(bound_info%nfctsecsrank))
      allocate(bound_info%secareas_loc(bound_info%nfctsecsrank))
      allocate(bound_info%secbndpts_loc(bound_info%nfctsecsrank,3))
@@ -572,74 +596,93 @@ module modibm
      allocate(bound_info%recids_c_loc(bound_info%nfctsecsrank,3))
      allocate(bound_info%lcomprec_loc(bound_info%nfctsecsrank))
      allocate(bound_info%lskipsec_loc(bound_info%nfctsecsrank))
-
+     ! Pass 2: hand out all section data in the same chunks; each rank keeps its own rows
+     ! in ascending section order, exactly as the former full-array selection did.
      m = 0
      p = 0  ! counter for sections overridden to simple reconstruction
-     do n = 1, bound_info%nfctsecs
-       if (lfctsecsrank(n)) then
-          m = m + 1
-          bound_info%fctsecsrank(m) = n
-          bound_info%secfacids_loc(m) = bound_info%secfacids(n) ! facet id
-          bound_info%secareas_loc(m) = bound_info%secareas(n)
-          bound_info%secbndpts_loc(m,:) = bound_info%bndpts(bound_info%secbndptids(n),:) ! boundary point location (in global coordinates)
-
-          if (bound_info%bndpts(bound_info%secbndptids(n),1) < zstart(1) .or. bound_info%bndpts(bound_info%secbndptids(n),1) > zend(1)) then
-            write(*,*) "problem in x boundary points on : ", myid, n, bound_info%secbndptids(n), bound_info%bndpts(bound_info%secbndptids(n),1), zstart(1), zend(1)
-          end if
-          if (bound_info%bndpts(bound_info%secbndptids(n),2) < zstart(2) .or. bound_info%bndpts(bound_info%secbndptids(n),2) > zend(2)) then
-             write(*,*) "problem in y boundary points on rank: ", myid, n, bound_info%secbndptids(n), bound_info%bndpts(bound_info%secbndptids(n),2), zstart(2), zend(2)
-          end if
-
-          bound_info%bnddst_loc(m) = bound_info%bnddst(n)
-          bound_info%recpts_loc(m,:) = bound_info%recpts(n,:)
-          bound_info%recids_u_loc(m,:) = bound_info%recids_u(n,:)
-          bound_info%recids_v_loc(m,:) = bound_info%recids_v(n,:)
-          bound_info%recids_w_loc(m,:) = bound_info%recids_w(n,:)
-          bound_info%recids_c_loc(m,:) = bound_info%recids_c(n,:)
-          bound_info%lcomprec_loc(m) = bound_info%lcomprec(n)
-
-          ! If any reconstruction cell index falls outside this rank's halo-accessible range,
-          ! override to simple reconstruction to avoid out-of-bounds access in trilinear_interp_var.
-          !
-          ! Skipped sections (lskipsec(n)) never reach trilinear_interp_var
-          ! so they are harmless even if their reconstruction cell is out of range.
-          !
-          ! These sections then self-skip at runtime via the log(dist/z0) <= 1 check, contributing zero stress — a small, localized inaccuracy
-          if (.not. bound_info%lcomprec_loc(m) .and. .not. bound_info%lskipsec(n)) then
-            if (bound_info%recids_u_loc(m,1) < zstart(1)-1 .or. bound_info%recids_u_loc(m,1) > zend(1)+1 .or. &
-                bound_info%recids_u_loc(m,2) < zstart(2)-1 .or. bound_info%recids_u_loc(m,2) > zend(2)+1 .or. &
-                bound_info%recids_v_loc(m,1) < zstart(1)-1 .or. bound_info%recids_v_loc(m,1) > zend(1)+1 .or. &
-                bound_info%recids_v_loc(m,2) < zstart(2)-1 .or. bound_info%recids_v_loc(m,2) > zend(2)+1 .or. &
-                bound_info%recids_w_loc(m,1) < zstart(1)-1 .or. bound_info%recids_w_loc(m,1) > zend(1)+1 .or. &
-                bound_info%recids_w_loc(m,2) < zstart(2)-1 .or. bound_info%recids_w_loc(m,2) > zend(2)+1 .or. &
-                bound_info%recids_c_loc(m,1) < zstart(1)-1 .or. bound_info%recids_c_loc(m,1) > zend(1)+1 .or. &
-                bound_info%recids_c_loc(m,2) < zstart(2)-1 .or. bound_info%recids_c_loc(m,2) > zend(2)+1) then
-              bound_info%lcomprec_loc(m) = .true.
-              p = p + 1
-            end if
-          end if
-
-          bound_info%lskipsec_loc(m) = bound_info%lskipsec(n)
+     do c0 = 1, bound_info%nfctsecs, nchunk
+       nc = min(nchunk, bound_info%nfctsecs - c0 + 1)
+       if (myid == 0) then
+         ibuf1(1:nc)   = bound_info%secfacids(c0:c0+nc-1)
+         ibuf2(1:nc)   = bound_info%secbndptids(c0:c0+nc-1)
+         rbuf1(1:nc)   = bound_info%secareas(c0:c0+nc-1)
+         rbuf2(1:nc)   = bound_info%bnddst(c0:c0+nc-1)
+         rbuf3(1:nc,:) = bound_info%recpts(c0:c0+nc-1,:)
+         ibufu(1:nc,:) = bound_info%recids_u(c0:c0+nc-1,:)
+         ibufv(1:nc,:) = bound_info%recids_v(c0:c0+nc-1,:)
+         ibufw(1:nc,:) = bound_info%recids_w(c0:c0+nc-1,:)
+         ibufc(1:nc,:) = bound_info%recids_c(c0:c0+nc-1,:)
+         lbuf1(1:nc)   = bound_info%lcomprec(c0:c0+nc-1)
+         lbuf2(1:nc)   = bound_info%lskipsec(c0:c0+nc-1)
        end if
+       call MPI_BCAST(ibuf1, nc,          MPI_INTEGER, 0, comm3d, mpierr)
+       call MPI_BCAST(ibuf2, nc,          MPI_INTEGER, 0, comm3d, mpierr)
+       call MPI_BCAST(rbuf1, nc,          MY_REAL,     0, comm3d, mpierr)
+       call MPI_BCAST(rbuf2, nc,          MY_REAL,     0, comm3d, mpierr)
+       call MPI_BCAST(rbuf3, size(rbuf3), MY_REAL,     0, comm3d, mpierr)
+       call MPI_BCAST(ibufu, size(ibufu), MPI_INTEGER, 0, comm3d, mpierr)
+       call MPI_BCAST(ibufv, size(ibufv), MPI_INTEGER, 0, comm3d, mpierr)
+       call MPI_BCAST(ibufw, size(ibufw), MPI_INTEGER, 0, comm3d, mpierr)
+       call MPI_BCAST(ibufc, size(ibufc), MPI_INTEGER, 0, comm3d, mpierr)
+       call MPI_BCAST(lbuf1, nc,          MPI_LOGICAL, 0, comm3d, mpierr)
+       call MPI_BCAST(lbuf2, nc,          MPI_LOGICAL, 0, comm3d, mpierr)
+       do nn = 1, nc
+         n = c0 + nn - 1
+         if (.not. lfctsecsrank(n)) cycle
+         m = m + 1
+         bound_info%fctsecsrank(m) = n
+         bound_info%secfacids_loc(m) = ibuf1(nn) ! facet id
+         bound_info%secareas_loc(m) = rbuf1(nn)
+         bound_info%secbndpts_loc(m,:) = bound_info%bndpts(ibuf2(nn),:) ! boundary point location (in global coordinates)
+         if (bound_info%bndpts(ibuf2(nn),1) < zstart(1) .or. bound_info%bndpts(ibuf2(nn),1) > zend(1)) then
+           write(*,*) "problem in x boundary points on : ", myid, n, ibuf2(nn), bound_info%bndpts(ibuf2(nn),1), zstart(1), zend(1)
+         end if
+         if (bound_info%bndpts(ibuf2(nn),2) < zstart(2) .or. bound_info%bndpts(ibuf2(nn),2) > zend(2)) then
+            write(*,*) "problem in y boundary points on rank: ", myid, n, ibuf2(nn), bound_info%bndpts(ibuf2(nn),2), zstart(2), zend(2)
+         end if
+         bound_info%bnddst_loc(m) = rbuf2(nn)
+         bound_info%recpts_loc(m,:) = rbuf3(nn,:)
+         bound_info%recids_u_loc(m,:) = ibufu(nn,:)
+         bound_info%recids_v_loc(m,:) = ibufv(nn,:)
+         bound_info%recids_w_loc(m,:) = ibufw(nn,:)
+         bound_info%recids_c_loc(m,:) = ibufc(nn,:)
+         bound_info%lcomprec_loc(m) = lbuf1(nn)
+         if (.not. bound_info%lcomprec_loc(m) .and. .not. lbuf2(nn)) then
+           if (bound_info%recids_u_loc(m,1) < zstart(1)-1 .or. bound_info%recids_u_loc(m,1) > zend(1)+1 .or. &
+               bound_info%recids_u_loc(m,2) < zstart(2)-1 .or. bound_info%recids_u_loc(m,2) > zend(2)+1 .or. &
+               bound_info%recids_v_loc(m,1) < zstart(1)-1 .or. bound_info%recids_v_loc(m,1) > zend(1)+1 .or. &
+               bound_info%recids_v_loc(m,2) < zstart(2)-1 .or. bound_info%recids_v_loc(m,2) > zend(2)+1 .or. &
+               bound_info%recids_w_loc(m,1) < zstart(1)-1 .or. bound_info%recids_w_loc(m,1) > zend(1)+1 .or. &
+               bound_info%recids_w_loc(m,2) < zstart(2)-1 .or. bound_info%recids_w_loc(m,2) > zend(2)+1 .or. &
+               bound_info%recids_c_loc(m,1) < zstart(1)-1 .or. bound_info%recids_c_loc(m,1) > zend(1)+1 .or. &
+               bound_info%recids_c_loc(m,2) < zstart(2)-1 .or. bound_info%recids_c_loc(m,2) > zend(2)+1) then
+             bound_info%lcomprec_loc(m) = .true.
+             p = p + 1
+           end if
+         end if
+         bound_info%lskipsec_loc(m) = lbuf2(nn)
+       end do
      end do
-
      if (p > 0) then
        write(*,*) "WARNING initibmwallfun: MPI rank", myid, "overrode", p, &
                   "facet section(s) to simple reconstruction because reconstruction cell falls outside halo range."
      end if
 
      deallocate(bound_info%bndpts)
-     deallocate(bound_info%secfacids)
-     deallocate(bound_info%secbndptids)
-     deallocate(bound_info%bnddst)
-     deallocate(bound_info%recpts)
-     deallocate(bound_info%recids_u)
-     deallocate(bound_info%recids_v)
-     deallocate(bound_info%recids_w)
-     deallocate(bound_info%recids_c)
-     deallocate(bound_info%lcomprec)
-     deallocate(bound_info%lskipsec)
+     if (myid == 0) then
+       deallocate(bound_info%secfacids)
+       deallocate(bound_info%secbndptids)
+       deallocate(bound_info%bnddst)
+       deallocate(bound_info%recpts)
+       deallocate(bound_info%recids_u)
+       deallocate(bound_info%recids_v)
+       deallocate(bound_info%recids_w)
+       deallocate(bound_info%recids_c)
+       deallocate(bound_info%lcomprec)
+       deallocate(bound_info%lskipsec)
+     end if
      deallocate(lbndptsrank)
+     deallocate(ibuf1, ibuf2, rbuf1, rbuf2, rbuf3, ibufu, ibufv, ibufw, ibufc, lbuf1, lbuf2)
 
    end subroutine initibmwallfun
 
@@ -1285,7 +1328,7 @@ module modibm
 
    subroutine wallfunmom(dir, rhs, bound_info)
      use modglobal, only : ib, ie, ih, jb, je, jh, kb, ke, kh, xf, yf, zf, xh, yh, zh, &
-                           dx, dy, dzf, iwallmom, xhat, yhat, zhat, vec0, nfcts, lwritefac, rk3step
+                           dx, dy, dzf, dzh, iwallmom, xhat, yhat, zhat, vec0, nfcts, lwritefac, rk3step
      use modfields, only : u0, v0, w0, thl0
      use initfac,   only : facT, facz0, facz0h, facnorm, faca
      use decomp_2d, only : zstart
@@ -1299,7 +1342,7 @@ module modibm
      real dist, stress, stress_dir, area, vol, momvol, Tair, &
           utan, ctm, a, a_is, a_xn, a_yn, a_zn, stress_ix, stress_iy, stress_iz, xrec, yrec, zrec
      real, dimension(3) :: uvec, norm, strm, span, stressvec
-     logical :: valid
+     logical :: valid, lwgrid
      real, dimension(1:nfcts) :: fac_tau_loc, fac_tau
      !real, dimension(:), allocatable :: fac_tau, fac_pres
 
@@ -1317,6 +1360,9 @@ module modibm
        interp_velocity_ptr => interp_velocity_w
        interp_temperature_ptr => interp_temperature_w
      end select
+
+     ! w lives on zh(k), so its control volume is dzh(k) thick; u and v live on zf(k) (dzf(k)).
+     lwgrid = (alignment(dir) == 3)
 
      fac_tau_loc = 0.
 
@@ -1408,7 +1454,11 @@ module modibm
 
        stress_dir = sign(stress_dir, dot_product(uvec, dir))
 
-       vol = dx*dy*dzf(k)
+       if (lwgrid) then
+         vol = dx*dy*dzh(k)
+       else
+         vol = dx*dy*dzf(k)
+       end if
        momvol = stress_dir * area / vol
        rhs(i,j,k) = rhs(i,j,k) - momvol
        fac_tau_loc(fac) = fac_tau_loc(fac) + stress_dir * area ! output stresses on facets
@@ -1434,12 +1484,12 @@ module modibm
 
 
    subroutine wallfunheat
-     use modglobal, only : ib, ie, jb, je, xf, yf, zf, xh, yh, zh, dx, dy, dzh, &
+     use modglobal, only : ib, ie, jb, je, xf, yf, zf, xh, yh, zh, dx, dy, dzf, &
                            xhat, yhat, zhat, vec0, ltempeq, lmoist, iwalltemp, iwallmoist, lEB, lwritefac, nfcts, rk3step, totheatflux, totqflux
      use modfields, only : u0, v0, w0, thl0, thlp, qt0, qtp, pres0
      use initfac,   only : facT, facz0, facz0h, facnorm, fachf, facef, facqsat, fachurel, facf, faclGR, faca
      use modmpi,    only : comm3d, mpi_sum, mpierr, my_real
-     use modibmdata, only : bctfxm, bctfxp, bctfyp, bctfz
+     use modibmdata, only : bctfxm, bctfxp, bctfym, bctfyp, bctfz
      use decomp_2d, only : zstart
 
      integer i, j, k, sec, fac
@@ -1528,7 +1578,7 @@ module modibm
              flux = bctfyp
            !elseif (all(abs(norm + yhat) < eps1)) then
            elseif (is_equal(norm, -yhat)) then
-             flux = bctfxm
+             flux = bctfym
            !elseif (all(abs(norm - zhat) < eps1)) then
            elseif (is_equal(norm, zhat)) then
              flux = bctfz
@@ -1543,7 +1593,8 @@ module modibm
          ! flux [Km/s]
          ! fluid volumetric sensible heat source/sink = flux * area / volume [K/s]
          ! facet sensible heat flux = volumetric heat capacity of air * flux * sectionarea / facetarea [W/m^2]
-         thlp(i,j,k) = thlp(i,j,k) - flux * area / (dx*dy*dzh(k))
+         ! volume of the scalar cell centred on zf(k) is dx*dy*dzf(k) (dzh(k) is the centre-to-centre distance)
+         thlp(i,j,k) = thlp(i,j,k) - flux * area / (dx*dy*dzf(k))
 
          totheatflux = totheatflux + flux*area ! [Km^3s^-1] This sums the flux over all facets (unconditional, mirrors totqflux; decouples periodicEBcorr from lEB)
 
@@ -1583,7 +1634,7 @@ module modibm
          ! fluid volumetric latent heat source/sink = flux * area / volume [kg/kg / s]
          ! facet latent heat flux = volumetric heat capacity of air * flux * sectionarea / facetarea [W/m^2]
          totqflux = totqflux + flux*area ! [Km^3s^-1] This sums the flux over all facets
-         qtp(i,j,k) = qtp(i,j,k) - flux * area / (dx*dy*dzh(k))
+         qtp(i,j,k) = qtp(i,j,k) - flux * area / (dx*dy*dzf(k))
 
          if (lEB) then
            facef(fac) = facef(fac) + flux * area ! [Km^2/s] (will be divided by facetarea(fac) in modEB)
@@ -1743,7 +1794,7 @@ module modibm
 
      interp_velocity_u(1) = u0(i,j,k)
      interp_velocity_u(2) = 0.25 * (v0(i,j,k) + v0(i,j+1,k) + v0(i-1,j,k) + v0(i-1,j+1,k))
-     interp_velocity_u(3) = 0.25 * (w0(i,j,k) + w0(i,j,k+1) + w0(i-1,j,k) + w0(i-1,j,k+1)) !only for equidistant grid!
+     interp_velocity_u(3) = 0.25 * (w0(i,j,k) + w0(i,j,k+1) + w0(i-1,j,k) + w0(i-1,j,k+1)) ! zf(k) is the midpoint of zh(k), zh(k+1): exact on any grid
 
      return
    end function interp_velocity_u
@@ -1757,7 +1808,7 @@ module modibm
 
      interp_velocity_v(1) = 0.25 * (u0(i,j,k) + u0(i+1,j,k) + u0(i,j-1,k) + u0(i+1,j-1,k))
      interp_velocity_v(2) = v0(i,j,k)
-     interp_velocity_v(3) = 0.25 * (w0(i,j,k) + w0(i,j,k+1) + w0(i,j-1,k) + w0(i,j-1,k+1)) !only for equidistant grid!
+     interp_velocity_v(3) = 0.25 * (w0(i,j,k) + w0(i,j,k+1) + w0(i,j-1,k) + w0(i,j-1,k+1)) ! zf(k) is the midpoint of zh(k), zh(k+1): exact on any grid
 
      return
    end function interp_velocity_v
@@ -1765,13 +1816,18 @@ module modibm
 
    function interp_velocity_w(i, j, k)
      ! interpolates the velocity at w-grid location i,j,k
+     use modglobal, only :  dzf, dzh
      use modfields, only :  u0, v0, w0
      real ::  interp_velocity_w(3)
      integer, intent(in) :: i, j, k
 
-     interp_velocity_w(1) = 0.25 * (u0(i,j,k) + u0(i+1,j,k) + u0(i,j-1,k) + u0(i+1,j-1,k))
-     interp_velocity_w(2) = v0(i,j,k)
-     interp_velocity_w(3) = 0.25 * (w0(i,j,k) + w0(i,j,k+1) + w0(i,j-1,k) + w0(i,j-1,k+1)) !only for equidistant grid!
+     ! zh(k) is not midway between zf(k-1) and zf(k) on a stretched grid: linear
+     ! interpolation weights level k by dzf(k-1) and level k-1 by dzf(k) (sum 2*dzh(k))
+     interp_velocity_w(1) = 0.5 * ((u0(i,j,k  ) + u0(i+1,j,k  ))*dzf(k-1) &
+                                 + (u0(i,j,k-1) + u0(i+1,j,k-1))*dzf(k  )) / (2.*dzh(k))
+     interp_velocity_w(2) = 0.5 * ((v0(i,j,k  ) + v0(i,j+1,k  ))*dzf(k-1) &
+                                 + (v0(i,j,k-1) + v0(i,j+1,k-1))*dzf(k  )) / (2.*dzh(k))
+     interp_velocity_w(3) = w0(i,j,k)
 
      return
    end function interp_velocity_w
@@ -1819,12 +1875,21 @@ module modibm
 
    real function interp_temperature_w(i, j, k)
      ! interpolates the temperature at w-grid location i,j,k
+     use modglobal, only :  dzf, dzh
      use modfields, only :  thl0
      integer, intent(in) :: i, j, k
+     real :: wk, wkm
 
-     !interp_temperature_w = 0.5 * (thl0(i,j,k) + thl0(i,j,k-1))
-     interp_temperature_w = 0.5 * (thl0(i,j,k  )*mask_c(i,j,k  )*(2.-mask_c(i,j,k-1)) &
-                                +  thl0(i,j,k-1)*mask_c(i,j,k-1)*(2.-mask_c(i,j,k  )))
+     ! linear interpolation between zf(k-1) and zf(k) to zh(k) weights level k by
+     ! dzf(k-1) and level k-1 by dzf(k); a solid neighbour (mask_c = 0) drops out and
+     ! the fluid value is used on its own, as before
+     wk  = dzf(k-1)*mask_c(i,j,k  )
+     wkm = dzf(k  )*mask_c(i,j,k-1)
+     if (wk + wkm > 0.) then
+       interp_temperature_w = (thl0(i,j,k)*wk + thl0(i,j,k-1)*wkm) / (wk + wkm)
+     else
+       interp_temperature_w = 0.
+     end if
 
      return
    end function interp_temperature_w

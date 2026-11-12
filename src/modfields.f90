@@ -723,7 +723,7 @@ contains
           scar=0.;scarl=0.
     end if
 
-    if (ltkedump) then ! this is currently not usable
+    if (ltkedump) then ! disabled: initstatsdump aborts on ltkedump, see issue #352
       ! allocate averaged variables
       allocate(uav(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh))
       allocate(vav(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh))
@@ -857,7 +857,7 @@ contains
     allocate(tfluxb(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh))
     allocate(qfluxb(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh))
     allocate(cth(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh))
-    allocate(wall(ib:ie,jb:je,kb:ke,5))
+    allocate(wall(ib:ie,jb:je,kb:ke,5)); wall = 0   ! written to restart files: initialise so they are reproducible
     momfluxb=0.;tfluxb=0.;qfluxb=0.;cth=0.
     shear=0.
 

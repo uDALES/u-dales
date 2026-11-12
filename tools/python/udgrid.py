@@ -23,11 +23,41 @@ def horizontal_grid(
 
 
 def z_grid_from_profile(zt: np.ndarray, zsize: float) -> Tuple[np.ndarray, np.ndarray]:
-    """Derive ``(zm, dzt)`` (cell edges and spacings) from cell centres ``zt``."""
+    """Derive ``(zm, dzt)`` (cell edges and spacings) from cell centres ``zt``.
+
+    The solver rebuilds the faces from the ``prof.inp`` centres with the
+    recursion ``zh(1) = 0``, ``zh(k+1) = 2*zf(k) - zh(k)`` (modglobal), which
+    makes every centre the exact midpoint of its own faces. Midpoints of
+    *adjacent centres* are not the faces on a stretched grid, so the same
+    recursion is used here. ``zsize`` is only checked for consistency against
+    the recovered domain top.
+    """
     zt = np.asarray(zt, dtype=float)
-    zm_full = np.concatenate([[0], 0.5 * (zt[:-1] + zt[1:]), [zsize]])
-    zm = zm_full[:-1]  # match dimensions
-    dzt = np.diff(np.append(zm, zsize))
+    faces = np.empty(zt.size + 1, dtype=float)
+    faces[0] = 0.0
+    for k, centre in enumerate(zt):
+        faces[k + 1] = 2.0 * centre - faces[k]
+    if np.any(np.diff(faces) <= 0):
+        import warnings
+
+        warnings.warn(
+            "profile centres do not describe a valid solver grid: the face "
+            "recursion yields non-increasing faces. The solver would derive "
+            "the same broken spacings from this prof.inp.",
+            RuntimeWarning,
+            stacklevel=2,
+        )
+    if zsize > 0 and abs(faces[-1] - zsize) > 1e-6 * zsize:
+        import warnings
+
+        warnings.warn(
+            f"z grid from profile tops out at {faces[-1]:.6g} m but zsize is "
+            f"{zsize:.6g} m; the profile centres and the namelist disagree.",
+            RuntimeWarning,
+            stacklevel=2,
+        )
+    zm = faces[:-1]
+    dzt = np.diff(faces)
     return zm, dzt
 
 

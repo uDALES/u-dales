@@ -912,7 +912,7 @@ classdef preprocessing < dynamicprops
                 thl = zeros(obj.ktot, 1);
                 thl(1) = obj.thl0;
                 for k = 1:obj.ktot - 1
-                    thl(k+1) = thl(k) + obj.lapse * obj.zsize / obj.ktot;
+                    thl(k+1) = thl(k) + obj.lapse * (obj.zf(k+1) - obj.zf(k)); % centre-to-centre distance, valid on stretched grids
                 end
                 obj.pr(:,2) = thl;
             else

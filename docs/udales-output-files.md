@@ -15,7 +15,7 @@ All switches and frequency parameters below live in the `&OUTPUT`, `&TREES`, `&W
 | `xydump.<expnr>.nc` | `lxydump` | `tsample` | x- and y-averaged instantaneous 1D (height) profiles: velocity, temperature, moisture, pressure, turbulent/SGS momentum and heat fluxes, advective fluxes. |
 | `ytdump.<expnr>.nc` | `lytdump` | `tstatsdump` | y- and time-averaged 2D (x, height) statistics: mean velocity/temperature/moisture/scalar profiles, turbulent/kinematic/SGS fluxes, variances. Only functional if the x-direction is not parallelised. |
 | `ydump.<expnr>.nc` | `lydump` | `tsample` | y-averaged instantaneous 2D (x, height) profiles: velocity, temperature, moisture, scalars, turbulent/SGS momentum and heat fluxes, advective fluxes. Only functional if the x-direction is not parallelised. |
-| `tkedump.<expnr>.nc` | `ltkedump` | `tstatsdump` | xy-averaged TKE budget terms vs. height: buoyancy production, total transport, advection, turbulent transport, SGS transport, shear production, viscous and SGS dissipation. Currently marked unsupported in the namoptions documentation — treat as experimental. |
+| `tkedump.<expnr>.nc` | `ltkedump` | `tstatsdump` | xy-averaged TKE budget terms vs. height: buoyancy production, total transport, advection, turbulent transport, SGS transport, shear production, viscous and SGS dissipation. **Disabled.** The budget terms are never accumulated, so the file would contain nothing but zeros; setting `ltkedump = .true.` now aborts the run with an error instead. Tracked in [issue #352](https://github.com/uDALES/u-dales/issues/352). |
 | `treedump.<px>.<py>.<expnr>.nc` | `ltreedump` (`&TREES`) | `tstatsdump` | Time-averaged 3D vegetation/tree terms per CPU: drag in x, y, z; temperature and moisture source/sink terms; scalar source/sink terms; decoupling factor. |
 | **Instantaneous fields** | | | |
 | `fielddump.<px>.<py>.<expnr>.nc` | `lfielddump` | `tfielddump` | Instantaneous 3D snapshots of the variables listed in `fieldvars` (e.g. velocity components, temperature, moisture, pressure, scalars, wall stresses, heat flux, IBM masks, divergence), per CPU. |
@@ -30,8 +30,63 @@ All switches and frequency parameters below live in the `&OUTPUT`, `&TREES`, `&W
 
 Statistics that are sampled every `tsample` and only dumped every `tstatsdump` (`tdump`, `mintdump`, `xytdump`, `ytdump`, `treedump`, `tkedump`) report the average over the preceding `tstatsdump` window; the switches whose frequency is `tsample` (`xydump`, `ydump`, the slice dumps) instead write an instantaneous sample every `tsample`. Sampling/averaging only starts once the simulation time passes `tstatstart`.
 
+## Subgrid-scale (SGS) flux variables
+
+The statistics files listed above contain SGS counterparts of the resolved
+fluxes, named `usgs*`, `vsgs*`, `wsgs*`, `thlsgs*`, `qtsgs*` and `sv1sgs`–`sv4sgs`
+(`sca1sgs*`–`sca3sgs*` in the y-averaged files).
+
+### Sign convention
+
+**These are fluxes, and they carry the same sign as the resolved fluxes written
+alongside them in the same file with the same units.** Explicitly, with `K_m`
+the eddy viscosity (`ekm`) and `K_h` the eddy diffusivity (`ekh`):
+
+| Variable | Definition |
+| -------- | ---------- |
+| `usgs` | `<u'w'>_sgs = -K_m (du/dz + dw/dx)`, at the uw corner |
+| `vsgs` | `<v'w'>_sgs = -K_m (dv/dz + dw/dy)`, at the vw corner |
+| `wsgs` | `tau_33 = -2 K_m dw/dz`, at the cell centre |
+| `thlsgs` | `<w'thl'>_sgs = -K_h dthl/dz`, at the w-level |
+| `qtsgs` | `<w'qt'>_sgs = -K_h dqt/dz`, at the w-level |
+| `sv1sgs`–`sv4sgs` | `<w'sv_n'>_sgs = -K_h dsv_n/dz`, at the w-level |
+
+The total flux is therefore the sum of the resolved and SGS parts, for example
+`uwxyt + upwpxyt + usgsxyt` for the total vertical flux of streamwise momentum.
+
+!!! warning "Breaking change"
+    Before the fix of issue #306 (PR #358, November 2026) these variables were stored **without** the leading minus
+    sign, i.e. as `+K dphi/dn`, and were therefore opposite in sign to the
+    resolved fluxes in the same file. Any analysis that compensated for that
+    (by negating the SGS term, or by subtracting rather than adding it) must be
+    updated. Note also that `wsgs` was previously not a flux at all but the
+    vertical part of the `w`-diffusion tendency, in `m/s^2` rather than
+    `m^2/s^2`, and located at the w-level rather than the cell centre.
+
+### No surface contribution
+
+The SGS statistics are computed from the interior eddy-diffusivity formulas
+only. The fluxes that the wall model and the immersed-boundary method actually
+impose at surfaces (`momfluxb`/`tfluxb`, the facet stresses `tau_x`, `tau_y`,
+`tau_z`, and `thl_flux`) are **not** accumulated into them. Consequences:
+
+- The total-stress profile does not close at the wall: near solid surfaces the
+  resolved plus SGS flux is smaller in magnitude than the true total flux by the
+  missing surface contribution.
+- Levels that the masks exclude — in particular the bottom level `kb` of the
+  w-located profiles, which the IBM masks out entirely — are reported as `-999.`
+  rather than as a number.
+- In the 3-D `tdump` output, `sv1sgs`–`sv4sgs` are likewise set to `-999.` at
+  solid and wall-adjacent faces, where the interior formula does not describe
+  what the solver applied.
+
+Adding the surface contribution is tracked in
+[issue #353](https://github.com/uDALES/u-dales/issues/353).
+
 ## Restart files
 
 If `trestart` is smaller than `runtime`, uDALES periodically writes unformatted (non-NetCDF) restart files per CPU: `initd<ntrun>_<px>_<py>.<expnr>` holds the flow fields (`mindist`, `wall`, `u0`, `v0`, `w0`, `pres0`, `thl0`, `e120`, `ekm`, `qt0`, `ql0`, `ql0h`, plus the current time and timestep), and, if `nsv > 0`, a companion `inits<ntrun>_<px>_<py>.<expnr>` holds the scalar fields `sv0`. `ntrun` is an 8-digit run counter embedded in the filename. These are written by `writerestartfiles` in `modsave.f90`, at the interval set by `trestart`, and additionally whenever an `exit_now.<expnr>` file is detected or (for driver simulations) when the inlet file store is exhausted.
 
-To resume from a restart file, set `lwarmstart = .true.` (or `lstratstart = .true.`) and point `startfile` at the `initd...` filename of the desired restart point (the trailing digits of `startfile` must match the experiment's `iexpnr`); the matching `inits...` file, if present, is read automatically. See the `RUN` and `SCALARS` namelists on the [Configuration](udales-namoptions-overview.md) page for the exact parameter definitions.
+A third restart file, `initf<ntrun>.<expnr>`, holds the facet state. It is written whenever `nfcts > 0` and at least one of `lEB`, `iwalltemp = 2`, `iwallmom = 2` or `iwallmoist = 2` is active. Unlike the flow fields, the facet arrays are global rather than domain-decomposed, so this file is written by rank 0 only and carries no `_<px>_<py>` rank fields in its name. It is self-describing: record 1 is an integer header (format version, `nfcts`, `nfaclyrs`), followed by the wall temperature profile `facT` (`nfcts` facets by `nfaclyrs + 1` layer interfaces), the soil moisture `facwsoil` (only when `lEB`), the saturation humidity `facqsat`, the relative humidity `fachurel`, the green-roof resistance factors `facf`, and the current time. When `lEB` is active the file continues with the state of the energy-balance interval in progress: the time of the last and of the next energy-balance update (`tEB`, `tnextEB`) and the facet heat and moisture fluxes accumulated since the last update (`fachfi`, `facefi`). On a warm start these let the interval continue where the checkpoint interrupted it. The file is the only source of the facet state on a warm start: with `lreadfacT = .true.` (the default) `Tfacinit.inp.<expnr>` is not read, and a missing, truncated or differently versioned file aborts the run.
+
+To resume from a restart file, set `lwarmstart = .true.` (or `lstratstart = .true.`) and point `startfile` at the `initd...` filename of the desired restart point (the trailing digits of `startfile` must match the experiment's `iexpnr`); the matching `inits...` files (when `nsv > 0`) and the `initf...` file are read automatically. If `initf...` is missing, or its format version, `nfcts` or `nfaclyrs` do not match the current build and `namoptions`, the run aborts with an explicit message. Set `lreadfacT = .false.` to deliberately re-seed the facet temperatures from `Tfacinit.inp.<expnr>` (or `Tfacinit_layers.inp.<expnr>` with `lfacTlyrs`) on a warm start; that is the only case in which those files are read on a warm start. See the `RUN` and `SCALARS` namelists on the [Configuration](udales-namoptions-overview.md) page for the exact parameter definitions.

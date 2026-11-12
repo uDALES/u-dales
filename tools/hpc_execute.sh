@@ -17,7 +17,7 @@
 
 # Copyright (C) 2016-2019 the uDALES Team.
 
-set -e
+set -euo pipefail
 
 if (( $# < 1 ))
 then
@@ -27,7 +27,7 @@ then
 fi
 
 ## go to experiment directory
-pushd $1
+pushd "$1"
 inputdir=$(pwd)
 
 ## set experiment number via path
@@ -44,55 +44,161 @@ else
 fi
 
 ## check if required variables are set
-if [ -z $DA_WORKDIR ]; then
+if [ -z "${DA_WORKDIR:-}" ]; then
     echo "Output top-level directory DA_WORKDIR must be set inside $inputdir/config.sh"
     exit 1
 fi;
-if [ -z $DA_BUILD ]; then
+if [ -z "${DA_BUILD:-}" ]; then
     echo "Executable DA_BUILD must be set inside $inputdir/config.sh"
     exit 1
 fi;
-if [ -z $DA_TOOLSDIR ]; then
+if [ ! -x "$DA_BUILD" ]; then
+    echo "Executable DA_BUILD=$DA_BUILD does not exist or is not executable"
+    echo "Build it first with: tools/build_executable.sh <icl|hx1> release"
+    exit 1
+fi
+if [ -z "${DA_TOOLSDIR:-}" ]; then
     echo "Script directory DA_TOOLSDIR must be set inside $inputdir/config.sh"
     exit 1
 fi;
-if [ -z $NNODE ]; then
+if [ -z "${NNODE:-}" ]; then
     echo "Number of nodes NNODE must be set inside $inputdir/config.sh"
     echo "Product of NNODE and NCPU set in $inputdir/config.sh must be equal to the product of nprocx and nprocy set in $inputdir/namoptions.$exp"
     exit 1
 fi;
-if [ -z $NCPU ]; then
+if [ -z "${NCPU:-}" ]; then
     echo "Number of CPU cores on each node NCPU must be set inside $inputdir/config.sh"
     echo "Product of NNODE and NCPU set in $inputdir/config.sh must be equal to the product of nprocx and nprocy set in $inputdir/namoptions.$exp"
     exit 1
 fi;
-if [ -z $WALLTIME ]; then
+if [ -z "${WALLTIME:-}" ]; then
     echo "Wall clock time WALLTIME must be set inside $inputdir/config.sh"
     exit 1
 fi;
-if [ -z $MEM ]; then
+if [ -z "${MEM:-}" ]; then
     echo "Memory requirement MEM must be set inside $inputdir/config.sh"
     exit 1
 fi;
 
+## ---------------------------------------------------------------------------
+## Which cluster. Detected from the login node so the same script serves CX3
+## and HX1; set UDALES_SYSTEM=<cx3|hx1> to override it.
+## ---------------------------------------------------------------------------
+if [ -z "${UDALES_SYSTEM:-}" ]; then
+    # Three tells, tried in turn.
+    # 1. The hostname: HX1 nodes are hx1-... (login: hx1-c12-login-1); CX3
+    #    compute nodes are cx3-... but its login nodes are login-a, login-b,
+    #    login-ai, login-bi.
+    # 2. The module tree: HX1 keeps EasyBuild under /gpfs/easybuild/prod, CX3
+    #    under /sw-eb.
+    # 3. The PBS server from /etc/pbs.conf: pbs-6 serves HX1; Imperial's other
+    #    server is CX3's.
+    pbs_server=$(sed -n 's/^PBS_SERVER=//p' /etc/pbs.conf 2>/dev/null) || true
+    case "$(hostname -s)" in
+        hx1-*)         UDALES_SYSTEM=hx1; cluster_tell="hostname $(hostname -s)" ;;
+        cx3-*|login-*) UDALES_SYSTEM=cx3; cluster_tell="hostname $(hostname -s)" ;;
+    esac
+    if [ -z "${UDALES_SYSTEM:-}" ]; then
+        if [ -d /gpfs/easybuild/prod ]; then
+            UDALES_SYSTEM=hx1; cluster_tell="module tree /gpfs/easybuild/prod"
+        elif [ -d /sw-eb ]; then
+            UDALES_SYSTEM=cx3; cluster_tell="module tree /sw-eb"
+        fi
+    fi
+    if [ -z "${UDALES_SYSTEM:-}" ]; then
+        case "$pbs_server" in
+            pbs-6.*)        UDALES_SYSTEM=hx1; cluster_tell="PBS server $pbs_server" ;;
+            *.hpc.ic.ac.uk) UDALES_SYSTEM=cx3; cluster_tell="PBS server $pbs_server" ;;
+        esac
+    fi
+    if [ -z "${UDALES_SYSTEM:-}" ]; then
+        echo "Could not tell which cluster this is: hostname $(hostname -s)," \
+             "no /gpfs/easybuild/prod or /sw-eb, PBS server ${pbs_server:-none}."
+        echo "Set UDALES_SYSTEM=cx3 or UDALES_SYSTEM=hx1 and run again."
+        exit 1
+    fi
+else
+    cluster_tell="UDALES_SYSTEM set by hand"
+fi
+echo "cluster: $UDALES_SYSTEM ($cluster_tell)"
+
+## The runtime the executable was built against; keep in step with the
+## matching block of tools/build_executable.sh.
+case "$UDALES_SYSTEM" in
+    cx3) job_modules='module load tools/prod
+module load intel/2021a netCDF/4.8.0-iimpi-2021a netCDF-Fortran/4.5.3-iimpi-2021a FFTW/3.3.9-intel-2021a CMake/3.20.1-GCCcore-10.3.0 git/2.32.0-GCCcore-10.3.0-nodocs' ;;
+    hx1) job_modules='module load intel/2023a netCDF/4.9.2-iimpi-2023a netCDF-Fortran/4.6.1-iimpi-2023a FFTW/3.3.10-intel-compilers-2023.1.0' ;;
+    *)
+        echo "Unknown UDALES_SYSTEM '$UDALES_SYSTEM': set it to cx3 or hx1."
+        exit 1
+        ;;
+esac
+
+## Optional PBS placement from config.sh, e.g. PLACE=excl to have the node to
+## yourself (nothing else scheduled on it; you still pay only for NCPU). The
+## same directive works on CX3 and HX1, both PBS Pro. Unset means the default,
+## and on the shared small/medium pools that is a shared node.
+pbs_directives="#PBS -l walltime=${WALLTIME}
+#PBS -l select=${NNODE}:ncpus=${NCPU}:mpiprocs=${NCPU}:mem=${MEM}"
+if [ -n "${PLACE:-}" ]; then
+    pbs_directives="${pbs_directives}
+#PBS -l place=${PLACE}"
+fi
+
 ## set the output directory
-outdir=$DA_WORKDIR/$exp
+outdir="$DA_WORKDIR/$exp"
+
+## create output directory and copy the inputs
+## The executable is copied in with the inputs and the run uses that copy:
+## $DA_BUILD usually lives in the repo on $HOME, whose I/O bandwidth is throttled
+## from the compute nodes, and it pins the binary for the run so a rebuild while
+## the job is queued cannot change what executes.
+mkdir -p "$outdir"
+cp -r -P "$inputdir"/* "$outdir"
+cp --preserve=mode "$DA_BUILD" "$outdir/u-dales"
+pushd "$outdir"
 
 echo "writing job.$exp."
 
 ## write new job.exp file for HPC
-cat <<EOF > job.$exp
+cat <<EOF > "job.$exp"
 #!/bin/bash
-#PBS -l walltime=${WALLTIME}
-#PBS -l select=${NNODE}:ncpus=${NCPU}:mpiprocs=$(( $NCPU * $NNODE )):mem=${MEM}
-module load intel/2025a netCDF/4.9.2-iimpi-2023a netCDF-Fortran/4.6.1-iimpi-2023a FFTW/3.3.9-intel-2021a CMake/3.29.3-GCCcore-13.3.0 git/2.45.1-GCCcore-13.3.0
-mkdir -p $outdir
-cp -r $inputdir/* $outdir
-pushd $outdir
-mpirun -v6 -n $(( $NCPU * $NNODE )) $DA_BUILD $outdir/namoptions.$exp > $outdir/output.$exp 2>&1
+${pbs_directives}
+set -eo pipefail
+${job_modules}
+EOF
+
+## Report how long this job waited in the queue, from PBS's own timestamps.
+## Quoted heredoc: nothing below is expanded at submit time.
+cat <<'EOF' >> "job.$exp"
+queue_wait_line() {
+    local info qt st w
+    if [ -n "${PBS_JOBID:-}" ] && command -v qstat >/dev/null 2>&1; then
+        info=$(qstat -f "$PBS_JOBID" 2>/dev/null)
+        qt=$(printf '%s\n' "$info" | awk -F' = ' '/^[[:space:]]*qtime = /{print $2}')
+        st=$(printf '%s\n' "$info" | awk -F' = ' '/^[[:space:]]*stime = /{print $2}')
+        if [ -n "$qt" ] && [ -n "$st" ]; then
+            w=$(( $(date -d "$st" +%s) - $(date -d "$qt" +%s) ))
+            printf 'PBS job %s on %s: queued %s, started %s, queue wait %dm %02ds\n' \
+                "$PBS_JOBID" "$(hostname -s)" "$qt" "$st" $((w / 60)) $((w % 60))
+            return
+        fi
+    fi
+    echo "PBS queue wait: unknown (not under PBS, or qstat unavailable)"
+}
+EOF
+
+## The queue-wait line goes into output.exp.log ahead of this run's solver output.
+cat <<EOF >> "job.$exp"
+pushd "$outdir"
+queue_wait_line >> "$outdir/output.$exp.log"
+echo "cluster: $UDALES_SYSTEM ($cluster_tell)" >> "$outdir/output.$exp.log"
+mpirun -v6 -n $(( $NCPU * $NNODE )) "$outdir/u-dales" "$outdir/namoptions.$exp" >> "$outdir/output.$exp.log" 2>&1
 EOF
 
 ## submit job.exp file to queue
-qsub job.$exp
+qsub "job.$exp"
 
 echo "job.$exp submitted."
+
+popd

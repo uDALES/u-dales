@@ -18,7 +18,7 @@
         via CMake/Ninja (since build_preprocessing.sh is bash-only)
 
     Run from the repository root.
-    Requires: Python 3.9+, CMake, Ninja, GCC, GFortran on PATH.
+    Requires: Python 3.10+, CMake, Ninja, GCC, GFortran on PATH.
 
     If the repository path contains spaces (e.g. OneDrive), map the parent
     directory to a drive letter first to avoid f2py failures:
@@ -147,7 +147,7 @@ try {
     $pythonVersion = & $PythonBin --version 2>&1
     Write-Host "Python version: $pythonVersion"
 } catch {
-    Write-Host "Error: '$PythonBin' is not available. Install Python 3.9+ and ensure it is on PATH." -ForegroundColor Red
+    Write-Host "Error: '$PythonBin' is not available. Install Python 3.10+ and ensure it is on PATH." -ForegroundColor Red
     exit 1
 }
 

@@ -13,6 +13,7 @@ import warnings
 
 from ._section import Section, SectionSpec
 
+import udgrid
 from exceptions import ConfigurationError
 DEFAULTS: Dict[str, Any] = Section.load_defaults_json().get("grid", {})
 FIELDS: List[str] = list(DEFAULTS.keys())
@@ -69,8 +70,9 @@ class GridSection(Section):
             raise ValueError("UDBase instance must be provided")
         
         if not self.lzstretch:
-            self.sim.zt = np.arange(0.5 * self.dz, self.zsize, self.dz)
-            self.sim.zm = np.arange(0.0, self.zsize, self.dz)
+            # Index-based construction: np.arange with a float step can return
+            # ktot+1 faces for some zsize/ktot pairs, which gives a zero top spacing.
+            self.sim.zm, self.sim.zt, _ = udgrid.uniform_z_grid(self.zsize, self.ktot)
         else:
             # Validate exactly one stretch method is selected
             stretch_methods = {
@@ -132,8 +134,10 @@ class GridSection(Section):
     def _warn_large_top_spacing(self, dz: np.ndarray, reference_dz: float | None = None) -> None:
         if reference_dz is None:
             reference_dz = self.dzlin
-        if dz[-1] > 3 * reference_dz:
-            warnings.warn("Final grid spacing large; consider reducing domain height", RuntimeWarning)
+        # The largest spacing is at the top for the exp and tanh stretches but in
+        # the middle of the stretched region for the double-tanh one.
+        if np.max(dz) > 3 * reference_dz:
+            warnings.warn("Largest grid spacing is more than three times the near-wall spacing; consider reducing domain height", RuntimeWarning)
 
     @staticmethod
     def _solve_exponential_alpha(ratio: float) -> float:
