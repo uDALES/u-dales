@@ -713,6 +713,40 @@ class TestPlotlySceneAxes(unittest.TestCase):
             self.assertGreaterEqual(axis.ticklen, 8, name)
 
 
+class TestPlotlyShadingBake(unittest.TestCase):
+    """Only uniformly coloured geometry gets Lambert shading baked in."""
+
+    @staticmethod
+    def _mesh(**kwargs):
+        from udvis.scene import MeshPrimitive
+        verts = np.array([[0.0, 0.0, 0.0], [1.0, 0.0, 0.0], [0.0, 1.0, 0.0]])
+        return MeshPrimitive(verts, np.array([[0, 1, 2]]), **kwargs)
+
+    def test_uniform_colour_is_shaded(self):
+        from udvis.scene import _plotly_bakes_shading
+        self.assertTrue(_plotly_bakes_shading(self._mesh(solid_color=(0.5, 0.5, 0.5))))
+
+    def test_flat_lighting_is_not_shaded(self):
+        from udvis.scene import _plotly_bakes_shading
+        self.assertFalse(_plotly_bakes_shading(
+            self._mesh(solid_color=(0.5, 0.5, 0.5), lighting="flat")))
+
+    def test_data_coloured_meshes_keep_colourbar_colours(self):
+        from udvis.scene import _plotly_bakes_shading
+        self.assertFalse(_plotly_bakes_shading(self._mesh(scalars=np.array([1.0]))))
+        self.assertFalse(_plotly_bakes_shading(
+            self._mesh(face_colors=np.array([[0.1, 0.2, 0.3]]))))
+
+    def test_bake_darkens_but_never_brightens(self):
+        from udvis.scene import _bake_face_shading
+        verts = np.array([[0.0, 0.0, 0.0], [1.0, 0.0, 0.0], [0.0, 1.0, 0.0]])
+        rgba = np.array([[0.4, 0.6, 0.8, 1.0]])
+        out = _bake_face_shading(verts, np.array([[0, 1, 2]]), rgba)
+        self.assertTrue(np.all(out[:, :3] <= rgba[:, :3] + 1e-12))
+        self.assertTrue(np.all(out[:, :3] > 0.0))
+        self.assertEqual(out[0, 3], 1.0)
+
+
 class TestVegVoxelMesh(unittest.TestCase):
     """plot_veg draws each vegetation point as a box filling its grid cell."""
 

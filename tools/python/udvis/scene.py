@@ -259,6 +259,21 @@ def _bake_face_shading(vertices, faces, rgba, light_dir=(-0.45, -0.45, 0.78),
     return np.clip(out, 0.0, 1.0)
 
 
+def _plotly_bakes_shading(mesh: MeshPrimitive) -> bool:
+    """Whether the Plotly path multiplies Lambert shading into a mesh's colours.
+
+    Only uniformly coloured geometry is shaded: plotly.js ignores its lighting
+    model for ``facecolor`` meshes, so without baking those render as flat
+    silhouettes. "flat" meshes already carry pre-shaded colours (the two-tone
+    outline views). Meshes coloured by data (``scalars`` through a colormap, or
+    explicit ``face_colors``) are left untouched so every face keeps exactly
+    the colour its colourbar shows.
+    """
+    return (mesh.lighting != "flat"
+            and mesh.scalars is None
+            and mesh.face_colors is None)
+
+
 def _render_plotly(scene: Scene, show: bool = True):
     try:
         import plotly.graph_objects as go
@@ -279,10 +294,7 @@ def _render_plotly(scene: Scene, show: bool = True):
             continue
         verts = np.asarray(mesh.vertices, dtype=float)
         rgba = mesh.resolved_face_colors()
-        if mesh.lighting != "flat":
-            # "flat" meshes carry pre-shaded colours (e.g. the two-tone
-            # outline views); everything else gets shading baked in, since
-            # plotly.js ignores its lighting model for facecolor meshes.
+        if _plotly_bakes_shading(mesh):
             rgba = _bake_face_shading(verts, faces, rgba)
         opacity = float(mesh.opacity)
         trace = go.Mesh3d(
@@ -493,7 +505,7 @@ def _render_pyvista(scene: Scene, show: bool = True):
     plotter.set_background("white")
     plotter.enable_parallel_projection()
     try:
-        # 8-sample MSAA: sub-pixel edge sampling keeps outlines crisp where
+        # 16-sample MSAA: sub-pixel edge sampling keeps outlines crisp where
         # the shader-based FXAA visibly softens them. (A widget hang once
         # attributed to MSAA turned out to be VS Code webview corruption.)
         # FXAA remains the fallback for GL stacks without multisample
@@ -516,16 +528,12 @@ def _render_pyvista(scene: Scene, show: bool = True):
                                 kernel_size=128, blur=True)
     except Exception:
         pass
-    try:
-        # Stream notebook stills above the widget's CSS size and at higher
-        # JPEG quality: at the pyvista defaults (ratio 1, quality 85) any
-        # OS/browser scaling above 100% shows an undersampled, soft image at
-        # rest. plotter._theme is a per-plotter copy, so nothing leaks
-        # globally. Font sizes below are scaled by the same ratio.
-        plotter._theme.trame.still_ratio = PYVISTA_STILL_RATIO
-        plotter._theme.trame.jpeg_quality = 95
-    except AttributeError:
-        pass
+    # Stream notebook stills above the widget's CSS size: at the pyvista
+    # default ratio of 1 any OS/browser scaling above 100% shows an
+    # undersampled, soft image at rest. plotter._theme is a per-plotter copy,
+    # so nothing leaks globally. Font sizes below are scaled by the same
+    # ratio.
+    plotter._theme.trame.still_ratio = PYVISTA_STILL_RATIO
     ts = PYVISTA_STILL_RATIO
 
     for mesh in scene.meshes:
