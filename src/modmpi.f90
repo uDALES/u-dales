@@ -172,6 +172,22 @@ contains
   return
   end subroutine barrou
 
+  !> Abort the run from every rank after an error message has been written.
+  !!
+  !! Call it from every rank, after the reporting rank (normally rank 0) has
+  !! written its message to unit 0. The unit is flushed and all ranks meet at a
+  !! barrier before MPI_ABORT, so a rank that reaches the abort first cannot kill
+  !! the reporting rank before its message is out. Without this the message is
+  !! lost whenever another rank wins that race, which happens routinely in
+  !! Debug builds.
+  subroutine abort_all_ranks(errorcode)
+    implicit none
+    integer, intent(in) :: errorcode
+    flush(0)
+    call MPI_BARRIER(comm3d, mpierr)
+    call MPI_ABORT(MPI_COMM_WORLD, errorcode, mpierr)
+  end subroutine abort_all_ranks
+
 
 !   subroutine excj( a, sx, ex, sy, ey, sz,ez)
 !     implicit none
