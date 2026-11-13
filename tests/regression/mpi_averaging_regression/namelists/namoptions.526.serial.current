@@ -47,6 +47,8 @@ lvreman      = .true.
 /
 
 &BC
+thls        = 288.0
+qts         = 0.
 BCxm         = 1
 BCxT         = 1
 BCxq         = 1

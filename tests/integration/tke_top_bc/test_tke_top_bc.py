@@ -137,10 +137,10 @@ def _write_case(run_dir: Path, bctopm: int) -> None:
             raise RuntimeError(f"expected exactly one '{key}' setting in namoptions.{CASE_ID}, found {n}")
     # Output costs wall-clock and disk and nothing here reads it.
     text = re.sub(r"(?m)^(\s*l\w*dump\s*=\s*).*$", r"\g<1>.false.", text)
-    # The case carries no &BC group, so the lid is selected by adding one.
-    if re.search(r"(?m)^\s*&BC\b", text):
-        raise RuntimeError(f"namoptions.{CASE_ID} already has a &BC group; the test expects to add it")
-    text = text.rstrip("\n") + f"\n\n&BC\nBCtopm       = {bctopm}\n/\n"
+    # The lid is selected by adding BCtopm to the case's &BC group (which carries thls).
+    text, n = re.subn(r"(?m)^(\s*&BC\b.*\n)", lambda m: m.group(1) + f"BCtopm       = {bctopm}\n", text)
+    if n != 1:
+        raise RuntimeError(f"expected exactly one &BC group in namoptions.{CASE_ID}, found {n}")
     (run_dir / f"namoptions.{CASE_ID}").write_text(text, encoding="utf-8")
 
     prof = run_dir / f"prof.inp.{CASE_ID}"

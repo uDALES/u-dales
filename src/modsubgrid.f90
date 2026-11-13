@@ -195,7 +195,7 @@ contains
 
     use modglobal,   only : ib,ie,jb,je,kb,ke,delta,grav,&
          dxi,dxiq,dx2,dy2,dyi,dyiq,dzf,dzf2,dzfi,dzhi, &
-         numol,prandtlmoli,dzfiq,lbuoyancy,dzh
+         numol,prandtlmoli,dzfiq,lbuoyancy,dzh,eps1
     use modfields,   only : dthvdz,e120,u0,v0,w0,thl0
     use modsurfdata, only : thvs
     use modmpi,    only : excjs,slabsumi
@@ -389,7 +389,7 @@ contains
                    ekh(i,j,k) = ekh(i,j,k) + numol*prandtlmoli         ! add molecular diffusivity
                 else
                    !            zlt(i,j,k) = min(delta(i,k),cn*e120(i,j,k)/sqrt(grav/thvs*abs(dthvdz(i,j,k))))
-                   zlt(i,j,k) = min(delta(i,k),cn*e120(i,j,k)/sqrt(grav/thvs*abs(dthvdz(i,j,k))))   !thls is used
+                   zlt(i,j,k) = min(delta(i,k),cn*e120(i,j,k)/sqrt(grav/thvs*max(abs(dthvdz(i,j,k)),eps1)))   !thls is used
                    ekm(i,j,k) = cm * zlt(i,j,k) *damp(i,j,k)* e120(i,j,k) !* 0.5     ! LES with near-wall damping !!! added factor 0.5 for shear-driven flow
                    ekh(i,j,k) = (ch1 + ch2 * zlt(i,j,k)/delta(i,k)) * ekm(i,j,k) !  needed in LES!
                    ekm(i,j,k) = ekm(i,j,k) + numol                     ! add molecular viscosity

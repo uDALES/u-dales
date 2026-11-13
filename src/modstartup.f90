@@ -632,8 +632,6 @@ module modstartup
       ! ! write (*, *) "done initinlet"
       ! call initdriver  ! added by ae1212: initialise driver inlet
       ! ! write(*,*) "done initdriver"
-      ! call checkinitvalues
-      ! !write (*, *) "done checkinitvalues"
       ! call initpois
       ! !write (*, *) "done initpois"
       ! ! write (6, *) 'Determine masking matrices'
@@ -711,9 +709,9 @@ module modstartup
       !                                                                 |
       !-----------------------------------------------------------------|
 
-      use modsurfdata, only : ps
+      use modsurfdata, only : ps, thls, qts, thvs
       use modglobal,   only : itot,ktot,jtot,ylen,xlen,dtmax,runtime, &
-                              startfile,lwarmstart,lstratstart,lmoist, nsv, &
+                              startfile,lwarmstart,lstratstart,lmoist, lbuoyancy, nsv, rv, rd, &
                               BCxm, BCxT, BCxq, BCxs, BCym, BCyT, BCyq, BCtopm, BCbotm, &
                               BCbotm_wfneutral, BCtopm_pressure, &
                               BCxm_periodic, BCxT_periodic, BCxq_periodic, &
@@ -774,6 +772,23 @@ module modstartup
       if (ps < 0) then
          write(0, *) 'ERROR: psout of range/not set'
          stop 1
+      end if
+
+      ! #375: thls/qts default to the sentinel -1; a negative thvs flips the sign
+      ! of SGS buoyancy production and of the hydrostatic base state.
+      if ((ltempeq .or. lbuoyancy) .and. (thls < 0.)) then
+         write(0, *) 'ERROR: thls not set (sentinel -1) but ltempeq or lbuoyancy is on.'
+         write(0, *) '       Set thls in &BC to the surface liquid water potential temperature [K].'
+         stop 1
+      end if
+      if (qts < 0.) then
+         if (lmoist) then
+            write(0, *) 'ERROR: qts not set (sentinel -1) but lmoist is on. Set qts in &BC [kg/kg].'
+            stop 1
+         else
+            qts = 0.   ! dry run: surface humidity is irrelevant but enters thvs
+            thvs = thls*(1.+(rv/rd - 1.)*qts)
+         end if
       end if
       if (xlen < 0) then
          write(0, *) 'ERROR: xlen out of range/not set'

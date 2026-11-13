@@ -41,6 +41,7 @@ iadv_qt      = 2
 /
 
 &BC
+thls        = 295.0
 wtsurf       = 0.
 wqsurf       = 0.
 thl_top      = 288.

@@ -1,0 +1,88 @@
+"""Programmatic flat-bottom test cases for the thermo integration tests."""
+from __future__ import annotations
+
+import os
+import re
+import subprocess
+import sys
+from pathlib import Path
+
+import numpy as np
+
+REPO_ROOT = Path(__file__).resolve().parents[3]
+UDALES_BUILD = Path(os.environ.get("UDALES_BUILD", REPO_ROOT / "build" / "debug" / "u-dales"))
+RUNTIME_MODULES = os.environ.get(
+    "UDALES_RUNTIME_MODULES",
+    "intel/2021a netCDF/4.8.0-iimpi-2021a netCDF-Fortran/4.5.3-iimpi-2021a FFTW/3.3.9-intel-2021a",
+)
+sys.path.insert(0, str(REPO_ROOT / "tests" / "integration"))
+import mpi_env  # noqa: E402
+
+EXPNR = "310"
+
+# Namelist groups as {group: {key: value-string}}. Values are Fortran literals.
+BASE = {
+    "RUN": {"iexpnr": EXPNR, "runtime": "0.5", "trestart": "1000.", "dtmax": "1.0",
+            "ladaptive": ".false.", "libm": ".false.", "lles": ".true.",
+            "nprocx": "1", "nprocy": "1", "lrandomize": ".false."},
+    "OUTPUT": {"lfielddump": ".false.", "ltdump": ".false.", "lxytdump": ".false."},
+    "DOMAIN": {"itot": "16", "jtot": "16", "ktot": "64", "xlen": "560.", "ylen": "560."},
+    "PHYSICS": {"ltempeq": ".true.", "lmoist": ".true.", "lbuoyancy": ".true.",
+                "lcoriol": ".false.", "ps": "101780."},
+    "NAMSUBGRID": {"loneeqn": ".true.", "lvreman": ".false.", "ldelta": ".false."},
+    "WALLS": {"nfcts": "0", "lbottom": ".true."},
+    "BC": {"BCbotm": "3", "BCbotT": "1", "BCbotq": "1", "thls": "289.0", "qts": "9.0e-3",
+           "wtsurf": "0.", "wqsurf": "0.", "z0": "1.e-4", "z0h": "1.e-4"},
+}
+
+
+def rf01_profiles(zf: np.ndarray, zi: float = 840.0):
+    """DYCOMS-II RF01 initial thl [K] and qt [kg/kg] (Stevens et al. 2005)."""
+    thl = np.where(zf <= zi, 289.0, 297.5 + np.cbrt(np.maximum(zf - zi, 0.0)))
+    qt = np.where(zf <= zi, 9.0e-3, 1.5e-3)
+    return thl, qt
+
+
+def write_case(run_dir: Path, groups: dict | None = None, ktot: int = 64, dz: float = 20.0,
+               thl=None, qt=None, u=7.0, v=-5.5, wfls=None, thlpcar=None) -> Path:
+    """Write namoptions/prof.inp/lscale.inp for a flat case. Returns run_dir."""
+    run_dir.mkdir(parents=True, exist_ok=True)
+    nml = {g: dict(kv) for g, kv in BASE.items()}
+    for g, kv in (groups or {}).items():
+        nml.setdefault(g, {}).update(kv)
+    nml["DOMAIN"]["ktot"] = str(ktot)
+    zf = (np.arange(ktot) + 0.5) * dz
+    if thl is None or qt is None:
+        thl, qt = rf01_profiles(zf)
+    with open(run_dir / f"namoptions.{EXPNR}", "w") as f:
+        for g, kv in nml.items():
+            f.write(f"&{g}\n")
+            for k, val in kv.items():
+                f.write(f"{k:<12} = {val}\n")
+            f.write("/\n\n")
+    with open(run_dir / f"prof.inp.{EXPNR}", "w") as f:
+        f.write("# thermo test case\n# z thl qt u v e12\n")
+        for k in range(ktot):
+            f.write(f"{zf[k]:.6f} {thl[k]:.6f} {qt[k]:.8e} {u:.4f} {v:.4f} 0.1\n")
+    wfls = np.zeros(ktot) if wfls is None else wfls
+    thlpcar = np.zeros(ktot) if thlpcar is None else thlpcar
+    with open(run_dir / f"lscale.inp.{EXPNR}", "w") as f:
+        f.write("# thermo test case\n# z ug vg pgx pgy wfls dqtdxls dqtdyls dqtdtls thlpcar\n")
+        for k in range(ktot):
+            f.write(f"{zf[k]:.6f} {u:.4f} {v:.4f} 0. 0. {wfls[k]:.6e} 0. 0. 0. {thlpcar[k]:.6e}\n")
+    return run_dir
+
+
+def _shell_prefix() -> str:
+    mods = Path("/etc/profile.d/modules.sh")
+    if mods.is_file() and RUNTIME_MODULES:
+        return f"source {mods} && module load {RUNTIME_MODULES} && export HDF5_USE_FILE_LOCKING=FALSE && "
+    return "export HDF5_USE_FILE_LOCKING=FALSE && "
+
+
+def run(run_dir: Path, nprocs: int = 1) -> subprocess.CompletedProcess:
+    mpi_env.preflight(nprocs)
+    mpiexec, extra = mpi_env.mpi_exec_and_args()
+    cmd = (f"{_shell_prefix()}cd '{run_dir}' && '{mpiexec}' {extra} -n {nprocs} "
+           f"'{UDALES_BUILD}' namoptions.{EXPNR}")
+    return subprocess.run(["bash", "-lc", cmd], cwd=REPO_ROOT, capture_output=True, text=True)
