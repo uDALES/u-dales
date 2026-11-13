@@ -15,6 +15,7 @@ DALES/GCSS cases: BOMEX, the smoke cloud, and DYCOMS-II RF01.
 In:
 
 1. Fix for issue #375 (`thls`/`qts` sentinels give a negative `thvs`).
+1b. Monin–Obukhov surface layer for the flat bottom (DALES `isurf = 3/4`).
 2. Deardorff all-or-nothing moist buoyancy (`calthv`) brought in line with DALES `dev`.
 3. Parametrised longwave radiation (`iradiation = 2`), including the smoke
    absorber option and the DYCOMS free-troposphere term.
@@ -53,11 +54,41 @@ Each commit builds, passes the supported test selection, and can be reviewed alo
    any other shipped case that omits them; guard the length-scale `sqrt` in
    `modsubgrid`. This commit intentionally changes results for misconfigured
    cases; it may be split into its own PR if preferred.
-2. **Deardorff `calthv`.** See below.
-3. **Radiation.** New `modraddata.f90`, `modradiation.f90`.
-4. **Statistics.** New `modthermostat.f90`.
-5. **Tests and cases.** CI tests, `examples/301`–`303`, converter and
+2. **Diagnostics** (`modthermostat`) first, because later tests read it.
+3. **Monin–Obukhov surface** (`modsurface.f90`), see Component 0.
+4. **Deardorff `calthv`.** See below.
+5. **Radiation.** New `modraddata.f90`, `modradiation.f90`.
+6. **Tests and cases.** CI tests, `examples/301`–`303`, converter and
    comparison scripts, docs.
+
+## Component 0: Monin–Obukhov surface layer (`modsurface.f90`)
+
+Requested so that uDALES and DALES runs share the same surface treatment.
+New `BCbotm` options on the flat bottom (`lbottom = .true.`):
+
+- `BCbotm = 4` (`BCbotm_mo`, DALES `isurf = 4`): fluxes prescribed by
+  `wtsurf`/`wqsurf`; `u*` from the Obukhov length, iterated from the bulk
+  Richardson number (`calc_obl_iter`), with Businger–Dyer (unstable) and
+  Beljaars–Holtslag (stable) `psim`/`psih`, roughness `z0`/`z0h`.
+- `BCbotm = 5` (`BCbotm_mo_ustar`, DALES `isurf = 3`): as 4, but
+  `u* = ustin` (new `&BC` parameter).
+
+Both use DALES's domain-mean formulation (`lmostlocal = .false.`):
+domain-mean `obl` and `u*`, and stress applied locally as
+`u'w' = -u*² u/|U|` with `|U| ≥ 0.1 m/s`. The momentum update follows the
+existing `wfmneutral` pattern (add back the resolved diffusive flux through
+the bottom face, subtract the wall flux). Surface gradients
+`dthldz = -wθ/u* · φh/(κ z1)` and `dqtdz` likewise feed Component 1. Surface
+values `tskin`/`qskin` are diagnosed per column and averaged into
+`thls`/`qts`, and `thvs` is updated, as in DALES.
+
+**Flux sign convention (decision D1).** In `bottom`, `wtsurf` enters with
+a minus sign and `wqsurf` with a plus sign, so a positive `wtsurf` is a
+downward (cooling) flux and a positive `wqsurf` an upward (moistening) one.
+This is undocumented, and every shipped case uses 0. Before building on it, a
+one-step test establishes the actual sign. If confirmed, `wtsurf` is changed to
+upward-positive (DALES convention) in its own commit, with docs updated.
+The documentation example using `wtsurf = 0.01` is reviewed.
 
 ## Component 1: Deardorff moist buoyancy (`modthermodynamics.f90`)
 
@@ -70,11 +101,9 @@ uDALES `calthv` already matches DALES for interior levels. Changes:
   - unsaturated: `a_surf = 1 + (rv/rd - 1)·qt`, `b_surf = rv/rd - 1`
   - `dthvdz(kb) = a_surf·dthldz + b_surf·thl0(kb)·dqtdz`
 
-  uDALES has no `dthldz`/`dqtdz` surface-gradient arrays. On the flat bottom
-  they are computed in `calthv` from `thl0`/`qt0` at `kb` and the surface
-  values `thls`/`qts` over `0.5·dzf(kb)`. Where an IBM solid lies directly
-  below a fluid cell, the gradient falls back to the one-sided interior
-  difference (no surface value is defined there).
+  `dthldz`/`dqtdz` come from the Monin–Obukhov surface (Component 0). With
+  any other bottom BC, `dthvdz(kb)` keeps its current value, so existing
+  cases are unchanged.
 - **`tmp0`.** New field in `modfields`, the absolute temperature
   `thl0·exnf + (Lv/cp)·ql0`, filled in `calthv` as in DALES. It is used by
   statistics and is needed by microphysics later.
@@ -114,12 +143,13 @@ Algorithm (`radpar`, per column, per DALES):
 - `thlprad(k) = -[(lwd+lwu)(k+1) - (lwd+lwu)(k)] / (ρ cp exnf dzf)`
 - with `lrad_dycoms`: find the highest level with `qt0 > qtthres`, interpolate
   `zi`, and for `zf > zi` add `D/3·[(z-zi)^{1/3} + zi (z-zi)^{-2/3}]`
-  (DALES form, α_z = 1, ρ_i/ρ ≈ 1). **Sign check required:** DALES adds this
-  term to `thlprad` with a positive sign, but in Stevens et al. (2005) the
-  flux term `ρ_i cp D α_z [(z-zi)^{4/3}/4 + zi (z-zi)^{1/3}]` grows with
-  height, i.e. cools above the inversion. The paper is authoritative: the
-  tier-1 test compares against the paper's flux formula, not DALES's code,
-  and any deliberate deviation from DALES is commented in the source.
+  (DALES form, α_z = 1, ρ_i/ρ ≈ 1). **Sign:** this term is a **cooling**,
+  `thlprad -= D/3·[...]`. DALES adds it with a plus sign. In Stevens et al.
+  (2005), the flux `ρ_i cp D α_z [(z-zi)^{4/3}/4 + zi (z-zi)^{1/3}]` grows
+  with height. Its tendency `-(D/3)·z·(z-zi)^{-2/3}` exactly cancels
+  subsidence warming `-w ∂θl/∂z` of the RF01 free-troposphere profile
+  `θl = 297.5 + (z-zi)^{1/3}`. The deviation from DALES is commented in the
+  source, and a tier-1 test checks that the two cancel.
 
 DALES `rad_user` bugs fixed in the port (noted in a comment): the `i` loop
 runs to `j1` instead of `i1`, and `zi` is not reset per column (a column
@@ -176,6 +206,15 @@ independent NumPy reference calculations:
 5. **Off by default:** existing `david_tests` regression unchanged.
 6. **#375:** a case with sentinel `thls`/`qts` and `ltempeq` aborts with the
    new message.
+7. **Surface sign (D1):** one step with only a surface heat/moisture flux.
+   Positive `wtsurf`/`wqsurf` must warm/moisten the first level by
+   `flux·dt/dzf`.
+8. **Monin–Obukhov:** `u*`, `obl`, `thls` from the first output, against a
+   NumPy port of the same iteration on the logged slab-mean inputs; for
+   `BCbotm = 5`, `u* = ustin` exactly.
+9. **Free-troposphere balance:** a laminar RF01 column (no perturbations)
+   with `lrad_dycoms`: above `zi + 50 m`, radiative plus subsidence `thl`
+   tendency is ≈0 (relative to either term, ≤1e-3).
 
 ### Tier 2 — full-size validation on CX3 (`examples/301`–`303`, heavy)
 
@@ -183,7 +222,7 @@ independent NumPy reference calculations:
 |---|---|---|---|
 | 301 BOMEX | DALES case inputs (64×64, 6.4 km, kmax 80) | 6 h | DALES `results_3.2.0`; Siebesma et al. 2003 ranges (cloud cover, LWP, mean profiles) |
 | 302 Smoke | DALES case inputs (64×64×250, 3.2 km) | 3 h | DALES `results_3.2.0`; Bretherton et al. 1999 (entrainment rate, `zi` growth) |
-| 303 DYCOMS RF01 | Stevens et al. 2005 specification (96×96, 35 m, dz 5 m, 3.36 km) | 4 h | Stevens et al. 2005 ensemble (LWP, `zi`, entrainment rate, cloud cover) |
+| 303 DYCOMS RF01 | Stevens et al. 2005 specification, cross-checked against PyCLES `InitDYCOMS_RF01` (96×96, 35 m, dz 5 m, 3.36 km; `BCbotm = 4` with `z0` chosen for Cm ≈ 0.0011) | 4 h | Stevens et al. 2005 ensemble (LWP, `zi`, entrainment rate, cloud cover) |
 
 - BOMEX and smoke inputs are converted from DALES by
   `examples/30x/convert_dales_case.py` (8-column DALES `lscale.inp` to the
