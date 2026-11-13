@@ -37,10 +37,6 @@ module modfields
   real, allocatable, target :: v0(:,:,:)        !<   y-component of velocity at time step t
   real, allocatable, target :: w0(:,:,:)        !<   z-component of velocity at time step t
   real, allocatable, target :: pres0(:,:,:)     !<   pressure at time step t
-  real, allocatable, target :: div(:,:,:)
-  real, allocatable, target :: dudx(:,:,:)
-  real, allocatable, target :: dvdy(:,:,:)
-  real, allocatable, target :: dwdz(:,:,:)
 
   real, allocatable :: u0h(:,:,:)        !<   x-component of velocity at time step t
   real, allocatable :: uinit(:,:,:)
@@ -66,9 +62,6 @@ module modfields
   real, allocatable :: up(:,:,:)        !<   tendency of um
   real, allocatable :: vp(:,:,:)        !<   tendency of vm
   real, allocatable :: wp(:,:,:)        !<   tendency of wm
-  real, allocatable, target :: ru(:,:,:)        !<   tendency of um
-  real, allocatable, target :: rv(:,:,:)        !<   tendency of vm
-  real, allocatable, target :: rw(:,:,:)        !<   tendency of wm
   real, allocatable :: thlp(:,:,:)      !<   tendency of thlm
   real, allocatable :: thlpc(:,:,:)      !<   tendency of thlm
   real, allocatable :: e12p(:,:,:)      !<   tendency of e12m
@@ -440,9 +433,6 @@ contains
     allocate(up(ib-ih:ie+ih,jb-jh:je+jh,kb:ke+kh)) ; up=0.
     allocate(vp(ib-ih:ie+ih,jb-jh:je+jh,kb:ke+kh)) ; vp = 0.
     allocate(wp(ib-ih:ie+ih,jb-jh:je+jh,kb:ke+kh))  ; wp = 0.
-    allocate(ru(ib-ih:ie+ih,jb-jh:je+jh,kb:ke+kh)) ; ru=0.
-    allocate(rv(ib-ih:ie+ih,jb-jh:je+jh,kb:ke+kh)) ; rv = 0.
-    allocate(rw(ib-ih:ie+ih,jb-jh:je+jh,kb:ke+kh))  ; rw = 0.
     ! allocate(pres0(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh)); pres0 = 0.
     !
     ! ! Always have to allocate these, even if they are constant
@@ -485,11 +475,6 @@ contains
     ! call alloc_z(vp); vp = 0.
     ! call alloc_z(wp); wp = 0.
     call alloc_z(pres0); pres0 = 0.
-
-    call alloc_z(div, opt_zlevel=(/0,0,0/))
-    call alloc_z(dudx, opt_zlevel=(/0,0,0/))
-    call alloc_z(dvdy, opt_zlevel=(/0,0,0/))
-    call alloc_z(dwdz, opt_zlevel=(/0,0,0/))
 
     ! Always have to allocate these, even if ltempeq/lmoist = .false.
     call alloc_z(thlm); thlm = 0.

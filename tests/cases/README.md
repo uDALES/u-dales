@@ -22,6 +22,8 @@ Current consumers:
   - `300/` as the staged base case for the SGS statistics kernel test (`runmode = 1007`)
 - `integration/tke_top_bc/test_tke_top_bc.py`
   - `300/` switched to the one-equation SGS model, one run per `BCtopm`
+- `integration/fielddump_diagnostics/test_fielddump_diagnostics.py`
+  - `300/` on 2x2 ranks with every output-time fielddump diagnostic requested
 - `integration/ibm_sparse_input/run_test.sh`
   - `101/` as the staged base case for the `read_sparse_ijk()` IBM test
 - `integration/directshortwave/test_directshortwave.py`

@@ -263,7 +263,7 @@ BCs at the bottom (BCbot; only effective if not covered with ground facets): 1 =
 | ---- | ------- | --------------- | ----------- | ---- |
 | lfielddump | .false. | .true. or .false. | Switch for instantaneous field output. | - |
 | tfielddump | 10000. | | Output time for fields. | [s] |
-| fieldvars | '' | Any of the given labels, several are seperated by a comma: u0,v0,w0,th,ql,qt,p0,s1,s2,s3,s4,s5 | Variable names of fields. | - |
+| fieldvars | '' | Comma-separated two-letter codes, at most 17: u0,v0,w0,th,ql,qt,p0,s1,s2,s3,s4,s5 (prognostic fields); tx,ty,tz,hf (IBM wall stresses and heat flux); mu,mv,mw,mc (IBM masks); di,ux,vy,wz (divergence of the corrected velocity and its three terms); pd,pu,pv,pw (pressure correction and predicted velocities of the last substep); rs,du,dv,dw (right-hand side of the Poisson equation and its three terms). The di/ux/vy/wz/rs/du/dv/dw fields are computed at output time only. | Variable names of fields. | - |
 | tsample | 5. | `REAL` | Sample time for statistics. | [s] |
 | tstatsdump | 10000. | `REAL` | Output time for statistics. | [s] |
 | tstatstart | 0. | `REAL` | Time from which statistics computation or data sampling starts. | [s] |

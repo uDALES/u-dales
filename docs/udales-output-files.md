@@ -18,7 +18,7 @@ All switches and frequency parameters below live in the `&OUTPUT`, `&TREES`, `&W
 | `tkedump.<expnr>.nc` | `ltkedump` | `tstatsdump` | xy-averaged TKE budget terms vs. height: buoyancy production, total transport, advection, turbulent transport, SGS transport, shear production, viscous and SGS dissipation. **Disabled.** The budget terms are never accumulated, so the file would contain nothing but zeros; setting `ltkedump = .true.` now aborts the run with an error instead. Tracked in [issue #352](https://github.com/uDALES/u-dales/issues/352). |
 | `treedump.<px>.<py>.<expnr>.nc` | `ltreedump` (`&TREES`) | `tstatsdump` | Time-averaged 3D vegetation/tree terms per CPU: drag in x, y, z; temperature and moisture source/sink terms; scalar source/sink terms; decoupling factor. |
 | **Instantaneous fields** | | | |
-| `fielddump.<px>.<py>.<expnr>.nc` | `lfielddump` | `tfielddump` | Instantaneous 3D snapshots of the variables listed in `fieldvars` (e.g. velocity components, temperature, moisture, pressure, scalars, wall stresses, heat flux, IBM masks, divergence), per CPU. |
+| `fielddump.<px>.<py>.<expnr>.nc` | `lfielddump` | `tfielddump` | Instantaneous 3D snapshots of the variables listed in `fieldvars` (e.g. velocity components, temperature, moisture, pressure, scalars, wall stresses, heat flux, IBM masks, divergence, Poisson right-hand side), per CPU. |
 | **Slices** | | | |
 | `kslicedump.<px>.<py>.<expnr>.nc` | `lkslicedump` | `tsample` | Instantaneous horizontal (x, y) slice at `k = kslice` of u, v, w, temperature and moisture, per CPU. |
 | `islicedump.<px>.<py>.<expnr>.nc` | `lislicedump` | `tsample` | Instantaneous vertical (y, z) slice at `i = islice` of u, v, w, temperature and moisture; written only by the CPU(s) owning that i-index. |
