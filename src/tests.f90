@@ -19,7 +19,8 @@ module tests
 
   implicit none
   save
-  public :: tests_read_sparse_ijk, tests_2decomp_init_exit, tests_mpi_operators, tests_zgrid_metrics, tests_sgs_statistics
+  public :: tests_read_sparse_ijk, tests_2decomp_init_exit, tests_mpi_operators, tests_zgrid_metrics, tests_sgs_statistics, &
+            tests_sgs_oneeqn
 
 contains
 
@@ -745,6 +746,203 @@ contains
     tests_sgs_statistics = all_passed
 
   end function tests_sgs_statistics
+
+  !> One-equation SGS TKE model (Task 10, aligned with DALES dev 075ac4e modsubgrid.f90).
+  !! Serial, on a synthetic stratified state; the closure and sources are called directly.
+  !!   (a) closure: Kh/Km (molecular parts removed) is 1/Prandtl = 3 where dthvdz <= 0 and
+  !!       ch1 + ch2*zlt/delta where dthvdz > 0, with zlt from grav/thvf(k) (not thvs);
+  !!   (b) sources without the MO surface: no TKE source at kb, set explicitly (the
+  !!       work arrays are pre-filled with garbage), and interior dissipation without
+  !!       the old factor 2, buoyancy with grav/thvf(k);
+  !!   (c) sources with the MO surface: the kb sources use dudz_mo/dvdz_mo and dthvdz(kb).
+  !! The namelist must set loneeqn = .true., ldelta = .false. and Prandtl = 1/3 to full
+  !! precision (the default 0.333 gives 3.003).
+  logical function tests_sgs_oneeqn()
+    use modglobal,      only : ib, ie, jb, je, kb, ke, runmode, delta, grav, eps1, numol, &
+                               prandtlmoli, pi, BCbotm, BCbotm_mo
+    use modfields,      only : initfields, u0, v0, w0, e120, e12p, dthvdz, thvf
+    use modsurfdata,    only : thvs
+    use modsubgrid,     only : initsubgrid, closure, sources
+    use modsubgriddata, only : ekm, ekh, zlt, sbshr, sbbuo, sbdiss, loneeqn, ldelta, Prandtl, &
+                               cn, cf, Rigc, alpha_kolm
+    use modsurface,     only : initsurface_mo, dudz_mo, dvdz_mo
+    use modboundary,    only : initboundary
+    use modibm,         only : initibm, createmasks
+    use initfac,        only : readfacetfiles
+    use decomp_2d,      only : zstart
+
+    implicit none
+
+    real, parameter :: tol = 1.e-10
+    real, parameter :: dudz0 = 0.05, dvdz0 = -0.03, dthvdz0 = -0.01
+    real :: kmt, kht, ratio, zexp, cm_l, ceps_l, ce1_l, ce2_l, expd, expb, exps, worst
+    integer :: i, j, k, gi, nstable, nunstable, nlimited, BCbotm_save
+    logical :: all_passed
+
+    if (myid == 0) then
+      write(*, '(A)') '================================================'
+      write(*, '(A, I8)') 'runmode = ', runmode
+      write(*, '(A)') 'tests_sgs_oneeqn: ONE-EQUATION SGS MODEL TEST'
+      write(*, '(A)') '------------------------------------------------'
+    end if
+
+    call initfields
+    call initboundary
+    call initsubgrid
+    call initsurface_mo
+    call readfacetfiles
+    call initibm
+    call createmasks
+
+    all_passed = .true.
+    if ((.not. loneeqn) .or. ldelta .or. abs(1./Prandtl - 3.) > 1.e-12) then
+      if (myid == 0) write(*,'(A)') 'FAIL namelist must set loneeqn, .not. ldelta and Prandtl = 1/3'
+      tests_sgs_oneeqn = .false.
+      return
+    end if
+
+    ! Synthetic stratified state. thvs is set far from thvf so a regression to grav/thvs fails.
+    thvs = 250.
+    do k = kb, ke
+      thvf(k) = 300. + 0.01*real(k)
+    end do
+    do k = lbound(e120,3), ubound(e120,3)
+      do j = lbound(e120,2), ubound(e120,2)
+        do i = lbound(e120,1), ubound(e120,1)
+          gi = zstart(1) + i - 1
+          e120(i,j,k) = 0.3 + 0.1*sin(0.7*real(gi) + 1.1*real(j) + 0.3*real(k))
+          u0(i,j,k)   = 2. + 0.5*sin(0.37*real(gi) + 0.21*real(k))
+          v0(i,j,k)   = -1. + 0.4*cos(0.29*real(j) + 0.17*real(k))
+          w0(i,j,k)   = 0.1*sin(0.53*real(gi) - 0.41*real(j) + 0.11*real(k))
+        end do
+      end do
+    end do
+    do k = kb, ke
+      do j = jb, je
+        do i = ib, ie
+          gi = zstart(1) + i - 1
+          dthvdz(i,j,k) = 0.02*sin(1.3*real(gi) + 0.7*real(j) + 0.4*real(k))
+        end do
+      end do
+    end do
+
+    !----------------------------------------------------------------------
+    ! (a) closure: Kh/Km and the stable length scale
+    !----------------------------------------------------------------------
+    call closure
+    nstable = 0; nunstable = 0; nlimited = 0; worst = 0.
+    do k = kb, ke
+      do j = jb, je
+        do i = ib, ie
+          kmt = ekm(i,j,k) - numol
+          kht = ekh(i,j,k) - numol*prandtlmoli
+          ratio = kht / kmt
+          if (dthvdz(i,j,k) <= 0.) then
+            nunstable = nunstable + 1
+            worst = max(worst, abs(zlt(i,j,k) - delta(i,k))/delta(i,k), abs(ratio - 3.))
+          else
+            nstable = nstable + 1
+            zexp = min(delta(i,k), cn*e120(i,j,k)/sqrt(grav/thvf(k)*max(abs(dthvdz(i,j,k)),eps1)))
+            if (zexp < delta(i,k)) nlimited = nlimited + 1
+            worst = max(worst, abs(zlt(i,j,k) - zexp)/zexp, &
+                        abs(ratio - (1. + (3. - 1.)*zlt(i,j,k)/delta(i,k))))
+          end if
+        end do
+      end do
+    end do
+    if (myid == 0) write(*,'(A,3(1X,I0),1X,A,ES12.4)') 'closure cells unstable/stable/limited', &
+         nunstable, nstable, nlimited, 'worst', worst
+    if (worst > tol) then
+      if (myid == 0) write(*,'(A,ES12.4)') 'FAIL closure Kh/Km or zlt, worst deviation', worst
+      all_passed = .false.
+    end if
+    if (nunstable == 0 .or. nstable == 0 .or. nlimited == 0) then
+      if (myid == 0) write(*,'(A)') 'FAIL closure test is vacuous (need unstable, stable and limited cells)'
+      all_passed = .false.
+    end if
+
+    !----------------------------------------------------------------------
+    ! (b) sources without the MO surface
+    !----------------------------------------------------------------------
+    if (BCbotm == BCbotm_mo) then
+      if (myid == 0) write(*,'(A)') 'FAIL namelist must not select the MO surface (BCbotm = 4)'
+      all_passed = .false.
+    end if
+    sbshr(:,:,kb) = 1.e30; sbbuo(:,:,kb) = -1.e30; sbdiss(:,:,kb) = 1.e30
+    e12p = 0.
+    call sources
+    worst = maxval(abs(e12p(ib:ie,jb:je,kb)))
+    if (worst /= 0.) then
+      if (myid == 0) write(*,'(A,ES12.4)') 'FAIL e12p(kb) without MO surface is not zero', worst
+      all_passed = .false.
+    end if
+    if (maxval(abs(e12p(ib:ie,jb:je,kb+1))) == 0.) then
+      if (myid == 0) write(*,'(A)') 'FAIL e12p(kb+1) is zero: sources test is vacuous'
+      all_passed = .false.
+    end if
+
+    ! interior dissipation and buoyancy, constants derived independently of initsubgrid
+    cm_l   = cf / (2. * pi) * (1.5*alpha_kolm)**(-1.5)
+    ceps_l = 2. * pi / cf * (1.5*alpha_kolm)**(-1.5)
+    ce1_l  = cn**2 * (cm_l/Rigc - cm_l)
+    ce2_l  = ceps_l - ce1_l
+    worst = 0.
+    do k = kb+1, ke
+      do j = jb, je
+        do i = ib, ie
+          expd = -(ce1_l + ce2_l*zlt(i,j,k)/delta(i,k)) * e120(i,j,k)**2 / (2.*zlt(i,j,k))
+          expb = -(ekh(i,j,k) - numol*prandtlmoli)*grav/thvf(k)*dthvdz(i,j,k)/(2.*e120(i,j,k))
+          worst = max(worst, abs(sbdiss(i,j,k) - expd)/abs(expd), &
+                      abs(sbbuo(i,j,k) - expb)/max(abs(expb), 1.e-30))
+        end do
+      end do
+    end do
+    if (myid == 0) write(*,'(A,ES12.4)') 'interior sbdiss/sbbuo worst relative deviation', worst
+    if (worst > tol) then
+      if (myid == 0) write(*,'(A,ES12.4)') 'FAIL interior sbdiss or sbbuo', worst
+      all_passed = .false.
+    end if
+
+    !----------------------------------------------------------------------
+    ! (c) sources with the MO surface: uniform kb plane, so the only shear is the MO one
+    !----------------------------------------------------------------------
+    BCbotm_save = BCbotm
+    BCbotm = BCbotm_mo
+    u0(:,:,kb) = 3.; v0(:,:,kb) = -2.; w0(:,:,kb) = 0.; w0(:,:,kb+1) = 0.
+    dudz_mo = dudz0; dvdz_mo = dvdz0
+    dthvdz(:,:,kb) = dthvdz0
+    call closure
+    e12p = 0.
+    call sources
+    worst = 0.
+    do j = jb, je
+      do i = ib, ie
+        exps = (ekm(i,j,kb) - numol)*(dudz0**2 + dvdz0**2)/(2.*e120(i,j,kb)) &
+             - (ekh(i,j,kb) - numol*prandtlmoli)*grav/thvf(kb)*dthvdz0/(2.*e120(i,j,kb)) &
+             - (ce1_l + ce2_l*zlt(i,j,kb)/delta(i,kb)) * e120(i,j,kb)**2 / (2.*zlt(i,j,kb))
+        worst = max(worst, abs(e12p(i,j,kb) - exps)/abs(exps))
+      end do
+    end do
+    BCbotm = BCbotm_save
+    if (myid == 0) write(*,'(A,ES12.4)') 'MO kb sources worst relative deviation', worst
+    if (worst > tol) then
+      if (myid == 0) write(*,'(A,ES12.4)') 'FAIL MO kb sources', worst
+      all_passed = .false.
+    end if
+
+    if (all_passed .and. myid == 0) then
+      write(*, '(A)') '------------------------------------------------'
+      write(*, '(A)') 'ALL TESTS PASSED: tests_sgs_oneeqn'
+      write(*, '(A)') '================================================'
+    else if ((.not. all_passed) .and. myid == 0) then
+      write(*, '(A)') '------------------------------------------------'
+      write(*, '(A)') 'TESTS FAILED: tests_sgs_oneeqn'
+      write(*, '(A)') '================================================'
+    end if
+
+    tests_sgs_oneeqn = all_passed
+
+  end function tests_sgs_oneeqn
 
   !> Shared comparators. Report the largest absolute deviation and where it is.
   logical function compare_real_1d(label, got, exp, tol)

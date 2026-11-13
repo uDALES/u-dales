@@ -8,15 +8,29 @@ module modsurface
   implicit none
   save
   private
-  public :: surface_mo, lmo_surface, ustar_mo, obl_mo, dthldz_mo, dqtdz_mo
+  public :: initsurface_mo, surface_mo, lmo_surface, ustar_mo, obl_mo, dthldz_mo, dqtdz_mo, &
+            dudz_mo, dvdz_mo
 
   real :: ustar_mo  = 0.      !< friction velocity [m/s]
   real :: obl_mo    = -0.1    !< Obukhov length [m] (also the iteration's first guess)
   real :: dthldz_mo = 0.      !< MO surface-layer thl gradient at zf(kb) [K/m]
   real :: dqtdz_mo  = 0.      !< MO surface-layer qt gradient at zf(kb) [1/m]
+  !> MO surface-layer u and v gradients at zf(kb), per column at the cell centre [1/s].
+  !> Used only by the one-equation SGS TKE sources at kb (modsubgrid:sources).
+  real, allocatable :: dudz_mo(:,:), dvdz_mo(:,:)
   real, parameter :: min_horv = 0.1   !< minimum wind speed [m/s] (DALES)
 
 contains
+
+  !> Allocate the per-column MO gradients. They stay zero until the first surface_mo,
+  !> as dthldz_mo/dqtdz_mo do (subgrid runs before bottom on the first substep).
+  subroutine initsurface_mo
+    use modglobal, only : ib, ie, jb, je
+    if (.not. allocated(dudz_mo)) allocate(dudz_mo(ib:ie,jb:je))
+    if (.not. allocated(dvdz_mo)) allocate(dvdz_mo(ib:ie,jb:je))
+    dudz_mo = 0.
+    dvdz_mo = 0.
+  end subroutine initsurface_mo
 
   logical function lmo_surface()
     use modglobal, only : BCbotm, BCbotm_mo, BCbotm_mo_ustar
@@ -66,6 +80,18 @@ contains
     else
       dqtdz_mo = 0.
     end if
+    ! DALES dev 075ac4e modsurface.f90:calc_surface_gradients (momentum part):
+    ! dudz = u* phim(z1/L) / (kappa z1) * u/|U|, with u, v at the cell centre and
+    ! |U| floored at min_horv (DALES horv). uDALES has no Galilean shift (cu = cv = 0).
+    do j = jb, je
+      do i = ib, ie
+        upcu = 0.5 * (u0(i,j,kb) + u0(i+1,j,kb))
+        vpcv = 0.5 * (v0(i,j,kb) + v0(i,j+1,kb))
+        horv = max(sqrt(upcu**2 + vpcv**2), min_horv)
+        dudz_mo(i,j) = ustar_mo * phim(z1/obl_mo) * scaling * (upcu / horv)
+        dvdz_mo(i,j) = ustar_mo * phim(z1/obl_mo) * scaling * (vpcv / horv)
+      end do
+    end do
 
     ! surface scalars (DALES calc_surface_scalars): diagnose tskin/qskin per column, average
     loc = 0.
@@ -178,6 +204,17 @@ contains
              - (10./3.) / 0.35 + 1.
     end if
   end function psih
+
+  elemental real function phim(zeta)
+    real, intent(in) :: zeta
+    if (zeta < 0.) then
+      phim = (1. - 16. * zeta) ** (-0.25)
+    else if (zeta < 1.) then
+      phim = 1. + 5. * zeta
+    else
+      phim = 6.
+    end if
+  end function phim
 
   elemental real function phih(zeta)
     real, intent(in) :: zeta

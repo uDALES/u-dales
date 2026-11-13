@@ -42,10 +42,8 @@ save
   logical :: loneeqn      = .false. !<  switch for one-eqn subgrid scheme
   real :: cf      = 2.5  !< filter constant
   real :: Rigc    = 0.25 !< critical Richardson number
-  real :: Prandtl = 0.333
-!  real :: Prandtl = 3.0
-!  real :: prandtli= 1./3.
-  real :: prandtli
+  real :: Prandtl = 0.333  !< turbulent Prandtl number Km/Kh: Kh = Km/Prandtl in every SGS model
+  real :: prandtli         !< 1/Prandtl
   real :: cm      = 0.12
   real :: cn      = 0.76
   real :: ch1     = 1.

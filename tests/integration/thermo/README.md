@@ -38,3 +38,10 @@ Run: `python tests/integration/thermo/test_thermo.py -v [TestClass]`.
   free-troposphere radiative cooling against subsidence warming.
 - `TestDecomposition`: radiation, MO surface and moist SGS in a randomised
   short run (`runtime` 2.5 s, `dtmax` 1 s, about 3 steps) on 1, 2 (x) and 4 (2 x 2) ranks. Reference: the serial run.
+- `TestSGSOneEqn`: the one-equation SGS model (Task 10) through the in-solver
+  `runmode = 1008` (`tests.f90:tests_sgs_oneeqn`), serial, on a synthetic
+  stratified state. Kh/Km = 1/Prandtl = 3 where `dthvdz <= 0` and
+  `ch1 + ch2*zlt/delta` where `dthvdz > 0` (zlt with `grav/thvf`), interior
+  dissipation without the old factor 2, no `e12p(kb)` source without the MO
+  surface (work arrays pre-filled with garbage), and the DALES k = 1 sources with
+  it. Reference: the closed-form expressions, constants recomputed independently.

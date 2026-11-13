@@ -345,5 +345,22 @@ class TestDecomposition(_SolverTest):
                                                err_msg=f"{label}:{v}")
 
 
+class TestSGSOneEqn(_SolverTest):
+    """In-solver test (runmode 1008, tests.f90:tests_sgs_oneeqn) of the one-equation
+    SGS model aligned with DALES dev 075ac4e: Kh/Km = 1/Prandtl = 3 in unstable cells and
+    ch1 + ch2*zlt/delta in stable ones (zlt with grav/thvf), dissipation without the old
+    factor 2, no TKE source at kb without the MO surface, and the DALES k=1 sources with it."""
+
+    def test_closure_and_sources(self):
+        d = tc.write_case(self.tmp / "sgs1eq", groups={
+            "RUN": {"runmode": "1008"},
+            "NAMSUBGRID": {"loneeqn": ".true.", "lvreman": ".false.", "ldelta": ".false.",
+                           "Prandtl": "0.33333333333333333"}})
+        res = self.run_ok(d)
+        out = res.stdout + res.stderr
+        print("\n" + "\n".join(l for l in out.splitlines() if "worst" in l or "FAIL" in l))
+        self.assertIn("ALL TESTS PASSED: tests_sgs_oneeqn", out)
+
+
 if __name__ == "__main__":
     unittest.main()

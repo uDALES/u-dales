@@ -177,6 +177,8 @@ between multiple components rather than one isolated API.
   case `064` on an exponentially stretched vertical grid
 - `sgs_statistics/`: SGS statistics validation for `runmode = 1007` on the
   stretched-grid case `300` across `1x1`, `2x1`, `1x2` and `2x2`
+- `thermo/`: moist thermodynamics, MO surface and radiation on programmatic flat
+  cases; `TestSGSOneEqn` runs the one-equation SGS check `runmode = 1008` (serial)
 - `udbase_against_matlab/`: Python-vs-MATLAB parity checks on committed cases
 - `udprep/`: preprocessing integration checks on committed cases and binaries
 

@@ -13,6 +13,27 @@ that they are easy to find when upgrading.
 
 ### Breaking changes
 
+- **One-equation SGS model (`loneeqn`) aligned with DALES.** Four changes to
+  `modsubgrid.f90`, following DALES dev 075ac4e. Who is affected: only runs with
+  `loneeqn = .true.`; Vreman and Smagorinsky runs are unchanged (bit for bit).
+  - The turbulent Prandtl number now means `Kh = Km/Prandtl`, as in DALES and as
+    the Smagorinsky and Vreman models already used it (`ch = 1/Prandtl`). With
+    the default `Prandtl = 0.333`, `Kh = 3 Km` in unstable and neutral cells,
+    going to `Km` in strongly stable ones. The model previously used
+    `ch = Prandtl`, which gave `Kh = Km/3`: 9 times less SGS heat and moisture
+    mixing than intended. Cases that set `Prandtl` for the one-equation model
+    must invert it.
+  - The SGS TKE dissipation no longer carries the extra factor 2 ("added factor
+    2. for shear-driven flow"); it is DALES's `-(ce1 + ce2 l/Δ) e^2/(2l)`. The
+    near-wall `damp` factor (1 away from walls) is kept.
+  - The stable length scale and the buoyancy source use `grav/thvf(k)` (slab
+    mean virtual potential temperature) instead of `grav/thvs`, as in DALES.
+  - The TKE sources at the first level `kb`: with the Monin-Obukhov surface
+    (`BCbotm = 4/5`) they are now computed as in DALES's k = 1 block, using the
+    MO surface-layer shears `dudz`, `dvdz` and `dthvdz(kb)`. With the other
+    bottom conditions there are still no sources at `kb`, but they are now set
+    to zero explicitly; before, uninitialised memory was added to `e12p(kb)`.
+
 - **SGS flux sign convention.** All subgrid-scale fluxes in the statistics
   output (`usgs*`, `vsgs*`, `wsgs*`, `thlsgs*`, `qtsgs*`, `sv1sgs`–`sv4sgs`,
   `sca1sgs*`–`sca3sgs*`) were previously stored as `+K dphi/dn`, i.e. **minus**
@@ -61,6 +82,10 @@ that they are easy to find when upgrading.
   four-point average varied the wrong index.
 
 ### Added
+
+- In-solver test `runmode` 1008 (`tests_sgs_oneeqn`, run from
+  `tests/integration/thermo/test_thermo.py:TestSGSOneEqn`) checking the
+  one-equation SGS closure (`Kh/Km`, stable length scale) and its TKE sources.
 
 - `docs/udales-output-files.md` now documents the SGS flux definitions, their
   sign convention, and the fact that the SGS statistics carry **no** surface or
