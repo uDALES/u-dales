@@ -55,6 +55,7 @@ program uDALES
   use modfielddump,    only : initfielddump,fielddump,exitfielddump
   use modstatsdump,    only : initstatsdump,statsdump,exitstatsdump    !tg3315
   use modthermostat,   only : initthermostat,thermostat,exitthermostat
+  use modradiation,    only : initradiation,radiation,exitradiation
   use modtimedep,      only : inittimedep,timedep
   use tests,           only : tests_read_sparse_ijk,tests_2decomp_init_exit,tests_mpi_operators,tests_zgrid_metrics,tests_sgs_statistics
   implicit none
@@ -84,6 +85,7 @@ program uDALES
   call initboundary
 
   call initthermodynamics
+  call initradiation
 
   call initsubgrid
 
@@ -169,6 +171,8 @@ program uDALES
 
     call lstend         !large scale forcings
 
+    call radiation      ! parametrised longwave radiation (iradiation = 2)
+
     call nudge          ! nudge top cells of fields to enforce steady-state
 
     call ibmwallfun     ! immersed boundary forcing: only shear forces.
@@ -240,6 +244,7 @@ program uDALES
   call exitfielddump
   call exitstatsdump     !tg3315
   call exitthermostat
+  call exitradiation
   call exit_heatpump
   !call exitmodules
   !call exittest

@@ -182,6 +182,26 @@ BCs at the bottom (BCbot; only effective if not covered with ground facets): 1 =
 | tcheck | 0 | > 0 |  Time interval between checks of velocity divergence and Courant numbers.| [s] |
 --->
 
+## Namelist NAMRADIATION
+
+Parametrised longwave radiation (Stevens et al. 2005; DALES `radpar`). Off by default. Requires `ltempeq = .true.`; the liquid-water absorber (default) also requires `lmoist = .true.`. The tendency is added to `thlp` every Runge-Kutta substep and recomputed at the first substep of each update.
+
+| Name | Default | Possible values | Description | Unit |
+| ---- | ------- | --------------- | ----------- | ---- |
+| iradiation | 0 | 0, 2 | Radiation scheme: 0 none, 2 parametrised longwave (`radpar`). | - |
+| timerad | 0. | `REAL` >= 0 | Update interval of the radiative tendency; 0 updates every time step. | [s] |
+| rad_longw | .true. | .true. or .false. | Longwave radiation on. | - |
+| rad_shortw | .false. | .false. | Shortwave radiation is not supported; `.true.` aborts. | - |
+| rad_smoke | .false. | .true. or .false. | Use scalar `isvsmoke` as the absorber instead of cloud liquid water `ql`. | - |
+| isvsmoke | 1 | 1 to `nsv` | Index of the smoke scalar (if `rad_smoke`). | - |
+| rka | 130. | `REAL` > 0 | Extinction coefficient kappa. | [m2/kg] |
+| dlwtop | 74. | `REAL` | Downward longwave flux at the top, F0. | [W/m2] |
+| dlwbot | 0. | `REAL` | Upward longwave flux at the bottom, F1. | [W/m2] |
+| lrad_dycoms | .false. | .true. or .false. | Add the DYCOMS free-troposphere cooling term of Stevens et al. (2005), with the local inversion height from the `rad_dycoms_qtthres` crossing of `qt`. Requires `lmoist`. | - |
+| rad_dycoms_D | 3.75e-6 | `REAL` | Large-scale divergence in the free-troposphere term. | [1/s] |
+| rad_dycoms_qtthres | 8.e-3 | `REAL` | `qt` value defining the local inversion height. | [kg/kg] |
+| rad_ls | .false. | .true. or .false. | DALES compatibility only: ignored with a warning; the `thlpcar` column of `lscale.inp` is always applied. | - |
+
 ## Namelist WALLS
 
 1 = fixed flux

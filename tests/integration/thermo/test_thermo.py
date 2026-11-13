@@ -214,6 +214,100 @@ class TestThermostat(_SolverTest):
             self.assertEqual(float(t["zi_qt8"][-1]), 0.0)
             self.assertEqual(float(t["lwp_bar"][-1]), 0.0)
 
+def radpar_reference(absorber, rho, exn, dz, f0, f1, kappa):
+    """Stevens et al. (2005) / DALES radpar longwave, one column. Returns thl tendency [K/s]."""
+    n = absorber.size
+    path = rho * absorber * dz
+    lwpt = np.concatenate([np.cumsum(path[::-1])[::-1], [0.0]])     # above face k (incl. cell k)
+    lwpb = np.concatenate([[0.0], np.cumsum(path)])                 # below face k
+    flux = f0 * np.exp(-kappa * lwpt) + f1 * np.exp(-kappa * lwpb)  # net upward, faces 0..n
+    return -(flux[1:] - flux[:-1]) / (rho * CP * exn * dz)
+
+
+class TestRadiation(_SolverTest):
+    RAD = {"iradiation": "2", "rad_longw": ".true.", "rka": "85.", "dlwtop": "70.", "dlwbot": "22."}
+
+    def _run(self, name, rad, nprocs=1, **case):
+        groups = {"RUN": {"runtime": "0.5"}, "NAMRADIATION": rad,
+                  "NAMTHERMOSTAT": {"lthermostat": ".true.", "tthermostat": "0.5"}}
+        groups.update(case.pop("groups", {}))
+        d = tc.write_case(self.tmp / name, groups=groups, **case)
+        self.run_ok(d, nprocs)
+        return d
+
+    def _report(self, label, got, ref):
+        sel = np.abs(ref) > 1e-2 * np.abs(ref).max()
+        dev = np.abs(got - ref)[sel] / np.abs(ref)[sel]
+        print(f"\n[{label}] max|thlprad|={np.abs(got).max():.4e} max rel dev (|ref|>1% of max)={dev.max():.3e}")
+
+    def test_liquid_longwave_matches_formula(self):
+        d = self._run("rad_liq", self.RAD)
+        with Dataset(d / "thermostat_z.310.nc") as z:
+            ql, rho, exn = (np.asarray(z[v][-1]) for v in ("ql", "rhof", "exnf"))
+            got = np.asarray(z["thlprad"][-1])
+        ref = radpar_reference(ql, rho, exn, 20.0, 70.0, 22.0, 85.0)
+        self._report("liquid", got, ref)
+        # thlprad uses start-of-step ql; the record's ql is end-of-step (~0.3 % change at
+        # cloud top). A sign or face off-by-one error is O(1), so 1e-2 still discriminates.
+        np.testing.assert_allclose(got, ref, rtol=1e-2, atol=1e-2 * np.abs(ref).max())
+        self.assertLess(got.min(), -1e-4)          # cloud-top cooling present
+
+    def test_smoke_longwave_matches_formula(self):
+        rad = dict(self.RAD, rad_smoke=".true.", isvsmoke="1", rka="0.02", dlwtop="60.", dlwbot="0.")
+        zf = (np.arange(64) + 0.5) * 20.0
+        smoke = np.where(zf < 700, 1.0, 0.0)
+        d = self._run("rad_smoke", rad, groups={"PHYSICS": {"lmoist": ".false."}, "BC": {"qts": "-1."},
+                                                "SCALARS": {"nsv": "1"}},
+                      thl=np.where(zf < 700, 288.0, 295.0), qt=np.zeros(64), sv=smoke[:, None])
+        with Dataset(d / "thermostat_z.310.nc") as z:
+            rho, exn = np.asarray(z["rhof"][-1]), np.asarray(z["exnf"][-1])
+            got = np.asarray(z["thlprad"][-1])
+        ref = radpar_reference(smoke, rho, exn, 20.0, 60.0, 0.0, 0.02)
+        self._report("smoke", got, ref)
+        np.testing.assert_allclose(got, ref, rtol=1e-2, atol=1e-2 * np.abs(ref).max())
+
+    def test_dycoms_term_matches_formula(self):
+        zf = (np.arange(64) + 0.5) * 20.0
+        D = 3.75e-6
+        rad = dict(self.RAD, lrad_dycoms=".true.", rad_dycoms_D=str(D))
+        d = self._run("ft_formula", rad)
+        with Dataset(d / "thermostat_z.310.nc") as z:
+            ql, qt, rho, exn = (np.asarray(z[v][-1], dtype=float) for v in ("ql", "qt", "rhof", "exnf"))
+            got = np.asarray(z["thlprad"][-1])
+        # zi by the solver's rule: highest level with qt > 8 g/kg, linear to the next level.
+        # (Laminar RF01: 832.7 m, between the 830/850 m cells, not 840 m.)
+        k = np.where(qt > 8e-3)[0].max()
+        zi = zf[k] + (8e-3 - qt[k]) * (zf[k + 1] - zf[k]) / (qt[k + 1] - qt[k])
+        ref = radpar_reference(ql, rho, exn, 20.0, 70.0, 22.0, 85.0)
+        ft = zf > zi
+        ref[ft] -= D / 3 * (np.cbrt(zf[ft] - zi) + zi * (zf[ft] - zi) ** (-2 / 3))   # cooling
+        self._report("dycoms", got, ref)
+        np.testing.assert_allclose(got, ref, rtol=1e-2, atol=1e-2 * np.abs(ref).max())
+        self.assertTrue(np.all(got[ft] < 0))
+
+    def test_dycoms_term_balances_subsidence(self):
+        # 300 s so the free-troposphere subsidence signal (~2e-2 K) is far above
+        # float32 resolution (3e-5 K at 297 K).
+        zf = (np.arange(64) + 0.5) * 20.0
+        D = 3.75e-6
+        rad = dict(self.RAD, lrad_dycoms=".true.", rad_dycoms_D=str(D))
+        common = dict(wfls=-D * zf, groups={"RUN": {"runtime": "299.5"},
+                                            "NAMTHERMOSTAT": {"lthermostat": ".true.", "tthermostat": "300."}})
+        a = self._run("ft_both", rad, **common)
+        b = self._run("ft_subs", {"iradiation": "0"}, **common)
+        with Dataset(a / "thermostat_z.310.nc") as za, Dataset(b / "thermostat_z.310.nc") as zb:
+            dthl_both = np.asarray(za["thl"][-1], dtype=float) - tc.rf01_profiles(zf)[0]
+            dthl_subs = np.asarray(zb["thl"][-1], dtype=float) - tc.rf01_profiles(zf)[0]
+        # The top cell is excluded: there the subsidence stencil is one-sided/boundary-
+        # dominated (subs run: -1.9e-3 K, cooling), while the FT term keeps cooling it
+        # (-1.0e-2 K), so it measures the top boundary, not the balance.
+        ft = (zf > 840.0 + 150.0) & (zf < zf[-1])
+        ratio = np.abs(dthl_both[ft]).max() / np.abs(dthl_subs[ft]).max()
+        print(f"\n[balance] max|dthl_both|/max|dthl_subs| in FT = {ratio:.4f}")
+        # Residual sources: one-sided subsidence differences, O(dz/(z-zi)), and the
+        # 832.7 vs 840 m zi offset. A sign error gives a ratio of ~2.
+        self.assertLess(np.abs(dthl_both[ft]).max(), 0.25 * np.abs(dthl_subs[ft]).max())
+
 
 if __name__ == "__main__":
     unittest.main()

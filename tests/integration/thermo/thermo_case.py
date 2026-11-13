@@ -44,7 +44,7 @@ def rf01_profiles(zf: np.ndarray, zi: float = 840.0):
 
 
 def write_case(run_dir: Path, groups: dict | None = None, ktot: int = 64, dz: float = 20.0,
-               thl=None, qt=None, u=7.0, v=-5.5, wfls=None, thlpcar=None) -> Path:
+               thl=None, qt=None, u=7.0, v=-5.5, wfls=None, thlpcar=None, sv=None) -> Path:
     """Write namoptions/prof.inp/lscale.inp for a flat case. Returns run_dir."""
     run_dir.mkdir(parents=True, exist_ok=True)
     nml = {g: dict(kv) for g, kv in BASE.items()}
@@ -70,6 +70,12 @@ def write_case(run_dir: Path, groups: dict | None = None, ktot: int = 64, dz: fl
         f.write("# thermo test case\n# z ug vg pgx pgy wfls dqtdxls dqtdyls dqtdtls thlpcar\n")
         for k in range(ktot):
             f.write(f"{zf[k]:.6f} {u:.4f} {v:.4f} 0. 0. {wfls[k]:.6e} 0. 0. 0. {thlpcar[k]:.6e}\n")
+    if sv is not None:
+        sv = np.asarray(sv, dtype=float).reshape(ktot, -1)
+        with open(run_dir / f"scalar.inp.{EXPNR}", "w") as f:
+            f.write("# thermo test case\n# z sv1..svn\n")
+            for k in range(ktot):
+                f.write(f"{zf[k]:.6f} " + " ".join(f"{x:.8e}" for x in sv[k]) + "\n")
     return run_dir
 
 

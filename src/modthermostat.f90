@@ -86,6 +86,7 @@ contains
                            nsv, lmoist
     use modfields,  only : thl0, qt0, ql0, w0, sv0, rhof, exnf, IIc, IIcs, IIw, IIws, u0av, v0av
     use modsurfdata, only : thls, qts
+    use modraddata, only : thlprad, lwu, lwd, iradiation, irad_none, rad_smoke, isvsmoke
     use modsurface, only : ustar_mo, obl_mo
     use modmpi,     only : myid, comm3d, mpierr, my_real, mpi_sum, mpi_max, avexy_ibm
     use modstat_nc, only : writestat_nc
@@ -123,7 +124,13 @@ contains
         end do
         loc(3) = loc(3) + zh(kmx)
         if (lmoist) loc(4) = loc(4) + crossing(qt0(i,j,kb:ke), IIc(i,j,kb:ke), 8.e-3)
-        if (nsv > 0) loc(5) = loc(5) + crossing(sv0(i,j,kb:ke,1), IIc(i,j,kb:ke), 0.5)   ! Task 5: index -> isvsmoke
+        if (nsv > 0) then
+          if (rad_smoke) then
+            loc(5) = loc(5) + crossing(sv0(i,j,kb:ke,isvsmoke), IIc(i,j,kb:ke), 0.5)
+          else
+            loc(5) = loc(5) + crossing(sv0(i,j,kb:ke,1), IIc(i,j,kb:ke), 0.5)
+          end if
+        end if
       end do
     end do
     loc(6) = maxval(w0(ib:ie,jb:je,kb:ke))
@@ -149,7 +156,11 @@ contains
     call avexy_ibm(vz(kb:ke,4), tmp3(:,:,kb:ke), ib,ie,jb,je,kb,ke-1,1, IIc(ib:ie,jb:je,kb:ke), IIcs(kb:ke), .false.)
     vz(:,5) = rhof(kb:ke)
     vz(:,6) = exnf(kb:ke)
-    vz(:,7) = 0.         ! thlprad: Task 5
+    if (iradiation /= irad_none) then
+      call avexy_ibm(vz(kb:ke,7), thlprad(ib:ie,jb:je,kb:ke), ib,ie,jb,je,kb,ke-1,1, IIc(ib:ie,jb:je,kb:ke), IIcs(kb:ke), .false.)
+    else
+      vz(:,7) = 0.
+    end if
     ! resolved fluxes at half levels k (face between k-1 and k); kb face is 0
     do k = kb + 1, ke
       tmp3(:,:,k) = w0(ib:ie,jb:je,k) * 0.5 * (thl0(ib:ie,jb:je,k) + thl0(ib:ie,jb:je,k-1))
@@ -161,8 +172,14 @@ contains
     end do
     tmp3(:,:,kb) = 0.
     call avexy_ibm(vz(kb:ke,9), tmp3(:,:,kb:ke), ib,ie,jb,je,kb,ke-1,1, IIw(ib:ie,jb:je,kb:ke), IIws(kb:ke), .false.)
-    vz(:,10) = 0.        ! lwu: Task 5
-    vz(:,11) = 0.        ! lwd: Task 5
+    if (iradiation /= irad_none) then
+      ! F1 / F0 terms at faces kb:ke (the top face ke+1 is not written); mean over fluid-face columns
+      call avexy_ibm(vz(kb:ke,10), lwu(ib:ie,jb:je,kb:ke), ib,ie,jb,je,kb,ke-1,1, IIw(ib:ie,jb:je,kb:ke), IIws(kb:ke), .false.)
+      call avexy_ibm(vz(kb:ke,11), lwd(ib:ie,jb:je,kb:ke), ib,ie,jb,je,kb,ke-1,1, IIw(ib:ie,jb:je,kb:ke), IIws(kb:ke), .false.)
+    else
+      vz(:,10) = 0.
+      vz(:,11) = 0.
+    end if
 
     if (myid == 0) then
       call writestat_nc(ncidt, 1, tnct, (/timee/), nrect, .true.)
