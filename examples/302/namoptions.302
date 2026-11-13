@@ -1,0 +1,91 @@
+! DALES smoke-cloud case (Bretherton et al. 1999) on uDALES; see README.md for sources.
+&RUN
+iexpnr       = 302
+runtime      = 10800.       ! 3 h (DALES runtime)
+trestart     = 10800.
+dtmax        = 10.
+ladaptive    = .true.
+courant      = 0.5          ! DALES
+libm         = .false.
+lles         = .true.
+nprocx       = 8
+nprocy       = 2
+lrandomize   = .true.       ! uniform noise on u,v,w; uDALES has no thl noise (DALES randthl = 0.1)
+irandom      = 43           ! DALES
+randu        = 0.1
+krand        = 140          ! levels 1..140 (z < 700 m, the initial smoke layer)
+/
+
+&OUTPUT
+lfielddump   = .false.
+ltdump       = .false.
+lxytdump     = .false.
+/
+
+&DOMAIN
+itot         = 64           ! DALES
+jtot         = 64
+ktot         = 250
+xlen         = 3200.
+ylen         = 3200.
+/
+
+&PHYSICS
+ps           = 100000.      ! DALES
+igrw_damp    = 0            ! DALES igrw_damp = 0
+lmoist       = .false.
+lcoriol      = .false.      ! DALES
+lbuoyancy    = .true.
+ltempeq      = .true.
+/
+
+&DYNAMICS
+iadv_mom     = 2            ! DALES
+iadv_tke     = 2
+iadv_thl     = 7            ! DALES 7 (kappa)
+iadv_qt      = 2            ! DALES 7; uDALES supports only 2 for qt (inert here, lmoist = .false.)
+iadv_sv      = 7            ! DALES 7 (kappa)
+/
+
+&NAMSUBGRID
+loneeqn      = .true.
+lvreman      = .false.
+ldelta       = .false.
+/
+
+&SCALARS
+nsv          = 1
+/
+
+&WALLS
+nfcts        = 0
+lbottom      = .true.
+/
+
+&BC
+BCbotm       = 4            ! MO surface, u* from MO (DALES isurf = 4)
+BCbotT       = 1
+BCbotq       = 1
+thls         = 288.         ! DALES
+wtsurf       = 0.
+wqsurf       = 0.
+z0           = 0.1          ! DALES
+z0h          = 0.1
+ustin        = 0.2          ! DALES; unused with BCbotm = 4
+/
+
+&NAMRADIATION
+iradiation   = 2
+rad_longw    = .true.
+rad_smoke    = .true.
+isvsmoke     = 1
+rka          = 0.02         ! DALES
+dlwtop       = 60.          ! DALES
+dlwbot       = 0.
+timerad      = 0.           ! every step (DALES file: 600 s)
+/
+
+&NAMTHERMOSTAT
+lthermostat  = .true.
+tthermostat  = 60.
+/

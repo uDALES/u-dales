@@ -1,0 +1,89 @@
+! DYCOMS-II RF01 (Stevens et al. 2005) on uDALES; see README.md for sources.
+&RUN
+iexpnr       = 303
+runtime      = 14400.       ! 4 h
+trestart     = 14400.
+dtmax        = 10.
+ladaptive    = .true.
+courant      = 0.5
+libm         = .false.
+lles         = .true.
+nprocx       = 8
+nprocy       = 4
+lrandomize   = .true.       ! uniform noise on u,v,w; uDALES has no thl noise (PyCLES: +-0.05 K below 200 m)
+irandom      = 43
+randu        = 0.1
+krand        = 168          ! levels 1..168 (z < 840 m, the mixed layer)
+/
+
+&OUTPUT
+lfielddump   = .false.
+ltdump       = .false.
+lxytdump     = .false.
+/
+
+&DOMAIN
+itot         = 96           ! Stevens et al. 2005 / task spec: 96 x 96 x 300, dx = 35 m, dz = 5 m
+jtot         = 96
+ktot         = 300
+xlen         = 3360.
+ylen         = 3360.
+xlat         = 31.5         ! f = 0.76e-4 1/s (PyCLES ForcingDyCOMS_RF01)
+/
+
+&PHYSICS
+ps           = 101780.      ! PyCLES RS.Pg = 1017.8 hPa
+igrw_damp    = 2            ! sponge over the top quarter (ksp default)
+lmoist       = .true.
+lcoriol      = .true.
+lbuoyancy    = .true.
+ltempeq      = .true.
+/
+
+&DYNAMICS
+iadv_mom     = 2
+iadv_tke     = 2
+iadv_thl     = 2
+iadv_qt      = 2
+/
+
+&NAMSUBGRID
+loneeqn      = .true.
+lvreman      = .false.
+ldelta       = .false.
+/
+
+&WALLS
+nfcts        = 0
+lbottom      = .true.
+/
+
+&BC
+BCbotm       = 4            ! MO surface with a z0 that gives neutral Cm = 0.0011 at z1 = 2.5 m
+BCbotT       = 1
+BCbotq       = 1
+thls         = 289.         ! first guess (surface thl is diagnosed every step)
+qts          = 9.0e-3       ! first guess
+wtsurf       = -1.22460976e-02   ! SHF 15 W/m2 upward / (1.22 kg/m3 * 1004 J/kg/K); negative = upward (D1)
+wqsurf       = -4.17089801e-05   ! LHF 115 W/m2 upward / (1.22 kg/m3 * 2.26e6 J/kg)
+z0           = 1.069564e-05      ! 2.5 m * exp(-0.41 / sqrt(0.0011)); printed by make_rf01.py
+z0h          = 1.069564e-05
+/
+
+&NAMRADIATION
+iradiation   = 2
+rad_longw    = .true.
+rad_smoke    = .false.
+rka          = 85.          ! m2/kg (PyCLES kap)
+dlwtop       = 70.          ! F0
+dlwbot       = 22.          ! F1
+lrad_dycoms  = .true.
+rad_dycoms_D = 3.75e-6
+rad_dycoms_qtthres = 8.0e-3
+timerad      = 0.
+/
+
+&NAMTHERMOSTAT
+lthermostat  = .true.
+tthermostat  = 60.
+/

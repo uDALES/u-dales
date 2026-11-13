@@ -1,0 +1,82 @@
+! DALES BOMEX (Siebesma et al. 2003) on uDALES; see README.md for the source of every value.
+&RUN
+iexpnr       = 301
+runtime      = 21600.       ! 6 h (task spec; DALES case file has 28800 s)
+trestart     = 21600.
+dtmax        = 10.
+ladaptive    = .true.
+courant      = 0.5
+libm         = .false.
+lles         = .true.
+nprocx       = 4
+nprocy       = 2
+lrandomize   = .true.       ! uniform noise on u,v,w; uDALES has no thl/qt noise (randthl, randqt unused)
+irandom      = 43           ! DALES namoptions
+randu        = 0.1
+krand        = 20           ! levels 1..20 (z < 800 m)
+/
+
+&OUTPUT
+lfielddump   = .false.
+ltdump       = .false.
+lxytdump     = .false.
+/
+
+&DOMAIN
+itot         = 64           ! DALES itot, jtot, kmax
+jtot         = 64
+ktot         = 80
+xlen         = 6400.        ! DALES xsize, ysize
+ylen         = 6400.
+xlat         = 14.94        ! f = 0.376e-4 1/s (Siebesma et al. 2003); DALES file has xlat = 15
+/
+
+&PHYSICS
+ps           = 101500.      ! DALES
+igrw_damp    = 2            ! DALES default; sponge over the top quarter (ksp default as DALES)
+lmoist       = .true.
+lcoriol      = .true.
+lbuoyancy    = .true.
+ltempeq      = .true.
+/
+
+&DYNAMICS
+iadv_mom     = 2            ! DALES iadv_* = 2 (central differences)
+iadv_tke     = 2
+iadv_thl     = 2
+iadv_qt      = 2
+/
+
+&NAMSUBGRID
+loneeqn      = .true.
+lvreman      = .false.
+ldelta       = .false.      ! DALES
+/
+
+&WALLS
+nfcts        = 0
+lbottom      = .true.
+/
+
+&BC
+BCbotm       = 5            ! MO surface, u* = ustin (DALES isurf = 3)
+BCbotT       = 1
+BCbotq       = 1
+thls         = 299.1        ! DALES
+qts          = 1.7e-2       ! first guess only; surface qt is diagnosed every step (prof.inp qt(z1) = 1.697e-2)
+wtsurf       = -8.0e-3      ! DALES +8e-3 K m/s upward; uDALES positive = downward (D1)
+wqsurf       = -5.2e-5      ! DALES +5.2e-5 kg/kg m/s upward
+z0           = 2.0e-4       ! DALES
+z0h          = 2.0e-4       ! DALES z0 sets both
+ustin        = 0.28         ! DALES
+/
+
+&NAMRADIATION
+iradiation   = 0            ! the -2 K/day cooling is the thlpcar column of lscale.inp
+timerad      = 0.
+/
+
+&NAMTHERMOSTAT
+lthermostat  = .true.
+tthermostat  = 60.
+/
