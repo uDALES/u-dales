@@ -25,20 +25,17 @@ the minimal teaching cases in `examples/`. Categories:
 - Each case directory contains the namoptions file, the geometry source
   (commit small STLs directly; large geometry ships as a deterministic
   generator script plus its exact invocation), and any case-specific notes.
-- Preprocessed IBM geometry (`solid_*`, `facet_sections_*`, …) IS committed
-  when its total size permits (tens of MB of text), so the case runs without
-  MATLAB preprocessing. Where it is too large for git (~GB, e.g. the large
-  benchmark tier), it stays out: regenerate per machine or fetch an archived
-  copy, and record where the archive lives in the case notes.
+- Preprocessed IBM geometry (`solid_*`, `fluid_boundary_*`,
+  `facet_sections_*`, `facetarea.inp.*`) is NOT committed: it is derived
+  data, regenerated deterministically from the STL and the namoptions by the
+  preprocessing (`tools/write_inputs.sh <case> c`). Generate it once per
+  machine; where that is a heavyweight job (the large tier), archive the
+  outputs and record where the archive lives in the case notes.
 - To use a case, copy its directory into your experiments directory (the
   copy may keep the full name or just the number — only the trailing digits
   matter), add a `config.sh` (see `docs/udales-simulation-setup.md`), then
-  run. Cases that fit ship WITH their preprocessed IBM geometry
-  (`benchmark-standard-900` does), so no MATLAB preprocessing is needed;
-  cases whose geometry is too large for git (`benchmark-large-901`, ~GB
-  scale) require running the preprocessing once per machine
-  (`tools/write_inputs.sh <case> c`) or fetching an archived copy (see the
-  case notes).
+  run the preprocessing once (`tools/write_inputs.sh <case> c`, or fetch an
+  archived copy for the large tier), then run.
 - Treat committed cases as frozen: changes invalidate cross-version and
   cross-machine comparisons. New configurations get new case numbers and a
   row in the table above.
