@@ -81,6 +81,7 @@ SAVE
   real              :: wttop  = 0.
 
   real              :: wqtop  = 0.
+  real              :: ustin  = -1.      !<  Prescribed friction velocity for BCbotm = 5 [m/s]
   real              :: wqsurf = -1.      !<  Prescribed kinematic moisture flux [kg/kg m/s]
 
   real, allocatable :: wsvsurf(:) !<  Prescribed surface scalar(n) flux [- m/s]

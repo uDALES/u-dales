@@ -19,6 +19,8 @@ NB: only relevant if the bottom of the domain is not covered by floor facets. De
 - 1: free slip, i.e. zero flux.
 - 2: flux given by wall function involving temperature.
 - 3: flux given by neutral wall function.
+- 4: Monin-Obukhov surface layer (DALES `isurf = 4`): friction velocity from the domain-mean Obukhov length, stress applied locally. Requires `ltempeq`, `BCbotT = 1`, `z0`, `z0h`, `wtsurf` (and `wqsurf` if `lmoist`).
+- 5: as 4 but with the friction velocity prescribed by `ustin` (DALES `isurf = 3`).
 
 ### Walls
 

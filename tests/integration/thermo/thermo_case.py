@@ -86,3 +86,50 @@ def run(run_dir: Path, nprocs: int = 1) -> subprocess.CompletedProcess:
     cmd = (f"{_shell_prefix()}cd '{run_dir}' && '{mpiexec}' {extra} -n {nprocs} "
            f"'{UDALES_BUILD}' namoptions.{EXPNR}")
     return subprocess.run(["bash", "-lc", cmd], cwd=REPO_ROOT, capture_output=True, text=True)
+
+
+FKAR, GRAV, RD, RV = 0.41, 9.81, 287.04, 461.5
+
+
+def psim(z):
+    if z <= 0:
+        x = (1 - 16 * z) ** 0.25
+        return np.pi / 2 - 2 * np.arctan(x) + np.log((1 + x) ** 2 * (1 + x ** 2) / 8)
+    return -2 / 3 * (z - 5 / 0.35) * np.exp(-0.35 * z) - z - (10 / 3) / 0.35
+
+
+def psih(z):
+    if z <= 0:
+        x = (1 - 16 * z) ** 0.25
+        return 2 * np.log((1 + x ** 2) / 2)
+    return -2 / 3 * (z - 5 / 0.35) * np.exp(-0.35 * z) - (1 + 2 / 3 * z) ** 1.5 - (10 / 3) / 0.35 + 1
+
+
+def rib_from_obl(z, L, z0h, z0m):
+    return z / L * (np.log(z / z0h) - psih(z / L) + psih(z0h / L)) / \
+        (np.log(z / z0m) - psim(z / L) + psim(z0m / L)) ** 2
+
+
+def obl_iter(thl, qt, tskin, qskin, z, z0m, z0h, u, v, L):
+    """Port of DALES dev 075ac4e modsurface.f90:calc_obl_iter."""
+    thv = thl * (1 + (RV / RD - 1) * qt)
+    thvs = tskin * (1 + (RV / RD - 1) * qskin)
+    horv2 = max(u * u + v * v, 0.1 ** 2)
+    rib = GRAV / thvs * z * (thv - thvs) / horv2
+    if rib == 0:
+        return 1e6
+    if rib * L < 0 or abs(L) == 1e5:
+        L = 0.01 if rib > 0 else -0.01
+    Lold, it = 0.0, 0
+    while abs((L - Lold) / L) > 1e-4 and it < 1000:
+        it += 1
+        Lold = L
+        Ls, Le = L - 0.001 * L, L + 0.001 * L
+        fx = rib - rib_from_obl(z, L, z0h, z0m)
+        fxd = (-rib_from_obl(z, Ls, z0h, z0m) + rib_from_obl(z, Le, z0h, z0m)) / (Ls - Le)
+        L = L - fx / fxd
+        if rib * L < 0 or abs(L) == 1e5:
+            L = 0.01 if rib > 0 else -0.01
+        if abs(L) > 1e6:
+            L = np.sign(L) * 1e6
+    return L

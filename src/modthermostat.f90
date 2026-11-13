@@ -11,7 +11,7 @@ module modthermostat
   real    :: tthermostat = 60.    !< output interval [s]
   real    :: tnext = 0.
   integer :: ncidt, ncidz, nrect = 0, nrecz = 0
-  integer, parameter :: nvt = 11, nvz = 11
+  integer, parameter :: nvt = 13, nvz = 11
   character(80) :: fnamet = 'thermostat_t.xxx.nc', fnamez = 'thermostat_z.xxx.nc'
   character(80) :: tnct(1,4), tncz(1,4), nct(nvt,4), ncz(nvz,4)
 
@@ -55,6 +55,8 @@ contains
     call ncinfo(nct( 9,:), 'obl',      'Obukhov length',                'm',      'time')
     call ncinfo(nct(10,:), 'thls',     'Surface thl',                   'K',      'time')
     call ncinfo(nct(11,:), 'qts',      'Surface qt',                    'kg/kg',  'time')
+    call ncinfo(nct(12,:), 'u1',       'Slab-mean u at first level',    'm/s',    'time')
+    call ncinfo(nct(13,:), 'v1',       'Slab-mean v at first level',    'm/s',    'time')
     call ncinfo(ncz( 1,:), 'thl',     'Liquid water potential temperature', 'K',      'tt')
     call ncinfo(ncz( 2,:), 'qt',      'Total water',                        'kg/kg',  'tt')
     call ncinfo(ncz( 3,:), 'ql',      'Liquid water',                       'kg/kg',  'tt')
@@ -82,8 +84,9 @@ contains
   subroutine thermostat
     use modglobal,  only : ib, ie, jb, je, kb, ke, timee, rk3step, zf, zh, dzf, dzh, &
                            nsv, lmoist
-    use modfields,  only : thl0, qt0, ql0, w0, sv0, rhof, exnf, IIc, IIcs, IIw, IIws
+    use modfields,  only : thl0, qt0, ql0, w0, sv0, rhof, exnf, IIc, IIcs, IIw, IIws, u0av, v0av
     use modsurfdata, only : thls, qts
+    use modsurface, only : ustar_mo, obl_mo
     use modmpi,     only : myid, comm3d, mpierr, my_real, mpi_sum, mpi_max, avexy_ibm
     use modstat_nc, only : writestat_nc
     implicit none
@@ -131,10 +134,12 @@ contains
     ncol = max(glob(8), 1.)                  ! columns with at least one fluid cell
     vt(1:5) = glob(1:5) / ncol
     vt(6:7) = glob(6:7)
-    vt(8)  = 0.          ! ustar: Task 3
-    vt(9)  = 0.          ! obl:   Task 3
+    vt(8)  = ustar_mo
+    vt(9)  = obl_mo
     vt(10) = thls
     vt(11) = qts
+    vt(12) = u0av(kb)
+    vt(13) = v0av(kb)
 
     ! --- slab profiles (fluid cells only)
     call avexy_ibm(vz(kb:ke,1), thl0(ib:ie,jb:je,kb:ke), ib,ie,jb,je,kb,ke-1,1, IIc(ib:ie,jb:je,kb:ke), IIcs(kb:ke), .false.)

@@ -2062,8 +2062,10 @@ module modibm
       !kind of obsolete when road facets are being used
       !vegetated floor not added (could simply be copied from vegetated horizontal facets)
       use modwallfunctions, only:wfuno, wfmneutral
+      use modsurface, only : surface_mo
       use modglobal, only:ib, ie, ih, jh, kb, kh, jb, je, nsv, &
-         dzf, dzfi, ltempeq, lmoist, BCbotT, BCbotq, BCbotm, BCbots, dzh2i, lfielddump
+         dzf, dzfi, ltempeq, lmoist, BCbotT, BCbotq, BCbotm, BCbots, dzh2i, lfielddump, &
+         BCbotm_mo, BCbotm_mo_ustar
       use modfields, only : u0,v0,e120,e12m,thl0,qt0,sv0,up,vp,thlp,qtp,svp,momfluxb,tfluxb,tau_x,tau_y,tau_z,thl_flux
       use modsurfdata, only:wtsurf, wqsurf, thls, z0, z0h
       use modsubgriddata, only:ekh
@@ -2098,6 +2100,8 @@ module modibm
       call wfuno(ih, jh, kh, up, vp, thlp, momfluxb, tfluxb, bcTfluxA, u0, v0, thl0, thls, z0, z0h, 91)
       elseif (BCbotm.eq.3) then
       call wfmneutral(ih, jh, kh, up, vp, momfluxb, u0, v0, z0, 91)
+      elseif ((BCbotm.eq.BCbotm_mo) .or. (BCbotm.eq.BCbotm_mo_ustar)) then
+      call surface_mo
       else
       write(0, *) "ERROR: bottom boundary type for momentum undefined"
       stop 1

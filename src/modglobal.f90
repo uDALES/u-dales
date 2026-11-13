@@ -163,6 +163,8 @@ module modglobal
    integer, parameter :: BCbotm_freeslip = 1  ! do nothing
    integer, parameter :: BCbotm_wf = 2        ! wall function
    integer, parameter :: BCbotm_wfneutral = 3 ! neutral wall function
+   integer, parameter :: BCbotm_mo = 4        ! Monin-Obukhov (DALES isurf 4)
+   integer, parameter :: BCbotm_mo_ustar = 5  ! Monin-Obukhov with prescribed ustar (DALES isurf 3)
    ! temperature
    integer, parameter :: BCbotT_flux = 1       ! determined by wtsurf
    integer, parameter :: BCbotT_wf = 2         ! wall function

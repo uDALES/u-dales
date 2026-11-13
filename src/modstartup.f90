@@ -79,7 +79,7 @@ module modstartup
                                     ltrees,ntrees,Qstar,dQdt,lad,lsize,r_s,cd,dec,ud,ltreedump,itree_mode, &
                                     lpurif,npurif,Qpu,epu, &
                                     lheatpump,lfan_hp,nhppoints,Q_dot_hp,QH_dot_hp
-      use modsurfdata,       only : z0, z0h,  wtsurf, wttop, wqtop, wqsurf, wsvsurf, wsvtop, wsvsurfdum, wsvtopdum, ps, thvs, thls, thl_top, qt_top, qts
+      use modsurfdata,       only : z0, z0h,  wtsurf, wttop, wqtop, wqsurf, wsvsurf, wsvtop, wsvsurfdum, wsvtopdum, ps, thvs, thls, thl_top, qt_top, qts, ustin
       use modfields,         only : initfields, dpdx
       use modpois,           only : initpois
       use modboundary,       only : initboundary, ksp
@@ -138,7 +138,7 @@ module modstartup
          bctfxm, bctfxp, bctfym, bctfyp, bctfz, &
          bcqfxm, bcqfxp, bcqfym, bcqfyp, bcqfz, &
          wttop, thl_top, qt_top, qts, wsvsurfdum, wsvtopdum, &
-         wtsurf, wqsurf, thls, z0, z0h, BCzp, ds
+         wtsurf, wqsurf, thls, z0, z0h, ustin, BCzp, ds
       namelist/INLET/ &
          Uinf, Vinf, di, dti, inletav, linletRA, &
          lstoreplane, lreadminl, lfixinlet, lfixutauin, &
@@ -503,6 +503,7 @@ module modstartup
       call MPI_BCAST(xtime, 1, MY_REAL, 0, comm3d, mpierr)
       call MPI_BCAST(z0, 1, MY_REAL, 0, comm3d, mpierr)
       call MPI_BCAST(z0h, 1, MY_REAL, 0, comm3d, mpierr)
+      call MPI_BCAST(ustin, 1, MY_REAL, 0, comm3d, mpierr)
       call MPI_BCAST(bctfxm, 1, MY_REAL, 0, comm3d, mpierr)
       call MPI_BCAST(bctfxp, 1, MY_REAL, 0, comm3d, mpierr)
       call MPI_BCAST(bctfym, 1, MY_REAL, 0, comm3d, mpierr)
@@ -709,8 +710,9 @@ module modstartup
       !                                                                 |
       !-----------------------------------------------------------------|
 
-      use modsurfdata, only : ps, thls, qts, thvs
-      use modglobal,   only : itot,ktot,jtot,ylen,xlen,dtmax,runtime, &
+      use modsurfdata, only : ps, thls, qts, thvs, z0, z0h, wtsurf, wqsurf, ustin
+      use modibm,      only : lbottom
+      use modglobal,   only : BCbotm_mo, BCbotm_mo_ustar, BCbotT, BCbotT_flux, itot,ktot,jtot,ylen,xlen,dtmax,runtime, &
                               startfile,lwarmstart,lstratstart,lmoist, lbuoyancy, nsv, rv, rd, &
                               BCxm, BCxT, BCxq, BCxs, BCym, BCyT, BCyq, BCtopm, BCbotm, &
                               BCbotm_wfneutral, BCtopm_pressure, &
@@ -790,6 +792,24 @@ module modstartup
             thvs = thls*(1.+(rv/rd - 1.)*qts)
          end if
       end if
+      if ((BCbotm == BCbotm_mo) .or. (BCbotm == BCbotm_mo_ustar)) then
+         if (.not. lbottom) then
+            write(0, *) 'ERROR: BCbotm = 4/5 (Monin-Obukhov) requires lbottom = .true.'
+            stop 1
+         end if
+         if ((.not. ltempeq) .or. BCbotT /= BCbotT_flux .or. (z0 <= 0.) .or. (z0h <= 0.)) then
+            write(0, *) 'ERROR: BCbotm = 4/5 requires ltempeq, BCbotT = 1 and z0, z0h > 0'
+            stop 1
+         end if
+         if (wtsurf == -1. .or. (lmoist .and. wqsurf == -1.)) then
+            write(0, *) 'ERROR: BCbotm = 4/5: wtsurf (and wqsurf if lmoist) still at sentinel -1'
+            stop 1
+         end if
+         if ((BCbotm == BCbotm_mo_ustar) .and. (ustin <= 0.)) then
+            write(0, *) 'ERROR: BCbotm = 5 requires ustin > 0'
+            stop 1
+         end if
+      end if
       if (xlen < 0) then
          write(0, *) 'ERROR: xlen out of range/not set'
          stop 1
@@ -830,7 +850,7 @@ module modstartup
       if (((ltempeq .eqv. .false.) .or. (iwalltemp==1)) .and. (iwallmom==2)) then
         if (myid==0) write(*,*) "Changing to neutral wall function"
          iwallmom = 3
-         BCbotm = BCbotm_wfneutral
+         if ((BCbotm /= BCbotm_mo) .and. (BCbotm /= BCbotm_mo_ustar)) BCbotm = BCbotm_wfneutral   ! keep Monin-Obukhov (BCbotm = 4/5)
       end if
 
       select case(BCxm)

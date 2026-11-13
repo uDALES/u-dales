@@ -74,6 +74,45 @@ class TestSurfaceSign(_SolverTest):
         self.assertAlmostEqual(dqt, -1.0e-3 * dt / dz, delta=2e-2 * 1.0e-3 * dt / dz)
 
 
+class TestMO(_SolverTest):
+    def _mo_case(self, name, bcbotm, extra_bc=None):
+        # upward heat/moisture flux = negative in the uDALES (-z positive) convention
+        bc = {"BCbotm": str(bcbotm), "wtsurf": "-0.05", "wqsurf": "-5.0e-5",
+              "z0": "2.e-4", "z0h": "2.e-4", "thls": "289.0", "qts": "9.0e-3"}
+        bc.update(extra_bc or {})
+        # 20 fixed 1-s steps so the laminar (thls, obl) pair has converged: surface_mo
+        # runs every RK substep and re-diagnoses thls each time.
+        d = tc.write_case(self.tmp / name, u=7.0, v=-5.5, groups={
+            "RUN": {"runtime": "19.5"}, "BC": bc,
+            "NAMTHERMOSTAT": {"lthermostat": ".true.", "tthermostat": "1."}})
+        self.run_ok(d)
+        return d
+
+    def test_mo_ustar_obl_match_reference(self):
+        d = self._mo_case("mo4", 4)
+        with Dataset(d / "thermostat_t.310.nc") as t, Dataset(d / "thermostat_z.310.nc") as z:
+            ustar, obl = float(t["ustar"][-1]), float(t["obl"][-1])
+            thls, qts = float(t["thls"][-1]), float(t["qts"][-1])
+            thl1, qt1 = float(z["thl"][-1, 0]), float(z["qt"][-1, 0])
+            obl_prev = float(t["obl"][-2])
+            u1, v1 = float(t["u1"][-1]), float(t["v1"][-1])   # drag slows the wind slightly
+        self.assertGreater(ustar, 0.01)
+        self.assertLess(obl, 0.0)                         # upward buoyancy flux -> unstable
+        self.assertGreater(thls, thl1)                    # surface warmer than air
+        self.assertAlmostEqual(obl, obl_prev, delta=0.02 * abs(obl))   # converged
+        # Reference: same iteration on the recorded converged state (float32 records).
+        z1 = 10.0
+        L = tc.obl_iter(thl1, qt1, thls, qts, z1, 2e-4, 2e-4, u1, v1, -0.01)
+        self.assertAlmostEqual(obl, L, delta=0.02 * abs(L))
+        cm = tc.FKAR ** 2 / (np.log(z1 / 2e-4) - tc.psim(z1 / L) + tc.psim(2e-4 / L)) ** 2
+        self.assertAlmostEqual(ustar, np.sqrt(cm) * np.hypot(u1, v1), delta=0.02 * ustar)
+
+    def test_prescribed_ustar(self):
+        d = self._mo_case("mo5", 5, {"ustin": "0.28"})
+        with Dataset(d / "thermostat_t.310.nc") as t:
+            self.assertAlmostEqual(float(t["ustar"][-1]), 0.28, places=6)   # float32 record
+
+
 class TestThermostat(_SolverTest):
     def test_cloudy_column_diagnostics(self):
         # 3 steps, laminar RF01 column: horizontally homogeneous, so column = slab mean
@@ -99,9 +138,7 @@ class TestThermostat(_SolverTest):
             self.assertEqual(float(t["cfrac"][-1]), 1.0)
             self.assertAlmostEqual(float(t["zi_qt8"][-1]), 840.0, delta=20.0)
             self.assertAlmostEqual(float(t["zi"][-1]), 840.0, delta=20.0)
-            # placeholders until the surface (Task 3) and radiation (Task 5) tasks fill them
-            for name in ("ustar", "obl"):
-                self.assertEqual(float(t[name][-1]), 0.0)
+            # placeholder until the radiation task (Task 5) fills them
             for name in ("thlprad", "lwu", "lwd"):
                 self.assertTrue(np.all(z[name][-1, :] == 0.0))
 
