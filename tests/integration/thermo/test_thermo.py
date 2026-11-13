@@ -138,14 +138,16 @@ class TestCalthv(_SolverTest):
             "BC": {"BCbotm": "4", "wtsurf": "-0.05", "wqsurf": "-5.0e-5", "z0": "2.e-4", "z0h": "2.e-4"},
             "NAMTHERMOSTAT": {"lthermostat": ".true.", "tthermostat": "1."}})
         self.run_ok(d)
-        # Record alignment: fielddump and thermostat run after tstep_integrate and BEFORE
-        # thermodynamics. So dump record n holds end-of-step-n thl/qt, and the dthvdz that
-        # calthv computes from them (with the ustar/obl of thermostat record n+1, see below)
-        # appears in dump record n+1. ql/exnf in record n are from the start of step n,
-        # so take ql from record n+1 as well (it is diagnosed from record-n thl/qt).
-        # ustar/obl: program.f90 calls `boundary` (-> surface_mo, via modibm) AFTER
-        # thermostat and BEFORE thermodynamics, so the MO gradients calthv sees are
-        # the ones thermostat records one step later: record n+1, not n.
+        # Record alignment (approximate). Per RK substep the order is: bottom (-> surface_mo)
+        # ... tstep_integrate -> fielddump/thermostat (write only at rk3step == 3 when due)
+        # -> boundary -> thermodynamics; calthv runs on EVERY substep. Dump record n holds
+        # end-of-step-n thl/qt. The dthvdz in dump record n+1 was computed by calthv at the
+        # end of RK substep 2 of step n+1, from the substep-2 intermediate fields and the
+        # ustar_mo/obl_mo of that substep. That is closer to thermostat record n+1 (substep 3
+        # of step n+1) than to record n, so ustar/obl are taken from record n+1 and thl/qt
+        # from dump record n (ql from n+1, diagnosed from them). The pairing is off by one
+        # RK substep in both state and ustar/obl; it works because the laminar column is
+        # near-steady and the 5e-3 tolerance absorbs it.
         n = 0
         with Dataset(d / "fielddump.000.000.310.nc") as f, \
              Dataset(d / "thermostat_t.310.nc") as t, Dataset(d / "thermostat_z.310.nc") as z:
