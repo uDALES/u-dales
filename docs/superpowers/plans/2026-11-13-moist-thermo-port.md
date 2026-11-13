@@ -1823,3 +1823,83 @@ A maintained reference describing, item by item, where uDALES numerics agree wit
 - random perturbations;
 - diagnostics definitions (zi, LWP, cloud cover).
 For each item, give both formulas with file:line, the status after this branch (aligned / different by design / different, open issue #), and the measured effect on BOMEX/RF01 where Task 14 quantified it. Build it from numerics-audit-dynamics.md, numerics-audit-sgs.md and the Task 14 results, re-checking every row against the final code. Each claim of "identical" must be verified, not carried over from the audit.
+
+#### Task 14 additions (user, 2026-11-13)
+- **Identical time step.** Run both codes with a fixed dt (`ladaptive = .false.` in DALES; uDALES fixed dt via its namelist, which you must check), chosen at or below the adaptive dt of either code. This removes the L1 vs L2 CFL difference entirely. Keep the adaptive runs as a secondary comparison.
+- **Identical numerics settings in both codes:**
+  - 2nd-order central for every variable;
+  - no Galilean shift;
+  - the same Boussinesq-equivalent base state (constant-density DALES baseprof), with the Exner function consistent between the two;
+  - the same constants (after Task 11, rlv = 2.53e6; check cp, rd, rv, grav and es);
+  - exact saturation adjustment in uDALES (lqlnr);
+  - the same sponge, the same subsidence and forcing, and the same noise amplitudes and levels.
+  Table every setting side by side and justify any you cannot match.
+- **Small ensembles.** Run 3 seeds per code per case. A difference counts as "very close" when the two ensemble means differ by less than the spread within either ensemble, for LWP, cloud cover, zi, u* and the thl/qt/ql/w'thl'/w'qt' profiles. Report the means, the spreads and the ratio.
+- Anything above that bar is a finding: diagnose it, or report it with a hypothesis and a next step.
+
+#### Task 15 additions (user, 2026-11-13)
+Add a per-case section (301 BOMEX, 303 RF01, and 302 smoke briefly) with a side-by-side table of every numerics-relevant setting in the final uDALES runs and the DALES reference runs. Cover:
+- grid (itot, jtot, kmax, dx, dy, dz, domain);
+- advection scheme per variable (mom, tke, thl, qt, sv);
+- time integration and the dt actually achieved (from the outputs), courant/diffnr/peclet and dtmax;
+- SGS model and constants;
+- surface scheme and parameters;
+- saturation adjustment (lqlnr);
+- radiation settings and timerad;
+- subsidence and forcing;
+- sponge (igrw_damp, ksp, time scale);
+- Galilean shift;
+- random perturbations (fields, amplitudes, levels, seed);
+- base state (anelastic/Boussinesq, ibas_prf);
+- run length and the statistics windows.
+For each setting give the rationale: the GCSS specification, matching DALES, or a uDALES constraint. Flag any setting that is known to matter at this resolution, for example 2nd-order central qt at the RF01 inversion. Mirror the short version of each table in examples/30x/README.md.
+
+### Task 16: Case hooks instead of case-specific switches (user decision: B generic + C runtime hooks)
+
+The user does not want case-specific switches in core modules.
+
+**Generic, data-driven options (B):**
+- Radiation absorber: replace `rad_smoke` and `isvsmoke` with `rad_absorber = 'ql'` (default) or `'sv'`, plus `rad_absorber_sv = n`. Liquid and smoke then share one code path, with `rka`, `dlwtop` and `dlwbot` as now.
+- Thermostat: replace the hard-coded `zi_smoke` (scalar 1, threshold 0.5) with an optional generic diagnostic `zi_sv`, configured in &NAMTHERMOSTAT (`zi_sv_index`, default 0 = off; `zi_sv_thres`). The variable is written only when enabled.
+
+**Runtime-registered case hooks (C):**
+- New `src/modcases.f90`, the registry:
+  - a namelist `&NAMCASES` with `case_hooks = ''`, a comma-separated list of names;
+  - abstract interfaces for the hook points, and storage via a derived type with procedure-pointer components (Fortran has no arrays of procedure pointers).
+  - A `select case` registry maps names to `register_<name>` routines. An unknown name aborts with a clear message listing the valid names.
+- Hook points, each a no-op when no hook is registered:
+  - `call_hooks_init` after startup (cold and warm start);
+  - `call_hooks_radiation`, called inside `radiation` after the generic `radpar` tendency is computed and before it is added. It may add to `thlprad`;
+  - `call_hooks_forcing` after `lstend`;
+  - `call_hooks_stats`, so a case can write its own extra diagnostics.
+  Keep the set minimal: only the points needed now (radiation and init) must be fully used. Add forcing and stats only if they are trivial, and document them.
+- New `src/cases/case_dycoms_rf01.f90`:
+  - it moves the DYCOMS free-troposphere term out of modradiation;
+  - it has its own namelist `&NAMCASE_DYCOMS` (`D`, `qt_thres`), read from the same namoptions file, with the defaults currently used;
+  - the physics, the sign comment and the per-column zi reset are unchanged.
+  Bit-for-bit: the RF01 test run must give identical output before and after the move.
+- Remove `lrad_dycoms`, `rad_dycoms_D`, `rad_dycoms_qtthres`, `rad_smoke` and `isvsmoke` from modradiation, modraddata, the namelist and the docs. These are unreleased, so no deprecation path is needed.
+- CMake: compile `src/cases/*.f90`. Check how sources are globbed in CMakeLists.txt.
+
+**Cases and tests:**
+- Update examples/302 (`rad_absorber = 'sv'`), examples/303 (`case_hooks = 'dycoms_rf01'` plus &NAMCASE_DYCOMS), the thermo tests (radiation tests via the hook) and the docs.
+- New tests: an unknown hook name aborts; no hooks gives bit-identical output to a run without the namelist; a smoke run via `rad_absorber = 'sv'` is bit-identical to the old `rad_smoke` path, compared with a pre-change reference written before refactoring.
+
+**Docs:** a short developer page, "Adding case-specific physics with hooks", with a worked example (DYCOMS). Add a namoptions entry for &NAMCASES and update the NAMRADIATION/NAMTHERMOSTAT tables.
+
+### Task 17: Engineering hygiene for the new modules only (user: "just focus on the new modules -- nothing more")
+
+Scope: ONLY the modules this branch creates (src/modsurface.f90, src/modradiation.f90, src/modraddata.f90, src/modthermostat.f90, and from Task 16 src/modcases.f90 and src/cases/*.f90) plus the lines this branch added to existing files. Do not touch any other code, even where the same problems exist there; those are tracked in #402.
+
+Apply the #402 recommendations to the new code:
+- **Visibility.** Make each new module `private` by default, with an explicit `public ::` list of what other modules actually use. Grep every use site to build the list.
+- **Errors.** Replace every `stop`/`stop 1` in new code with the collective abort helper in src/modmpi.f90 (read its comment for the calling convention: rank 0 writes the message, all ranks call it). If a check runs on rank 0 only, broadcast the error flag first. No new bare `stop`.
+- **Namelists.** Verify that every new namelist variable is broadcast (list each one against its MPI_BCAST). Validate ranges in one place: the module's init, or checkinitvalues for cross-module checks. Give a clear message naming the namelist group and the variable.
+- **Constants.** Every physical constant in new code must come from modglobal (no new literals for grav, cp, rlv and the like) or be a named parameter with units and a reference.
+- **No commented-out code** and no TODO stubs in new code.
+- **Tests for pure kernels.** Where a new kernel is a pure function, add a direct check: the MO stability functions psim/psih/phih against Businger-Dyer/Beljaars-Holtslag reference values, and calc_obl_iter convergence on a known Ri_b. The kernels can be exposed through a small test driver, or tested through the existing Python harness with a minimal case. Follow how tests/integration/thermo is organised. Keep it small.
+- **No behaviour change.** The thermo suite must pass unchanged, and RF01/BOMEX test outputs must be bit-identical before and after (compare one short run).
+
+**Addition:** use the statsout branch's new output modules as the house style for new modules (`git show origin/statsout:src/out_stats.f90` and `out_instants.f90`): private by default with an explicit public list, short single-purpose routines, and generic interfaces where shapes differ. Also check that modthermostat's structure would slot into statsout's `out_*` framework when v3.0 merges, and note in the report what moving it would take. Do not move it now.
+
+Execution order: 10, 11, 12, 16, 17, 13, 14, 15.
