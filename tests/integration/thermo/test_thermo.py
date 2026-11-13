@@ -43,6 +43,14 @@ class TestInitChecks(_SolverTest):
         self.run_ok(d)
 
 
+class TestCalthvGuard(_SolverTest):
+    def test_uniform_saturated_column_does_not_divide_by_zero(self):
+        # Default RF01 profile: uniform saturated mixed layer, zero vertical gradients,
+        # so del_thv_dry - del_thv_sat == 0 in calthv (SIGFPE in the debug build).
+        d = tc.write_case(self.tmp / "calthv", groups={"RUN": {"runtime": "0.5"}})
+        self.run_ok(d)
+
+
 class TestThermostat(_SolverTest):
     def test_cloudy_column_diagnostics(self):
         # 3 steps, laminar RF01 column: horizontally homogeneous, so column = slab mean

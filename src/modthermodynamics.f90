@@ -180,10 +180,15 @@ contains
 
                    del_thv_sat = a_moist * dth + b_moist * dq
 
-                   chi     = 2*chi_half*(zf(k) - zf(k-1))/(dzh(k)+dzh(k+1))
-                   chi_sat = c_liquid * ql0(i,j,k) / (del_thv_dry - del_thv_sat)
+                   ! zero denominator (uniform saturated cell): dry and sat slopes coincide, so dthv = del_thv_sat
+                   if (del_thv_dry - del_thv_sat /= 0.) then
+                      chi     = 2*chi_half*(zf(k) - zf(k-1))/(dzh(k)+dzh(k+1))
+                      chi_sat = c_liquid * ql0(i,j,k) / (del_thv_dry - del_thv_sat)
 
-                   if (chi < chi_sat) then  !mixed parcel is saturated
+                      if (chi < chi_sat) then  !mixed parcel is saturated
+                         dthv = del_thv_sat
+                      end if
+                   else
                       dthv = del_thv_sat
                    end if
                 end if
