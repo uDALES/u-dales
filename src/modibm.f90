@@ -2104,6 +2104,7 @@ module modibm
       end if
 
 
+      ! wtsurf, wqsurf (like wttop, wqtop, bctf*): prescribed fluxes, positive in -z (downward)
       if (ltempeq) then
          if (BCbotT.eq.1) then !neumann/fixed flux bc for temperature
             do j = jb, je
@@ -2133,7 +2134,7 @@ module modibm
                                   0.5*(dzf(kb - 1)*ekh(i, j, kb) + dzf(kb)*ekh(i, j, kb - 1)) &
                                   *(qt0(i, j, kb) - qt0(i, j, kb - 1)) &
                                   *dzh2i(kb) &
-                                  + wqsurf &
+                                  - wqsurf &
                                   )*dzfi(kb)
                end do
             end do

@@ -51,6 +51,29 @@ class TestCalthvGuard(_SolverTest):
         self.run_ok(d)
 
 
+class TestSurfaceSign(_SolverTest):
+    """One step, laminar column with only a surface flux (no wind; neutral momentum wall function)."""
+
+    def _first_level_change(self, name, wtsurf, wqsurf):
+        d = tc.write_case(self.tmp / name, u=0.0, v=0.0, groups={
+            "RUN": {"runtime": "0.5", "dtmax": "1.0"},
+            "BC": {"BCbotm": "3", "wtsurf": str(wtsurf), "wqsurf": str(wqsurf)},
+            "NAMSUBGRID": {"loneeqn": ".false.", "lvreman": ".true."},
+            "NAMTHERMOSTAT": {"lthermostat": ".true.", "tthermostat": "0.5"}},
+            thl=np.full(64, 289.0), qt=np.full(64, 5.0e-3))
+        self.run_ok(d)
+        with Dataset(d / "thermostat_z.310.nc") as z:
+            return float(z["thl"][-1, 0]) - 289.0, float(z["qt"][-1, 0]) - 5.0e-3
+
+    def test_positive_flux_is_downward(self):
+        # uDALES convention (D1): prescribed boundary fluxes are positive in -z,
+        # so positive wtsurf/wqsurf cool/dry the first level by flux*dt/dz.
+        dthl, dqt = self._first_level_change("sign", 1.0, 1.0e-3)
+        dz, dt = 20.0, 1.0
+        self.assertAlmostEqual(dthl, -1.0 * dt / dz, delta=2e-2 * 1.0 * dt / dz)
+        self.assertAlmostEqual(dqt, -1.0e-3 * dt / dz, delta=2e-2 * 1.0e-3 * dt / dz)
+
+
 class TestThermostat(_SolverTest):
     def test_cloudy_column_diagnostics(self):
         # 3 steps, laminar RF01 column: horizontally homogeneous, so column = slab mean

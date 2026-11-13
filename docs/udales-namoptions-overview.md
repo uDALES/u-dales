@@ -135,13 +135,13 @@ BCs at the bottom (BCbot; only effective if not covered with ground facets): 1 =
 | bcqfz | 0 | `REAL` | Moisture flux on facets with surface normal in +z direction. | [m/s] |
 | thl_top | -1. | `REAL` >= 0 | Temperature at the top boundary. | [K] |
 | qt_top | -1. | `REAL` >= 0| Humidity at the top boundary. | [kg/kg] |
-| wttop | 0. | `REAL` | Temperature flux at the top boundary. | [Km/s] |
+| wttop | 0. | `REAL` | Kinematic heat flux at the top boundary, positive downward (into the domain). | [Km/s] |
 | BCbotm | 2 | 1,2,3 | Boundary condition for momentum at domain bottom (if `lbottom = .true.`). | - |
 | BCbotT | 1 | 1,2 | Boundary condition for temperature at domain bottom (if `lbottom = .true.`). | - |
 | BCbotq | 1 | 1 | Boundary condition for humidity at domain bottom (if `lbottom = .true.`). | - |
 | BCbots | 1 | 1 | Boundary condition for scalars at domain bottom (if `lbottom = .true.`). | - |
-| wtsurf | -1. |`REAL` | Temperature flux at domain bottom (if `lbottom = .true.`). | [Km/s] |
-| wqsurf | -1. | `REAL`| Moisture flux at domain bottom (if `lbottom = .true.`).  | [m/s] |
+| wtsurf | -1. |`REAL` | Kinematic heat flux at domain bottom, positive downward (into the surface) (if `lbottom = .true.`). | [Km/s] |
+| wqsurf | -1. | `REAL`| Kinematic moisture flux at domain bottom, positive downward (into the surface) (if `lbottom = .true.`).  | [m/s] |
 | thls | -1. |  `REAL`| Temperature at domain bottom (if `lbottom = .true.`).  | [K] |
 | qts | -1. | `REAL` | Moisture at domain bottom (if `lbottom = .true.`). Used in modthermodynamics to get a BC for the moisture profile. | [kg/kg] |
 | z0 | -1. |  `REAL`| Momentum roughness length of the domain bottom (if `lbottom = .true.`).  | [m] |

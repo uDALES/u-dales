@@ -45,6 +45,8 @@ Determined by `BCym`. Possible values:
 
 ## Temperature
 
+Global rule: all prescribed boundary fluxes (`wtsurf`, `wqsurf`, `wttop`, `wqtop`, facet `bctf*`/`bcqf*`) are positive in -z, i.e. directed downward (into the surface at the bottom), so a surface heating the air has a negative `wtsurf`.
+
 Only required when `ltempeq = .true.`
 
 ### Top
