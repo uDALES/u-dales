@@ -22,6 +22,11 @@ NB: only relevant if the bottom of the domain is not covered by floor facets. De
 - 4: Monin-Obukhov surface layer (DALES `isurf = 4`): friction velocity from the domain-mean Obukhov length, stress applied locally. Requires `ltempeq`, `BCbotT = 1`, `z0`, `z0h`, `wtsurf` (and `wqsurf` if `lmoist`).
 - 5: as 4 but with the friction velocity prescribed by `ustin` (DALES `isurf = 3`).
 
+Caveats for `BCbotm = 4` and `5`:
+
+- MO with IBM (`libm = .true.`) is untested: the `tskin`/`qskin` averages are not masked by `IIc`, and the stress is applied in solid `kb` cells.
+- The MO state (`obl`, `thls`/`qts`) and the radiation schedule are not in the restart files. After a warm start they re-converge within a few substeps, so a warm start is not an exact continuation.
+
 ### Walls
 
 Determined by `iwallmom`. Possible values:

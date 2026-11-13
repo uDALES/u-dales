@@ -247,3 +247,12 @@ independent NumPy reference calculations:
   counts as a port bug.
 - `thermostat` reductions cost a little per output step; negligible at the
   planned `tthermostat`.
+
+## Deviations from this spec (recorded at implementation)
+
+- (a) `tmp0` (Component 1) was dropped: its only consumer is the deferred microphysics.
+- (b) The namelist key is `timerad`, the public DALES name; the table above says `itimerad`, which is DALES's internal integer.
+- (c) The free-troposphere balance test asserts a residual below 0.25 of the subsidence tendency, not 1e-3 relative to either term: the uDALES zero-flux top BC gives no subsidence warming in the top cell, while `lrad_dycoms` cools it (controller ruling, progress.md).
+- (c) The decomposition test uses `rtol` 1e-5 after 3 turbulent steps (`runtime` 2.5, `dtmax` 1, with an absolute floor of 1e-6 of the maximum; 1e-4 of the maximum for `wthl`/`wqt`), not round-off: MPI reduction-order round-off is amplified by turbulent spin-up, and the resolved fluxes are cancellation-dominated (controller rulings, progress.md).
+- D1: `wqsurf` was flipped to downward-positive in its own commit, as decided above; the long-term convention is issue #393.
+- DYCOMS uses a cooling term (`thlprad -= D/3 [...]`), unlike DALES, which adds it with a plus sign (reported upstream as dalesteam/dales#347); see the radiation component above.

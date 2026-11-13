@@ -23,6 +23,8 @@ All switches and frequency parameters below live in the `&OUTPUT`, `&TREES`, `&W
 | `kslicedump.<px>.<py>.<expnr>.nc` | `lkslicedump` | `tsample` | Instantaneous horizontal (x, y) slice at `k = kslice` of u, v, w, temperature and moisture, per CPU. |
 | `islicedump.<px>.<py>.<expnr>.nc` | `lislicedump` | `tsample` | Instantaneous vertical (y, z) slice at `i = islice` of u, v, w, temperature and moisture; written only by the CPU(s) owning that i-index. |
 | `jslicedump.<px>.<py>.<expnr>.nc` | `ljslicedump` | `tsample` | Instantaneous vertical (x, z) slice at `j = jslice` of u, v, w, temperature and moisture; written only by the CPU(s) owning that j-index. |
+| **Thermodynamic diagnostics** | | | |
+| `thermostat_t.<expnr>.nc`, `thermostat_z.<expnr>.nc` | `lthermostat` (`&NAMTHERMOSTAT`) | `tthermostat` | Written by rank 0 in single precision. Time series (liquid water path, cloud cover, three boundary-layer heights, `wmax`, `qlmax`, `ustar`, `obl`, `thls`, `qts`, first-level `u`, `v`) and slab-mean profiles (`thl`, `qt`, `ql`, `cfracz`, `rhof`, `exnf`, `thlprad`, resolved `wthl`, `wqt`, `lwu`, `lwd`). Variables and units: see [NAMTHERMOSTAT](udales-namoptions-overview.md#namelist-namthermostat). |
 | **Facets** | | | |
 | `fac.<expnr>.nc` | `lwritefac` (`&WALLS`) | `dtfac` | Facet momentum and heat-transfer data per facet, averaged over the `dtfac` window: surface shear stresses `tau_x`, `tau_y`, `tau_z`, pressure and pressure fluctuation, heat transfer coefficients. |
 | `facT.<expnr>.nc` | `lwriteEBfiles` (requires `lEB`) | `dtEB` | Facet layer temperature (`T`) and temperature gradient (`dTdz`) per facet and facet layer. |

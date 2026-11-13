@@ -37,4 +37,4 @@ Run: `python tests/integration/thermo/test_thermo.py -v [TestClass]`.
   against the closed-form longwave expressions, and the balance of the
   free-troposphere radiative cooling against subsidence warming.
 - `TestDecomposition`: radiation, MO surface and moist SGS in a randomised
-  10-step run on 1, 2 (x) and 4 (2 x 2) ranks. Reference: the serial run.
+  short run (`runtime` 2.5 s, `dtmax` 1 s, about 3 steps) on 1, 2 (x) and 4 (2 x 2) ranks. Reference: the serial run.

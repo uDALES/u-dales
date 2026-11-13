@@ -189,10 +189,10 @@ Parametrised longwave radiation (Stevens et al. 2005; DALES `radpar`). Off by de
 | Name | Default | Possible values | Description | Unit |
 | ---- | ------- | --------------- | ----------- | ---- |
 | iradiation | 0 | 0, 2 | Radiation scheme: 0 none, 2 parametrised longwave (`radpar`). | - |
-| timerad | 0. | `REAL` >= 0 | Update interval of the radiative tendency; 0 updates every time step. | [s] |
+| timerad | 0. | `REAL` >= 0 | Update interval of the radiative tendency; 0 updates every time step. The adaptive time step is not limited to land on the radiation time, so the update may overshoot by up to one step. | [s] |
 | rad_longw | .true. | .true. or .false. | Longwave radiation on. | - |
 | rad_shortw | .false. | .false. | Shortwave radiation is not supported; `.true.` aborts. | - |
-| rad_smoke | .false. | .true. or .false. | Use scalar `isvsmoke` as the absorber instead of cloud liquid water `ql`. | - |
+| rad_smoke | .false. | .true. or .false. | Use scalar `isvsmoke` as the absorber instead of cloud liquid water `ql`. The `thermostat` output `zi_smoke` uses scalar 1 with threshold 0.5 whenever `nsv > 0` and `rad_smoke = .false.`. | - |
 | isvsmoke | 1 | 1 to `nsv` | Index of the smoke scalar (if `rad_smoke`). | - |
 | rka | 130. | `REAL` > 0 | Extinction coefficient kappa. | [m2/kg] |
 | dlwtop | 74. | `REAL` | Downward longwave flux at the top, F0. | [W/m2] |
@@ -201,6 +201,51 @@ Parametrised longwave radiation (Stevens et al. 2005; DALES `radpar`). Off by de
 | rad_dycoms_D | 3.75e-6 | `REAL` | Large-scale divergence in the free-troposphere term. | [1/s] |
 | rad_dycoms_qtthres | 8.e-3 | `REAL` | `qt` value defining the local inversion height. | [kg/kg] |
 | rad_ls | .false. | .true. or .false. | DALES compatibility only: ignored with a warning; the `thlpcar` column of `lscale.inp` is always applied. | - |
+
+## Namelist NAMTHERMOSTAT
+
+Time-series and profile diagnostics for boundary-layer cases (BOMEX, smoke, DYCOMS). Off by default. Variable names follow DALES `modthermostat`. Output files are described below.
+
+| Name | Default | Possible values | Description | Unit |
+| ---- | ------- | --------------- | ----------- | ---- |
+| lthermostat | .false. | .true. or .false. | Write `thermostat_t.<expnr>.nc` and `thermostat_z.<expnr>.nc`. | - |
+| tthermostat | 60. | `REAL` > 0 | Output interval. | [s] |
+
+Both files are written by rank 0 in single precision, every `tthermostat`. Averages are over fluid cells only. Fluxes are resolved fluxes only (no SGS contribution).
+
+`thermostat_t.<expnr>.nc` (time series, dimension `time`):
+
+| Variable | Description | Unit |
+| -------- | ----------- | ---- |
+| lwp_bar | Liquid water path, mean over fluid columns | kg/m^2 |
+| cfrac | Cloud cover: fraction of columns with `ql > 0` anywhere | - |
+| zi | Boundary-layer height: mean over columns of the half level of maximum `dthl/dz` | m |
+| zi_qt8 | Boundary-layer height: highest downward crossing of `qt = 8 g/kg` (0 if none; needs `lmoist`) | m |
+| zi_smoke | Boundary-layer height: highest downward crossing of smoke = 0.5 (scalar `isvsmoke` with `rad_smoke`, otherwise scalar 1; needs `nsv > 0`) | m |
+| wmax | Maximum vertical velocity | m/s |
+| qlmax | Maximum liquid water | kg/kg |
+| ustar | Friction velocity | m/s |
+| obl | Obukhov length | m |
+| thls | Surface thl | K |
+| qts | Surface qt | kg/kg |
+| u1 | Slab-mean u at first level | m/s |
+| v1 | Slab-mean v at first level | m/s |
+
+`thermostat_z.<expnr>.nc` (slab-mean profiles, dimensions `time` and height; `tt` = full levels, `mt` = half levels):
+
+| Variable | Description | Unit | Levels |
+| -------- | ----------- | ---- | ------ |
+| thl | Liquid water potential temperature | K | full |
+| qt | Total water | kg/kg | full |
+| ql | Liquid water | kg/kg | full |
+| cfracz | Cloud fraction | - | full |
+| rhof | Density | kg/m^3 | full |
+| exnf | Exner function | - | full |
+| thlprad | Radiative thl tendency (0 without radiation) | K/s | full |
+| wthl | Resolved w thl flux | K m/s | half |
+| wqt | Resolved w qt flux | m/s | half |
+| lwu | Longwave flux, F1 term (0 without radiation) | W/m^2 | half |
+| lwd | Longwave flux, F0 term (0 without radiation) | W/m^2 | half |
 
 ## Namelist WALLS
 

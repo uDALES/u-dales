@@ -85,6 +85,8 @@ contains
 
     ! momentum: replace the resolved diffusive flux through the bottom face by
     ! u'w' = -u*^2 u/|U| (pattern of modwallfunctions:wfmneutral, case 91)
+    ! This is the wfmneutral face stencil; it differs from DALES diffu's cell-centred
+    ! form but is second-order equivalent.
     do j = jb, je
       do i = ib, ie
         utan2 = 0.25 * (v0(i,j,kb) + v0(i-1,j,kb) + v0(i,j+1,kb) + v0(i-1,j+1,kb))
@@ -125,6 +127,8 @@ contains
     end if
     iter = 0
     lold = 0.
+    ! The abs(L) == 1.e5 reset is inherited from DALES, whose first guess is 1e5;
+    ! it is inactive with the -0.1 first guess used here.
     if (rib * L < 0. .or. abs(L) == 1.e5) then
       if (rib > 0.) L =  0.01
       if (rib < 0.) L = -0.01
