@@ -1803,3 +1803,23 @@ Addendum global constraints:
 - Compare every pair against the seed-to-seed noise floor of each code from refruns-report.md. A difference counts as small when it is within the noise floor.
 - Update RESULTS.md for 301 and 303 with the tables.
 - Report any remaining difference above the noise floor, with a hypothesis.
+
+### Task 15: Documented comparison of uDALES and DALES numerics
+
+**Files:** new docs/udales-dales-numerics.md (linked from mkdocs.yml and from the tier-2 case READMEs).
+
+A maintained reference describing, item by item, where uDALES numerics agree with and differ from classical DALES (dev 075ac4e, with notes where DALES 4.x releases differ). It should cover:
+- governing equations (Boussinesq vs anelastic, base state, Exner);
+- grid and staggering;
+- advection schemes available in each code and the ones used by default and in the GCSS cases;
+- time integration and time-step control (CFL norm, diffusion number vs Peclet);
+- pressure solver;
+- SGS models (one-equation TKE constants, length scale, wall damping, near-surface treatment, Smagorinsky and Vreman);
+- surface schemes (MO vs wall functions);
+- thermodynamics (saturation adjustment, es, constants);
+- radiation;
+- large-scale forcing and subsidence;
+- the Galilean transform, sponge layer and boundary conditions;
+- random perturbations;
+- diagnostics definitions (zi, LWP, cloud cover).
+For each item, give both formulas with file:line, the status after this branch (aligned / different by design / different, open issue #), and the measured effect on BOMEX/RF01 where Task 14 quantified it. Build it from numerics-audit-dynamics.md, numerics-audit-sgs.md and the Task 14 results, re-checking every row against the final code. Each claim of "identical" must be verified, not carried over from the audit.
