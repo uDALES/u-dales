@@ -54,6 +54,7 @@ program uDALES
   use modstat_nc,      only : initstat_nc
   use modfielddump,    only : initfielddump,fielddump,exitfielddump
   use modstatsdump,    only : initstatsdump,statsdump,exitstatsdump    !tg3315
+  use modthermostat,   only : initthermostat,thermostat,exitthermostat
   use modtimedep,      only : inittimedep,timedep
   use tests,           only : tests_read_sparse_ijk,tests_2decomp_init_exit,tests_mpi_operators,tests_zgrid_metrics,tests_sgs_statistics
   implicit none
@@ -118,6 +119,7 @@ program uDALES
   call inittimedep
 
   call initfielddump
+  call initthermostat
 
   call boundary
 
@@ -210,6 +212,8 @@ program uDALES
 
     call statsdump
 
+    call thermostat
+
     call boundary
 
     !call fixthetainf ! deprecated
@@ -235,6 +239,7 @@ program uDALES
 !-------------------------------------------------------
   call exitfielddump
   call exitstatsdump     !tg3315
+  call exitthermostat
   call exit_heatpump
   !call exitmodules
   !call exittest

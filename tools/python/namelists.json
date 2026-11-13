@@ -161,6 +161,10 @@
       "prandtl",
       "rigc"
     ],
+    "NAMTHERMOSTAT": [
+      "lthermostat",
+      "tthermostat"
+    ],
     "OUTPUT": [
       "fieldvars",
       "islice",
@@ -438,6 +442,7 @@
     "lstratstart": "RUN",
     "ltdump": "NAMSTATSDUMP",
     "ltempeq": "PHYSICS",
+    "lthermostat": "NAMTHERMOSTAT",
     "ltimedeplw": "PHYSICS",
     "ltimedepnudge": "PHYSICS",
     "ltimedepsurf": "PHYSICS",
@@ -523,6 +528,7 @@
     "tscale": "PHYSICS",
     "tstatsdump": "NAMSTATSDUMP",
     "tstatstart": "OUTPUT",
+    "tthermostat": "NAMTHERMOSTAT",
     "ud": "TREES",
     "uflowrate": "PHYSICS",
     "uinf": "INLET",

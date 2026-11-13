@@ -6,6 +6,7 @@ import unittest
 from pathlib import Path
 
 import numpy as np
+from netCDF4 import Dataset
 
 import thermo_case as tc
 
@@ -40,6 +41,33 @@ class TestInitChecks(_SolverTest):
         d = tc.write_case(self.tmp / "dryqts",
                           groups={"PHYSICS": {"lmoist": ".false."}, "BC": {"qts": "-1."}})
         self.run_ok(d)
+
+
+class TestThermostat(_SolverTest):
+    def test_cloudy_column_diagnostics(self):
+        # 3 steps, laminar RF01 column: horizontally homogeneous, so column = slab mean
+        # A perfectly uniform saturated mixed layer divides by zero in calthv
+        # (chi_sat, del_thv_dry = del_thv_sat = 0), which the debug build traps.
+        # A weak slope below the inversion avoids that without changing the diagnostics.
+        zf = (np.arange(64) + 0.5) * 20.0
+        thl, qt = tc.rf01_profiles(zf)
+        thl = thl + np.where(zf <= 840.0, 1.0e-3 * zf / 20.0, 0.0)
+        qt = qt - np.where(zf <= 840.0, 1.0e-7 * zf / 20.0, 0.0)
+        d = tc.write_case(self.tmp / "stat", thl=thl, qt=qt, groups={
+            "RUN": {"runtime": "2.5"},
+            "NAMTHERMOSTAT": {"lthermostat": ".true.", "tthermostat": "1."}})
+        self.run_ok(d)
+        with Dataset(d / "thermostat_t.310.nc") as t, Dataset(d / "thermostat_z.310.nc") as z:
+            self.assertGreaterEqual(len(t["time"]), 2)
+            ql = z["ql"][-1, :]
+            rhof = z["rhof"][-1, :]
+            dz = 20.0
+            lwp_np = float(np.sum(rhof * ql * dz))
+            self.assertAlmostEqual(float(t["lwp_bar"][-1]), lwp_np, delta=1e-6 * max(lwp_np, 1e-12))
+            self.assertGreater(lwp_np, 0.0)             # RF01 mixed layer is saturated aloft
+            self.assertEqual(float(t["cfrac"][-1]), 1.0)
+            self.assertAlmostEqual(float(t["zi_qt8"][-1]), 840.0, delta=20.0)
+            self.assertAlmostEqual(float(t["zi"][-1]), 840.0, delta=20.0)
 
 
 if __name__ == "__main__":
