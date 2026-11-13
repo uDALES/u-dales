@@ -1,0 +1,1645 @@
+<!-- -*- mode: jinja2 -*- -->
+
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+      <meta name="description" content="API documentation of the Fortran source code of uDALES, the open-source multi-physics large-eddy simulation model for urban environments.">
+    <meta name="author" content="The uDALES Team" >
+    <link rel="icon" href="../favicon.png">
+
+    <title>tests_mpi_operators &ndash; uDALES</title>
+
+    <!-- Bootstrap -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet"
+          integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"
+            integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
+    <!-- Font Awesome -->
+    <link href="../css/fontawesome.min.css" rel="stylesheet">
+    <link href="../css/brands.min.css" rel="stylesheet">
+    <link href="../css/regular.min.css" rel="stylesheet">
+    <link href="../css/solid.min.css" rel="stylesheet">
+    <link href="../css/v4-font-face.min.css" rel="stylesheet">
+    <link href="../css/v4-shims.min.css" rel="stylesheet">
+    <!-- MathJax -->
+    <script type="text/x-mathjax-config">
+      MathJax.Hub.Config({
+        TeX: { equationNumbers: { autoNumber: "AMS" } }
+      });
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/mathjax@2.7.9/MathJax.js?config=TeX-AMS-MML_HTMLorMML" async
+            integrity="sha256-DViIOMYdwlM/axqoGDPeUyf0urLoHMN4QACBKyB58Uw=" crossorigin="anonymous"></script>
+    <!-- Other scripts and stylesheets -->
+    <link href="../css/local.css" rel="stylesheet">
+    <link href="../css/pygments.css" rel="stylesheet">
+    <script src="../js/svg-pan-zoom.min.js"></script>
+  </head>
+
+  <body>
+
+    <!-- Fixed navbar -->
+    <div class="container-fluid mb-sm-4 mb-xl-2">
+      <nav class="navbar navbar-expand-lg navbar-dark bg-dark fixed-top">
+        <div class="container">
+          <a class="navbar-brand" href="../index.html">uDALES </a>
+          <button type="button" class="navbar-toggler" data-bs-toggle="collapse" data-bs-target="#navbar"
+                  aria-expanded="false" aria-controls="navbar" aria-label="Toggle navigation">
+                  <span class="navbar-toggler-icon">
+          </button>
+
+          <div id="navbar" class="navbar-collapse collapse">
+            <ul class="navbar-nav">
+                  <li class="nav-item">
+                    <a class="nav-link" href="../lists/files.html">Source Files</a>
+                  </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="../lists/modules.html">Modules</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="../lists/procedures.html">Procedures</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="../lists/absint.html">Abstract Interfaces</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="../lists/types.html">Derived Types</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="../lists/namelists.html">Namelists</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="../program/udales.html">Program</a>
+                </li>
+            </ul>
+              <div class="d-flex align-items-end flex-grow-1">
+                <form action="../search.html" role="search" class="ms-auto">
+                  <input type="text" class="form-control" aria-label="Search" placeholder="Search" name="q" id="tipue_search_input" autocomplete="off" required>
+                </form>
+              </div>
+          </div><!--/.nav-collapse -->
+        </div>
+      </nav>
+    </div>
+
+    <div class="container">
+  <div class="row">
+    <h1>tests_mpi_operators
+      <small>Function</small>
+      
+    </h1>
+      <div class="container p-2 mb-4 bg-light border rounded-3">
+    <div class="row align-items-center justify-content-between" id="info-bar">
+      <div class="col">
+        <ul class="list-inline" style="margin-bottom:0px;display:inline">
+
+            <li class="list-inline-item" id="statements"><i class="fa fa-list-ol"></i>
+              <a data-bs-toggle="tooltip" data-bs-placement="bottom" data-bs-html="true"
+                 title=" 0.9% of total for procedures.">136 statements</a>
+            </li>
+
+            <li class="list-inline-item" id="source-file">
+              <i class="fa fa-code"></i>
+              <a href="../src/tests.f90"> Source File</a>
+            </li>
+        </ul>
+      </div>
+      <div class="col">
+        <nav aria-label="breadcrumb">
+          <ol class="breadcrumb justify-content-end mb-0">
+                <li class="breadcrumb-item"><a href='../sourcefile/tests.f90.html'>tests.f90</a></li>
+                <li class="breadcrumb-item"><a href='../module/tests.html'>tests</a></li>
+            <li class="breadcrumb-item active" aria-current="page">tests_mpi_operators</li>
+          </ol>
+        </nav>
+      </div>
+    </div>
+  </div>
+  <script>
+    // Enable Bootstrap tooltips
+    (function () {
+      const tooltipTriggerList = document.querySelectorAll('[data-bs-toggle="tooltip"]')
+      const tooltipList = [...tooltipTriggerList].map(tooltipTriggerEl => new bootstrap.Tooltip(tooltipTriggerEl))
+    })();
+  </script>
+
+  </div>
+  
+  <div class="row">
+    <div class="col-md-3 hidden-xs hidden-sm visible-md visible-lg">
+      <div id="sidebar">
+      <h3>Contents</h3>
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+    <div class="card card-primary">
+      <div class="card-header text-left"><h3 class="card-title">Source Code</h3></div>
+      <div class="list-group">
+        <a class="list-group-item" href="../proc/tests_mpi_operators.html#src">tests_mpi_operators</a>
+      </div>
+    </div>
+
+
+  </div>
+
+    </div>
+    
+    <div class="col-md-9" id='text'>
+    <h2>public  function tests_mpi_operators()  
+</h2>
+        <div class="card mb-4">
+      <h3 class="card-header card-title bg-light">Uses</h3>
+      <div class="card-body">
+        <ul class="list-group list-group-flush">
+            <li class="list-group-item">
+              <ul class="list-inline">
+                  <li class="list-inline-item"><a href='../module/modfields.html'>modfields</a></li>
+                  <li class="list-inline-item"><a href='http://www.mpi-forum.org/docs/mpi-3.1/mpi31-report/node410.htm'>mpi</a></li>
+                  <li class="list-inline-item"><a href='../module/initfac.html'>initfac</a></li>
+                  <li class="list-inline-item"><a href='../module/modglobal.html'>modglobal</a></li>
+                  <li class="list-inline-item"><a href='../module/modibm.html'>modibm</a></li>
+              </ul>
+            </li>
+            <li class="list-group-item">
+              <div class="depgraph"><?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
+ "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<!-- Generated by graphviz version 14.1.3 (0)
+ -->
+<!-- Title: proc~~tests_mpi_operators~~UsesGraph Pages: 1 -->
+<svg id="proctests_mpi_operatorsUsesGraph" width="433pt" height="302pt"
+ viewBox="0.00 0.00 433.00 302.00" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<g id="proc~~tests_mpi_operators~~UsesGraph" class="graph" transform="scale(1 1) rotate(0) translate(4 297.8)">
+<title>proc~~tests_mpi_operators~~UsesGraph</title>
+<polygon fill="white" stroke="none" points="-4,4 -4,-297.8 428.56,-297.8 428.56,4 -4,4"/>
+<!-- proc~tests_mpi_operators -->
+<g id="proc~~tests_mpi_operators~~UsesGraph_node1" class="node">
+<title>proc~tests_mpi_operators</title>
+<polygon fill="none" stroke="black" points="424.56,-130.8 305.79,-130.8 305.79,-106.53 424.56,-106.53 424.56,-130.8"/>
+<text xml:space="preserve" text-anchor="middle" x="365.17" y="-115.06" font-family="Helvetica,sans-Serif" font-size="10.50">tests_mpi_operators</text>
+</g>
+<!-- module~initfac -->
+<g id="proc~~tests_mpi_operators~~UsesGraph_node2" class="node">
+<title>module~initfac</title>
+<g id="a_proc~~tests_mpi_operators~~UsesGraph_node2"><a xlink:href="../module/initfac.html" xlink:title="initfac">
+<polygon fill="#337ab7" stroke="#337ab7" points="264.78,-213.8 210.78,-213.8 210.78,-189.53 264.78,-189.53 264.78,-213.8"/>
+<text xml:space="preserve" text-anchor="middle" x="237.78" y="-198.06" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">initfac</text>
+</a>
+</g>
+</g>
+<!-- proc~tests_mpi_operators&#45;&gt;module~initfac -->
+<g id="proc~~tests_mpi_operators~~UsesGraph_edge1" class="edge">
+<title>proc~tests_mpi_operators&#45;&gt;module~initfac</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M345.13,-131.27C324.39,-145 290.99,-167.11 267.16,-182.88"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="265.26,-179.94 258.86,-188.38 269.13,-185.78 265.26,-179.94"/>
+</g>
+<!-- module~modfields -->
+<g id="proc~~tests_mpi_operators~~UsesGraph_node3" class="node">
+<title>module~modfields</title>
+<g id="a_proc~~tests_mpi_operators~~UsesGraph_node3"><a xlink:href="../module/modfields.html" xlink:title="modfields">
+<polygon fill="#337ab7" stroke="#337ab7" points="269.79,-130.8 205.77,-130.8 205.77,-106.53 269.79,-106.53 269.79,-130.8"/>
+<text xml:space="preserve" text-anchor="middle" x="237.78" y="-115.06" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">modfields</text>
+</a>
+</g>
+</g>
+<!-- proc~tests_mpi_operators&#45;&gt;module~modfields -->
+<g id="proc~~tests_mpi_operators~~UsesGraph_edge2" class="edge">
+<title>proc~tests_mpi_operators&#45;&gt;module~modfields</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M305.52,-118.66C297.39,-118.66 289.17,-118.66 281.41,-118.66"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="281.57,-115.16 271.57,-118.66 281.57,-122.16 281.57,-115.16"/>
+</g>
+<!-- module~modglobal -->
+<g id="proc~~tests_mpi_operators~~UsesGraph_node4" class="node">
+<title>module~modglobal</title>
+<g id="a_proc~~tests_mpi_operators~~UsesGraph_node4"><a xlink:href="../module/modglobal.html" xlink:title="modglobal">
+<polygon fill="#337ab7" stroke="#337ab7" points="164.14,-293.8 95.62,-293.8 95.62,-269.53 164.14,-269.53 164.14,-293.8"/>
+<text xml:space="preserve" text-anchor="middle" x="129.88" y="-278.06" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">modglobal</text>
+</a>
+</g>
+</g>
+<!-- proc~tests_mpi_operators&#45;&gt;module~modglobal -->
+<g id="proc~~tests_mpi_operators~~UsesGraph_edge3" class="edge">
+<title>proc~tests_mpi_operators&#45;&gt;module~modglobal</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M355.64,-131.16C340.54,-152.47 307.16,-196.11 269.79,-222.66 240.94,-243.16 203.87,-258.45 175.28,-268.33"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="174.19,-265 165.81,-271.49 176.41,-271.64 174.19,-265"/>
+</g>
+<!-- module~modibm -->
+<g id="proc~~tests_mpi_operators~~UsesGraph_node5" class="node">
+<title>module~modibm</title>
+<g id="a_proc~~tests_mpi_operators~~UsesGraph_node5"><a xlink:href="../module/modibm.html" xlink:title="modibm">
+<polygon fill="#337ab7" stroke="#337ab7" points="265.66,-88.8 209.89,-88.8 209.89,-64.53 265.66,-64.53 265.66,-88.8"/>
+<text xml:space="preserve" text-anchor="middle" x="237.78" y="-73.06" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">modibm</text>
+</a>
+</g>
+</g>
+<!-- proc~tests_mpi_operators&#45;&gt;module~modibm -->
+<g id="proc~~tests_mpi_operators~~UsesGraph_edge4" class="edge">
+<title>proc~tests_mpi_operators&#45;&gt;module~modibm</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M326.55,-106.06C310.73,-100.76 292.35,-94.61 276.51,-89.3"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="278.04,-86.12 267.45,-86.27 275.82,-92.76 278.04,-86.12"/>
+</g>
+<!-- mpi -->
+<g id="proc~~tests_mpi_operators~~UsesGraph_node6" class="node">
+<title>mpi</title>
+<g id="a_proc~~tests_mpi_operators~~UsesGraph_node6"><a xlink:href="http://www.mpi-forum.org/docs/mpi-3.1/mpi31-report/node410.htm" xlink:title="mpi">
+<polygon fill="#337ab7" stroke="#337ab7" points="54,-151.8 0,-151.8 0,-127.53 54,-127.53 54,-151.8"/>
+<text xml:space="preserve" text-anchor="middle" x="27" y="-136.06" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">mpi</text>
+</a>
+</g>
+</g>
+<!-- proc~tests_mpi_operators&#45;&gt;mpi -->
+<g id="proc~~tests_mpi_operators~~UsesGraph_edge5" class="edge">
+<title>proc~tests_mpi_operators&#45;&gt;mpi</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M351.36,-106.2C310.75,-68.22 182.11,40.06 90,-16.66 54.72,-38.39 38.8,-87.04 32.19,-116.23"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="28.78,-115.43 30.2,-125.92 35.64,-116.83 28.78,-115.43"/>
+</g>
+<!-- module~initfac&#45;&gt;module~modglobal -->
+<g id="proc~~tests_mpi_operators~~UsesGraph_edge6" class="edge">
+<title>module~initfac&#45;&gt;module~modglobal</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M221.91,-214.28C208.53,-225.48 188.19,-242.13 169.77,-255.66 166.6,-258 163.23,-260.38 159.86,-262.7"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="158.08,-259.69 151.76,-268.19 162,-265.48 158.08,-259.69"/>
+</g>
+<!-- module~initfac&#45;&gt;mpi -->
+<g id="proc~~tests_mpi_operators~~UsesGraph_edge8" class="edge">
+<title>module~initfac&#45;&gt;mpi</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M210.38,-214.27C179.79,-226.94 128.66,-242.04 90,-222.66 65.15,-210.21 47.71,-182.55 37.79,-162.58"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="40.97,-161.11 33.57,-153.52 34.62,-164.06 40.97,-161.11"/>
+</g>
+<!-- module~modmpi -->
+<g id="proc~~tests_mpi_operators~~UsesGraph_node9" class="node">
+<title>module~modmpi</title>
+<g id="a_proc~~tests_mpi_operators~~UsesGraph_node9"><a xlink:href="../module/modmpi.html" xlink:title="modmpi">
+<polygon fill="#337ab7" stroke="#337ab7" points="157.77,-213.8 102,-213.8 102,-189.53 157.77,-189.53 157.77,-213.8"/>
+<text xml:space="preserve" text-anchor="middle" x="129.88" y="-198.06" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">modmpi</text>
+</a>
+</g>
+</g>
+<!-- module~initfac&#45;&gt;module~modmpi -->
+<g id="proc~~tests_mpi_operators~~UsesGraph_edge7" class="edge">
+<title>module~initfac&#45;&gt;module~modmpi</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M210.33,-201.66C198.01,-201.66 183.11,-201.66 169.56,-201.66"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="169.62,-198.16 159.62,-201.66 169.62,-205.16 169.62,-198.16"/>
+</g>
+<!-- netcdf -->
+<g id="proc~~tests_mpi_operators~~UsesGraph_node10" class="node">
+<title>netcdf</title>
+<polygon fill="#337ab7" stroke="#337ab7" points="156.88,-171.8 102.88,-171.8 102.88,-147.53 156.88,-147.53 156.88,-171.8"/>
+<text xml:space="preserve" text-anchor="middle" x="129.88" y="-156.06" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">netcdf</text>
+</g>
+<!-- module~initfac&#45;&gt;netcdf -->
+<g id="proc~~tests_mpi_operators~~UsesGraph_edge9" class="edge">
+<title>module~initfac&#45;&gt;netcdf</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M210.33,-191.17C197.44,-186.06 181.73,-179.83 167.7,-174.26"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="169.36,-171.16 158.77,-170.72 166.78,-177.66 169.36,-171.16"/>
+</g>
+<!-- decomp_2d -->
+<g id="proc~~tests_mpi_operators~~UsesGraph_node7" class="node">
+<title>decomp_2d</title>
+<polygon fill="#337ab7" stroke="#337ab7" points="166.77,-129.8 93,-129.8 93,-105.53 166.77,-105.53 166.77,-129.8"/>
+<text xml:space="preserve" text-anchor="middle" x="129.88" y="-114.06" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">decomp_2d</text>
+</g>
+<!-- module~modfields&#45;&gt;decomp_2d -->
+<g id="proc~~tests_mpi_operators~~UsesGraph_edge10" class="edge">
+<title>module~modfields&#45;&gt;decomp_2d</title>
+<path fill="none" stroke="#cbff00" stroke-dasharray="5,2" d="M205.29,-118.37C196.81,-118.29 187.43,-118.2 178.28,-118.11"/>
+<polygon fill="#cbff00" stroke="#cbff00" points="178.44,-114.61 168.41,-118.02 178.38,-121.61 178.44,-114.61"/>
+</g>
+<!-- module~modibm&#45;&gt;mpi -->
+<g id="proc~~tests_mpi_operators~~UsesGraph_edge12" class="edge">
+<title>module~modibm&#45;&gt;mpi</title>
+<path fill="none" stroke="#0066ff" stroke-dasharray="5,2" d="M209.59,-76.61C179.39,-77.4 129.67,-81.24 90,-96.66 75.69,-102.23 61.49,-111.71 50.3,-120.35"/>
+<polygon fill="#0066ff" stroke="#0066ff" points="48.43,-117.36 42.85,-126.37 52.83,-122.81 48.43,-117.36"/>
+</g>
+<!-- module~modibmdata -->
+<g id="proc~~tests_mpi_operators~~UsesGraph_node8" class="node">
+<title>module~modibmdata</title>
+<g id="a_proc~~tests_mpi_operators~~UsesGraph_node8"><a xlink:href="../module/modibmdata.html" xlink:title="modibmdata">
+<polygon fill="#337ab7" stroke="#337ab7" points="169.77,-49.8 90,-49.8 90,-25.53 169.77,-25.53 169.77,-49.8"/>
+<text xml:space="preserve" text-anchor="middle" x="129.88" y="-34.06" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">modibmdata</text>
+</a>
+</g>
+</g>
+<!-- module~modibm&#45;&gt;module~modibmdata -->
+<g id="proc~~tests_mpi_operators~~UsesGraph_edge11" class="edge">
+<title>module~modibm&#45;&gt;module~modibmdata</title>
+<path fill="none" stroke="#0066ff" stroke-dasharray="5,2" d="M209.51,-66.62C199.2,-62.82 187.18,-58.4 175.68,-54.16"/>
+<polygon fill="#0066ff" stroke="#0066ff" points="176.9,-50.88 166.31,-50.71 174.48,-57.45 176.9,-50.88"/>
+</g>
+<!-- module~modmpi&#45;&gt;mpi -->
+<g id="proc~~tests_mpi_operators~~UsesGraph_edge13" class="edge">
+<title>module~modmpi&#45;&gt;mpi</title>
+<path fill="none" stroke="#00ffff" stroke-dasharray="5,2" d="M104.84,-189.11C99.89,-186.41 94.74,-183.5 90,-180.66 78.39,-173.71 65.88,-165.57 55.17,-158.39"/>
+<polygon fill="#00ffff" stroke="#00ffff" points="57.4,-155.67 47.16,-152.96 53.48,-161.47 57.4,-155.67"/>
+</g>
+</g>
+</svg>
+</div>          <div>
+            <a type="button" class="graph-help" data-bs-toggle="modal" href="#UsesGraph-help-text">Help</a>
+          </div>
+          <div class="modal fade" id="UsesGraph-help-text" tabindex="-1" role="dialog">
+            <div class="modal-dialog modal-lg" role="document">
+              <div class="modal-content">
+                <div class="modal-header">
+                  <h4 class="modal-title" id="-graph-help-label">Graph Key</h4>
+                  <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+<p>Nodes of different colours represent the following: </p>
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
+ "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<!-- Generated by graphviz version 14.1.3 (0)
+ -->
+<!-- Title: Graph Key Pages: 1 -->
+<svg width="511pt" height="32pt"
+ viewBox="0.00 0.00 511.00 32.00" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<g id="graph0" class="graph" transform="scale(1 1) rotate(0) translate(4 28.27)">
+<title>Graph Key</title>
+<polygon fill="white" stroke="none" points="-4,4 -4,-28.27 506.88,-28.27 506.88,4 -4,4"/>
+<!-- Module -->
+<g id="node1" class="node">
+<title>Module</title>
+<polygon fill="#337ab7" stroke="#337ab7" points="54,-24.27 0,-24.27 0,0 54,0 54,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="27" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Module</text>
+</g>
+<!-- Submodule -->
+<g id="node2" class="node">
+<title>Submodule</title>
+<polygon fill="#5bc0de" stroke="#5bc0de" points="144.13,-24.27 71.87,-24.27 71.87,0 144.13,0 144.13,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="108" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Submodule</text>
+</g>
+<!-- Subroutine -->
+<g id="node3" class="node">
+<title>Subroutine</title>
+<polygon fill="#d9534f" stroke="#d9534f" points="231.63,-24.27 162.37,-24.27 162.37,0 231.63,0 231.63,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="197" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Subroutine</text>
+</g>
+<!-- Function -->
+<g id="node4" class="node">
+<title>Function</title>
+<polygon fill="#d94e8f" stroke="#d94e8f" points="306.26,-24.27 249.74,-24.27 249.74,0 306.26,0 306.26,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="278" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Function</text>
+</g>
+<!-- Program -->
+<g id="node5" class="node">
+<title>Program</title>
+<polygon fill="#f0ad4e" stroke="#f0ad4e" points="381.26,-24.27 324.74,-24.27 324.74,0 381.26,0 381.26,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="353" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Program</text>
+</g>
+<!-- This Page&#39;s Entity -->
+<g id="node6" class="node">
+<title>This Page&#39;s Entity</title>
+<polygon fill="none" stroke="black" points="502.88,-24.27 399.12,-24.27 399.12,0 502.88,0 502.88,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="451" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50">This Page&#39;s Entity</text>
+</g>
+</g>
+</svg>
+
+<p>Solid arrows point from a submodule to the (sub)module which it is
+descended from. Dashed arrows point from a module or program unit to 
+modules which it uses.
+</p>
+ Where possible, edges connecting nodes are
+given different colours to make them easier to distinguish in
+large graphs.</div>
+            </div>
+          </div>
+        </div>
+            </li>
+        </ul>
+      </div>
+    </div>
+
+
+
+
+    <h3>Arguments</h3>
+    <em>None</em>
+    <br>
+      <h3>Return Value
+        <small>
+          <span class="anchor" id="variable-tests_mpi_operators"></span>
+          logical
+        </small>
+      </h3>
+      
+    <br>
+    <div class="card">
+      <div class="card-header">
+  <h3 class="card-title">Calls</h3>
+      </div>
+      <div class="card-body">
+  <div class="depgraph"><?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
+ "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<!-- Generated by graphviz version 14.1.3 (0)
+ -->
+<!-- Title: proc~~tests_mpi_operators~~CallsGraph Pages: 1 -->
+<svg id="proctests_mpi_operatorsCallsGraph" width="641pt" height="938pt"
+ viewBox="0.00 0.00 641.00 938.00" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<g id="proc~~tests_mpi_operators~~CallsGraph" class="graph" transform="scale(0.900154 0.900154) rotate(0) translate(4 1037.89)">
+<title>proc~~tests_mpi_operators~~CallsGraph</title>
+<polygon fill="white" stroke="none" points="-4,4 -4,-1037.89 708.1,-1037.89 708.1,4 -4,4"/>
+<!-- proc~tests_mpi_operators -->
+<g id="proc~~tests_mpi_operators~~CallsGraph_node1" class="node">
+<title>proc~tests_mpi_operators</title>
+<polygon fill="none" stroke="black" points="118.77,-818.27 0,-818.27 0,-794 118.77,-794 118.77,-818.27"/>
+<text xml:space="preserve" text-anchor="middle" x="59.38" y="-802.53" font-family="Helvetica,sans-Serif" font-size="10.50">tests_mpi_operators</text>
+</g>
+<!-- mpi_allreduce -->
+<g id="proc~~tests_mpi_operators~~CallsGraph_node2" class="node">
+<title>mpi_allreduce</title>
+<polygon fill="#777777" stroke="#777777" points="404.31,-958.27 317.79,-958.27 317.79,-934 404.31,-934 404.31,-958.27"/>
+<text xml:space="preserve" text-anchor="middle" x="361.05" y="-942.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">mpi_allreduce</text>
+</g>
+<!-- proc~tests_mpi_operators&#45;&gt;mpi_allreduce -->
+<g id="proc~~tests_mpi_operators~~CallsGraph_edge1" class="edge">
+<title>proc~tests_mpi_operators&#45;&gt;mpi_allreduce</title>
+<path fill="none" stroke="#ff0000" d="M61.49,-818.53C65.58,-856.3 83.62,-970.11 154.77,-1016.13 198.53,-1044.44 222.83,-1033.32 272.04,-1016.13 299.82,-1006.43 325.4,-983.89 341.74,-966.99"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="344.11,-969.57 348.37,-959.87 338.99,-964.8 344.11,-969.57"/>
+</g>
+<!-- proc~avexy_ibm -->
+<g id="proc~~tests_mpi_operators~~CallsGraph_node3" class="node">
+<title>proc~avexy_ibm</title>
+<g id="a_proc~~tests_mpi_operators~~CallsGraph_node3"><a xlink:href="../proc/avexy_ibm.html" xlink:title="avexy_ibm">
+<polygon fill="#d9534f" stroke="#d9534f" points="247.29,-1007.27 179.52,-1007.27 179.52,-983 247.29,-983 247.29,-1007.27"/>
+<text xml:space="preserve" text-anchor="middle" x="213.4" y="-991.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">avexy_ibm</text>
+</a>
+</g>
+</g>
+<!-- proc~tests_mpi_operators&#45;&gt;proc~avexy_ibm -->
+<g id="proc~~tests_mpi_operators~~CallsGraph_edge2" class="edge">
+<title>proc~tests_mpi_operators&#45;&gt;proc~avexy_ibm</title>
+<path fill="none" stroke="#ff0000" d="M64.05,-818.64C73.7,-849.5 102.76,-929.95 154.77,-974.13 158.91,-977.66 163.7,-980.61 168.7,-983.08"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="167.18,-986.23 177.75,-986.91 169.91,-979.79 167.18,-986.23"/>
+</g>
+<!-- proc~avey_ibm -->
+<g id="proc~~tests_mpi_operators~~CallsGraph_node4" class="node">
+<title>proc~avey_ibm</title>
+<g id="a_proc~~tests_mpi_operators~~CallsGraph_node4"><a xlink:href="../proc/avey_ibm.html" xlink:title="avey_ibm">
+<polygon fill="#d9534f" stroke="#d9534f" points="244.66,-965.27 182.14,-965.27 182.14,-941 244.66,-941 244.66,-965.27"/>
+<text xml:space="preserve" text-anchor="middle" x="213.4" y="-949.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">avey_ibm</text>
+</a>
+</g>
+</g>
+<!-- proc~tests_mpi_operators&#45;&gt;proc~avey_ibm -->
+<g id="proc~~tests_mpi_operators~~CallsGraph_edge3" class="edge">
+<title>proc~tests_mpi_operators&#45;&gt;proc~avey_ibm</title>
+<path fill="none" stroke="#ff0000" d="M66.42,-818.39C79.28,-843.31 111.76,-900.2 154.77,-932.13 159.74,-935.82 165.42,-938.92 171.24,-941.5"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="169.74,-944.67 180.32,-945.06 172.29,-938.16 169.74,-944.67"/>
+</g>
+<!-- proc~compare_real_1d -->
+<g id="proc~~tests_mpi_operators~~CallsGraph_node5" class="node">
+<title>proc~compare_real_1d</title>
+<g id="a_proc~~tests_mpi_operators~~CallsGraph_node5"><a xlink:href="../proc/compare_real_1d.html" xlink:title="compare_real_1d">
+<polygon fill="#d94e8f" stroke="#d94e8f" points="264.91,-923.27 161.89,-923.27 161.89,-899 264.91,-899 264.91,-923.27"/>
+<text xml:space="preserve" text-anchor="middle" x="213.4" y="-907.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">compare_real_1d</text>
+</a>
+</g>
+</g>
+<!-- proc~tests_mpi_operators&#45;&gt;proc~compare_real_1d -->
+<g id="proc~~tests_mpi_operators~~CallsGraph_edge4" class="edge">
+<title>proc~tests_mpi_operators&#45;&gt;proc~compare_real_1d</title>
+<path fill="none" stroke="#ff0000" d="M71.44,-818.6C87.98,-836.59 120.87,-869.89 154.77,-890.13 156.92,-891.42 159.17,-892.65 161.47,-893.82"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="159.9,-896.95 170.45,-897.93 162.82,-890.58 159.9,-896.95"/>
+</g>
+<!-- proc~compare_real_2d -->
+<g id="proc~~tests_mpi_operators~~CallsGraph_node6" class="node">
+<title>proc~compare_real_2d</title>
+<g id="a_proc~~tests_mpi_operators~~CallsGraph_node6"><a xlink:href="../proc/compare_real_2d.html" xlink:title="compare_real_2d">
+<polygon fill="#d94e8f" stroke="#d94e8f" points="264.91,-881.27 161.89,-881.27 161.89,-857 264.91,-857 264.91,-881.27"/>
+<text xml:space="preserve" text-anchor="middle" x="213.4" y="-865.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">compare_real_2d</text>
+</a>
+</g>
+</g>
+<!-- proc~tests_mpi_operators&#45;&gt;proc~compare_real_2d -->
+<g id="proc~~tests_mpi_operators~~CallsGraph_edge5" class="edge">
+<title>proc~tests_mpi_operators&#45;&gt;proc~compare_real_2d</title>
+<path fill="none" stroke="#ff0000" d="M87.43,-818.77C106.19,-827.38 131.82,-838.86 154.77,-848.13 158.38,-849.6 162.14,-851.07 165.93,-852.52"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="164.58,-855.75 175.18,-855.99 167.05,-849.2 164.58,-855.75"/>
+</g>
+<!-- proc~compare_real_2d_jk -->
+<g id="proc~~tests_mpi_operators~~CallsGraph_node7" class="node">
+<title>proc~compare_real_2d_jk</title>
+<g id="a_proc~~tests_mpi_operators~~CallsGraph_node7"><a xlink:href="../proc/compare_real_2d_jk.html" xlink:title="compare_real_2d_jk">
+<polygon fill="#d94e8f" stroke="#d94e8f" points="272.04,-839.27 154.77,-839.27 154.77,-815 272.04,-815 272.04,-839.27"/>
+<text xml:space="preserve" text-anchor="middle" x="213.4" y="-823.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">compare_real_2d_jk</text>
+</a>
+</g>
+</g>
+<!-- proc~tests_mpi_operators&#45;&gt;proc~compare_real_2d_jk -->
+<g id="proc~~tests_mpi_operators~~CallsGraph_edge6" class="edge">
+<title>proc~tests_mpi_operators&#45;&gt;proc~compare_real_2d_jk</title>
+<path fill="none" stroke="#ff0000" d="M119.16,-814.25C127,-815.34 135.09,-816.45 143.09,-817.56"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="142.4,-821 152.79,-818.9 143.36,-814.06 142.4,-821"/>
+</g>
+<!-- proc~createmasks -->
+<g id="proc~~tests_mpi_operators~~CallsGraph_node8" class="node">
+<title>proc~createmasks</title>
+<g id="a_proc~~tests_mpi_operators~~CallsGraph_node8"><a xlink:href="../proc/createmasks.html" xlink:title="createmasks">
+<polygon fill="#d9534f" stroke="#d9534f" points="252.91,-797.27 173.89,-797.27 173.89,-773 252.91,-773 252.91,-797.27"/>
+<text xml:space="preserve" text-anchor="middle" x="213.4" y="-781.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">createmasks</text>
+</a>
+</g>
+</g>
+<!-- proc~tests_mpi_operators&#45;&gt;proc~createmasks -->
+<g id="proc~~tests_mpi_operators~~CallsGraph_edge7" class="edge">
+<title>proc~tests_mpi_operators&#45;&gt;proc~createmasks</title>
+<path fill="none" stroke="#ff0000" d="M119.16,-798.02C133.39,-796.05 148.47,-793.97 162.26,-792.06"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="162.57,-795.55 172,-790.72 161.61,-788.62 162.57,-795.55"/>
+</g>
+<!-- proc~initfields -->
+<g id="proc~~tests_mpi_operators~~CallsGraph_node9" class="node">
+<title>proc~initfields</title>
+<g id="a_proc~~tests_mpi_operators~~CallsGraph_node9"><a xlink:href="../proc/initfields.html" xlink:title="initfields">
+<polygon fill="#d9534f" stroke="#d9534f" points="241.66,-671.27 185.14,-671.27 185.14,-647 241.66,-647 241.66,-671.27"/>
+<text xml:space="preserve" text-anchor="middle" x="213.4" y="-655.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">initfields</text>
+</a>
+</g>
+</g>
+<!-- proc~tests_mpi_operators&#45;&gt;proc~initfields -->
+<g id="proc~~tests_mpi_operators~~CallsGraph_edge8" class="edge">
+<title>proc~tests_mpi_operators&#45;&gt;proc~initfields</title>
+<path fill="none" stroke="#ff0000" d="M66.42,-793.88C79.28,-768.96 111.76,-712.07 154.77,-680.13 160.55,-675.84 167.3,-672.35 174.09,-669.54"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="175.08,-672.91 183.27,-666.19 172.67,-666.34 175.08,-672.91"/>
+</g>
+<!-- proc~initibm -->
+<g id="proc~~tests_mpi_operators~~CallsGraph_node10" class="node">
+<title>proc~initibm</title>
+<g id="a_proc~~tests_mpi_operators~~CallsGraph_node10"><a xlink:href="../proc/initibm.html" xlink:title="initibm">
+<polygon fill="#d9534f" stroke="#d9534f" points="240.4,-629.27 186.4,-629.27 186.4,-605 240.4,-605 240.4,-629.27"/>
+<text xml:space="preserve" text-anchor="middle" x="213.4" y="-613.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">initibm</text>
+</a>
+</g>
+</g>
+<!-- proc~tests_mpi_operators&#45;&gt;proc~initibm -->
+<g id="proc~~tests_mpi_operators~~CallsGraph_edge9" class="edge">
+<title>proc~tests_mpi_operators&#45;&gt;proc~initibm</title>
+<path fill="none" stroke="#ff0000" d="M64.05,-793.63C73.7,-762.77 102.76,-682.32 154.77,-638.13 160.71,-633.09 167.97,-629.21 175.31,-626.24"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="176.25,-629.62 184.54,-623.02 173.95,-623.01 176.25,-629.62"/>
+</g>
+<!-- proc~readfacetfiles -->
+<g id="proc~~tests_mpi_operators~~CallsGraph_node11" class="node">
+<title>proc~readfacetfiles</title>
+<g id="a_proc~~tests_mpi_operators~~CallsGraph_node11"><a xlink:href="../proc/readfacetfiles.html" xlink:title="readfacetfiles">
+<polygon fill="#d9534f" stroke="#d9534f" points="403.18,-167.27 318.91,-167.27 318.91,-143 403.18,-143 403.18,-167.27"/>
+<text xml:space="preserve" text-anchor="middle" x="361.05" y="-151.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">readfacetfiles</text>
+</a>
+</g>
+</g>
+<!-- proc~tests_mpi_operators&#45;&gt;proc~readfacetfiles -->
+<g id="proc~~tests_mpi_operators~~CallsGraph_edge10" class="edge">
+<title>proc~tests_mpi_operators&#45;&gt;proc~readfacetfiles</title>
+<path fill="none" stroke="#ff0000" d="M65.86,-793.8C80.27,-761.36 120.52,-671.01 154.77,-596.13 228.18,-435.66 318.51,-243.35 349.24,-178.08"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="352.37,-179.64 353.47,-169.11 346.04,-176.66 352.37,-179.64"/>
+</g>
+<!-- proc~sumx_ibm -->
+<g id="proc~~tests_mpi_operators~~CallsGraph_node12" class="node">
+<title>proc~sumx_ibm</title>
+<g id="a_proc~~tests_mpi_operators~~CallsGraph_node12"><a xlink:href="../proc/sumx_ibm.html" xlink:title="sumx_ibm">
+<polygon fill="#d9534f" stroke="#d9534f" points="246.16,-755.27 180.64,-755.27 180.64,-731 246.16,-731 246.16,-755.27"/>
+<text xml:space="preserve" text-anchor="middle" x="213.4" y="-739.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">sumx_ibm</text>
+</a>
+</g>
+</g>
+<!-- proc~tests_mpi_operators&#45;&gt;proc~sumx_ibm -->
+<g id="proc~~tests_mpi_operators~~CallsGraph_edge11" class="edge">
+<title>proc~tests_mpi_operators&#45;&gt;proc~sumx_ibm</title>
+<path fill="none" stroke="#ff0000" d="M87.43,-793.5C106.19,-784.89 131.82,-773.41 154.77,-764.13 159.51,-762.22 164.49,-760.29 169.47,-758.41"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="170.67,-761.69 178.83,-754.93 168.23,-755.13 170.67,-761.69"/>
+</g>
+<!-- proc~sumy_ibm -->
+<g id="proc~~tests_mpi_operators~~CallsGraph_node13" class="node">
+<title>proc~sumy_ibm</title>
+<g id="a_proc~~tests_mpi_operators~~CallsGraph_node13"><a xlink:href="../proc/sumy_ibm.html" xlink:title="sumy_ibm">
+<polygon fill="#d9534f" stroke="#d9534f" points="246.16,-713.27 180.64,-713.27 180.64,-689 246.16,-689 246.16,-713.27"/>
+<text xml:space="preserve" text-anchor="middle" x="213.4" y="-697.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">sumy_ibm</text>
+</a>
+</g>
+</g>
+<!-- proc~tests_mpi_operators&#45;&gt;proc~sumy_ibm -->
+<g id="proc~~tests_mpi_operators~~CallsGraph_edge12" class="edge">
+<title>proc~tests_mpi_operators&#45;&gt;proc~sumy_ibm</title>
+<path fill="none" stroke="#ff0000" d="M71.44,-793.67C87.98,-775.68 120.87,-742.38 154.77,-722.13 159.44,-719.35 164.54,-716.84 169.71,-714.6"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="170.9,-717.9 178.91,-710.96 168.32,-711.39 170.9,-717.9"/>
+</g>
+<!-- proc~avexy_ibm&#45;&gt;mpi_allreduce -->
+<g id="proc~~tests_mpi_operators~~CallsGraph_edge13" class="edge">
+<title>proc~avexy_ibm&#45;&gt;mpi_allreduce</title>
+<path fill="none" stroke="#ff7f00" d="M247.45,-984.02C266.47,-977.62 290.69,-969.47 311.8,-962.37"/>
+<polygon fill="#ff7f00" stroke="#ff7f00" points="312.71,-965.75 321.08,-959.25 310.48,-959.12 312.71,-965.75"/>
+</g>
+<!-- proc~avey_ibm&#45;&gt;mpi_allreduce -->
+<g id="proc~~tests_mpi_operators~~CallsGraph_edge14" class="edge">
+<title>proc~avey_ibm&#45;&gt;mpi_allreduce</title>
+<path fill="none" stroke="#ffff00" d="M244.94,-951.67C262.59,-950.82 285.32,-949.73 305.91,-948.74"/>
+<polygon fill="#ffff00" stroke="#ffff00" points="306.07,-952.23 315.89,-948.26 305.74,-945.24 306.07,-952.23"/>
+</g>
+<!-- proc~createmasks&#45;&gt;mpi_allreduce -->
+<g id="proc~~tests_mpi_operators~~CallsGraph_edge15" class="edge">
+<title>proc~createmasks&#45;&gt;mpi_allreduce</title>
+<path fill="none" stroke="#00ffff" d="M253.29,-793.77C260.23,-796.75 266.88,-800.76 272.04,-806.13 308.54,-844.16 274.08,-878.83 308.04,-919.13 310.61,-922.18 313.61,-924.93 316.85,-927.4"/>
+<polygon fill="#00ffff" stroke="#00ffff" points="314.89,-930.3 325.19,-932.81 318.7,-924.43 314.89,-930.3"/>
+</g>
+<!-- alloc_z -->
+<g id="proc~~tests_mpi_operators~~CallsGraph_node14" class="node">
+<title>alloc_z</title>
+<polygon fill="#777777" stroke="#777777" points="388.05,-910.27 334.05,-910.27 334.05,-886 388.05,-886 388.05,-910.27"/>
+<text xml:space="preserve" text-anchor="middle" x="361.05" y="-894.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">alloc_z</text>
+</g>
+<!-- proc~initfields&#45;&gt;alloc_z -->
+<g id="proc~~tests_mpi_operators~~CallsGraph_edge16" class="edge">
+<title>proc~initfields&#45;&gt;alloc_z</title>
+<path fill="none" stroke="#007fff" d="M241.89,-663.1C252.78,-666.05 264.48,-671.18 272.04,-680.13 329.45,-748.15 251.8,-808.15 308.04,-877.13 312.04,-882.04 317.36,-885.81 323.07,-888.7"/>
+<polygon fill="#007fff" stroke="#007fff" points="321.6,-891.88 332.18,-892.44 324.26,-885.41 321.6,-891.88"/>
+</g>
+<!-- exchange_halo_z -->
+<g id="proc~~tests_mpi_operators~~CallsGraph_node15" class="node">
+<title>exchange_halo_z</title>
+<polygon fill="#777777" stroke="#777777" points="412.18,-419.27 309.91,-419.27 309.91,-395 412.18,-395 412.18,-419.27"/>
+<text xml:space="preserve" text-anchor="middle" x="361.05" y="-403.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">exchange_halo_z</text>
+</g>
+<!-- proc~initibm&#45;&gt;exchange_halo_z -->
+<g id="proc~~tests_mpi_operators~~CallsGraph_edge17" class="edge">
+<title>proc~initibm&#45;&gt;exchange_halo_z</title>
+<path fill="none" stroke="#0000ff" d="M217.27,-604.68C225.53,-571.43 252.44,-479.65 308.04,-428.13 308.81,-427.43 309.6,-426.74 310.41,-426.07"/>
+<polygon fill="#0000ff" stroke="#0000ff" points="312.25,-429.06 318.63,-420.6 308.37,-423.23 312.25,-429.06"/>
+</g>
+<!-- proc~define_nc -->
+<g id="proc~~tests_mpi_operators~~CallsGraph_node20" class="node">
+<title>proc~define_nc</title>
+<g id="a_proc~~tests_mpi_operators~~CallsGraph_node20"><a xlink:href="../proc/define_nc.html" xlink:title="define_nc">
+<polygon fill="#d9534f" stroke="#d9534f" points="392.68,-335.27 329.41,-335.27 329.41,-311 392.68,-311 392.68,-335.27"/>
+<text xml:space="preserve" text-anchor="middle" x="361.05" y="-319.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">define_nc</text>
+</a>
+</g>
+</g>
+<!-- proc~initibm&#45;&gt;proc~define_nc -->
+<g id="proc~~tests_mpi_operators~~CallsGraph_edge18" class="edge">
+<title>proc~initibm&#45;&gt;proc~define_nc</title>
+<path fill="none" stroke="#0000ff" d="M217.96,-604.75C228.47,-569.13 261.61,-464 308.04,-386.13 317.07,-370.99 329.59,-355.7 340.09,-343.97"/>
+<polygon fill="#0000ff" stroke="#0000ff" points="342.42,-346.61 346.6,-336.88 337.26,-341.88 342.42,-346.61"/>
+</g>
+<!-- proc~initibmnorm -->
+<g id="proc~~tests_mpi_operators~~CallsGraph_node21" class="node">
+<title>proc~initibmnorm</title>
+<g id="a_proc~~tests_mpi_operators~~CallsGraph_node21"><a xlink:href="../proc/initibmnorm.html" xlink:title="initibmnorm">
+<polygon fill="#d9534f" stroke="#d9534f" points="399.43,-826.27 322.66,-826.27 322.66,-802 399.43,-802 399.43,-826.27"/>
+<text xml:space="preserve" text-anchor="middle" x="361.05" y="-810.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">initibmnorm</text>
+</a>
+</g>
+</g>
+<!-- proc~initibm&#45;&gt;proc~initibmnorm -->
+<g id="proc~~tests_mpi_operators~~CallsGraph_edge19" class="edge">
+<title>proc~initibm&#45;&gt;proc~initibmnorm</title>
+<path fill="none" stroke="#0000ff" d="M240.8,-621.04C251.9,-623.98 264.06,-629.13 272.04,-638.13 318.93,-691.08 262.07,-739.39 308.04,-793.13 309.49,-794.83 311.09,-796.39 312.81,-797.82"/>
+<polygon fill="#0000ff" stroke="#0000ff" points="310.67,-800.6 320.95,-803.17 314.52,-794.75 310.67,-800.6"/>
+</g>
+<!-- proc~initibmwallfun -->
+<g id="proc~~tests_mpi_operators~~CallsGraph_node22" class="node">
+<title>proc~initibmwallfun</title>
+<g id="a_proc~~tests_mpi_operators~~CallsGraph_node22"><a xlink:href="../proc/initibmwallfun.html" xlink:title="initibmwallfun">
+<polygon fill="#d9534f" stroke="#d9534f" points="404.31,-784.27 317.79,-784.27 317.79,-760 404.31,-760 404.31,-784.27"/>
+<text xml:space="preserve" text-anchor="middle" x="361.05" y="-768.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">initibmwallfun</text>
+</a>
+</g>
+</g>
+<!-- proc~initibm&#45;&gt;proc~initibmwallfun -->
+<g id="proc~~tests_mpi_operators~~CallsGraph_edge20" class="edge">
+<title>proc~initibm&#45;&gt;proc~initibmwallfun</title>
+<path fill="none" stroke="#0000ff" d="M240.88,-622.92C251.35,-626.14 263.02,-631 272.04,-638.13 310.19,-668.33 337.27,-719.76 350.62,-749.35"/>
+<polygon fill="#0000ff" stroke="#0000ff" points="347.4,-750.72 354.59,-758.5 353.81,-747.93 347.4,-750.72"/>
+</g>
+<!-- proc~ncinfo -->
+<g id="proc~~tests_mpi_operators~~CallsGraph_node23" class="node">
+<title>proc~ncinfo</title>
+<g id="a_proc~~tests_mpi_operators~~CallsGraph_node23"><a xlink:href="../proc/ncinfo.html" xlink:title="ncinfo">
+<polygon fill="#d9534f" stroke="#d9534f" points="388.05,-868.27 334.05,-868.27 334.05,-844 388.05,-844 388.05,-868.27"/>
+<text xml:space="preserve" text-anchor="middle" x="361.05" y="-852.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">ncinfo</text>
+</a>
+</g>
+</g>
+<!-- proc~initibm&#45;&gt;proc~ncinfo -->
+<g id="proc~~tests_mpi_operators~~CallsGraph_edge21" class="edge">
+<title>proc~initibm&#45;&gt;proc~ncinfo</title>
+<path fill="none" stroke="#0000ff" d="M240.7,-620.79C251.92,-623.68 264.21,-628.86 272.04,-638.13 329.45,-706.15 251.8,-766.15 308.04,-835.13 312.04,-840.04 317.36,-843.81 323.07,-846.7"/>
+<polygon fill="#0000ff" stroke="#0000ff" points="321.6,-849.88 332.18,-850.44 324.26,-843.41 321.6,-849.88"/>
+</g>
+<!-- proc~open_nc -->
+<g id="proc~~tests_mpi_operators~~CallsGraph_node24" class="node">
+<title>proc~open_nc</title>
+<g id="a_proc~~tests_mpi_operators~~CallsGraph_node24"><a xlink:href="../proc/open_nc.html" xlink:title="open_nc">
+<polygon fill="#d9534f" stroke="#d9534f" points="389.31,-461.27 332.79,-461.27 332.79,-437 389.31,-437 389.31,-461.27"/>
+<text xml:space="preserve" text-anchor="middle" x="361.05" y="-445.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">open_nc</text>
+</a>
+</g>
+</g>
+<!-- proc~initibm&#45;&gt;proc~open_nc -->
+<g id="proc~~tests_mpi_operators~~CallsGraph_edge22" class="edge">
+<title>proc~initibm&#45;&gt;proc~open_nc</title>
+<path fill="none" stroke="#0000ff" d="M225.35,-604.51C250.25,-575.79 311.33,-505.33 341.94,-470.02"/>
+<polygon fill="#0000ff" stroke="#0000ff" points="344.47,-472.44 348.38,-462.6 339.19,-467.86 344.47,-472.44"/>
+</g>
+<!-- proc~solid -->
+<g id="proc~~tests_mpi_operators~~CallsGraph_node26" class="node">
+<title>proc~solid</title>
+<g id="a_proc~~tests_mpi_operators~~CallsGraph_node26"><a xlink:href="../proc/solid.html" xlink:title="solid">
+<polygon fill="#d9534f" stroke="#d9534f" points="388.05,-608.27 334.05,-608.27 334.05,-584 388.05,-584 388.05,-608.27"/>
+<text xml:space="preserve" text-anchor="middle" x="361.05" y="-592.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">solid</text>
+</a>
+</g>
+</g>
+<!-- proc~initibm&#45;&gt;proc~solid -->
+<g id="proc~~tests_mpi_operators~~CallsGraph_edge23" class="edge">
+<title>proc~initibm&#45;&gt;proc~solid</title>
+<path fill="none" stroke="#0000ff" d="M240.78,-613.33C263.67,-610.03 297.07,-605.22 322.7,-601.52"/>
+<polygon fill="#0000ff" stroke="#0000ff" points="322.97,-605.02 332.37,-600.13 321.98,-598.09 322.97,-605.02"/>
+</g>
+<!-- proc~writestat_dims_nc -->
+<g id="proc~~tests_mpi_operators~~CallsGraph_node27" class="node">
+<title>proc~writestat_dims_nc</title>
+<g id="a_proc~~tests_mpi_operators~~CallsGraph_node27"><a xlink:href="../proc/writestat_dims_nc.html" xlink:title="writestat_dims_nc">
+<polygon fill="#d9534f" stroke="#d9534f" points="414.06,-650.27 308.04,-650.27 308.04,-626 414.06,-626 414.06,-650.27"/>
+<text xml:space="preserve" text-anchor="middle" x="361.05" y="-634.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">writestat_dims_nc</text>
+</a>
+</g>
+</g>
+<!-- proc~initibm&#45;&gt;proc~writestat_dims_nc -->
+<g id="proc~~tests_mpi_operators~~CallsGraph_edge24" class="edge">
+<title>proc~initibm&#45;&gt;proc~writestat_dims_nc</title>
+<path fill="none" stroke="#0000ff" d="M240.78,-620.94C256.34,-623.18 276.74,-626.12 296.27,-628.94"/>
+<polygon fill="#0000ff" stroke="#0000ff" points="295.73,-632.4 306.12,-630.36 296.73,-625.47 295.73,-632.4"/>
+</g>
+<!-- mpi_bcast -->
+<g id="proc~~tests_mpi_operators~~CallsGraph_node16" class="node">
+<title>mpi_bcast</title>
+<polygon fill="#777777" stroke="#777777" points="696.97,-732.27 631.45,-732.27 631.45,-708 696.97,-708 696.97,-732.27"/>
+<text xml:space="preserve" text-anchor="middle" x="664.21" y="-716.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">mpi_bcast</text>
+</g>
+<!-- proc~readfacetfiles&#45;&gt;mpi_bcast -->
+<g id="proc~~tests_mpi_operators~~CallsGraph_edge25" class="edge">
+<title>proc~readfacetfiles&#45;&gt;mpi_bcast</title>
+<path fill="none" stroke="#7f00ff" d="M370.23,-142.69C383.98,-123.06 413.79,-85.67 450.06,-71.13 507.11,-48.28 542.45,-30.25 588.33,-71.13 636.03,-113.64 657.77,-584.07 662.3,-696.23"/>
+<polygon fill="#7f00ff" stroke="#7f00ff" points="658.8,-696.19 662.69,-706.05 665.79,-695.92 658.8,-696.19"/>
+</g>
+<!-- nf90_get_var -->
+<g id="proc~~tests_mpi_operators~~CallsGraph_node17" class="node">
+<title>nf90_get_var</title>
+<polygon fill="#777777" stroke="#777777" points="559.45,-104.27 478.93,-104.27 478.93,-80 559.45,-80 559.45,-104.27"/>
+<text xml:space="preserve" text-anchor="middle" x="519.19" y="-88.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">nf90_get_var</text>
+</g>
+<!-- proc~readfacetfiles&#45;&gt;nf90_get_var -->
+<g id="proc~~tests_mpi_operators~~CallsGraph_edge26" class="edge">
+<title>proc~readfacetfiles&#45;&gt;nf90_get_var</title>
+<path fill="none" stroke="#7f00ff" d="M385.91,-142.58C403.38,-133.67 427.82,-121.81 450.06,-113.13 455.75,-110.91 461.79,-108.77 467.81,-106.75"/>
+<polygon fill="#7f00ff" stroke="#7f00ff" points="468.7,-110.14 477.14,-103.74 466.55,-103.48 468.7,-110.14"/>
+</g>
+<!-- nf90_inq_varid -->
+<g id="proc~~tests_mpi_operators~~CallsGraph_node18" class="node">
+<title>nf90_inq_varid</title>
+<polygon fill="#777777" stroke="#777777" points="563.95,-356.27 474.43,-356.27 474.43,-332 563.95,-332 563.95,-356.27"/>
+<text xml:space="preserve" text-anchor="middle" x="519.19" y="-340.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">nf90_inq_varid</text>
+</g>
+<!-- proc~readfacetfiles&#45;&gt;nf90_inq_varid -->
+<g id="proc~~tests_mpi_operators~~CallsGraph_edge27" class="edge">
+<title>proc~readfacetfiles&#45;&gt;nf90_inq_varid</title>
+<path fill="none" stroke="#7f00ff" d="M364.96,-167.34C372.94,-198.21 398.16,-279.98 450.06,-323.13 454.19,-326.56 458.87,-329.44 463.8,-331.84"/>
+<polygon fill="#7f00ff" stroke="#7f00ff" points="462.2,-334.96 472.77,-335.56 464.88,-328.5 462.2,-334.96"/>
+</g>
+<!-- nf90_open -->
+<g id="proc~~tests_mpi_operators~~CallsGraph_node19" class="node">
+<title>nf90_open</title>
+<polygon fill="#777777" stroke="#777777" points="553.08,-230.27 485.31,-230.27 485.31,-206 553.08,-206 553.08,-230.27"/>
+<text xml:space="preserve" text-anchor="middle" x="519.19" y="-214.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">nf90_open</text>
+</g>
+<!-- proc~readfacetfiles&#45;&gt;nf90_open -->
+<g id="proc~~tests_mpi_operators~~CallsGraph_edge28" class="edge">
+<title>proc~readfacetfiles&#45;&gt;nf90_open</title>
+<path fill="none" stroke="#7f00ff" d="M385.91,-167.69C403.38,-176.6 427.82,-188.46 450.06,-197.13 457.75,-200.14 466.06,-203 474.14,-205.59"/>
+<polygon fill="#7f00ff" stroke="#7f00ff" points="472.9,-208.87 483.49,-208.5 474.98,-202.19 472.9,-208.87"/>
+</g>
+<!-- proc~qsat -->
+<g id="proc~~tests_mpi_operators~~CallsGraph_node25" class="node">
+<title>proc~qsat</title>
+<g id="a_proc~~tests_mpi_operators~~CallsGraph_node25"><a xlink:href="../proc/qsat.html" xlink:title="qsat">
+<polygon fill="#d94e8f" stroke="#d94e8f" points="546.19,-24.27 492.19,-24.27 492.19,0 546.19,0 546.19,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="519.19" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">qsat</text>
+</a>
+</g>
+</g>
+<!-- proc~readfacetfiles&#45;&gt;proc~qsat -->
+<g id="proc~~tests_mpi_operators~~CallsGraph_edge29" class="edge">
+<title>proc~readfacetfiles&#45;&gt;proc~qsat</title>
+<path fill="none" stroke="#7f00ff" d="M368.3,-142.73C380.75,-119.15 410.87,-67.64 450.06,-38.13 459.22,-31.24 470.42,-25.97 481.08,-22.04"/>
+<polygon fill="#7f00ff" stroke="#7f00ff" points="482.08,-25.4 490.44,-18.9 479.85,-18.76 482.08,-25.4"/>
+</g>
+<!-- proc~sumx_ibm&#45;&gt;mpi_allreduce -->
+<g id="proc~~tests_mpi_operators~~CallsGraph_edge30" class="edge">
+<title>proc~sumx_ibm&#45;&gt;mpi_allreduce</title>
+<path fill="none" stroke="#ff00ff" d="M246.46,-748.72C255.87,-751.82 265.4,-756.64 272.04,-764.13 318.93,-817.08 264.67,-863.27 308.04,-919.13 310.35,-922.11 313.08,-924.79 316.05,-927.19"/>
+<polygon fill="#ff00ff" stroke="#ff00ff" points="314.06,-930.07 324.31,-932.77 317.98,-924.27 314.06,-930.07"/>
+</g>
+<!-- proc~sumy_ibm&#45;&gt;mpi_allreduce -->
+<g id="proc~~tests_mpi_operators~~CallsGraph_edge31" class="edge">
+<title>proc~sumy_ibm&#45;&gt;mpi_allreduce</title>
+<path fill="none" stroke="#ff007f" d="M246.38,-706.43C255.89,-709.52 265.51,-714.4 272.04,-722.13 329.45,-790.15 255.15,-847.55 308.04,-919.13 310.25,-922.12 312.88,-924.81 315.78,-927.21"/>
+<polygon fill="#ff007f" stroke="#ff007f" points="313.62,-929.97 323.84,-932.77 317.59,-924.21 313.62,-929.97"/>
+</g>
+<!-- proc~define_nc&#45;&gt;nf90_inq_varid -->
+<g id="proc~~tests_mpi_operators~~CallsGraph_edge35" class="edge">
+<title>proc~define_nc&#45;&gt;nf90_inq_varid</title>
+<path fill="none" stroke="#00ff91" d="M392.9,-327.28C412.83,-329.96 439.35,-333.53 462.85,-336.69"/>
+<polygon fill="#00ff91" stroke="#00ff91" points="462.23,-340.14 472.61,-338 463.16,-333.2 462.23,-340.14"/>
+</g>
+<!-- nf90_def_var -->
+<g id="proc~~tests_mpi_operators~~CallsGraph_node31" class="node">
+<title>nf90_def_var</title>
+<polygon fill="#777777" stroke="#777777" points="559.45,-314.27 478.93,-314.27 478.93,-290 559.45,-290 559.45,-314.27"/>
+<text xml:space="preserve" text-anchor="middle" x="519.19" y="-298.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">nf90_def_var</text>
+</g>
+<!-- proc~define_nc&#45;&gt;nf90_def_var -->
+<g id="proc~~tests_mpi_operators~~CallsGraph_edge32" class="edge">
+<title>proc~define_nc&#45;&gt;nf90_def_var</title>
+<path fill="none" stroke="#00ff91" d="M392.9,-318.99C414.08,-316.14 442.68,-312.29 467.21,-308.99"/>
+<polygon fill="#00ff91" stroke="#00ff91" points="467.56,-312.48 477.01,-307.67 466.63,-305.54 467.56,-312.48"/>
+</g>
+<!-- nf90_enddef -->
+<g id="proc~~tests_mpi_operators~~CallsGraph_node32" class="node">
+<title>nf90_enddef</title>
+<polygon fill="#777777" stroke="#777777" points="558.33,-272.27 480.06,-272.27 480.06,-248 558.33,-248 558.33,-272.27"/>
+<text xml:space="preserve" text-anchor="middle" x="519.19" y="-256.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">nf90_enddef</text>
+</g>
+<!-- proc~define_nc&#45;&gt;nf90_enddef -->
+<g id="proc~~tests_mpi_operators~~CallsGraph_edge33" class="edge">
+<title>proc~define_nc&#45;&gt;nf90_enddef</title>
+<path fill="none" stroke="#00ff91" d="M385.91,-310.58C403.38,-301.67 427.82,-289.81 450.06,-281.13 456.12,-278.77 462.56,-276.49 468.97,-274.36"/>
+<polygon fill="#00ff91" stroke="#00ff91" points="469.76,-277.79 478.22,-271.4 467.63,-271.12 469.76,-277.79"/>
+</g>
+<!-- nf90_inq_dimid -->
+<g id="proc~~tests_mpi_operators~~CallsGraph_node33" class="node">
+<title>nf90_inq_dimid</title>
+<polygon fill="#777777" stroke="#777777" points="565.45,-440.27 472.93,-440.27 472.93,-416 565.45,-416 565.45,-440.27"/>
+<text xml:space="preserve" text-anchor="middle" x="519.19" y="-424.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">nf90_inq_dimid</text>
+</g>
+<!-- proc~define_nc&#45;&gt;nf90_inq_dimid -->
+<g id="proc~~tests_mpi_operators~~CallsGraph_edge34" class="edge">
+<title>proc~define_nc&#45;&gt;nf90_inq_dimid</title>
+<path fill="none" stroke="#00ff91" d="M371.79,-335.56C386.74,-353.81 417.08,-387.79 450.06,-407.13 453.86,-409.36 457.91,-411.37 462.08,-413.19"/>
+<polygon fill="#00ff91" stroke="#00ff91" points="460.6,-416.37 471.19,-416.76 463.15,-409.85 460.6,-416.37"/>
+</g>
+<!-- nf90_put_att -->
+<g id="proc~~tests_mpi_operators~~CallsGraph_node36" class="node">
+<title>nf90_put_att</title>
+<polygon fill="#777777" stroke="#777777" points="557.95,-398.27 480.43,-398.27 480.43,-374 557.95,-374 557.95,-398.27"/>
+<text xml:space="preserve" text-anchor="middle" x="519.19" y="-382.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">nf90_put_att</text>
+</g>
+<!-- proc~define_nc&#45;&gt;nf90_put_att -->
+<g id="proc~~tests_mpi_operators~~CallsGraph_edge36" class="edge">
+<title>proc~define_nc&#45;&gt;nf90_put_att</title>
+<path fill="none" stroke="#00ff91" d="M385.91,-335.69C403.38,-344.6 427.82,-356.46 450.06,-365.13 456.19,-367.53 462.71,-369.83 469.2,-371.98"/>
+<polygon fill="#00ff91" stroke="#00ff91" points="467.98,-375.27 478.57,-374.98 470.12,-368.6 467.98,-375.27"/>
+</g>
+<!-- nf90_redef -->
+<g id="proc~~tests_mpi_operators~~CallsGraph_node38" class="node">
+<title>nf90_redef</title>
+<polygon fill="#777777" stroke="#777777" points="553.45,-188.27 484.93,-188.27 484.93,-164 553.45,-164 553.45,-188.27"/>
+<text xml:space="preserve" text-anchor="middle" x="519.19" y="-172.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">nf90_redef</text>
+</g>
+<!-- proc~define_nc&#45;&gt;nf90_redef -->
+<g id="proc~~tests_mpi_operators~~CallsGraph_edge37" class="edge">
+<title>proc~define_nc&#45;&gt;nf90_redef</title>
+<path fill="none" stroke="#00ff91" d="M367.32,-310.69C378.66,-285.44 407.8,-227.95 450.06,-197.13 457.08,-192.01 465.38,-188.12 473.73,-185.17"/>
+<polygon fill="#00ff91" stroke="#00ff91" points="474.65,-188.55 483.17,-182.25 472.58,-181.86 474.65,-188.55"/>
+</g>
+<!-- proc~nchandle_error -->
+<g id="proc~~tests_mpi_operators~~CallsGraph_node41" class="node">
+<title>proc~nchandle_error</title>
+<g id="a_proc~~tests_mpi_operators~~CallsGraph_node41"><a xlink:href="../proc/nchandle_error.html" xlink:title="nchandle_error">
+<polygon fill="#d9534f" stroke="#d9534f" points="565.45,-146.27 472.93,-146.27 472.93,-122 565.45,-122 565.45,-146.27"/>
+<text xml:space="preserve" text-anchor="middle" x="519.19" y="-130.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">nchandle_error</text>
+</a>
+</g>
+</g>
+<!-- proc~define_nc&#45;&gt;proc~nchandle_error -->
+<g id="proc~~tests_mpi_operators~~CallsGraph_edge38" class="edge">
+<title>proc~define_nc&#45;&gt;proc~nchandle_error</title>
+<path fill="none" stroke="#00ff91" d="M364.96,-310.93C372.94,-280.06 398.16,-198.29 450.06,-155.13 453.75,-152.06 457.89,-149.44 462.26,-147.2"/>
+<polygon fill="#00ff91" stroke="#00ff91" points="463.59,-150.44 471.37,-143.24 460.8,-144.02 463.59,-150.44"/>
+</g>
+<!-- proc~read_sparse_ijk -->
+<g id="proc~~tests_mpi_operators~~CallsGraph_node43" class="node">
+<title>proc~read_sparse_ijk</title>
+<g id="a_proc~~tests_mpi_operators~~CallsGraph_node43"><a xlink:href="../proc/read_sparse_ijk.html" xlink:title="read_sparse_ijk">
+<polygon fill="#d9534f" stroke="#d9534f" points="565.83,-894.27 472.56,-894.27 472.56,-870 565.83,-870 565.83,-894.27"/>
+<text xml:space="preserve" text-anchor="middle" x="519.19" y="-878.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">read_sparse_ijk</text>
+</a>
+</g>
+</g>
+<!-- proc~initibmnorm&#45;&gt;proc~read_sparse_ijk -->
+<g id="proc~~tests_mpi_operators~~CallsGraph_edge39" class="edge">
+<title>proc~initibmnorm&#45;&gt;proc~read_sparse_ijk</title>
+<path fill="none" stroke="#00ffff" d="M396.73,-826.77C402.63,-829.3 408.6,-832.12 414.06,-835.13 431.34,-844.68 432.39,-852.33 450.06,-861.13 453.77,-862.98 457.67,-864.71 461.65,-866.31"/>
+<polygon fill="#00ffff" stroke="#00ffff" points="460.3,-869.54 470.89,-869.73 462.73,-862.97 460.3,-869.54"/>
+</g>
+<!-- proc~initibmwallfun&#45;&gt;mpi_bcast -->
+<g id="proc~~tests_mpi_operators~~CallsGraph_edge41" class="edge">
+<title>proc~initibmwallfun&#45;&gt;mpi_bcast</title>
+<path fill="none" stroke="#0091ff" d="M389.6,-759.61C406.66,-752.41 429.22,-743.88 450.06,-739.13 507.8,-725.99 576.27,-721.85 619.72,-720.59"/>
+<polygon fill="#0091ff" stroke="#0091ff" points="619.59,-724.1 629.5,-720.36 619.42,-717.1 619.59,-724.1"/>
+</g>
+<!-- mpi_abort -->
+<g id="proc~~tests_mpi_operators~~CallsGraph_node28" class="node">
+<title>mpi_abort</title>
+<polygon fill="#777777" stroke="#777777" points="551.95,-772.27 486.43,-772.27 486.43,-748 551.95,-748 551.95,-772.27"/>
+<text xml:space="preserve" text-anchor="middle" x="519.19" y="-756.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">mpi_abort</text>
+</g>
+<!-- proc~initibmwallfun&#45;&gt;mpi_abort -->
+<g id="proc~~tests_mpi_operators~~CallsGraph_edge40" class="edge">
+<title>proc~initibmwallfun&#45;&gt;mpi_abort</title>
+<path fill="none" stroke="#0091ff" d="M404.72,-768.86C426.45,-767.19 452.84,-765.16 474.69,-763.48"/>
+<polygon fill="#0091ff" stroke="#0091ff" points="474.77,-766.98 484.47,-762.73 474.24,-760 474.77,-766.98"/>
+</g>
+<!-- proc~alignment -->
+<g id="proc~~tests_mpi_operators~~CallsGraph_node40" class="node">
+<title>proc~alignment</title>
+<g id="a_proc~~tests_mpi_operators~~CallsGraph_node40"><a xlink:href="../proc/alignment.html" xlink:title="alignment">
+<polygon fill="#d94e8f" stroke="#d94e8f" points="551.95,-974.27 486.43,-974.27 486.43,-950 551.95,-950 551.95,-974.27"/>
+<text xml:space="preserve" text-anchor="middle" x="519.19" y="-958.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">alignment</text>
+</a>
+</g>
+</g>
+<!-- proc~initibmwallfun&#45;&gt;proc~alignment -->
+<g id="proc~~tests_mpi_operators~~CallsGraph_edge42" class="edge">
+<title>proc~initibmwallfun&#45;&gt;proc~alignment</title>
+<path fill="none" stroke="#0091ff" d="M403.94,-784.68C407.71,-787.04 411.18,-789.83 414.06,-793.13 457.12,-842.54 406.53,-887.14 450.06,-936.13 456.78,-943.7 465.95,-949.07 475.37,-952.89"/>
+<polygon fill="#0091ff" stroke="#0091ff" points="473.99,-956.11 484.58,-956.08 476.28,-949.5 473.99,-956.11"/>
+</g>
+<!-- proc~plane_line_intersection -->
+<g id="proc~~tests_mpi_operators~~CallsGraph_node42" class="node">
+<title>proc~plane_line_intersection</title>
+<g id="a_proc~~tests_mpi_operators~~CallsGraph_node42"><a xlink:href="../proc/plane_line_intersection.html" xlink:title="plane_line_intersection">
+<polygon fill="#d9534f" stroke="#d9534f" points="586.45,-852.27 451.93,-852.27 451.93,-828 586.45,-828 586.45,-852.27"/>
+<text xml:space="preserve" text-anchor="middle" x="519.19" y="-836.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">plane_line_intersection</text>
+</a>
+</g>
+</g>
+<!-- proc~initibmwallfun&#45;&gt;proc~plane_line_intersection -->
+<g id="proc~~tests_mpi_operators~~CallsGraph_edge43" class="edge">
+<title>proc~initibmwallfun&#45;&gt;proc~plane_line_intersection</title>
+<path fill="none" stroke="#0091ff" d="M395.38,-784.76C401.66,-787.37 408.11,-790.22 414.06,-793.13 430.69,-801.29 433.35,-806.14 450.06,-814.13 456.89,-817.4 464.25,-820.56 471.51,-823.49"/>
+<polygon fill="#0091ff" stroke="#0091ff" points="470.02,-826.66 480.61,-827.04 472.56,-820.14 470.02,-826.66"/>
+</g>
+<!-- proc~initibmwallfun&#45;&gt;proc~read_sparse_ijk -->
+<g id="proc~~tests_mpi_operators~~CallsGraph_edge44" class="edge">
+<title>proc~initibmwallfun&#45;&gt;proc~read_sparse_ijk</title>
+<path fill="none" stroke="#0091ff" d="M401.86,-784.71C406.26,-787.09 410.44,-789.87 414.06,-793.13 439.45,-816.04 423.72,-839.33 450.06,-861.13 453.55,-864.03 457.44,-866.52 461.54,-868.67"/>
+<polygon fill="#0091ff" stroke="#0091ff" points="460.12,-871.87 470.68,-872.73 462.96,-865.47 460.12,-871.87"/>
+</g>
+<!-- zend -->
+<g id="proc~~tests_mpi_operators~~CallsGraph_node44" class="node">
+<title>zend</title>
+<polygon fill="#777777" stroke="#777777" points="691.21,-832.27 637.21,-832.27 637.21,-808 691.21,-808 691.21,-832.27"/>
+<text xml:space="preserve" text-anchor="middle" x="664.21" y="-816.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">zend</text>
+</g>
+<!-- proc~initibmwallfun&#45;&gt;zend -->
+<g id="proc~~tests_mpi_operators~~CallsGraph_edge45" class="edge">
+<title>proc~initibmwallfun&#45;&gt;zend</title>
+<path fill="none" stroke="#0091ff" d="M404.56,-778.91C463.6,-788.32 569.47,-805.19 625.71,-814.16"/>
+<polygon fill="#0091ff" stroke="#0091ff" points="625.01,-817.59 635.43,-815.71 626.11,-810.68 625.01,-817.59"/>
+</g>
+<!-- zstart -->
+<g id="proc~~tests_mpi_operators~~CallsGraph_node45" class="node">
+<title>zstart</title>
+<polygon fill="#777777" stroke="#777777" points="691.21,-913.27 637.21,-913.27 637.21,-889 691.21,-889 691.21,-913.27"/>
+<text xml:space="preserve" text-anchor="middle" x="664.21" y="-897.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">zstart</text>
+</g>
+<!-- proc~initibmwallfun&#45;&gt;zstart -->
+<g id="proc~~tests_mpi_operators~~CallsGraph_edge46" class="edge">
+<title>proc~initibmwallfun&#45;&gt;zstart</title>
+<path fill="none" stroke="#0091ff" d="M403.45,-784.74C407.36,-787.09 411,-789.86 414.06,-793.13 449.19,-830.71 408.41,-872.94 450.06,-903.13 501.58,-940.48 580.04,-926.76 626.02,-913.72"/>
+<polygon fill="#0091ff" stroke="#0091ff" points="626.94,-917.1 635.52,-910.89 624.94,-910.39 626.94,-917.1"/>
+</g>
+<!-- proc~open_nc&#45;&gt;nf90_get_var -->
+<g id="proc~~tests_mpi_operators~~CallsGraph_edge51" class="edge">
+<title>proc~open_nc&#45;&gt;nf90_get_var</title>
+<path fill="none" stroke="#4800ff" d="M389.61,-443.97C398.75,-440.88 408.1,-435.96 414.06,-428.13 499.38,-315.99 360.06,-221.56 450.06,-113.13 454.89,-107.31 461.3,-103.07 468.26,-99.99"/>
+<polygon fill="#4800ff" stroke="#4800ff" points="469.06,-103.42 477.31,-96.77 466.71,-96.83 469.06,-103.42"/>
+</g>
+<!-- proc~open_nc&#45;&gt;nf90_inq_varid -->
+<g id="proc~~tests_mpi_operators~~CallsGraph_edge53" class="edge">
+<title>proc~open_nc&#45;&gt;nf90_inq_varid</title>
+<path fill="none" stroke="#4800ff" d="M389.62,-441.88C398.13,-438.68 407.09,-434.22 414.06,-428.13 438.35,-406.93 424.89,-385.3 450.06,-365.13 454.19,-361.83 458.84,-359.04 463.72,-356.69"/>
+<polygon fill="#4800ff" stroke="#4800ff" points="464.67,-360.08 472.58,-353.03 462,-353.61 464.67,-360.08"/>
+</g>
+<!-- proc~open_nc&#45;&gt;nf90_open -->
+<g id="proc~~tests_mpi_operators~~CallsGraph_edge56" class="edge">
+<title>proc~open_nc&#45;&gt;nf90_open</title>
+<path fill="none" stroke="#4800ff" d="M389.57,-443.63C398.59,-440.51 407.88,-435.66 414.06,-428.13 468.33,-362.06 393.03,-302.85 450.06,-239.13 456.4,-232.05 465.06,-227.33 474.09,-224.19"/>
+<polygon fill="#4800ff" stroke="#4800ff" points="475.01,-227.57 483.69,-221.5 473.12,-220.83 475.01,-227.57"/>
+</g>
+<!-- nf90_create -->
+<g id="proc~~tests_mpi_operators~~CallsGraph_node29" class="node">
+<title>nf90_create</title>
+<polygon fill="#777777" stroke="#777777" points="556.45,-566.27 481.93,-566.27 481.93,-542 556.45,-542 556.45,-566.27"/>
+<text xml:space="preserve" text-anchor="middle" x="519.19" y="-550.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">nf90_create</text>
+</g>
+<!-- proc~open_nc&#45;&gt;nf90_create -->
+<g id="proc~~tests_mpi_operators~~CallsGraph_edge47" class="edge">
+<title>proc~open_nc&#45;&gt;nf90_create</title>
+<path fill="none" stroke="#4800ff" d="M371.79,-461.56C386.74,-479.81 417.08,-513.79 450.06,-533.13 456.44,-536.88 463.56,-540.02 470.71,-542.63"/>
+<polygon fill="#4800ff" stroke="#4800ff" points="469.49,-545.92 480.09,-545.73 471.69,-539.27 469.49,-545.92"/>
+</g>
+<!-- nf90_def_dim -->
+<g id="proc~~tests_mpi_operators~~CallsGraph_node30" class="node">
+<title>nf90_def_dim</title>
+<polygon fill="#777777" stroke="#777777" points="560.95,-524.27 477.43,-524.27 477.43,-500 560.95,-500 560.95,-524.27"/>
+<text xml:space="preserve" text-anchor="middle" x="519.19" y="-508.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">nf90_def_dim</text>
+</g>
+<!-- proc~open_nc&#45;&gt;nf90_def_dim -->
+<g id="proc~~tests_mpi_operators~~CallsGraph_edge48" class="edge">
+<title>proc~open_nc&#45;&gt;nf90_def_dim</title>
+<path fill="none" stroke="#4800ff" d="M385.91,-461.69C403.38,-470.6 427.82,-482.46 450.06,-491.13 455.33,-493.19 460.89,-495.18 466.47,-497.07"/>
+<polygon fill="#4800ff" stroke="#4800ff" points="465.12,-500.31 475.71,-500.08 467.28,-493.65 465.12,-500.31"/>
+</g>
+<!-- proc~open_nc&#45;&gt;nf90_def_var -->
+<g id="proc~~tests_mpi_operators~~CallsGraph_edge49" class="edge">
+<title>proc~open_nc&#45;&gt;nf90_def_var</title>
+<path fill="none" stroke="#4800ff" d="M389.8,-442.83C398.52,-439.67 407.56,-434.99 414.06,-428.13 448,-392.33 414.63,-357.47 450.06,-323.13 455.19,-318.16 461.48,-314.36 468.13,-311.46"/>
+<polygon fill="#4800ff" stroke="#4800ff" points="469.15,-314.81 477.36,-308.12 466.77,-308.23 469.15,-314.81"/>
+</g>
+<!-- proc~open_nc&#45;&gt;nf90_enddef -->
+<g id="proc~~tests_mpi_operators~~CallsGraph_edge50" class="edge">
+<title>proc~open_nc&#45;&gt;nf90_enddef</title>
+<path fill="none" stroke="#4800ff" d="M389.62,-443.35C398.54,-440.21 407.75,-435.42 414.06,-428.13 458.09,-377.28 403.92,-330.08 450.06,-281.13 455.31,-275.57 462,-271.47 469.12,-268.44"/>
+<polygon fill="#4800ff" stroke="#4800ff" points="470.03,-271.83 478.32,-265.24 467.73,-265.22 470.03,-271.83"/>
+</g>
+<!-- proc~open_nc&#45;&gt;nf90_inq_dimid -->
+<g id="proc~~tests_mpi_operators~~CallsGraph_edge52" class="edge">
+<title>proc~open_nc&#45;&gt;nf90_inq_dimid</title>
+<path fill="none" stroke="#4800ff" d="M389.61,-445.43C409.41,-442.77 436.81,-439.08 461.23,-435.8"/>
+<polygon fill="#4800ff" stroke="#4800ff" points="461.62,-439.27 471.07,-434.47 460.69,-432.34 461.62,-439.27"/>
+</g>
+<!-- nf90_inquire -->
+<g id="proc~~tests_mpi_operators~~CallsGraph_node34" class="node">
+<title>nf90_inquire</title>
+<polygon fill="#777777" stroke="#777777" points="557.95,-482.27 480.43,-482.27 480.43,-458 557.95,-458 557.95,-482.27"/>
+<text xml:space="preserve" text-anchor="middle" x="519.19" y="-466.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">nf90_inquire</text>
+</g>
+<!-- proc~open_nc&#45;&gt;nf90_inquire -->
+<g id="proc~~tests_mpi_operators~~CallsGraph_edge54" class="edge">
+<title>proc~open_nc&#45;&gt;nf90_inquire</title>
+<path fill="none" stroke="#4800ff" d="M389.61,-452.84C411.49,-455.78 442.67,-459.98 468.84,-463.5"/>
+<polygon fill="#4800ff" stroke="#4800ff" points="468.2,-466.94 478.58,-464.81 469.14,-460.01 468.2,-466.94"/>
+</g>
+<!-- nf90_inquire_dimension -->
+<g id="proc~~tests_mpi_operators~~CallsGraph_node35" class="node">
+<title>nf90_inquire_dimension</title>
+<polygon fill="#777777" stroke="#777777" points="588.33,-650.27 450.06,-650.27 450.06,-626 588.33,-626 588.33,-650.27"/>
+<text xml:space="preserve" text-anchor="middle" x="519.19" y="-634.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">nf90_inquire_dimension</text>
+</g>
+<!-- proc~open_nc&#45;&gt;nf90_inquire_dimension -->
+<g id="proc~~tests_mpi_operators~~CallsGraph_edge55" class="edge">
+<title>proc~open_nc&#45;&gt;nf90_inquire_dimension</title>
+<path fill="none" stroke="#4800ff" d="M367.08,-461.57C381.48,-496.61 423.54,-595.08 450.06,-617.13 451.18,-618.07 452.35,-618.96 453.55,-619.82"/>
+<polygon fill="#4800ff" stroke="#4800ff" points="451.65,-622.76 462.04,-624.84 455.22,-616.74 451.65,-622.76"/>
+</g>
+<!-- proc~open_nc&#45;&gt;nf90_put_att -->
+<g id="proc~~tests_mpi_operators~~CallsGraph_edge57" class="edge">
+<title>proc~open_nc&#45;&gt;nf90_put_att</title>
+<path fill="none" stroke="#4800ff" d="M389.64,-438.86C397.62,-435.65 406.28,-431.95 414.06,-428.13 430.69,-419.98 433.1,-414.58 450.06,-407.13 456.16,-404.46 462.71,-401.98 469.24,-399.73"/>
+<polygon fill="#4800ff" stroke="#4800ff" points="470.29,-403.07 478.71,-396.65 468.12,-396.42 470.29,-403.07"/>
+</g>
+<!-- nf90_sync -->
+<g id="proc~~tests_mpi_operators~~CallsGraph_node39" class="node">
+<title>nf90_sync</title>
+<polygon fill="#777777" stroke="#777777" points="551.58,-608.27 486.81,-608.27 486.81,-584 551.58,-584 551.58,-608.27"/>
+<text xml:space="preserve" text-anchor="middle" x="519.19" y="-592.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">nf90_sync</text>
+</g>
+<!-- proc~open_nc&#45;&gt;nf90_sync -->
+<g id="proc~~tests_mpi_operators~~CallsGraph_edge58" class="edge">
+<title>proc~open_nc&#45;&gt;nf90_sync</title>
+<path fill="none" stroke="#4800ff" d="M367.32,-461.58C378.66,-486.83 407.8,-544.32 450.06,-575.13 457.6,-580.63 466.6,-584.71 475.56,-587.73"/>
+<polygon fill="#4800ff" stroke="#4800ff" points="474.32,-591.02 484.9,-590.49 476.3,-584.3 474.32,-591.02"/>
+</g>
+<!-- proc~writestat_dims_nc&#45;&gt;nf90_inq_varid -->
+<g id="proc~~tests_mpi_operators~~CallsGraph_edge59" class="edge">
+<title>proc~writestat_dims_nc&#45;&gt;nf90_inq_varid</title>
+<path fill="none" stroke="#ff006d" d="M404.54,-625.72C408.15,-623.34 411.42,-620.51 414.06,-617.13 483.83,-528.07 376.58,-451.16 450.06,-365.13 453.88,-360.66 458.63,-357.12 463.84,-354.33"/>
+<polygon fill="#ff006d" stroke="#ff006d" points="465.09,-357.6 472.89,-350.43 462.32,-351.17 465.09,-357.6"/>
+</g>
+<!-- proc~writestat_dims_nc&#45;&gt;nf90_inquire_dimension -->
+<g id="proc~~tests_mpi_operators~~CallsGraph_edge60" class="edge">
+<title>proc~writestat_dims_nc&#45;&gt;nf90_inquire_dimension</title>
+<path fill="none" stroke="#ff006d" d="M414.48,-638.13C422.19,-638.13 430.27,-638.13 438.38,-638.13"/>
+<polygon fill="#ff006d" stroke="#ff006d" points="438.31,-641.64 448.31,-638.14 438.31,-634.64 438.31,-641.64"/>
+</g>
+<!-- nf90_put_var -->
+<g id="proc~~tests_mpi_operators~~CallsGraph_node37" class="node">
+<title>nf90_put_var</title>
+<polygon fill="#777777" stroke="#777777" points="559.45,-692.27 478.93,-692.27 478.93,-668 559.45,-668 559.45,-692.27"/>
+<text xml:space="preserve" text-anchor="middle" x="519.19" y="-676.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">nf90_put_var</text>
+</g>
+<!-- proc~writestat_dims_nc&#45;&gt;nf90_put_var -->
+<g id="proc~~tests_mpi_operators~~CallsGraph_edge61" class="edge">
+<title>proc~writestat_dims_nc&#45;&gt;nf90_put_var</title>
+<path fill="none" stroke="#ff006d" d="M408.9,-650.74C427.36,-655.7 448.61,-661.42 467.44,-666.48"/>
+<polygon fill="#ff006d" stroke="#ff006d" points="466.47,-669.85 477.04,-669.06 468.29,-663.09 466.47,-669.85"/>
+</g>
+<!-- proc~is_equal -->
+<g id="proc~~tests_mpi_operators~~CallsGraph_node47" class="node">
+<title>proc~is_equal</title>
+<g id="a_proc~~tests_mpi_operators~~CallsGraph_node47"><a xlink:href="../proc/is_equal.html" xlink:title="is_equal">
+<polygon fill="#d94e8f" stroke="#d94e8f" points="691.72,-974.27 636.7,-974.27 636.7,-950 691.72,-950 691.72,-974.27"/>
+<text xml:space="preserve" text-anchor="middle" x="664.21" y="-958.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">is_equal</text>
+</a>
+</g>
+</g>
+<!-- proc~alignment&#45;&gt;proc~is_equal -->
+<g id="proc~~tests_mpi_operators~~CallsGraph_edge62" class="edge">
+<title>proc~alignment&#45;&gt;proc~is_equal</title>
+<path fill="none" stroke="#0000ff" d="M552.29,-962.13C573.89,-962.13 602.47,-962.13 625.21,-962.13"/>
+<polygon fill="#0000ff" stroke="#0000ff" points="624.99,-965.64 634.99,-962.14 624.99,-958.64 624.99,-965.64"/>
+</g>
+<!-- nf90_strerror -->
+<g id="proc~~tests_mpi_operators~~CallsGraph_node46" class="node">
+<title>nf90_strerror</title>
+<polygon fill="#777777" stroke="#777777" points="704.1,-146.27 624.33,-146.27 624.33,-122 704.1,-122 704.1,-146.27"/>
+<text xml:space="preserve" text-anchor="middle" x="664.21" y="-130.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">nf90_strerror</text>
+</g>
+<!-- proc~nchandle_error&#45;&gt;nf90_strerror -->
+<g id="proc~~tests_mpi_operators~~CallsGraph_edge63" class="edge">
+<title>proc~nchandle_error&#45;&gt;nf90_strerror</title>
+<path fill="none" stroke="#5400ff" d="M565.84,-134.13C580.82,-134.13 597.56,-134.13 612.87,-134.13"/>
+<polygon fill="#5400ff" stroke="#5400ff" points="612.73,-137.64 622.73,-134.14 612.73,-130.64 612.73,-137.64"/>
+</g>
+<!-- proc~read_sparse_ijk&#45;&gt;mpi_bcast -->
+<g id="proc~~tests_mpi_operators~~CallsGraph_edge64" class="edge">
+<title>proc~read_sparse_ijk&#45;&gt;mpi_bcast</title>
+<path fill="none" stroke="#ff00ff" d="M566.32,-873.34C574.22,-870.38 581.94,-866.42 588.33,-861.13 593.41,-856.94 632.25,-781.2 651.9,-742.51"/>
+<polygon fill="#ff00ff" stroke="#ff00ff" points="654.81,-744.51 656.21,-734.01 648.56,-741.35 654.81,-744.51"/>
+</g>
+<!-- proc~read_sparse_ijk&#45;&gt;zend -->
+<g id="proc~~tests_mpi_operators~~CallsGraph_edge65" class="edge">
+<title>proc~read_sparse_ijk&#45;&gt;zend</title>
+<path fill="none" stroke="#ff00ff" d="M565.73,-869.5C573.37,-866.99 581.15,-864.17 588.33,-861.13 603.67,-854.65 619.97,-845.96 633.43,-838.25"/>
+<polygon fill="#ff00ff" stroke="#ff00ff" points="634.93,-841.43 641.8,-833.36 631.4,-835.38 634.93,-841.43"/>
+</g>
+<!-- proc~read_sparse_ijk&#45;&gt;zstart -->
+<g id="proc~~tests_mpi_operators~~CallsGraph_edge66" class="edge">
+<title>proc~read_sparse_ijk&#45;&gt;zstart</title>
+<path fill="none" stroke="#ff00ff" d="M566.23,-888.25C585.39,-890.8 607.36,-893.71 625.53,-896.13"/>
+<polygon fill="#ff00ff" stroke="#ff00ff" points="624.99,-899.59 635.36,-897.43 625.91,-892.65 624.99,-899.59"/>
+</g>
+</g>
+</svg>
+</div>                <script>
+                  var panproctests_mpi_operatorsCallsGraph = svgPanZoom('#proctests_mpi_operatorsCallsGraph',
+                    {zoomEnabled: true, controlIconsEnabled: true, fit: true, center: true,}
+                  );
+                </script>          <div>
+            <a type="button" class="graph-help" data-bs-toggle="modal" href="#CallsGraph-help-text">Help</a>
+          </div>
+          <div class="modal fade" id="CallsGraph-help-text" tabindex="-1" role="dialog">
+            <div class="modal-dialog modal-lg" role="document">
+              <div class="modal-content">
+                <div class="modal-header">
+                  <h4 class="modal-title" id="-graph-help-label">Graph Key</h4>
+                  <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+<p>Nodes of different colours represent the following: </p>
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
+ "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<!-- Generated by graphviz version 14.1.3 (0)
+ -->
+<!-- Title: Graph Key Pages: 1 -->
+<svg width="641pt" height="28pt"
+ viewBox="0.00 0.00 641.00 28.00" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<g id="graph0" class="graph" transform="scale(0.873868 0.873868) rotate(0) translate(4 28.27)">
+<title>Graph Key</title>
+<polygon fill="white" stroke="none" points="-4,4 -4,-28.27 729.52,-28.27 729.52,4 -4,4"/>
+<!-- Subroutine -->
+<g id="node1" class="node">
+<title>Subroutine</title>
+<polygon fill="#d9534f" stroke="#d9534f" points="69.27,-24.27 0,-24.27 0,0 69.27,0 69.27,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="34.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Subroutine</text>
+</g>
+<!-- Function -->
+<g id="node2" class="node">
+<title>Function</title>
+<polygon fill="#d94e8f" stroke="#d94e8f" points="143.89,-24.27 87.38,-24.27 87.38,0 143.89,0 143.89,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="115.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Function</text>
+</g>
+<!-- Interface -->
+<g id="node3" class="node">
+<title>Interface</title>
+<polygon fill="#a7506f" stroke="#a7506f" points="221.39,-24.27 161.88,-24.27 161.88,0 221.39,0 221.39,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="191.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Interface</text>
+</g>
+<!-- Type Bound Procedure -->
+<g id="node4" class="node">
+<title>Type Bound Procedure</title>
+<polygon fill="#a7506f" stroke="#a7506f" points="368.27,-24.27 239,-24.27 239,0 368.27,0 368.27,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="303.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Type Bound Procedure</text>
+</g>
+<!-- Unknown Procedure Type -->
+<g id="node5" class="node">
+<title>Unknown Procedure Type</title>
+<polygon fill="#777777" stroke="#777777" points="529.39,-24.27 385.88,-24.27 385.88,0 529.39,0 529.39,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="457.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Unknown Procedure Type</text>
+</g>
+<!-- Program -->
+<g id="node6" class="node">
+<title>Program</title>
+<polygon fill="#f0ad4e" stroke="#f0ad4e" points="603.89,-24.27 547.38,-24.27 547.38,0 603.89,0 603.89,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="575.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Program</text>
+</g>
+<!-- This Page&#39;s Entity -->
+<g id="node7" class="node">
+<title>This Page&#39;s Entity</title>
+<polygon fill="none" stroke="black" points="725.52,-24.27 621.75,-24.27 621.75,0 725.52,0 725.52,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="673.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50">This Page&#39;s Entity</text>
+</g>
+</g>
+</svg>
+
+<p>Solid arrows point from a procedure to one which it calls. Dashed 
+arrows point from an interface to procedures which implement that interface.
+This could include the module procedures in a generic interface or the
+implementation in a submodule of an interface in a parent module.
+</p>
+ Where possible, edges connecting nodes are
+given different colours to make them easier to distinguish in
+large graphs.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-header">
+  <h3 class="card-title">Called by</h3>
+      </div>
+      <div class="card-body">
+  <div class="depgraph"><?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
+ "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<!-- Generated by graphviz version 14.1.3 (0)
+ -->
+<!-- Title: proc~~tests_mpi_operators~~CalledByGraph Pages: 1 -->
+<svg id="proctests_mpi_operatorsCalledByGraph" width="404pt" height="32pt"
+ viewBox="0.00 0.00 404.00 32.00" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<g id="proc~~tests_mpi_operators~~CalledByGraph" class="graph" transform="scale(1 1) rotate(0) translate(4 28.27)">
+<title>proc~~tests_mpi_operators~~CalledByGraph</title>
+<polygon fill="white" stroke="none" points="-4,4 -4,-28.27 399.79,-28.27 399.79,4 -4,4"/>
+<!-- proc~tests_mpi_operators -->
+<g id="proc~~tests_mpi_operators~~CalledByGraph_node1" class="node">
+<title>proc~tests_mpi_operators</title>
+<polygon fill="none" stroke="black" points="395.79,-24.27 277.02,-24.27 277.02,0 395.79,0 395.79,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="336.4" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50">tests_mpi_operators</text>
+</g>
+<!-- proc~execute_runmode_actions -->
+<g id="proc~~tests_mpi_operators~~CalledByGraph_node2" class="node">
+<title>proc~execute_runmode_actions</title>
+<g id="a_proc~~tests_mpi_operators~~CalledByGraph_node2"><a xlink:href="../proc/execute_runmode_actions.html" xlink:title="execute_runmode_actions">
+<polygon fill="#d9534f" stroke="#d9534f" points="241.02,-24.27 90,-24.27 90,0 241.02,0 241.02,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="165.51" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">execute_runmode_actions</text>
+</a>
+</g>
+</g>
+<!-- proc~execute_runmode_actions&#45;&gt;proc~tests_mpi_operators -->
+<g id="proc~~tests_mpi_operators~~CalledByGraph_edge1" class="edge">
+<title>proc~execute_runmode_actions&#45;&gt;proc~tests_mpi_operators</title>
+<path fill="none" stroke="#ff0000" d="M241.08,-12.13C249.1,-12.13 257.23,-12.13 265.19,-12.13"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="265.19,-15.64 275.19,-12.14 265.19,-8.64 265.19,-15.64"/>
+</g>
+<!-- program~udales -->
+<g id="proc~~tests_mpi_operators~~CalledByGraph_node3" class="node">
+<title>program~udales</title>
+<g id="a_proc~~tests_mpi_operators~~CalledByGraph_node3"><a xlink:href="../program/udales.html" xlink:title="uDALES">
+<polygon fill="#f0ad4e" stroke="#f0ad4e" points="54,-24.27 0,-24.27 0,0 54,0 54,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="27" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">uDALES</text>
+</a>
+</g>
+</g>
+<!-- program~udales&#45;&gt;proc~execute_runmode_actions -->
+<g id="proc~~tests_mpi_operators~~CalledByGraph_edge2" class="edge">
+<title>program~udales&#45;&gt;proc~execute_runmode_actions</title>
+<path fill="none" stroke="#ff0000" d="M54.32,-12.13C61.49,-12.13 69.66,-12.13 78.24,-12.13"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="78.19,-15.64 88.19,-12.14 78.19,-8.64 78.19,-15.64"/>
+</g>
+</g>
+</svg>
+</div>          <div>
+            <a type="button" class="graph-help" data-bs-toggle="modal" href="#CalledByGraph-help-text">Help</a>
+          </div>
+          <div class="modal fade" id="CalledByGraph-help-text" tabindex="-1" role="dialog">
+            <div class="modal-dialog modal-lg" role="document">
+              <div class="modal-content">
+                <div class="modal-header">
+                  <h4 class="modal-title" id="-graph-help-label">Graph Key</h4>
+                  <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+<p>Nodes of different colours represent the following: </p>
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
+ "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<!-- Generated by graphviz version 14.1.3 (0)
+ -->
+<!-- Title: Graph Key Pages: 1 -->
+<svg width="641pt" height="28pt"
+ viewBox="0.00 0.00 641.00 28.00" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<g id="graph0" class="graph" transform="scale(0.873868 0.873868) rotate(0) translate(4 28.27)">
+<title>Graph Key</title>
+<polygon fill="white" stroke="none" points="-4,4 -4,-28.27 729.52,-28.27 729.52,4 -4,4"/>
+<!-- Subroutine -->
+<g id="node1" class="node">
+<title>Subroutine</title>
+<polygon fill="#d9534f" stroke="#d9534f" points="69.27,-24.27 0,-24.27 0,0 69.27,0 69.27,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="34.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Subroutine</text>
+</g>
+<!-- Function -->
+<g id="node2" class="node">
+<title>Function</title>
+<polygon fill="#d94e8f" stroke="#d94e8f" points="143.89,-24.27 87.38,-24.27 87.38,0 143.89,0 143.89,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="115.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Function</text>
+</g>
+<!-- Interface -->
+<g id="node3" class="node">
+<title>Interface</title>
+<polygon fill="#a7506f" stroke="#a7506f" points="221.39,-24.27 161.88,-24.27 161.88,0 221.39,0 221.39,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="191.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Interface</text>
+</g>
+<!-- Type Bound Procedure -->
+<g id="node4" class="node">
+<title>Type Bound Procedure</title>
+<polygon fill="#a7506f" stroke="#a7506f" points="368.27,-24.27 239,-24.27 239,0 368.27,0 368.27,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="303.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Type Bound Procedure</text>
+</g>
+<!-- Unknown Procedure Type -->
+<g id="node5" class="node">
+<title>Unknown Procedure Type</title>
+<polygon fill="#777777" stroke="#777777" points="529.39,-24.27 385.88,-24.27 385.88,0 529.39,0 529.39,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="457.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Unknown Procedure Type</text>
+</g>
+<!-- Program -->
+<g id="node6" class="node">
+<title>Program</title>
+<polygon fill="#f0ad4e" stroke="#f0ad4e" points="603.89,-24.27 547.38,-24.27 547.38,0 603.89,0 603.89,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="575.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Program</text>
+</g>
+<!-- This Page&#39;s Entity -->
+<g id="node7" class="node">
+<title>This Page&#39;s Entity</title>
+<polygon fill="none" stroke="black" points="725.52,-24.27 621.75,-24.27 621.75,0 725.52,0 725.52,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="673.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50">This Page&#39;s Entity</text>
+</g>
+</g>
+</svg>
+
+<p>Solid arrows point from a procedure to one which it calls. Dashed 
+arrows point from an interface to procedures which implement that interface.
+This could include the module procedures in a generic interface or the
+implementation in a submodule of an interface in a parent module.
+</p>
+ Where possible, edges connecting nodes are
+given different colours to make them easier to distinguish in
+large graphs.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <br>
+
+
+    
+    
+
+    
+    
+
+
+
+    
+    <section>
+    <h2><span class="anchor" id="src"></span>Source Code</h2>
+    <div class="hl codehilite"><pre><span></span><span class="w">  </span><span class="kt">logical </span><span class="k">function </span><span class="n">tests_mpi_operators</span><span class="p">()</span>
+<span class="w">    </span><span class="k">use </span><span class="n">mpi</span>
+<span class="w">    </span><span class="k">use </span><span class="n">modglobal</span><span class="p">,</span><span class="w"> </span><span class="k">only</span><span class="w"> </span><span class="p">:</span><span class="w"> </span><span class="n">ib</span><span class="p">,</span><span class="w"> </span><span class="n">ie</span><span class="p">,</span><span class="w"> </span><span class="n">jb</span><span class="p">,</span><span class="w"> </span><span class="n">je</span><span class="p">,</span><span class="w"> </span><span class="n">kb</span><span class="p">,</span><span class="w"> </span><span class="n">ke</span><span class="p">,</span><span class="w"> </span><span class="n">khc</span><span class="p">,</span><span class="w"> </span><span class="n">runmode</span>
+<span class="w">    </span><span class="k">use </span><span class="n">modfields</span><span class="p">,</span><span class="w"> </span><span class="k">only</span><span class="w"> </span><span class="p">:</span><span class="w"> </span><span class="n">initfields</span><span class="p">,</span><span class="w"> </span><span class="n">IIc</span><span class="p">,</span><span class="w"> </span><span class="n">IIu</span><span class="p">,</span><span class="w"> </span><span class="n">IIv</span><span class="p">,</span><span class="w"> </span><span class="n">IIw</span><span class="p">,</span><span class="w"> </span><span class="n">IIuw</span><span class="p">,</span><span class="w"> </span><span class="n">IIvw</span><span class="p">,</span><span class="w"> </span><span class="n">IIuv</span><span class="p">,</span><span class="w"> </span><span class="p">&amp;</span>
+<span class="w">                          </span><span class="n">IIct</span><span class="p">,</span><span class="w"> </span><span class="n">IIut</span><span class="p">,</span><span class="w"> </span><span class="n">IIvt</span><span class="p">,</span><span class="w"> </span><span class="n">IIwt</span><span class="p">,</span><span class="w"> </span><span class="n">IIuwt</span><span class="p">,</span><span class="w"> </span><span class="p">&amp;</span>
+<span class="w">                          </span><span class="n">IIcs</span><span class="p">,</span><span class="w"> </span><span class="n">IIus</span><span class="p">,</span><span class="w"> </span><span class="n">IIvs</span><span class="p">,</span><span class="w"> </span><span class="n">IIws</span><span class="p">,</span><span class="w"> </span><span class="n">IIuws</span><span class="p">,</span><span class="w"> </span><span class="n">IIvws</span><span class="p">,</span><span class="w"> </span><span class="n">IIuvs</span>
+<span class="w">    </span><span class="k">use </span><span class="n">modibm</span><span class="p">,</span><span class="w"> </span><span class="k">only</span><span class="w"> </span><span class="p">:</span><span class="w"> </span><span class="n">initibm</span><span class="p">,</span><span class="w"> </span><span class="n">createmasks</span>
+<span class="w">    </span><span class="k">use </span><span class="n">initfac</span><span class="p">,</span><span class="w"> </span><span class="k">only</span><span class="w"> </span><span class="p">:</span><span class="w"> </span><span class="n">readfacetfiles</span>
+
+<span class="w">    </span><span class="k">implicit none</span>
+
+<span class="k">    </span><span class="kt">logical</span><span class="w"> </span><span class="kd">::</span><span class="w"> </span><span class="n">all_passed</span>
+
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">myid</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="mi">0</span><span class="p">)</span><span class="w"> </span><span class="k">then</span>
+<span class="k">      write</span><span class="p">(</span><span class="o">*</span><span class="p">,</span><span class="w"> </span><span class="s1">'(A)'</span><span class="p">)</span><span class="w"> </span><span class="s1">'================================================'</span>
+<span class="w">      </span><span class="k">write</span><span class="p">(</span><span class="o">*</span><span class="p">,</span><span class="w"> </span><span class="s1">'(A, I8)'</span><span class="p">)</span><span class="w"> </span><span class="s1">'runmode = '</span><span class="p">,</span><span class="w"> </span><span class="n">runmode</span>
+<span class="w">      </span><span class="k">write</span><span class="p">(</span><span class="o">*</span><span class="p">,</span><span class="w"> </span><span class="s1">'(A)'</span><span class="p">)</span><span class="w"> </span><span class="s1">'tests_mpi_operators: MODMPI IBM OPERATOR TEST'</span>
+<span class="w">      </span><span class="k">write</span><span class="p">(</span><span class="o">*</span><span class="p">,</span><span class="w"> </span><span class="s1">'(A)'</span><span class="p">)</span><span class="w"> </span><span class="s1">'------------------------------------------------'</span>
+<span class="w">      </span><span class="k">write</span><span class="p">(</span><span class="o">*</span><span class="p">,</span><span class="w"> </span><span class="s1">'(A)'</span><span class="p">)</span><span class="w"> </span><span class="s1">'Using case 100 masks to validate avexy_ibm/avey_ibm/sumx_ibm/sumy_ibm'</span>
+<span class="w">    </span><span class="k">end if</span>
+
+<span class="k">    call </span><span class="n">initfields</span>
+<span class="w">    </span><span class="k">call </span><span class="n">readfacetfiles</span>
+<span class="w">    </span><span class="k">call </span><span class="n">initibm</span>
+<span class="w">    </span><span class="k">call </span><span class="n">createmasks</span>
+
+<span class="w">    </span><span class="n">all_passed</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">.</span><span class="n">true</span><span class="p">.</span>
+
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(.</span><span class="nb">not</span><span class="p">.</span><span class="w"> </span><span class="n">check_loc_xy</span><span class="p">(</span><span class="s1">'C'</span><span class="p">,</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="n">IIc</span><span class="p">,</span><span class="w"> </span><span class="n">IIcs</span><span class="p">))</span><span class="w"> </span><span class="n">all_passed</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">.</span><span class="n">false</span><span class="p">.</span>
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(.</span><span class="nb">not</span><span class="p">.</span><span class="w"> </span><span class="n">check_loc_xy</span><span class="p">(</span><span class="s1">'U'</span><span class="p">,</span><span class="w"> </span><span class="mi">2</span><span class="p">,</span><span class="w"> </span><span class="n">IIu</span><span class="p">,</span><span class="w"> </span><span class="n">IIus</span><span class="p">))</span><span class="w"> </span><span class="n">all_passed</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">.</span><span class="n">false</span><span class="p">.</span>
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(.</span><span class="nb">not</span><span class="p">.</span><span class="w"> </span><span class="n">check_loc_xy</span><span class="p">(</span><span class="s1">'V'</span><span class="p">,</span><span class="w"> </span><span class="mi">3</span><span class="p">,</span><span class="w"> </span><span class="n">IIv</span><span class="p">,</span><span class="w"> </span><span class="n">IIvs</span><span class="p">))</span><span class="w"> </span><span class="n">all_passed</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">.</span><span class="n">false</span><span class="p">.</span>
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(.</span><span class="nb">not</span><span class="p">.</span><span class="w"> </span><span class="n">check_loc_xy</span><span class="p">(</span><span class="s1">'W'</span><span class="p">,</span><span class="w"> </span><span class="mi">4</span><span class="p">,</span><span class="w"> </span><span class="n">IIw</span><span class="p">,</span><span class="w"> </span><span class="n">IIws</span><span class="p">))</span><span class="w"> </span><span class="n">all_passed</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">.</span><span class="n">false</span><span class="p">.</span>
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(.</span><span class="nb">not</span><span class="p">.</span><span class="w"> </span><span class="n">check_loc_xy</span><span class="p">(</span><span class="s1">'WU'</span><span class="p">,</span><span class="w"> </span><span class="mi">5</span><span class="p">,</span><span class="w"> </span><span class="n">IIuw</span><span class="p">,</span><span class="w"> </span><span class="n">IIuws</span><span class="p">))</span><span class="w"> </span><span class="n">all_passed</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">.</span><span class="n">false</span><span class="p">.</span>
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(.</span><span class="nb">not</span><span class="p">.</span><span class="w"> </span><span class="n">check_loc_xy</span><span class="p">(</span><span class="s1">'VW'</span><span class="p">,</span><span class="w"> </span><span class="mi">6</span><span class="p">,</span><span class="w"> </span><span class="n">IIvw</span><span class="p">,</span><span class="w"> </span><span class="n">IIvws</span><span class="p">))</span><span class="w"> </span><span class="n">all_passed</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">.</span><span class="n">false</span><span class="p">.</span>
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(.</span><span class="nb">not</span><span class="p">.</span><span class="w"> </span><span class="n">check_loc_xy</span><span class="p">(</span><span class="s1">'UV'</span><span class="p">,</span><span class="w"> </span><span class="mi">7</span><span class="p">,</span><span class="w"> </span><span class="n">IIuv</span><span class="p">,</span><span class="w"> </span><span class="n">IIuvs</span><span class="p">))</span><span class="w"> </span><span class="n">all_passed</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">.</span><span class="n">false</span><span class="p">.</span>
+
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(.</span><span class="nb">not</span><span class="p">.</span><span class="w"> </span><span class="n">check_loc_y</span><span class="p">(</span><span class="s1">'C'</span><span class="p">,</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="n">IIc</span><span class="p">,</span><span class="w"> </span><span class="n">IIct</span><span class="p">))</span><span class="w"> </span><span class="n">all_passed</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">.</span><span class="n">false</span><span class="p">.</span>
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(.</span><span class="nb">not</span><span class="p">.</span><span class="w"> </span><span class="n">check_loc_y</span><span class="p">(</span><span class="s1">'U'</span><span class="p">,</span><span class="w"> </span><span class="mi">2</span><span class="p">,</span><span class="w"> </span><span class="n">IIu</span><span class="p">,</span><span class="w"> </span><span class="n">IIut</span><span class="p">))</span><span class="w"> </span><span class="n">all_passed</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">.</span><span class="n">false</span><span class="p">.</span>
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(.</span><span class="nb">not</span><span class="p">.</span><span class="w"> </span><span class="n">check_loc_y</span><span class="p">(</span><span class="s1">'V'</span><span class="p">,</span><span class="w"> </span><span class="mi">3</span><span class="p">,</span><span class="w"> </span><span class="n">IIv</span><span class="p">,</span><span class="w"> </span><span class="n">IIvt</span><span class="p">))</span><span class="w"> </span><span class="n">all_passed</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">.</span><span class="n">false</span><span class="p">.</span>
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(.</span><span class="nb">not</span><span class="p">.</span><span class="w"> </span><span class="n">check_loc_y</span><span class="p">(</span><span class="s1">'W'</span><span class="p">,</span><span class="w"> </span><span class="mi">4</span><span class="p">,</span><span class="w"> </span><span class="n">IIw</span><span class="p">,</span><span class="w"> </span><span class="n">IIwt</span><span class="p">))</span><span class="w"> </span><span class="n">all_passed</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">.</span><span class="n">false</span><span class="p">.</span>
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(.</span><span class="nb">not</span><span class="p">.</span><span class="w"> </span><span class="n">check_loc_y</span><span class="p">(</span><span class="s1">'WU'</span><span class="p">,</span><span class="w"> </span><span class="mi">5</span><span class="p">,</span><span class="w"> </span><span class="n">IIuw</span><span class="p">,</span><span class="w"> </span><span class="n">IIuwt</span><span class="p">))</span><span class="w"> </span><span class="n">all_passed</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">.</span><span class="n">false</span><span class="p">.</span>
+
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">all_passed</span><span class="w"> </span><span class="p">.</span><span class="nb">and</span><span class="p">.</span><span class="w"> </span><span class="n">myid</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="mi">0</span><span class="p">)</span><span class="w"> </span><span class="k">then</span>
+<span class="k">      write</span><span class="p">(</span><span class="o">*</span><span class="p">,</span><span class="w"> </span><span class="s1">'(A)'</span><span class="p">)</span><span class="w"> </span><span class="s1">'------------------------------------------------'</span>
+<span class="w">      </span><span class="k">write</span><span class="p">(</span><span class="o">*</span><span class="p">,</span><span class="w"> </span><span class="s1">'(A)'</span><span class="p">)</span><span class="w"> </span><span class="s1">'ALL TESTS PASSED: tests_mpi_operators'</span>
+<span class="w">      </span><span class="k">write</span><span class="p">(</span><span class="o">*</span><span class="p">,</span><span class="w"> </span><span class="s1">'(A)'</span><span class="p">)</span><span class="w"> </span><span class="s1">'================================================'</span>
+<span class="w">    </span><span class="k">else if</span><span class="w"> </span><span class="p">((.</span><span class="nb">not</span><span class="p">.</span><span class="w"> </span><span class="n">all_passed</span><span class="p">)</span><span class="w"> </span><span class="p">.</span><span class="nb">and</span><span class="p">.</span><span class="w"> </span><span class="n">myid</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="mi">0</span><span class="p">)</span><span class="w"> </span><span class="k">then</span>
+<span class="k">      write</span><span class="p">(</span><span class="o">*</span><span class="p">,</span><span class="w"> </span><span class="s1">'(A)'</span><span class="p">)</span><span class="w"> </span><span class="s1">'------------------------------------------------'</span>
+<span class="w">      </span><span class="k">write</span><span class="p">(</span><span class="o">*</span><span class="p">,</span><span class="w"> </span><span class="s1">'(A)'</span><span class="p">)</span><span class="w"> </span><span class="s1">'TESTS FAILED: tests_mpi_operators'</span>
+<span class="w">      </span><span class="k">write</span><span class="p">(</span><span class="o">*</span><span class="p">,</span><span class="w"> </span><span class="s1">'(A)'</span><span class="p">)</span><span class="w"> </span><span class="s1">'================================================'</span>
+<span class="w">    </span><span class="k">end if</span>
+
+<span class="k">    </span><span class="n">tests_mpi_operators</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">all_passed</span>
+
+<span class="w">  </span><span class="k">contains</span>
+
+<span class="k">    </span><span class="kt">logical </span><span class="k">function </span><span class="n">check_loc_xy</span><span class="p">(</span><span class="n">label</span><span class="p">,</span><span class="w"> </span><span class="n">loc_id</span><span class="p">,</span><span class="w"> </span><span class="n">mask_3d</span><span class="p">,</span><span class="w"> </span><span class="n">mask_1d</span><span class="p">)</span>
+<span class="w">      </span><span class="k">implicit none</span>
+<span class="k">      </span><span class="kt">character</span><span class="p">(</span><span class="nb">len</span><span class="o">=*</span><span class="p">),</span><span class="w"> </span><span class="k">intent</span><span class="p">(</span><span class="n">in</span><span class="p">)</span><span class="w"> </span><span class="kd">::</span><span class="w"> </span><span class="n">label</span>
+<span class="w">      </span><span class="kt">integer</span><span class="p">,</span><span class="w"> </span><span class="k">intent</span><span class="p">(</span><span class="n">in</span><span class="p">)</span><span class="w"> </span><span class="kd">::</span><span class="w"> </span><span class="n">loc_id</span>
+<span class="w">      </span><span class="kt">integer</span><span class="p">,</span><span class="w"> </span><span class="k">intent</span><span class="p">(</span><span class="n">in</span><span class="p">)</span><span class="w"> </span><span class="kd">::</span><span class="w"> </span><span class="n">mask_3d</span><span class="p">(:,:,:)</span>
+<span class="w">      </span><span class="kt">integer</span><span class="p">,</span><span class="w"> </span><span class="k">intent</span><span class="p">(</span><span class="n">in</span><span class="p">)</span><span class="w"> </span><span class="kd">::</span><span class="w"> </span><span class="n">mask_1d</span><span class="p">(:)</span>
+<span class="w">      </span><span class="kt">real</span><span class="p">,</span><span class="w"> </span><span class="k">allocatable</span><span class="w"> </span><span class="kd">::</span><span class="w"> </span><span class="n">var_clean</span><span class="p">(:,:,:)</span>
+<span class="w">      </span><span class="kt">real</span><span class="p">,</span><span class="w"> </span><span class="k">allocatable</span><span class="w"> </span><span class="kd">::</span><span class="w"> </span><span class="n">got</span><span class="p">(:),</span><span class="w"> </span><span class="nb">exp</span><span class="p">(:),</span><span class="w"> </span><span class="n">sum_local</span><span class="p">(:),</span><span class="w"> </span><span class="n">sum_global</span><span class="p">(:)</span>
+<span class="w">      </span><span class="kt">integer</span><span class="w"> </span><span class="kd">::</span><span class="w"> </span><span class="n">i</span><span class="p">,</span><span class="w"> </span><span class="n">j</span><span class="p">,</span><span class="w"> </span><span class="n">k</span>
+
+<span class="w">      </span><span class="k">allocate</span><span class="p">(</span><span class="n">var_clean</span><span class="p">(</span><span class="n">ib</span><span class="p">:</span><span class="n">ie</span><span class="p">,</span><span class="n">jb</span><span class="p">:</span><span class="n">je</span><span class="p">,</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="o">+</span><span class="n">khc</span><span class="p">))</span>
+<span class="w">      </span><span class="k">allocate</span><span class="p">(</span><span class="n">got</span><span class="p">(</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="o">+</span><span class="n">khc</span><span class="p">),</span><span class="w"> </span><span class="nb">exp</span><span class="p">(</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="o">+</span><span class="n">khc</span><span class="p">),</span><span class="w"> </span><span class="n">sum_local</span><span class="p">(</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="o">+</span><span class="n">khc</span><span class="p">),</span><span class="w"> </span><span class="n">sum_global</span><span class="p">(</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="o">+</span><span class="n">khc</span><span class="p">))</span>
+
+<span class="w">      </span><span class="k">do </span><span class="n">k</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">kb</span><span class="p">,</span><span class="w"> </span><span class="n">ke</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">khc</span>
+<span class="w">        </span><span class="k">do </span><span class="n">j</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">jb</span><span class="p">,</span><span class="w"> </span><span class="n">je</span>
+<span class="w">          </span><span class="k">do </span><span class="n">i</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">ib</span><span class="p">,</span><span class="w"> </span><span class="n">ie</span>
+<span class="w">            </span><span class="n">var_clean</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="p">,</span><span class="n">k</span><span class="p">)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">0.25</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="kt">real</span><span class="p">(</span><span class="n">loc_id</span><span class="p">)</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mf">0.13</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="kt">real</span><span class="p">(</span><span class="n">i</span><span class="p">)</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="mf">0.07</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="kt">real</span><span class="p">(</span><span class="n">j</span><span class="p">)</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mf">0.011</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="kt">real</span><span class="p">(</span><span class="n">k</span><span class="p">)</span>
+<span class="w">          </span><span class="k">end do</span>
+<span class="k">        end do</span>
+<span class="k">      end do</span>
+
+<span class="k">      </span><span class="n">got</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">0.</span>
+<span class="w">      </span><span class="k">call </span><span class="n">avexy_ibm</span><span class="p">(</span><span class="n">got</span><span class="p">,</span><span class="w"> </span><span class="n">var_clean</span><span class="p">,</span><span class="w"> </span><span class="n">ib</span><span class="p">,</span><span class="w"> </span><span class="n">ie</span><span class="p">,</span><span class="w"> </span><span class="n">jb</span><span class="p">,</span><span class="w"> </span><span class="n">je</span><span class="p">,</span><span class="w"> </span><span class="n">kb</span><span class="p">,</span><span class="w"> </span><span class="n">ke</span><span class="p">,</span><span class="w"> </span><span class="n">khc</span><span class="p">,</span><span class="w"> </span><span class="n">mask_3d</span><span class="p">(</span><span class="n">ib</span><span class="p">:</span><span class="n">ie</span><span class="p">,</span><span class="n">jb</span><span class="p">:</span><span class="n">je</span><span class="p">,</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="o">+</span><span class="n">khc</span><span class="p">),</span><span class="w"> </span><span class="n">mask_1d</span><span class="p">,</span><span class="w"> </span><span class="p">.</span><span class="n">true</span><span class="p">.)</span>
+
+<span class="w">      </span><span class="k">do </span><span class="n">k</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">kb</span><span class="p">,</span><span class="w"> </span><span class="n">ke</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">khc</span>
+<span class="w">        </span><span class="n">sum_local</span><span class="p">(</span><span class="n">k</span><span class="p">)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">sum</span><span class="p">(</span><span class="n">var_clean</span><span class="p">(</span><span class="n">ib</span><span class="p">:</span><span class="n">ie</span><span class="p">,</span><span class="n">jb</span><span class="p">:</span><span class="n">je</span><span class="p">,</span><span class="n">k</span><span class="p">)</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="kt">real</span><span class="p">(</span><span class="n">mask_3d</span><span class="p">(</span><span class="n">ib</span><span class="p">:</span><span class="n">ie</span><span class="p">,</span><span class="n">jb</span><span class="p">:</span><span class="n">je</span><span class="p">,</span><span class="n">k</span><span class="p">)))</span>
+<span class="w">      </span><span class="k">end do</span>
+<span class="k">      call </span><span class="n">MPI_ALLREDUCE</span><span class="p">(</span><span class="n">sum_local</span><span class="p">,</span><span class="w"> </span><span class="n">sum_global</span><span class="p">,</span><span class="w"> </span><span class="n">size</span><span class="p">(</span><span class="n">sum_local</span><span class="p">),</span><span class="w"> </span><span class="n">MY_REAL</span><span class="p">,</span><span class="w"> </span><span class="n">MPI_SUM</span><span class="p">,</span><span class="w"> </span><span class="n">comm3d</span><span class="p">,</span><span class="w"> </span><span class="n">mpierr</span><span class="p">)</span>
+
+<span class="w">      </span><span class="k">do </span><span class="n">k</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">kb</span><span class="p">,</span><span class="w"> </span><span class="n">ke</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">khc</span>
+<span class="w">        </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">mask_1d</span><span class="p">(</span><span class="n">k</span><span class="p">)</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="mi">0</span><span class="p">)</span><span class="w"> </span><span class="k">then</span>
+<span class="k">          </span><span class="nb">exp</span><span class="p">(</span><span class="n">k</span><span class="p">)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="o">-</span><span class="mi">99</span><span class="mf">9.</span>
+<span class="w">        </span><span class="k">else</span>
+<span class="k">          </span><span class="nb">exp</span><span class="p">(</span><span class="n">k</span><span class="p">)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">sum_global</span><span class="p">(</span><span class="n">k</span><span class="p">)</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="kt">real</span><span class="p">(</span><span class="n">mask_1d</span><span class="p">(</span><span class="n">k</span><span class="p">))</span>
+<span class="w">        </span><span class="k">end if</span>
+<span class="k">      end do</span>
+
+<span class="k">      </span><span class="n">check_loc_xy</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">compare_real_1d</span><span class="p">(</span><span class="s1">'avexy_ibm '</span><span class="o">//</span><span class="nb">trim</span><span class="p">(</span><span class="n">label</span><span class="p">),</span><span class="w"> </span><span class="n">got</span><span class="p">,</span><span class="w"> </span><span class="nb">exp</span><span class="p">,</span><span class="w"> </span><span class="mf">1.e-9</span><span class="p">)</span>
+
+<span class="w">      </span><span class="k">deallocate</span><span class="p">(</span><span class="n">var_clean</span><span class="p">,</span><span class="w"> </span><span class="n">got</span><span class="p">,</span><span class="w"> </span><span class="nb">exp</span><span class="p">,</span><span class="w"> </span><span class="n">sum_local</span><span class="p">,</span><span class="w"> </span><span class="n">sum_global</span><span class="p">)</span>
+<span class="w">    </span><span class="k">end function </span><span class="n">check_loc_xy</span>
+
+<span class="w">    </span><span class="kt">logical </span><span class="k">function </span><span class="n">check_loc_y</span><span class="p">(</span><span class="n">label</span><span class="p">,</span><span class="w"> </span><span class="n">loc_id</span><span class="p">,</span><span class="w"> </span><span class="n">mask_3d</span><span class="p">,</span><span class="w"> </span><span class="n">mask_2d</span><span class="p">)</span>
+<span class="w">      </span><span class="k">implicit none</span>
+<span class="k">      </span><span class="kt">character</span><span class="p">(</span><span class="nb">len</span><span class="o">=*</span><span class="p">),</span><span class="w"> </span><span class="k">intent</span><span class="p">(</span><span class="n">in</span><span class="p">)</span><span class="w"> </span><span class="kd">::</span><span class="w"> </span><span class="n">label</span>
+<span class="w">      </span><span class="kt">integer</span><span class="p">,</span><span class="w"> </span><span class="k">intent</span><span class="p">(</span><span class="n">in</span><span class="p">)</span><span class="w"> </span><span class="kd">::</span><span class="w"> </span><span class="n">loc_id</span>
+<span class="w">      </span><span class="kt">integer</span><span class="p">,</span><span class="w"> </span><span class="k">intent</span><span class="p">(</span><span class="n">in</span><span class="p">)</span><span class="w"> </span><span class="kd">::</span><span class="w"> </span><span class="n">mask_3d</span><span class="p">(:,:,:)</span>
+<span class="w">      </span><span class="kt">integer</span><span class="p">,</span><span class="w"> </span><span class="k">intent</span><span class="p">(</span><span class="n">in</span><span class="p">)</span><span class="w"> </span><span class="kd">::</span><span class="w"> </span><span class="n">mask_2d</span><span class="p">(:,:)</span>
+<span class="w">      </span><span class="kt">real</span><span class="p">,</span><span class="w"> </span><span class="k">allocatable</span><span class="w"> </span><span class="kd">::</span><span class="w"> </span><span class="n">var_clean</span><span class="p">(:,:,:)</span>
+<span class="w">      </span><span class="kt">real</span><span class="p">,</span><span class="w"> </span><span class="k">allocatable</span><span class="w"> </span><span class="kd">::</span><span class="w"> </span><span class="n">got_avg</span><span class="p">(:,:),</span><span class="w"> </span><span class="n">got_sum_y</span><span class="p">(:,:),</span><span class="w"> </span><span class="n">got_sum_x</span><span class="p">(:,:)</span>
+<span class="w">      </span><span class="kt">real</span><span class="p">,</span><span class="w"> </span><span class="k">allocatable</span><span class="w"> </span><span class="kd">::</span><span class="w"> </span><span class="n">exp_avg</span><span class="p">(:,:),</span><span class="w"> </span><span class="n">exp_sum_y</span><span class="p">(:,:),</span><span class="w"> </span><span class="n">exp_sum_x</span><span class="p">(:,:)</span>
+<span class="w">      </span><span class="kt">real</span><span class="p">,</span><span class="w"> </span><span class="k">allocatable</span><span class="w"> </span><span class="kd">::</span><span class="w"> </span><span class="n">sum_local</span><span class="p">(:,:),</span><span class="w"> </span><span class="n">sum_global</span><span class="p">(:,:)</span>
+<span class="w">      </span><span class="kt">real</span><span class="p">,</span><span class="w"> </span><span class="k">allocatable</span><span class="w"> </span><span class="kd">::</span><span class="w"> </span><span class="n">sumx_local</span><span class="p">(:,:),</span><span class="w"> </span><span class="n">sumx_global</span><span class="p">(:,:)</span>
+<span class="w">      </span><span class="kt">integer</span><span class="w"> </span><span class="kd">::</span><span class="w"> </span><span class="n">i</span><span class="p">,</span><span class="w"> </span><span class="n">j</span><span class="p">,</span><span class="w"> </span><span class="n">k</span>
+
+<span class="w">      </span><span class="k">allocate</span><span class="p">(</span><span class="n">var_clean</span><span class="p">(</span><span class="n">ib</span><span class="p">:</span><span class="n">ie</span><span class="p">,</span><span class="n">jb</span><span class="p">:</span><span class="n">je</span><span class="p">,</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="p">))</span>
+<span class="w">      </span><span class="k">allocate</span><span class="p">(</span><span class="n">got_avg</span><span class="p">(</span><span class="n">ib</span><span class="p">:</span><span class="n">ie</span><span class="p">,</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="p">),</span><span class="w"> </span><span class="n">got_sum_y</span><span class="p">(</span><span class="n">ib</span><span class="p">:</span><span class="n">ie</span><span class="p">,</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="p">),</span><span class="w"> </span><span class="n">got_sum_x</span><span class="p">(</span><span class="n">jb</span><span class="p">:</span><span class="n">je</span><span class="p">,</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="p">))</span>
+<span class="w">      </span><span class="k">allocate</span><span class="p">(</span><span class="n">exp_avg</span><span class="p">(</span><span class="n">ib</span><span class="p">:</span><span class="n">ie</span><span class="p">,</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="p">),</span><span class="w"> </span><span class="n">exp_sum_y</span><span class="p">(</span><span class="n">ib</span><span class="p">:</span><span class="n">ie</span><span class="p">,</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="p">),</span><span class="w"> </span><span class="n">exp_sum_x</span><span class="p">(</span><span class="n">jb</span><span class="p">:</span><span class="n">je</span><span class="p">,</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="p">))</span>
+<span class="w">      </span><span class="k">allocate</span><span class="p">(</span><span class="n">sum_local</span><span class="p">(</span><span class="n">ib</span><span class="p">:</span><span class="n">ie</span><span class="p">,</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="p">),</span><span class="w"> </span><span class="n">sum_global</span><span class="p">(</span><span class="n">ib</span><span class="p">:</span><span class="n">ie</span><span class="p">,</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="p">))</span>
+<span class="w">      </span><span class="k">allocate</span><span class="p">(</span><span class="n">sumx_local</span><span class="p">(</span><span class="n">jb</span><span class="p">:</span><span class="n">je</span><span class="p">,</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="p">),</span><span class="w"> </span><span class="n">sumx_global</span><span class="p">(</span><span class="n">jb</span><span class="p">:</span><span class="n">je</span><span class="p">,</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="p">))</span>
+
+<span class="w">      </span><span class="k">do </span><span class="n">k</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">kb</span><span class="p">,</span><span class="w"> </span><span class="n">ke</span>
+<span class="w">        </span><span class="k">do </span><span class="n">j</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">jb</span><span class="p">,</span><span class="w"> </span><span class="n">je</span>
+<span class="w">          </span><span class="k">do </span><span class="n">i</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">ib</span><span class="p">,</span><span class="w"> </span><span class="n">ie</span>
+<span class="w">            </span><span class="n">var_clean</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="p">,</span><span class="n">k</span><span class="p">)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">0.5</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="kt">real</span><span class="p">(</span><span class="n">loc_id</span><span class="p">)</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mf">0.21</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="kt">real</span><span class="p">(</span><span class="n">i</span><span class="p">)</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="mf">0.03</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="kt">real</span><span class="p">(</span><span class="n">j</span><span class="p">)</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mf">0.017</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="kt">real</span><span class="p">(</span><span class="n">k</span><span class="p">)</span>
+<span class="w">          </span><span class="k">end do</span>
+<span class="k">        end do</span>
+<span class="k">      end do</span>
+
+<span class="k">      </span><span class="n">got_avg</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">0.</span>
+<span class="w">      </span><span class="n">got_sum_y</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">0.</span>
+<span class="w">      </span><span class="n">got_sum_x</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">0.</span>
+<span class="w">      </span><span class="k">call </span><span class="n">avey_ibm</span><span class="p">(</span><span class="n">got_avg</span><span class="p">,</span><span class="w"> </span><span class="n">var_clean</span><span class="p">,</span><span class="w"> </span><span class="n">ib</span><span class="p">,</span><span class="w"> </span><span class="n">ie</span><span class="p">,</span><span class="w"> </span><span class="n">jb</span><span class="p">,</span><span class="w"> </span><span class="n">je</span><span class="p">,</span><span class="w"> </span><span class="n">kb</span><span class="p">,</span><span class="w"> </span><span class="n">ke</span><span class="p">,</span><span class="w"> </span><span class="n">mask_3d</span><span class="p">(</span><span class="n">ib</span><span class="p">:</span><span class="n">ie</span><span class="p">,</span><span class="n">jb</span><span class="p">:</span><span class="n">je</span><span class="p">,</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="p">),</span><span class="w"> </span><span class="n">mask_2d</span><span class="p">)</span>
+<span class="w">      </span><span class="k">call </span><span class="n">sumy_ibm</span><span class="p">(</span><span class="n">got_sum_y</span><span class="p">,</span><span class="w"> </span><span class="n">var_clean</span><span class="p">,</span><span class="w"> </span><span class="n">ib</span><span class="p">,</span><span class="w"> </span><span class="n">ie</span><span class="p">,</span><span class="w"> </span><span class="n">jb</span><span class="p">,</span><span class="w"> </span><span class="n">je</span><span class="p">,</span><span class="w"> </span><span class="n">kb</span><span class="p">,</span><span class="w"> </span><span class="n">ke</span><span class="p">,</span><span class="w"> </span><span class="n">mask_3d</span><span class="p">(</span><span class="n">ib</span><span class="p">:</span><span class="n">ie</span><span class="p">,</span><span class="n">jb</span><span class="p">:</span><span class="n">je</span><span class="p">,</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="p">))</span>
+<span class="w">      </span><span class="k">call </span><span class="n">sumx_ibm</span><span class="p">(</span><span class="n">got_sum_x</span><span class="p">,</span><span class="w"> </span><span class="n">var_clean</span><span class="p">,</span><span class="w"> </span><span class="n">ib</span><span class="p">,</span><span class="w"> </span><span class="n">ie</span><span class="p">,</span><span class="w"> </span><span class="n">jb</span><span class="p">,</span><span class="w"> </span><span class="n">je</span><span class="p">,</span><span class="w"> </span><span class="n">kb</span><span class="p">,</span><span class="w"> </span><span class="n">ke</span><span class="p">,</span><span class="w"> </span><span class="n">mask_3d</span><span class="p">(</span><span class="n">ib</span><span class="p">:</span><span class="n">ie</span><span class="p">,</span><span class="n">jb</span><span class="p">:</span><span class="n">je</span><span class="p">,</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="p">))</span>
+
+<span class="w">      </span><span class="k">do </span><span class="n">k</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">kb</span><span class="p">,</span><span class="w"> </span><span class="n">ke</span>
+<span class="w">        </span><span class="k">do </span><span class="n">i</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">ib</span><span class="p">,</span><span class="w"> </span><span class="n">ie</span>
+<span class="w">          </span><span class="n">sum_local</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">k</span><span class="p">)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">sum</span><span class="p">(</span><span class="n">var_clean</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">jb</span><span class="p">:</span><span class="n">je</span><span class="p">,</span><span class="n">k</span><span class="p">)</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="kt">real</span><span class="p">(</span><span class="n">mask_3d</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">jb</span><span class="p">:</span><span class="n">je</span><span class="p">,</span><span class="n">k</span><span class="p">)))</span>
+<span class="w">        </span><span class="k">end do</span>
+<span class="k">      end do</span>
+<span class="k">      call </span><span class="n">MPI_ALLREDUCE</span><span class="p">(</span><span class="n">sum_local</span><span class="p">,</span><span class="w"> </span><span class="n">sum_global</span><span class="p">,</span><span class="w"> </span><span class="n">size</span><span class="p">(</span><span class="n">sum_local</span><span class="p">),</span><span class="w"> </span><span class="n">MY_REAL</span><span class="p">,</span><span class="w"> </span><span class="n">MPI_SUM</span><span class="p">,</span><span class="w"> </span><span class="n">comm3d</span><span class="p">,</span><span class="w"> </span><span class="n">mpierr</span><span class="p">)</span>
+
+<span class="w">      </span><span class="k">do </span><span class="n">k</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">kb</span><span class="p">,</span><span class="w"> </span><span class="n">ke</span>
+<span class="w">        </span><span class="k">do </span><span class="n">i</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">ib</span><span class="p">,</span><span class="w"> </span><span class="n">ie</span>
+<span class="w">          </span><span class="n">exp_sum_y</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">k</span><span class="p">)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">sum_global</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">k</span><span class="p">)</span>
+<span class="w">          </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">mask_2d</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">k</span><span class="p">)</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="mi">0</span><span class="p">)</span><span class="w"> </span><span class="k">then</span>
+<span class="k">            </span><span class="n">exp_avg</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">k</span><span class="p">)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="o">-</span><span class="mi">99</span><span class="mf">9.</span>
+<span class="w">          </span><span class="k">else</span>
+<span class="k">            </span><span class="n">exp_avg</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">k</span><span class="p">)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">sum_global</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">k</span><span class="p">)</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="kt">real</span><span class="p">(</span><span class="n">mask_2d</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">k</span><span class="p">))</span>
+<span class="w">          </span><span class="k">end if</span>
+<span class="k">        end do</span>
+<span class="k">      end do</span>
+
+<span class="k">      do </span><span class="n">k</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">kb</span><span class="p">,</span><span class="w"> </span><span class="n">ke</span>
+<span class="w">        </span><span class="k">do </span><span class="n">j</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">jb</span><span class="p">,</span><span class="w"> </span><span class="n">je</span>
+<span class="w">          </span><span class="n">sumx_local</span><span class="p">(</span><span class="n">j</span><span class="p">,</span><span class="n">k</span><span class="p">)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">sum</span><span class="p">(</span><span class="n">var_clean</span><span class="p">(</span><span class="n">ib</span><span class="p">:</span><span class="n">ie</span><span class="p">,</span><span class="n">j</span><span class="p">,</span><span class="n">k</span><span class="p">)</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="kt">real</span><span class="p">(</span><span class="n">mask_3d</span><span class="p">(</span><span class="n">ib</span><span class="p">:</span><span class="n">ie</span><span class="p">,</span><span class="n">j</span><span class="p">,</span><span class="n">k</span><span class="p">)))</span>
+<span class="w">        </span><span class="k">end do</span>
+<span class="k">      end do</span>
+<span class="k">      call </span><span class="n">MPI_ALLREDUCE</span><span class="p">(</span><span class="n">sumx_local</span><span class="p">,</span><span class="w"> </span><span class="n">sumx_global</span><span class="p">,</span><span class="w"> </span><span class="n">size</span><span class="p">(</span><span class="n">sumx_local</span><span class="p">),</span><span class="w"> </span><span class="n">MY_REAL</span><span class="p">,</span><span class="w"> </span><span class="n">MPI_SUM</span><span class="p">,</span><span class="w"> </span><span class="n">comm3d</span><span class="p">,</span><span class="w"> </span><span class="n">mpierr</span><span class="p">)</span>
+<span class="w">      </span><span class="n">exp_sum_x</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">sumx_global</span>
+
+<span class="w">      </span><span class="n">check_loc_y</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">compare_real_2d</span><span class="p">(</span><span class="s1">'avey_ibm '</span><span class="o">//</span><span class="nb">trim</span><span class="p">(</span><span class="n">label</span><span class="p">),</span><span class="w"> </span><span class="n">got_avg</span><span class="p">,</span><span class="w"> </span><span class="n">exp_avg</span><span class="p">,</span><span class="w"> </span><span class="mf">1.e-9</span><span class="p">)</span>
+<span class="w">      </span><span class="k">if</span><span class="w"> </span><span class="p">(.</span><span class="nb">not</span><span class="p">.</span><span class="w"> </span><span class="n">compare_real_2d</span><span class="p">(</span><span class="s1">'sumy_ibm '</span><span class="o">//</span><span class="nb">trim</span><span class="p">(</span><span class="n">label</span><span class="p">),</span><span class="w"> </span><span class="n">got_sum_y</span><span class="p">,</span><span class="w"> </span><span class="n">exp_sum_y</span><span class="p">,</span><span class="w"> </span><span class="mf">1.e-9</span><span class="p">))</span><span class="w"> </span><span class="n">check_loc_y</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">.</span><span class="n">false</span><span class="p">.</span>
+<span class="w">      </span><span class="k">if</span><span class="w"> </span><span class="p">(.</span><span class="nb">not</span><span class="p">.</span><span class="w"> </span><span class="n">compare_real_2d_jk</span><span class="p">(</span><span class="s1">'sumx_ibm '</span><span class="o">//</span><span class="nb">trim</span><span class="p">(</span><span class="n">label</span><span class="p">),</span><span class="w"> </span><span class="n">got_sum_x</span><span class="p">,</span><span class="w"> </span><span class="n">exp_sum_x</span><span class="p">,</span><span class="w"> </span><span class="mf">1.e-9</span><span class="p">))</span><span class="w"> </span><span class="n">check_loc_y</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">.</span><span class="n">false</span><span class="p">.</span>
+
+<span class="w">      </span><span class="k">deallocate</span><span class="p">(</span><span class="n">var_clean</span><span class="p">,</span><span class="w"> </span><span class="n">got_avg</span><span class="p">,</span><span class="w"> </span><span class="n">got_sum_y</span><span class="p">,</span><span class="w"> </span><span class="n">got_sum_x</span><span class="p">,</span><span class="w"> </span><span class="n">exp_avg</span><span class="p">,</span><span class="w"> </span><span class="n">exp_sum_y</span><span class="p">,</span><span class="w"> </span><span class="n">exp_sum_x</span><span class="p">,</span><span class="w"> </span><span class="p">&amp;</span>
+<span class="w">                 </span><span class="n">sum_local</span><span class="p">,</span><span class="w"> </span><span class="n">sum_global</span><span class="p">,</span><span class="w"> </span><span class="n">sumx_local</span><span class="p">,</span><span class="w"> </span><span class="n">sumx_global</span><span class="p">)</span>
+<span class="w">    </span><span class="k">end function </span><span class="n">check_loc_y</span>
+
+<span class="w">  </span><span class="k">end function </span><span class="n">tests_mpi_operators</span>
+</pre></div>
+
+    </section>
+    <br>
+    
+    </div>
+  </div>
+
+      <hr>
+    </div> <!-- /container -->
+    <footer>
+      <div class="container">
+        <div class="row justify-content-between">
+          <div class="col">
+            <p>
+              uDALES
+ was developed by The uDALES Team<br>              &copy; 2026 
+</p>
+          </div>
+          <div class="col">
+            <p class="text-end">
+              Documentation generated by
+              <a href="https://github.com/Fortran-FOSS-Programmers/ford">FORD</a>
+ on 2026-11-13 21:40 +0000             </p>
+          </div>
+        </div>
+        <br>
+      </div> <!-- /container -->
+    </footer>
+  </body>
+</html>
