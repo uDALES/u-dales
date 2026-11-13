@@ -2181,7 +2181,7 @@ module modstartup
       use modsurfdata, only:thls
       use modfields, only:u0, v0, w0, thl0, qt0, ql0, ql0h, qtav, qlav, e120, sv0, mindist, wall, &
          uav, vav, wav, uuav, vvav, wwav, uvav, uwav, vwav, svav, thlav, thl2av, sv2av, pres0, &
-         svprof, viscratioav, thluav, thlvav, thlwav, svuav, svvav, svwav, presav, &
+         viscratioav, thluav, thlvav, thlwav, svuav, svvav, svwav, presav, &
          uusgsav, vvsgsav, wwsgsav, uwsgsav, thlusgsav, thlwsgsav, svusgsav, svwsgsav, tkesgsav, &
          strain2av, nusgsav
       use modglobal, only:ib, ie, ih, jb, je, jh, kb, ke, kh, startfile, timee, totavtime, &

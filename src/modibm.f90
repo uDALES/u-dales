@@ -1209,9 +1209,8 @@ module modibm
 
    subroutine ibmwallfun
      use modglobal, only : libm, iwallmom, xhat, yhat, zhat, ltempeq, lmoist, &
-                           ib, ie, ih, ihc, jb, je, jh, jhc, kb, ke, kh, khc, nsv, totheatflux, totqflux, nfcts, rk3step, timee, nfcts, lwritefac, dt, dtfac, tfac, tnextfac
-     use modfields, only : thl0, qt0, sv0, up, vp, wp, thlp, qtp, svp, &
-                           tau_x, tau_y, tau_z, thl_flux
+                           ih, ihc, jh, jhc, kh, khc, nsv, totheatflux, totqflux, nfcts, rk3step, timee, lwritefac, dt, dtfac, tfac, tnextfac
+     use modfields, only : thl0, qt0, sv0, up, vp, wp, thlp, qtp, svp
      use modmpi, only : myid
      use modstat_nc, only : writestat_nc, writestat_1D_nc, writestat_2D_nc
 
@@ -1873,7 +1872,7 @@ module modibm
 
    real function interp_temperature_w(i, j, k)
      ! interpolates the temperature at w-grid location i,j,k
-     use modglobal, only :  dzf, dzh
+     use modglobal, only :  dzf
      use modfields, only :  thl0
      integer, intent(in) :: i, j, k
      real :: wk, wkm
@@ -2063,9 +2062,9 @@ module modibm
       !kind of obsolete when road facets are being used
       !vegetated floor not added (could simply be copied from vegetated horizontal facets)
       use modwallfunctions, only:wfuno, wfmneutral
-      use modglobal, only:ib, ie, ih, jh, kb,ke,kh, jb, je, kb, nsv, &
+      use modglobal, only:ib, ie, ih, jh, kb, kh, jb, je, nsv, &
          dzf, dzfi, ltempeq, lmoist, BCbotT, BCbotq, BCbotm, BCbots, dzh2i, lfielddump
-      use modfields, only : u0,v0,e120,e12m,thl0,qt0,sv0,up,vp,wp,thlp,qtp,svp,momfluxb,tfluxb,tau_x,tau_y,tau_z,thl_flux
+      use modfields, only : u0,v0,e120,e12m,thl0,qt0,sv0,up,vp,thlp,qtp,svp,momfluxb,tfluxb,tau_x,tau_y,tau_z,thl_flux
       use modsurfdata, only:wtsurf, wqsurf, thls, z0, z0h
       use modsubgriddata, only:ekh
       implicit none
