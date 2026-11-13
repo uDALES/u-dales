@@ -78,17 +78,18 @@ domain-mean `obl` and `u*`, and stress applied locally as
 `u'w' = -u*² u/|U|` with `|U| ≥ 0.1 m/s`. The momentum update follows the
 existing `wfmneutral` pattern (add back the resolved diffusive flux through
 the bottom face, subtract the wall flux). Surface gradients
-`dthldz = -wθ/u* · φh/(κ z1)` and `dqtdz` likewise feed Component 1. Surface
+`dthldz = -w'θ'_up/u* · φh/(κ z1)` and `dqtdz` likewise feed Component 1. Surface
 values `tskin`/`qskin` are diagnosed per column and averaged into
 `thls`/`qts`, and `thvs` is updated, as in DALES.
 
-**Flux sign convention (decision D1).** In `bottom`, `wtsurf` enters with
-a minus sign and `wqsurf` with a plus sign, so a positive `wtsurf` is a
-downward (cooling) flux and a positive `wqsurf` an upward (moistening) one.
-This is undocumented, and every shipped case uses 0. Before building on it, a
-one-step test establishes the actual sign. If confirmed, `wtsurf` is changed to
-upward-positive (DALES convention) in its own commit, with docs updated.
-The documentation example using `wtsurf = 0.01` is reviewed.
+**Flux sign convention (decision D1, decided 2026-11-13).** In uDALES every
+prescribed boundary flux is positive in −z (`wtsurf`, `wttop`, `wqtop`, facet
+`bctf*`), except `wqsurf`, which `bottom` adds upward-positive. `wqsurf` is
+flipped to downward-positive in its own commit (no shipped case uses a
+non-zero value), and the rule is documented. The MO code uses `-wtsurf`,
+`-wqsurf` as DALES-style upward fluxes, and the DALES case converter negates
+both. The long-term convention (keep −z, or adopt upward-positive everywhere)
+is uDALES issue #393, milestone 3.0.
 
 ## Component 1: Deardorff moist buoyancy (`modthermodynamics.f90`)
 
@@ -207,8 +208,8 @@ independent NumPy reference calculations:
 6. **#375:** a case with sentinel `thls`/`qts` and `ltempeq` aborts with the
    new message.
 7. **Surface sign (D1):** one step with only a surface heat/moisture flux.
-   Positive `wtsurf`/`wqsurf` must warm/moisten the first level by
-   `flux·dt/dzf`.
+   Positive `wtsurf`/`wqsurf` must cool/dry the first level by
+   `flux·dt/dzf` (positive in −z).
 8. **Monin–Obukhov:** `u*`, `obl`, `thls` from the first output, against a
    NumPy port of the same iteration on the logged slab-mean inputs; for
    `BCbotm = 5`, `u* = ustin` exactly.

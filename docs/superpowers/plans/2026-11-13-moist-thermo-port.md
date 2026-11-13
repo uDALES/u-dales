@@ -14,7 +14,10 @@
 
 - Worktree `~/udales/u-dales-thermo`, branch `thermo`, based on `origin/master` @ `752430c0`. Run every command from the worktree root.
 - DALES reference source: `dev` @ `075ac4e`. A shallow clone is in the session scratchpad; if it is missing: `git clone --depth 1 -b dev https://github.com/dalesteam/dales.git $SCRATCH/dales`. Cite `DALES dev 075ac4e <file>:<routine>` in a comment above each ported routine.
-- Everything new is off by default. With `iradiation = 0`, `lthermostat = .false.` and `BCbotm ∉ {4,5}`, results must be bit-for-bit identical to the parent commit. Exceptions: the #375 commit (Task 1), and the flux-sign commit (Task 3), which is gated on decision D1.
+- Everything new is off by default. With `iradiation = 0`, `lthermostat = .false.` and `BCbotm ∉ {4,5}`, results must be bit-for-bit identical to the parent commit. Exceptions: the #375 commit (Task 1), and the `wqsurf` sign commit (Task 3; no shipped case uses a non-zero `wqsurf`).
+- **Flux sign convention (decision D1, decided by Maarten 2026-11-13):** every prescribed boundary flux in uDALES is **positive in −z** (downward): `wtsurf`, `wttop`, `wqtop`, facet `bctf*` already are; `wqsurf` was the exception and is flipped in Task 3. Physics code that needs DALES-style upward fluxes uses `-wtsurf`, `-wqsurf`. The long-term convention is uDALES issue #393 (milestone 3.0); reference it in the Task 3 sign commit message.
+- **All netCDF output is single precision** (`NF90_FLOAT`, `modstat_nc.f90:251-255`). Test tolerances must allow float32 (≈6e-8 relative; 3e-5 K at 290 K).
+- Review: Fable reviewed v1 of this plan (findings B1–B3, M1–M5 and minors are folded in below).
 - Namelist variable names follow DALES where a DALES equivalent exists.
 - Fortran style: match the surrounding uDALES code (lower-case keywords, `use ..., only :` lists, `write(0, *) 'ERROR: ...'` + `stop 1` for fatal errors, MPI via `comm3d`/`MY_REAL`/`mpierr` from `modmpi`).
 - Sources are globbed by CMake (`CMakeLists.txt:103`), so new `src/*.f90` files need no CMake edit, only a re-configure.
@@ -141,7 +144,7 @@ EXPNR = "310"
 BASE = {
     "RUN": {"iexpnr": EXPNR, "runtime": "0.5", "trestart": "1000.", "dtmax": "1.0",
             "ladaptive": ".false.", "libm": ".false.", "lles": ".true.",
-            "nprocx": "1", "nprocy": "1"},
+            "nprocx": "1", "nprocy": "1", "lrandomize": ".false."},
     "OUTPUT": {"lfielddump": ".false.", "ltdump": ".false.", "lxytdump": ".false."},
     "DOMAIN": {"itot": "16", "jtot": "16", "ktot": "64", "xlen": "560.", "ylen": "560."},
     "PHYSICS": {"ltempeq": ".true.", "lmoist": ".true.", "lbuoyancy": ".true.",
@@ -328,7 +331,7 @@ Expected: no output.
 python tests/integration/thermo/test_thermo.py -v TestInitChecks
 python tests/run_tests.py supported --branch-a master --branch-b HEAD --build-type Debug 2>&1 | tail -30
 ```
-Expected: both new tests PASS. Compare supported against the baseline. The branch-comparison regression may now differ on cases whose `thls` changed, which is expected for this commit. List each differing case in the commit message. No other suite may newly fail.
+Expected: both new tests PASS. Compare supported against the baseline. The branch-comparison regression will now differ on **essentially every `ltempeq` case**, which is expected for this commit. Before, a dry case with sentinel `qts = -1` had `thvs = 0.392·thls`; `qts = 0` multiplies `thvs` by 2.55. `thvs` feeds `thvh(kb)` in `diagfld` and the SGS length scale, and cases whose `thls` changed differ too. List the differing cases in the commit message with that explanation. No *other* suite may newly fail.
 
 - [ ] **Step 6: Commit**
 
@@ -415,7 +418,7 @@ contains
   subroutine initthermostat
     use modglobal, only : ifnamopt, fname_options, cexpnr, kb, ke
     use modmpi,    only : myid, comm3d, mpierr, my_real, mpi_logical
-    use modstat_nc, only : ncinfo, open_nc, define_nc
+    use modstat_nc, only : ncinfo, open_nc, define_nc, writestat_dims_nc
     implicit none
     integer :: ierr
     namelist/NAMTHERMOSTAT/ lthermostat, tthermostat
@@ -466,7 +469,10 @@ contains
       if (nrect == 0) call define_nc(ncidt, 1, tnct)
       call define_nc(ncidt, nvt, nct)
       call open_nc(fnamez, ncidz, nrecz, n3=ke-kb+1)
-      if (nrecz == 0) call define_nc(ncidz, 1, tncz)
+      if (nrecz == 0) then
+        call define_nc(ncidz, 1, tncz)
+        call writestat_dims_nc(ncidz)      ! fill zt/zm, as modstatsdump.f90:219-222
+      end if
       call define_nc(ncidz, nvz, ncz)
     end if
   end subroutine initthermostat
@@ -479,7 +485,8 @@ contains
     use modmpi,     only : myid, comm3d, mpierr, my_real, mpi_sum, mpi_max, avexy_ibm
     use modstat_nc, only : writestat_nc
     implicit none
-    real :: vt(nvt), vz(kb:ke, nvz), tmp3(ib:ie,jb:je,kb:ke+1)
+    real :: vt(nvt), vz(kb:ke, nvz)
+    real, allocatable :: tmp3(:,:,:)   ! allocatable: an automatic array is ~22 MB/rank on case 303
     real :: loc(7), glob(7), colwp, gmax, dthl
     integer :: i, j, k, kmx
     real :: ncol
@@ -488,6 +495,7 @@ contains
     if (rk3step /= 3 .or. timee < tnext) return
     tnext = tnext + tthermostat
     ncol = real(itot) * real(jtot)
+    allocate(tmp3(ib:ie,jb:je,kb:ke+1))
 
     ! --- column diagnostics: lwp, cloud cover, three BL heights
     loc = 0.
@@ -551,6 +559,7 @@ contains
       call writestat_nc(ncidz, 1, tncz, (/timee/), nrecz, .true.)
       call writestat_nc(ncidz, nvz, ncz, vz, nrecz, ke-kb+1)
     end if
+    deallocate(tmp3)
 
   contains
 
@@ -586,7 +595,8 @@ end module modthermostat
 Verification notes for the implementer. Check each against the actual code; do not assume.
 
 - **`avexy_ibm` arguments.** It expects `aver(kb:ke+kh)` and `var(ib:ie,jb:je,kb:ke+kh)` with an explicit `kh`. The calls above pass `ke-1, 1` so that `ke+kh` resolves to `ke`, which keeps array sections exact. If you prefer, pass sections `kb:ke+kh` of full-size work arrays instead. Either is fine, as long as the bounds match the dummy arguments exactly.
-- **Time-series writes.** `writestat_nc` with a 1-D `vt(nvt)` must resolve to `writestat_time_nc`. Check its generic interface. If the time variable and the series must go in a single call, merge `tnct` into `nct` as entry 1 and write `(/timee, vt/)` once with `lraise=.true.`.
+- **Time-series writes.** Verified by review: a 1-D `vt(nvt)` resolves to `writestat_time_nc` and a 2-D `vz` to `writestat_1D_nc`.
+- **Output timing.** `thermostat`, like `fielddump`, runs at `rk3step == 3` **after** `tstep_integrate` and **before** `thermodynamics`. Prognostic fields in a record are end-of-step. Diagnosed fields (`ql0`, `rhof`, `exnf`, `dthvdz`) are from the previous `thermodynamics` call, i.e. start-of-step. Tests below are written for this.
 - **Profile writes.** `writestat_1D_nc` expects `vars(dim1,nvar)`, which `vz(kb:ke,nvz)` matches.
 - **Filename slices.** `fnamet(14:16)` assumes `'thermostat_t.'` is 13 characters, which it is. Verify the slice anyway.
 
@@ -639,12 +649,12 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
 
 ```python
 class TestSurfaceSign(_SolverTest):
-    """One step, dry/moist laminar column with only a surface flux (free-slip, no wind)."""
+    """One step, laminar column with only a surface flux (no wind; neutral momentum wall function)."""
 
     def _first_level_change(self, name, wtsurf, wqsurf):
         d = tc.write_case(self.tmp / name, u=0.0, v=0.0, groups={
             "RUN": {"runtime": "0.5", "dtmax": "1.0"},
-            "BC": {"BCbotm": "1", "wtsurf": str(wtsurf), "wqsurf": str(wqsurf)},
+            "BC": {"BCbotm": "3", "wtsurf": str(wtsurf), "wqsurf": str(wqsurf)},
             "NAMSUBGRID": {"loneeqn": ".false.", "lvreman": ".true."},
             "NAMTHERMOSTAT": {"lthermostat": ".true.", "tthermostat": "0.5"}},
             thl=np.full(64, 289.0), qt=np.full(64, 5.0e-3))
@@ -652,11 +662,13 @@ class TestSurfaceSign(_SolverTest):
         with Dataset(d / "thermostat_z.310.nc") as z:
             return float(z["thl"][-1, 0]) - 289.0, float(z["qt"][-1, 0]) - 5.0e-3
 
-    def test_positive_flux_warms_and_moistens(self):
-        dthl, dqt = self._first_level_change("sign", 0.1, 1.0e-4)
+    def test_positive_flux_is_downward(self):
+        # uDALES convention (D1): prescribed boundary fluxes are positive in -z,
+        # so positive wtsurf/wqsurf cool/dry the first level by flux*dt/dz.
+        dthl, dqt = self._first_level_change("sign", 1.0, 1.0e-3)
         dz, dt = 20.0, 1.0
-        self.assertAlmostEqual(dthl, 0.1 * dt / dz, delta=1e-3 * 0.1 * dt / dz)
-        self.assertAlmostEqual(dqt, 1.0e-4 * dt / dz, delta=1e-3 * 1.0e-4 * dt / dz)
+        self.assertAlmostEqual(dthl, -1.0 * dt / dz, delta=2e-2 * 1.0 * dt / dz)
+        self.assertAlmostEqual(dqt, -1.0e-3 * dt / dz, delta=2e-2 * 1.0e-3 * dt / dz)
 ```
 
 The thermostat profile is written at the end of step 1. If the record timing differs (see the note in Task 2), use the last record and keep the rest of the test as is.
@@ -665,21 +677,24 @@ The thermostat profile is written at the end of step 1. If the record timing dif
 
 `python tests/integration/thermo/test_thermo.py -v TestSurfaceSign`
 
-Expected, from reading the code: `dqt` PASSES and `dthl` FAILS with the opposite sign. That confirms `wtsurf` enters downward-positive.
+Expected, from reading the code: `dthl` PASSES and `dqt` FAILS with the opposite sign. That confirms `wqsurf` is the one upward-positive flux.
 
-D1 is pre-approved in the spec on this condition. Change `bottom` so that `wtsurf` is upward-positive like `wqsurf`: in the `BCbotT.eq.1` branch replace `- wtsurf &` with `+ wtsurf &`. Add one comment line above it: `! wtsurf, wqsurf: upward (into the domain) kinematic fluxes, DALES convention`. Check how `examples/` and `docs/udales-example-simulations.md:452` (`wtsurf = 0.01`) describe this, and fix the docs text to say "upward-positive". Then document the convention in `docs/udales-namoptions-overview.md:143-144` (descriptions: "Upward kinematic heat flux at domain bottom" / "Upward kinematic moisture flux at domain bottom").
+D1 (decided: flip `wqsurf`). In the `BCbotq.eq.1` branch of `bottom` replace `+ wqsurf &` with `- wqsurf &`. Add one comment line above the `BCbotT` branch: `! wtsurf, wqsurf (like wttop, wqtop, bctf*): prescribed fluxes, positive in -z (downward)`. Then document the convention:
+- `docs/udales-namoptions-overview.md:143-144`: "Kinematic heat flux at domain bottom, positive downward (into the surface)" and the same for moisture; same wording for `wttop`/`wqtop`.
+- `docs/udales-boundary-conditions.md`: one sentence stating the global rule.
+- `docs/udales-example-simulations.md:~452`: that `wtsurf = 0.01` has no effect in case 102 (no `lbottom`), so say so or remove the line.
 
-If the test shows the code already behaves upward-positive for both, change nothing and record that in the commit message.
+If the test shows a different starting state than expected, stop and report to the controller. Do not improvise a sign change.
 
 Re-run: both assertions PASS. Commit this alone:
 
 ```bash
-git add src/modibm.f90 docs/udales-namoptions-overview.md docs/udales-example-simulations.md tests/integration/thermo/test_thermo.py
+git add src/modibm.f90 docs/udales-namoptions-overview.md docs/udales-boundary-conditions.md docs/udales-example-simulations.md tests/integration/thermo/test_thermo.py
 git status
-git commit -m "Make wtsurf upward-positive like wqsurf (DALES convention)
+git commit -m "Make wqsurf downward-positive like all other prescribed fluxes
 
-bottom() subtracted wtsurf but added wqsurf, so a positive wtsurf cooled
-the first level. All shipped cases use wtsurf = 0.
+wtsurf, wttop, wqtop and facet fluxes are positive in -z; wqsurf alone
+was upward-positive. No shipped case uses a non-zero wqsurf.
 
 Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
 ```
@@ -743,12 +758,15 @@ Tests:
 ```python
 class TestMO(_SolverTest):
     def _mo_case(self, name, bcbotm, extra_bc=None):
-        bc = {"BCbotm": str(bcbotm), "wtsurf": "0.05", "wqsurf": "5.0e-5",
-              "z0": "2.e-4", "z0h": "2.e-4", "thls": "288.0", "qts": "9.0e-3"}
+        # upward heat/moisture flux = negative in the uDALES (-z positive) convention
+        bc = {"BCbotm": str(bcbotm), "wtsurf": "-0.05", "wqsurf": "-5.0e-5",
+              "z0": "2.e-4", "z0h": "2.e-4", "thls": "289.0", "qts": "9.0e-3"}
         bc.update(extra_bc or {})
+        # 20 fixed 1-s steps so the laminar (thls, obl) pair has converged: surface_mo
+        # runs every RK substep and re-diagnoses thls each time.
         d = tc.write_case(self.tmp / name, u=7.0, v=-5.5, groups={
-            "RUN": {"runtime": "0.5"}, "BC": bc,
-            "NAMTHERMOSTAT": {"lthermostat": ".true.", "tthermostat": "0.5"}})
+            "RUN": {"runtime": "19.5"}, "BC": bc,
+            "NAMTHERMOSTAT": {"lthermostat": ".true.", "tthermostat": "1."}})
         self.run_ok(d)
         return d
 
@@ -756,24 +774,27 @@ class TestMO(_SolverTest):
         d = self._mo_case("mo4", 4)
         with Dataset(d / "thermostat_t.310.nc") as t, Dataset(d / "thermostat_z.310.nc") as z:
             ustar, obl = float(t["ustar"][-1]), float(t["obl"][-1])
+            thls, qts = float(t["thls"][-1]), float(t["qts"][-1])
             thl1, qt1 = float(z["thl"][-1, 0]), float(z["qt"][-1, 0])
+            obl_prev = float(t["obl"][-2])
         self.assertGreater(ustar, 0.01)
-        self.assertLess(obl, 0.0)                  # upward buoyancy flux -> unstable
-        # Reference: same iteration on the first-level state. The solver used the
-        # state of the previous call, so allow 1% (one 1-s step of a laminar column).
+        self.assertLess(obl, 0.0)                         # upward buoyancy flux -> unstable
+        self.assertGreater(thls, thl1)                    # surface warmer than air
+        self.assertAlmostEqual(obl, obl_prev, delta=0.02 * abs(obl))   # converged
+        # Reference: same iteration on the recorded converged state (float32 records).
         z1 = 10.0
-        L = tc.obl_iter(thl1, qt1, 288.0, 9.0e-3, z1, 2e-4, 2e-4, 7.0, -5.5, -0.01)
-        self.assertAlmostEqual(obl, L, delta=0.01 * abs(L))
+        L = tc.obl_iter(thl1, qt1, thls, qts, z1, 2e-4, 2e-4, 7.0, -5.5, -0.01)
+        self.assertAlmostEqual(obl, L, delta=0.02 * abs(L))
         cm = tc.FKAR ** 2 / (np.log(z1 / 2e-4) - tc.psim(z1 / L) + tc.psim(2e-4 / L)) ** 2
-        self.assertAlmostEqual(ustar, np.sqrt(cm) * np.hypot(7.0, -5.5), delta=0.01 * ustar)
+        self.assertAlmostEqual(ustar, np.sqrt(cm) * np.hypot(7.0, -5.5), delta=0.02 * ustar)
 
     def test_prescribed_ustar(self):
         d = self._mo_case("mo5", 5, {"ustin": "0.28"})
         with Dataset(d / "thermostat_t.310.nc") as t:
-            self.assertEqual(float(t["ustar"][-1]), 0.28)
+            self.assertAlmostEqual(float(t["ustar"][-1]), 0.28, places=6)   # float32 record
 ```
 
-`tskin`/`qskin` for the first Obukhov iteration come from the namelist `thls`/`qts`. In DALES they are then re-diagnosed by `calc_surface_scalars`, so the reference uses the initial `thls`/`qts`, which is what the first step sees. If the solver diagnoses `thls` *before* the first `get_obl`, use the thermostat `thls` record instead and say so in a comment.
+The mean wind stays at the initial (7, −5.5) to within the 2 % tolerance over 20 s because the laminar column has no turbulence (`lrandomize = .false.`) and only surface drag acts. If the test shows otherwise, take `u0av`/`v0av` from a new thermostat variable rather than loosening the tolerance.
 
 - [ ] **Step 4: Run to verify failure**
 
@@ -817,17 +838,21 @@ contains
     implicit none
     integer :: i, j
     real :: z1, horvav, cm, cs, scaling, upcu, vpcv, horv, emom, utan2, bcmom
-    real :: loc(2), glob(2)
+    real :: loc(2), glob(2), wthl_up, wqt_up
 
     z1 = zf(kb)
+    ! DALES upward-positive kinematic fluxes; uDALES prescribes them positive in -z (D1)
+    wthl_up = -wtsurf
+    wqt_up  = -wqsurf
 
-    ! Obukhov length from the slab-mean first-level state and current surface values
-    obl_mo = calc_obl_iter(thl0av(kb), qt0av(kb), thls, qts, z1, z0, z0h, u0av(kb), v0av(kb), obl_mo)
-
-    ! drag coefficients (DALES calc_drag_coefficients, uniform here)
+    ! drag coefficients (DALES calc_drag_coefficients, uniform here). DALES order for
+    ! isurf 3/4: drag coefficients BEFORE get_obl, i.e. with the previous obl.
     cm = fkar**2 / (log(z1/z0) - psim(z1/obl_mo) + psim(z0/obl_mo))**2
     cs = fkar**2 / (log(z1/z0) - psim(z1/obl_mo) + psim(z0/obl_mo)) &
                  / (log(z1/z0h) - psih(z1/obl_mo) + psih(z0h/obl_mo))
+
+    ! Obukhov length from the slab-mean first-level state and current surface values
+    obl_mo = calc_obl_iter(thl0av(kb), qt0av(kb), thls, qts, z1, z0, z0h, u0av(kb), v0av(kb), obl_mo)
 
     ! friction velocity (DALES calc_friction_velocity / presc_friction_velocity)
     horvav = max(sqrt(u0av(kb)**2 + v0av(kb)**2), min_horv)
@@ -840,8 +865,12 @@ contains
 
     ! surface-layer gradients (DALES calc_surface_gradients; fluxes upward-positive)
     scaling   = 1. / (fkar * z1)
-    dthldz_mo = - wtsurf / ustar_mo * phih(z1/obl_mo) * scaling
-    dqtdz_mo  = - wqsurf / ustar_mo * phih(z1/obl_mo) * scaling
+    dthldz_mo = - wthl_up / ustar_mo * phih(z1/obl_mo) * scaling
+    if (lmoist) then
+      dqtdz_mo = - wqt_up / ustar_mo * phih(z1/obl_mo) * scaling
+    else
+      dqtdz_mo = 0.
+    end if
 
     ! surface scalars (DALES calc_surface_scalars): diagnose tskin/qskin per column, average
     loc = 0.
@@ -850,8 +879,8 @@ contains
         upcu = 0.5 * (u0(i,j,kb) + u0(i+1,j,kb))
         vpcv = 0.5 * (v0(i,j,kb) + v0(i,j+1,kb))
         horv = max(sqrt(upcu**2 + vpcv**2), min_horv)
-        loc(1) = loc(1) + min(max(wtsurf / (cs * horv), -10.), 10.) + thl0(i,j,kb)
-        loc(2) = loc(2) + min(max(wqsurf / (cs * horv), -5.e-2), 5.e-2) + qt0(i,j,kb)
+        loc(1) = loc(1) + min(max(wthl_up / (cs * horv), -10.), 10.) + thl0(i,j,kb)
+        loc(2) = loc(2) + min(max(wqt_up / (cs * horv), -5.e-2), 5.e-2) + qt0(i,j,kb)
       end do
     end do
     call MPI_ALLREDUCE(loc, glob, 2, MY_REAL, MPI_SUM, comm3d, mpierr)
@@ -982,8 +1011,12 @@ Wiring:
             write(0, *) 'ERROR: BCbotm = 4/5 (Monin-Obukhov) requires lbottom = .true.'
             stop 1
          end if
-         if (BCbotT /= BCbotT_flux .or. (z0 <= 0.) .or. (z0h <= 0.)) then
-            write(0, *) 'ERROR: BCbotm = 4/5 requires BCbotT = 1 and z0, z0h > 0'
+         if ((.not. ltempeq) .or. BCbotT /= BCbotT_flux .or. (z0 <= 0.) .or. (z0h <= 0.)) then
+            write(0, *) 'ERROR: BCbotm = 4/5 requires ltempeq, BCbotT = 1 and z0, z0h > 0'
+            stop 1
+         end if
+         if (wtsurf == -1. .or. (lmoist .and. wqsurf == -1.)) then
+            write(0, *) 'ERROR: BCbotm = 4/5: wtsurf (and wqsurf if lmoist) still at sentinel -1'
             stop 1
          end if
          if ((BCbotm == BCbotm_mo_ustar) .and. (ustin <= 0.)) then
@@ -1031,13 +1064,12 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
 
 **Files:**
 - Modify: `src/modthermodynamics.f90:130-235` (`calthv`)
-- Modify: `src/modfields.f90` (`tmp0` declaration, allocation next to `ql0`, deallocation)
 - Modify: `src/modfielddump.f90` (code `dt` for `dthvdz`, both branches, ~134 and ~201; add `dthvdz` to the `use modfields` list at ~60)
 - Test: `test_thermo.py::TestCalthv`
 
 **Interfaces:**
 - Consumes: `modsurface: lmo_surface, dthldz_mo, dqtdz_mo`.
-- Produces: `modfields: real, allocatable :: tmp0(:,:,:)` (absolute temperature [K], z-pencil with halos like `ql0`); fielddump code `'dt'` → variable `dthvdz`.
+- Produces: fielddump code `'dt'` → variable `dthvdz`. (`tmp0` from the spec is dropped: its only consumer is the deferred microphysics.)
 
 - [ ] **Step 1: Write the failing test**
 
@@ -1062,25 +1094,32 @@ def dthvdz_surface(thl, qt, ql, exn, dthldz, dqtdz):
 class TestCalthv(_SolverTest):
     def test_surface_level_unsaturated(self):
         d = tc.write_case(self.tmp / "calthv", u=7.0, v=-5.5, groups={
-            "RUN": {"runtime": "0.5"},
-            "OUTPUT": {"lfielddump": ".true.", "tfielddump": "0.5", "fieldvars": "'th,qt,ql,dt'"},
-            "BC": {"BCbotm": "4", "wtsurf": "0.05", "wqsurf": "5.0e-5", "z0": "2.e-4", "z0h": "2.e-4"},
-            "NAMTHERMOSTAT": {"lthermostat": ".true.", "tthermostat": "0.5"}})
+            "RUN": {"runtime": "2.5"},
+            "OUTPUT": {"lfielddump": ".true.", "tfielddump": "1.", "fieldvars": "'th,qt,ql,dt'"},
+            "BC": {"BCbotm": "4", "wtsurf": "-0.05", "wqsurf": "-5.0e-5", "z0": "2.e-4", "z0h": "2.e-4"},
+            "NAMTHERMOSTAT": {"lthermostat": ".true.", "tthermostat": "1."}})
         self.run_ok(d)
+        # Record alignment: fielddump and thermostat run after tstep_integrate and BEFORE
+        # thermodynamics. So dump record n holds end-of-step-n thl/qt, and the dthvdz that
+        # calthv computes from them (with ustar/obl of step n, thermostat record n)
+        # appears in dump record n+1. ql/exnf in record n are from the start of step n,
+        # so take ql from record n+1 as well (it is diagnosed from record-n thl/qt).
+        n = 0
         with Dataset(d / "fielddump.000.000.310.nc") as f, \
              Dataset(d / "thermostat_t.310.nc") as t, Dataset(d / "thermostat_z.310.nc") as z:
-            dthv = np.asarray(f["dthvdz"][-1])         # (z, y, x)
-            thl1 = np.asarray(f["thl"][-1])[0].mean()
-            qt1 = np.asarray(f["qt"][-1])[0].mean()
-            ql1 = np.asarray(f["ql"][-1])[0].mean()
-            exn1 = float(z["exnf"][-1, 0])
-            ustar, obl = float(t["ustar"][-1]), float(t["obl"][-1])
+            dthv = np.asarray(f["dthvdz"][n + 1])        # (z, y, x)
+            thl1 = np.asarray(f["thl"][n])[0].mean()
+            qt1 = np.asarray(f["qt"][n])[0].mean()
+            ql1 = np.asarray(f["ql"][n + 1])[0].mean()
+            exn1 = float(z["exnf"][n + 1, 0])
+            ustar, obl = float(t["ustar"][n]), float(t["obl"][n])
         z1, kap = 10.0, tc.FKAR
         phih = (1 - 16 * z1 / obl) ** -0.5 if obl < 0 else min(1 + 5 * z1 / obl, 6.0)
-        dthldz = -0.05 / ustar * phih / (kap * z1)
+        dthldz = -0.05 / ustar * phih / (kap * z1)        # upward fluxes: +0.05, +5e-5
         dqtdz = -5.0e-5 / ustar * phih / (kap * z1)
         ref = dthvdz_surface(thl1, qt1, ql1, exn1, dthldz, dqtdz)
-        self.assertAlmostEqual(float(dthv[0].mean()), ref, delta=1e-3 * abs(ref))
+        self.assertLess(ref, 0.0)                          # unstable surface layer
+        self.assertAlmostEqual(float(dthv[0].mean()), ref, delta=5e-3 * abs(ref))
 
     def test_no_mo_keeps_surface_level(self):
         d = tc.write_case(self.tmp / "calthv_wf", groups={
@@ -1088,12 +1127,10 @@ class TestCalthv(_SolverTest):
             "OUTPUT": {"lfielddump": ".true.", "tfielddump": "0.5", "fieldvars": "'dt'"}})
         self.run_ok(d)
         with Dataset(d / "fielddump.000.000.310.nc") as f:
-            self.assertTrue(np.all(np.abs(np.asarray(f["dthvdz"][-1])[0]) <= 1e-10))
+            self.assertTrue(np.all(np.abs(np.asarray(f["dthvdz"][-1])[0]) <= 2e-10))  # float32(eps1)
 ```
 
-Check the fielddump variable names (`thl` for code `th`) and the axis order against `modfielddump.f90` (`tttt` = x,y,z,time in Fortran order, i.e. `(time, z, y, x)` in netCDF4-python), and the file name pattern (`fielddump.<myidx>.<myidy>.<expnr>.nc`, 3-digit fields).
-
-The dump comes after `calthv` of the previous step (`dthvdz` is updated at the end of each step, after `fielddump`). Both quantities in the test are taken from the same dump, so they are consistent if the dump holds `thl`/`qt` and the `dthvdz` computed from them. If they are offset by one step, compare against the state from the previous record, and keep `runtime = 2.5` so two records exist.
+Check the fielddump variable names (`thl` for code `th`), the axis order against `modfielddump.f90` (`tttt` = x,y,z,time in Fortran order, i.e. `(time, z, y, x)` in netCDF4-python), the file name pattern (`fielddump.<myidx>.<myidy>.<expnr>.nc`, 3-digit fields), and that `tfielddump = 1` gives one record per step from t = 1 s. If the first record is at t = 0 instead, shift `n` by one and keep the alignment rule.
 
 - [ ] **Step 2: Run to verify failure**
 
@@ -1101,25 +1138,9 @@ Expected: FAIL. Code `dt` is unknown and silently dumps `u0`, so the `dthvdz` va
 
 - [ ] **Step 3: Implement**
 
-`modfields.f90`: declare `real, allocatable :: tmp0(:,:,:) !< absolute temperature [K]`, `call alloc_z(tmp0); tmp0 = 0.` next to `ql0`, and add `tmp0` to the matching `deallocate`.
-
 `calthv` (`modthermodynamics.f90`):
 - add `use modsurface, only : lmo_surface, dthldz_mo, dqtdz_mo`;
-- add `tmp0` to `use modfields`;
 - declare `real :: a_surf, b_surf`.
-
-In the moist branch, inside the `k = kb+1, ke` loop, store `tmp0` exactly as DALES does:
-
-```fortran
-                if  (ql0(i,j,k)> 0) then  !include moist thermodynamics
-                   temp = thl0(i,j,k)*exnf(k)+(rlv/cp)*ql0(i,j,k)
-                   tmp0(i,j,k) = temp
-                   ...
-                else
-                   tmp0(i,j,k) = thl0(i,j,k)*exnf(k)
-                end if
-```
-(the `else` is new; the existing `if` has none).
 
 Replace the moist-branch `dthvdz(i,j,kb)=0.` loop with:
 
@@ -1139,7 +1160,6 @@ Replace the moist-branch `dthvdz(i,j,kb)=0.` loop with:
                 a_surf = 1.+(rv/rd-1.)*qt0(i,j,kb)
                 b_surf = rv/rd-1.
              end if
-             tmp0(i,j,kb) = temp
              if (lmo_surface()) then
                 dthvdz(i,j,kb) = a_surf*dthldz_mo + b_surf*thl0(i,j,kb)*dqtdz_mo
              else
@@ -1149,9 +1169,7 @@ Replace the moist-branch `dthvdz(i,j,kb)=0.` loop with:
        end do
 ```
 
-In the dry branch:
-- set `tmp0(ib:ie,jb:je,kb:ke) = thl0(ib:ie,jb:je,kb:ke)*spread(spread(exnf(kb:ke),1,je-jb+1),1,ie-ib+1)`, or write it as a plain triple loop to match the file's style (preferred);
-- replace `dthvdz(i,j,kb)=0.` with `dthvdz(i,j,kb) = merge(dthldz_mo, 0., lmo_surface())`.
+In the dry branch, replace `dthvdz(i,j,kb)=0.` with `dthvdz(i,j,kb) = merge(dthldz_mo, 0., lmo_surface())`.
 
 The existing `eps1` floor loop afterwards stays, so the non-MO surface value becomes `±eps1` as before. Bit-for-bit is preserved.
 
@@ -1162,7 +1180,7 @@ The existing `eps1` floor loop afterwards stays, so the non-MO surface value bec
             call ncinfo(ncname( n,:),'dthvdz','Vertical gradient of thv','K/m','tttt')
             pfields(n)%point => dthvdz(ib:ie,jb:je,kb:ke)
 ```
-(halo branch: `dthvdz(ib-ih:ie+ih,jb-jh:je+jh,kb:ke+kh)`; it is not allocated below `kb`.) Add a `dt` row to the `fieldvars` code list in `docs/udales-namoptions-overview.md`.
+In the halo branch (`lhalos`, currently hard-coded off) the shapes do not match (`dthvdz` starts at `kb`, `vars` at `kb-kh`). Add the case there as `write(0, *) 'ERROR: fieldvars code dt is not available with halos'; stop 1`. Add a `dt` row to the `fieldvars` code list in `docs/udales-namoptions-overview.md`.
 
 - [ ] **Step 4: Build, test, regress**
 
@@ -1171,9 +1189,9 @@ Same commands as Task 3, Step 6. Expected: all PASS, and supported unchanged.
 - [ ] **Step 5: Commit**
 
 ```bash
-git add src/modthermodynamics.f90 src/modfields.f90 src/modfielddump.f90 docs/udales-namoptions-overview.md tests/integration/thermo/test_thermo.py
+git add src/modthermodynamics.f90 src/modfielddump.f90 docs/udales-namoptions-overview.md tests/integration/thermo/test_thermo.py
 git status
-git commit -m "Deardorff calthv surface level from MO gradients; store tmp0
+git commit -m "Deardorff calthv surface level from MO gradients
 
 Port of DALES dev 075ac4e modthermodynamics:calthv. Unchanged unless
 BCbotm = 4/5. Adds fielddump code 'dt' (dthvdz).
@@ -1225,7 +1243,9 @@ class TestRadiation(_SolverTest):
             ql, rho, exn = (np.asarray(z[v][-1]) for v in ("ql", "rhof", "exnf"))
             got = np.asarray(z["thlprad"][-1])
         ref = radpar_reference(ql, rho, exn, 20.0, 70.0, 22.0, 85.0)
-        np.testing.assert_allclose(got, ref, rtol=1e-3, atol=1e-3 * np.abs(ref).max())
+        # thlprad uses start-of-step ql; the record's ql is end-of-step (~0.3 % change at
+        # cloud top). A sign or face off-by-one error is O(1), so 1e-2 still discriminates.
+        np.testing.assert_allclose(got, ref, rtol=1e-2, atol=1e-2 * np.abs(ref).max())
         self.assertLess(got.min(), -1e-4)          # cloud-top cooling present
 
     def test_smoke_longwave_matches_formula(self):
@@ -1240,26 +1260,48 @@ class TestRadiation(_SolverTest):
             got = np.asarray(z["thlprad"][-1])
         smoke = np.where(zf < 700, 1.0, 0.0)
         ref = radpar_reference(smoke, rho, exn, 20.0, 60.0, 0.0, 0.02)
-        np.testing.assert_allclose(got, ref, rtol=1e-3, atol=1e-3 * np.abs(ref).max())
+        np.testing.assert_allclose(got, ref, rtol=1e-2, atol=1e-2 * np.abs(ref).max())
 
-    def test_dycoms_term_balances_subsidence(self):
+    def test_dycoms_term_matches_formula(self):
         zf = (np.arange(64) + 0.5) * 20.0
         D = 3.75e-6
         rad = dict(self.RAD, lrad_dycoms=".true.", rad_dycoms_D=str(D))
-        common = dict(wfls=-D * zf, groups={"RUN": {"runtime": "0.5"}})
+        d = self._run("ft_formula", rad)
+        with Dataset(d / "thermostat_z.310.nc") as z:
+            ql, qt, rho, exn = (np.asarray(z[v][-1], dtype=float) for v in ("ql", "qt", "rhof", "exnf"))
+            got = np.asarray(z["thlprad"][-1])
+        # zi by the solver's rule: highest level with qt > 8 g/kg, linear to the next level.
+        # (Laminar RF01: 832.7 m, between the 830/850 m cells, not 840 m.)
+        k = np.where(qt > 8e-3)[0].max()
+        zi = zf[k] + (8e-3 - qt[k]) * (zf[k + 1] - zf[k]) / (qt[k + 1] - qt[k])
+        ref = radpar_reference(ql, rho, exn, 20.0, 70.0, 22.0, 85.0)
+        ft = zf > zi
+        ref[ft] -= D / 3 * (np.cbrt(zf[ft] - zi) + zi * (zf[ft] - zi) ** (-2 / 3))   # cooling
+        np.testing.assert_allclose(got, ref, rtol=1e-2, atol=1e-2 * np.abs(ref).max())
+        self.assertTrue(np.all(got[ft] < 0))
+
+    def test_dycoms_term_balances_subsidence(self):
+        # 300 s so the free-troposphere subsidence signal (~2e-2 K) is far above
+        # float32 resolution (3e-5 K at 297 K).
+        zf = (np.arange(64) + 0.5) * 20.0
+        D = 3.75e-6
+        rad = dict(self.RAD, lrad_dycoms=".true.", rad_dycoms_D=str(D))
+        common = dict(wfls=-D * zf, groups={"RUN": {"runtime": "299.5"},
+                                            "NAMTHERMOSTAT": {"lthermostat": ".true.", "tthermostat": "300."}})
         a = self._run("ft_both", rad, **common)
         b = self._run("ft_subs", {"iradiation": "0"}, **common)
         with Dataset(a / "thermostat_z.310.nc") as za, Dataset(b / "thermostat_z.310.nc") as zb:
-            dthl_both = np.asarray(za["thl"][-1]) - tc.rf01_profiles(zf)[0]
-            dthl_subs = np.asarray(zb["thl"][-1]) - tc.rf01_profiles(zf)[0]
-        ft = zf > 840.0 + 50.0
-        # discrete upwind subsidence vs analytic radiation: O(dz/(z-zi)) mismatch
-        self.assertLess(np.abs(dthl_both[ft]).max(), 0.10 * np.abs(dthl_subs[ft]).max())
+            dthl_both = np.asarray(za["thl"][-1], dtype=float) - tc.rf01_profiles(zf)[0]
+            dthl_subs = np.asarray(zb["thl"][-1], dtype=float) - tc.rf01_profiles(zf)[0]
+        ft = zf > 840.0 + 150.0
+        # Residual sources: one-sided subsidence differences, O(dz/(z-zi)), and the
+        # 832.7 vs 840 m zi offset. A sign error gives a ratio of ~2.
+        self.assertLess(np.abs(dthl_both[ft]).max(), 0.25 * np.abs(dthl_subs[ft]).max())
 ```
 
 Notes for the implementer:
 - **Smoke test scalar input.** It needs a `scalar.inp.310`: 2 header lines, then `z sv1` per level, read when `nsv > 0` on a cold start (`modstartup.f90:~1545`). Add an optional `sv` argument to `write_case` that writes it, and check the column layout in the reader first. Also check which namelist group holds `nsv` (`&SCALARS`?) and fix the dict key if it differs.
-- **Tolerance.** The upwind subsidence uses one-sided differences of θl ~ (z−zi)^(1/3). With dz = 20 m the residual shrinks like dz/(z−zi), so it is largest just above `zi + 50 m`: about 0.13 at 50 m and 0.03 at 200 m. Assert on `zf > 840 + 100` with a 0.10 bound if needed. Do not loosen beyond 0.10. A sign error gives a residual of about 2, so this still separates right from wrong.
+- **Tolerances** (from the Fable review): records are float32, so every comparison uses ≥ 1e-2 relative, or a long enough run. Do not tighten them, and do not loosen them beyond the values shown without reporting back.
 
 - [ ] **Step 2: Run to verify failure**
 
@@ -1410,6 +1452,8 @@ contains
           lwpt(k) = lwpt(k+1) + rhof(k) * absorber(k) * dzf(k)
         end do
         lwpb(kb) = 0.
+        ! DALES writes rhof(k)*absorber(k-1)*dzf(k-1); rhof(k-1) is the consistent
+        ! density of the cell whose path is added (deliberate, tiny difference).
         do k = kb + 1, ke + 1
           lwpb(k) = lwpb(k-1) + rhof(k-1) * absorber(k-1) * dzf(k-1)
         end do
@@ -1502,9 +1546,9 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
 - Create: `tests/integration/thermo/README.md`
 - Modify: `tests/test_suites.yml` (`supported` group, after the `SGS TKE top boundary condition` entry ~150–161)
 
-- [ ] **Step 1: Decide the perturbation strategy**
+- [ ] **Step 1: Perturbations**
 
-Read how cold starts perturb the initial fields: search `modstartup.f90` for `random`/`randu`/`randthl`. If the perturbation is a function of **global** indices with a fixed seed, it is decomposition-independent, and the test below can use a turbulent 10-step run. If it uses per-rank RNG streams, use the unperturbed homogeneous case. That still exercises halos, reductions and column loops, but not turbulence. Say which in the README.
+The review established that `randomize_field` uses global indices (`modstartup.f90:2504-2516`), so the perturbations are decomposition-independent. This test turns them on (`lrandomize = .true.`) to get a turbulent 10-step run.
 
 - [ ] **Step 2: Write the test**
 
@@ -1513,8 +1557,8 @@ class TestDecomposition(_SolverTest):
     """Radiation + MO surface + moist SGS give the same answer on 1, 2 and 4 ranks."""
 
     def test_splits_agree(self):
-        groups = {"RUN": {"runtime": "9.5"},
-                  "BC": {"BCbotm": "4", "wtsurf": "0.012", "wqsurf": "4.7e-5",
+        groups = {"RUN": {"runtime": "9.5", "lrandomize": ".true."},
+                  "BC": {"BCbotm": "4", "wtsurf": "-0.012", "wqsurf": "-4.7e-5",
                          "z0": "2.e-4", "z0h": "2.e-4"},
                   "NAMRADIATION": dict(TestRadiation.RAD, lrad_dycoms=".true."),
                   "NAMTHERMOSTAT": {"lthermostat": ".true.", "tthermostat": "3."}}
@@ -1530,7 +1574,8 @@ class TestDecomposition(_SolverTest):
                 out[label].update({v: np.asarray(z[v][:]) for v in ("thl", "qt", "ql", "thlprad", "wthl")})
         for label in ("x", "xy"):
             for v, ref in out["serial"].items():
-                np.testing.assert_allclose(out[label][v], ref, rtol=1e-10, atol=1e-14, err_msg=f"{label}:{v}")
+                # float32 records: 1e-6 is bitwise up to reduction-order round-off
+                np.testing.assert_allclose(out[label][v], ref, rtol=1e-6, atol=1e-12, err_msg=f"{label}:{v}")
 ```
 
 uDALES requires `jtot` and `ktot` to be divisible by `nprocy` (16 and 64: fine). Check `mpi_env.preflight(4)` on the login node. If 4 ranks are refused there, note it; the suite still runs in CI and on compute nodes.
@@ -1585,7 +1630,8 @@ CLI: `python convert_dales_case.py <dales_case_dir> <expnr> <out_dir>`. It does 
 - reads DALES `prof.inp.001` (`z thl qt u v tke`) and writes uDALES `prof.inp.<expnr>` (`z thl qt u v e12`), same columns;
 - reads DALES `lscale.inp.001` (`z ug vg wfls dqtdxls dqtdyls dqtdtls dthlrad`) and writes the uDALES 10-column layout `z ug vg pgx=0 pgy=0 wfls dqtdxls dqtdyls dqtdtls thlpcar=dthlrad`;
 - copies `scalar.inp.001` (if any) to `scalar.inp.<expnr>`, after checking the column layout against the uDALES reader;
-- prints the DALES namoptions values the case needs, so they can be transcribed (`ps, thls, wtsurf, wqsurf, z0, ustin, isurf, itot, jtot, xsize, ysize, runtime, lcoriol`, Coriolis latitude, radiation block), and maps `isurf 3 → BCbotm 5`, `isurf 4 → BCbotm 4`.
+- prints the DALES namoptions values the case needs, so they can be transcribed (`ps, thls, wtsurf, wqsurf, z0, ustin, isurf, itot, jtot, xsize, ysize, runtime, lcoriol`, Coriolis latitude, radiation block), and maps `isurf 3 → BCbotm 5`, `isurf 4 → BCbotm 4`;
+- **prints `wtsurf`/`wqsurf` negated** (DALES fluxes are upward-positive; uDALES prescribed fluxes are positive in −z, decision D1).
 
 Header lines are skipped by detecting lines that do not parse as floats, since DALES files have one or two header lines. Unit test: run it on `$SCRATCH/dales/cases/bomex` and check that row 1 of the output matches row 1 of the input column for column.
 
@@ -1597,8 +1643,8 @@ CLI: `python make_rf01.py <out_dir> [--dz 5 --ktot 300 --itot 96 --dx 35]`. Prof
 - `lscale`: ug = 7, vg = −5.5, wfls = −3.75e−6·z.
 
 Cite PyCLES `InitDYCOMS_RF01`/`ForcingDyCOMS_RF01`/`SurfaceDYCOMS_RF01`/`RadiationDyCOMS_RF01` and Stevens et al. (2005) in the module docstring. Surface:
-- sensible heat 15 W m⁻² → `wtsurf = 15/(ρ cp)` with ρ = 1.22 kg m⁻³ (PyCLES);
-- latent heat 115 W m⁻² → `wqsurf = 115/(ρ Lv)`, using uDALES `rlv = 2.26e6` (note that PyCLES uses 2.47e6 in its temperature formula; document the choice);
+- sensible heat 15 W m⁻² (upward) → `wtsurf = −15/(ρ cp)` with ρ = 1.22 kg m⁻³ (PyCLES); negative because uDALES fluxes are positive in −z;
+- latent heat 115 W m⁻² (upward) → `wqsurf = −115/(ρ Lv)`, using uDALES `rlv = 2.26e6` (note that PyCLES uses 2.47e6 in its temperature formula; document the choice);
 - `BCbotm = 4` with `z0` chosen so that neutral `Cm = κ²/ln²(zf1/z0) = 0.0011` at `zf1 = dz/2` (for dz = 5 m: `z0 = 2.5·exp(−0.41/√0.0011)`); print the value and use it for `z0` and `z0h`.
 
 Radiation: `iradiation = 2, rka = 85, dlwtop = 70, dlwbot = 22, lrad_dycoms = .true.`. Coriolis on at `xlat = 31.5`. Domain 3360 × 3360 m, 4 h.
@@ -1616,11 +1662,11 @@ Common settings:
 - `config.sh` for `tools/hpc_execute.sh` with `NCPU` chosen so `jtot % nprocy == 0` and `ktot % nprocy == 0`.
 
 Per case:
-- 301 BOMEX: from `cases/bomex`, `BCbotm = 5`, `ustin = 0.28`, `z0 = 2e-4`, `wtsurf = 8e-3`, `wqsurf = 5.2e-5`, `thls = 299.1`, `lmoist`, `lcoriol` (`xlat` such that f = 0.376e-4 s⁻¹, i.e. 14.94°), 6 h.
-- 302 smoke: from `cases/smoke`, `BCbotm = 4`, `z0 = 0.1`, zero fluxes, `lmoist = .false.`, `nsv = 1`, `iradiation = 2`, `rad_smoke`, `rka = 0.02`, `dlwtop = 60`, 3 h.
+- 301 BOMEX: from `cases/bomex`, `BCbotm = 5`, `ustin = 0.28`, `z0 = 2e-4`, `wtsurf = -8e-3`, `wqsurf = -5.2e-5` (DALES +8e-3/+5.2e-5 upward), `thls = 299.1`, `lmoist`, `lcoriol` (`xlat` such that f = 0.376e-4 s⁻¹, i.e. 14.94°), 6 h.
+- 302 smoke: from `cases/smoke`, `BCbotm = 4`, `z0 = 0.1`, zero fluxes, `lmoist = .false.`, `nsv = 1`, `iadv_sv = 7` (kappa, as DALES `iadv_sv = 7`; `&DYNAMICS`), `iradiation = 2`, `rad_smoke`, `rka = 0.02`, `dlwtop = 60`, 3 h.
 - 303 RF01: from `make_rf01.py`.
 
-Each case README lists every number with its source (DALES namoptions line or paper/PyCLES), plus the known deviations: uDALES has no 5th-order advection, its SGS details differ, and the RF01 drag uses an equivalent `z0`.
+All three cases use `timerad = 0` (radiation every step): `radiation` has no DALES-style `dt_lim` clamp, so a non-zero `timerad` with `ladaptive` would update late. Each case README lists every number with its source (DALES namoptions line or paper/PyCLES), plus the known deviations: uDALES has no 5th-order advection, its SGS details differ, and the RF01 drag uses an equivalent `z0`.
 
 - [ ] **Step 4: Smoke-test each case for 60 s on a login node** with 4 ranks and `runtime = 60` (override via a temporary copy), to check that the inputs parse and nothing crashes. Expected: `thermostat_t.30x.nc` has records and no NaN.
 
