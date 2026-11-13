@@ -113,6 +113,65 @@ class TestMO(_SolverTest):
             self.assertAlmostEqual(float(t["ustar"][-1]), 0.28, places=6)   # float32 record
 
 
+RV_RD = 461.5 / 287.04
+RLV, CP = 2.26e6, 1004.0   # check modglobal: rlv, cp
+
+
+def dthvdz_surface(thl, qt, ql, exn, dthldz, dqtdz):
+    """DALES dev 075ac4e calthv, surface level."""
+    if ql > 0:
+        temp = thl * exn + RLV / CP * ql
+        qs = qt - ql
+        a = (1 - qt + RV_RD * qs * (1 + RLV / (461.5 * temp))) / (1 + RLV ** 2 * qs / (CP * 461.5 * temp ** 2))
+        b = a * RLV / (temp * CP) - 1
+    else:
+        a = 1 + (RV_RD - 1) * qt
+        b = RV_RD - 1
+    return a * dthldz + b * thl * dqtdz
+
+
+class TestCalthv(_SolverTest):
+    def test_surface_level_unsaturated(self):
+        d = tc.write_case(self.tmp / "calthv_sfc", u=7.0, v=-5.5, groups={
+            "RUN": {"runtime": "2.5"},
+            "OUTPUT": {"lfielddump": ".true.", "tfielddump": "1.", "fieldvars": "'th,qt,ql,dt'"},
+            "BC": {"BCbotm": "4", "wtsurf": "-0.05", "wqsurf": "-5.0e-5", "z0": "2.e-4", "z0h": "2.e-4"},
+            "NAMTHERMOSTAT": {"lthermostat": ".true.", "tthermostat": "1."}})
+        self.run_ok(d)
+        # Record alignment: fielddump and thermostat run after tstep_integrate and BEFORE
+        # thermodynamics. So dump record n holds end-of-step-n thl/qt, and the dthvdz that
+        # calthv computes from them (with the ustar/obl of thermostat record n+1, see below)
+        # appears in dump record n+1. ql/exnf in record n are from the start of step n,
+        # so take ql from record n+1 as well (it is diagnosed from record-n thl/qt).
+        # ustar/obl: program.f90 calls `boundary` (-> surface_mo, via modibm) AFTER
+        # thermostat and BEFORE thermodynamics, so the MO gradients calthv sees are
+        # the ones thermostat records one step later: record n+1, not n.
+        n = 0
+        with Dataset(d / "fielddump.000.000.310.nc") as f, \
+             Dataset(d / "thermostat_t.310.nc") as t, Dataset(d / "thermostat_z.310.nc") as z:
+            dthv = np.asarray(f["dthvdz"][n + 1])        # (z, y, x)
+            thl1 = np.asarray(f["thl"][n])[0].mean()
+            qt1 = np.asarray(f["qt"][n])[0].mean()
+            ql1 = np.asarray(f["ql"][n + 1])[0].mean()
+            exn1 = float(z["exnf"][n + 1, 0])
+            ustar, obl = float(t["ustar"][n + 1]), float(t["obl"][n + 1])
+        z1, kap = 10.0, tc.FKAR
+        phih = (1 - 16 * z1 / obl) ** -0.5 if obl < 0 else min(1 + 5 * z1 / obl, 6.0)
+        dthldz = -0.05 / ustar * phih / (kap * z1)        # upward fluxes: +0.05, +5e-5
+        dqtdz = -5.0e-5 / ustar * phih / (kap * z1)
+        ref = dthvdz_surface(thl1, qt1, ql1, exn1, dthldz, dqtdz)
+        self.assertLess(ref, 0.0)                          # unstable surface layer
+        self.assertAlmostEqual(float(dthv[0].mean()), ref, delta=5e-3 * abs(ref))
+
+    def test_no_mo_keeps_surface_level(self):
+        d = tc.write_case(self.tmp / "calthv_wf", groups={
+            "RUN": {"runtime": "0.5"},
+            "OUTPUT": {"lfielddump": ".true.", "tfielddump": "0.5", "fieldvars": "'dt'"}})
+        self.run_ok(d)
+        with Dataset(d / "fielddump.000.000.310.nc") as f:
+            self.assertTrue(np.all(np.abs(np.asarray(f["dthvdz"][-1])[0]) <= 2e-10))  # float32(eps1)
+
+
 class TestThermostat(_SolverTest):
     def test_cloudy_column_diagnostics(self):
         # 3 steps, laminar RF01 column: horizontally homogeneous, so column = slab mean
