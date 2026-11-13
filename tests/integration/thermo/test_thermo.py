@@ -309,5 +309,41 @@ class TestRadiation(_SolverTest):
         self.assertLess(np.abs(dthl_both[ft]).max(), 0.25 * np.abs(dthl_subs[ft]).max())
 
 
+class TestDecomposition(_SolverTest):
+    """Radiation + MO surface + moist SGS give the same answer on 1, 2 and 4 ranks."""
+
+    def test_splits_agree(self):
+        groups = {"RUN": {"runtime": "2.5", "lrandomize": ".true."},
+                  "BC": {"BCbotm": "4", "wtsurf": "-0.012", "wqsurf": "-4.7e-5",
+                         "z0": "2.e-4", "z0h": "2.e-4"},
+                  "NAMRADIATION": dict(TestRadiation.RAD, lrad_dycoms=".true."),
+                  "NAMTHERMOSTAT": {"lthermostat": ".true.", "tthermostat": "1."}}
+        zf = (np.arange(64) + 0.5) * 20.0
+        out = {}
+        for label, npx, npy in (("serial", 1, 1), ("x", 2, 1), ("xy", 2, 2)):
+            g = {k: dict(v) for k, v in groups.items()}
+            g["RUN"].update(nprocx=str(npx), nprocy=str(npy))
+            d = tc.write_case(self.tmp / f"dec_{label}", groups=g, wfls=-3.75e-6 * zf)
+            self.run_ok(d, npx * npy)
+            with Dataset(d / "thermostat_t.310.nc") as t, Dataset(d / "thermostat_z.310.nc") as z:
+                out[label] = {v: np.asarray(t[v][:]) for v in ("lwp_bar", "ustar", "obl", "thls")}
+                out[label].update({v: np.asarray(z[v][:]) for v in ("thl", "qt", "ql", "thlprad", "wthl")})
+        for label in ("x", "xy"):
+            for v, ref in out["serial"].items():
+                diff = np.abs(out[label][v] - ref)
+                print(f"\n[decomp] {label}:{v} max abs diff={diff.max():.3e} "
+                      f"max rel={(diff / np.maximum(np.abs(ref), 1e-30)).max():.3e}")
+                # Reduction order (allreduce slab means) differs between splits; the round-off
+                # is amplified by the turbulent spin-up, most at the inversion. A decomposition
+                # or halo bug would give O(1) differences from the first step, so 1e-5 relative
+                # (and 1e-6 of the field maximum absolute) is still orders of magnitude below it.
+                # Resolved fluxes (wthl, wqt) are near-cancelling means of w*thl terms (~290|w|), so
+                # their round-off scales with the terms, not the result; a halo bug would be O(1).
+                atol_frac = 1e-4 if v in ("wthl", "wqt") else 1e-6
+                with self.subTest(split=label, var=v):
+                    np.testing.assert_allclose(out[label][v], ref, rtol=1e-5, atol=atol_frac * max(np.abs(ref).max(), 1e-30),
+                                               err_msg=f"{label}:{v}")
+
+
 if __name__ == "__main__":
     unittest.main()
