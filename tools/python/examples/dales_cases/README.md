@@ -42,8 +42,9 @@ python tools/python/examples/dales_cases/compare_dales.py 301 <outdir>/301 \
 ```
 
 Caveat for BOMEX: the DALES `results_3.2.0` reference ran without the prescribed -2 K/day radiative
-cooling (`tltendrad` is zero), while `examples/301` applies it through `thlpcar`. For a like-for-like
-check against 3.2.0, set the `thlpcar` column of `lscale.inp.301` to 0. See `examples/301/RESULTS.md`.
+cooling (`tltendrad` is zero; reported as dalesteam/dales#348), while `examples/301` applies it through
+`thlpcar`. Compare against a run with current DALES `dev` (which applies it), or set the `thlpcar` column of
+`lscale.inp.301` to 0 for a check against 3.2.0. See `examples/301/RESULTS.md`.
 
 Smoke-test timings (60 s of simulated time, login node, release build; main-loop CPU time per simulated
 minute): see the Task 7 report.
