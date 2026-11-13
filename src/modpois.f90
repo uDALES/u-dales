@@ -38,7 +38,7 @@ include "fftw3.f"
 external :: dfftw_plan_dft_r2c_1d, dfftw_plan_dft_c2r_1d, dfftw_plan_r2r_1d, dfftw_execute
 
 private
-public :: initpois,poisson,exitpois,p,pup,pvp,pwp,xyzrt,sp,dpdztop,pij
+public :: initpois,poisson,exitpois,poisson_rhs_diagnostic,p,pup,pvp,pwp,xyzrt,sp,pij
 save
 
   real, allocatable, target :: p(:,:,:)   ! difference between p at previous and new step (p = P_new - P_old)
@@ -58,7 +58,6 @@ save
   real, allocatable :: Sxr(:), Sxfr(:), Syr(:), Syfr(:), Szr(:), Szfr(:)
   complex, allocatable :: Sxfc(:), Syfc(:)
   type(DECOMP_INFO) :: sp
-  real, allocatable :: dpdztop(:,:)
   real, allocatable :: pij(:)
 
 contains
@@ -73,16 +72,19 @@ contains
     real dzi, fac, b_top_D, b_top_N
     integer i,j,k,iv,jv,kv
 
-    allocate(dpdztop(ib:ie,jb:je), pij(kb:ke+kh))
+    allocate(pij(kb:ke+kh))
 
     !allocate(p(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh))
-    allocate(pup(ib-ih:ie+ih,jb-jh:je+jh,kb:ke+kh))
-    allocate(pvp(ib-ih:ie+ih,jb-jh:je+jh,kb:ke+kh))
-    allocate(pwp(ib-ih:ie+ih,jb-jh:je+jh,kb:ke+kh))
-    call alloc_z(p)
-    ! rhs/dpupdx/dpvpdy/dpwpdz/Fxy/Fxyz were solver-state snapshots consumed
-    ! only by commented-out fielddump diagnostics; they cost 5+ full-field
-    ! copies per substep and are no longer allocated or filled (#330).
+    ! Zeroed so that the fielddump diagnostics (pd, pu, pv, pw, rs, du, dv, dw)
+    ! are defined at the initial dump, before the first solve.
+    allocate(pup(ib-ih:ie+ih,jb-jh:je+jh,kb:ke+kh)); pup = 0.
+    allocate(pvp(ib-ih:ie+ih,jb-jh:je+jh,kb:ke+kh)); pvp = 0.
+    allocate(pwp(ib-ih:ie+ih,jb-jh:je+jh,kb:ke+kh)); pwp = 0.
+    call alloc_z(p); p = 0.
+    ! The solver keeps no copies of its right-hand side or of the Fourier-space
+    ! intermediates. fielddump rebuilds the rhs and its three terms on demand
+    ! from pup/pvp/pwp (poisson_rhs_diagnostic); the former per-substep
+    ! snapshots cost five full-field copies each substep (#330).
 
     if (ipoiss == POISS_FFT2D) then
       allocate(xrt(itot))
@@ -964,8 +966,8 @@ contains
       end do
     end do
 
-    ! (a second nest recomputing the identical divergence into dpupdx/dpvpdy/
-    !  dpwpdz was removed -- consumed only by commented-out fielddump code, #330)
+    ! The three terms of this divergence are not stored: fielddump rebuilds them
+    ! from pup/pvp/pwp when asked (poisson_rhs_diagnostic, #330).
 
     ! ! MOMS
     ! do k=kb,ke
@@ -981,6 +983,61 @@ contains
     !deallocate( pup,pvp,pwp )
 
   end subroutine fillps
+
+  !> Right-hand side of the last pressure solve, or one of its terms, for fielddump.
+  !!
+  !! which = 0 returns the divergence of the predicted velocity (equation 5.72),
+  !! i.e. the rhs the solver last received; 1, 2 and 3 return its x, y and z
+  !! terms. fillps leaves pup/pvp/pwp in place with their halos set by bcpup and
+  !! nothing writes them until the next fillps, so recomputing here reproduces
+  !! the rhs of the last substep exactly. Before the first solve they are zero.
+  subroutine poisson_rhs_diagnostic(which, out)
+    use modglobal, only : ib,ie,jb,je,kb,ke,dxi,dyi,dzfi
+    implicit none
+    integer, intent(in)  :: which
+    real,    intent(out) :: out(ib:ie,jb:je,kb:ke)
+    integer i,j,k
+
+    select case (which)
+    case (0)
+      do k=kb,ke
+        do j=jb,je
+          do i=ib,ie
+            out(i,j,k) = ( pup(i+1,j,k)-pup(i,j,k) ) * dxi &
+                       + ( pvp(i,j+1,k)-pvp(i,j,k) ) * dyi &
+                       + ( pwp(i,j,k+1)-pwp(i,j,k) ) * dzfi(k)
+          end do
+        end do
+      end do
+    case (1)
+      do k=kb,ke
+        do j=jb,je
+          do i=ib,ie
+            out(i,j,k) = ( pup(i+1,j,k)-pup(i,j,k) ) * dxi
+          end do
+        end do
+      end do
+    case (2)
+      do k=kb,ke
+        do j=jb,je
+          do i=ib,ie
+            out(i,j,k) = ( pvp(i,j+1,k)-pvp(i,j,k) ) * dyi
+          end do
+        end do
+      end do
+    case (3)
+      do k=kb,ke
+        do j=jb,je
+          do i=ib,ie
+            out(i,j,k) = ( pwp(i,j,k+1)-pwp(i,j,k) ) * dzfi(k)
+          end do
+        end do
+      end do
+    case default
+      write(0, *) 'ERROR: poisson_rhs_diagnostic: which must be 0, 1, 2 or 3, got ', which
+      stop 1
+    end select
+  end subroutine poisson_rhs_diagnostic
 
 
   subroutine tderive

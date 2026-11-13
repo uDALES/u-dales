@@ -159,6 +159,16 @@ groups:
         command:
           - "{python}"
           - "{tests_dir}/integration/tke_top_bc/test_tke_top_bc.py"
+      - label: "supported: fielddump output-time diagnostics"
+        class: supported
+        kind: integration
+        component: solver
+        platform: hpc
+        cost: fast
+        env_UDALES_BUILD: "{repo_root}/build/{build_type_lower}/u-dales"
+        command:
+          - "{python}"
+          - "{tests_dir}/integration/fielddump_diagnostics/test_fielddump_diagnostics.py"
 
   supported-macos:
     includes:
