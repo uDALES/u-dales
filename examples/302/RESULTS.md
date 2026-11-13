@@ -18,5 +18,5 @@ Profile differences (max abs): thl 1.06 K, qt 5e-4 g/kg (DALES noise, uDALES qt 
 
 Observations (tentative):
 - The mean thl profiles overlap visually (mixed layer ~287.6 K, inversion near 720-730 m, 295 K above); the 1.06 K maximum difference sits at the inversion step. The resolved w'thl' profile has the same shape and a ~5 % smaller maximum in uDALES.
-- The `zi` series differ (731 vs 397 m) but this is a diagnostic-definition difference rather than a physical one: the DALES `zi` series (about 400 m after 1 h) disagrees with the inversion height visible in the DALES thl profile (~720 m). The entrainment-rate row inherits this and should not be read as a physical discrepancy.
+- The `zi` series differ (731 vs 397 m) most likely because of a diagnostic-definition difference rather than a physical one (not verified): the DALES `zi` series (about 400 m after 1 h) disagrees with the inversion height visible in the DALES thl profile (~720 m). The entrainment-rate row inherits this and should not be read as a physical discrepancy.
 - u* is within 6 %; both show the same intermittent spikes (~1.4 h, ~2.4 h).
