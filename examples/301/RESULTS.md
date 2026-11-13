@@ -27,13 +27,26 @@ Observations (tentative):
 - The mean state agrees: zi matches to 5 m and thl to 0.13 K. u* is prescribed (0.28) in both.
 - uDALES has about 1.5x the LWP and 1.4x the cloud cover of DALES dev. uDALES LWP is noisy hour to hour, so the 3-h means carry a large sampling error.
 - DALES has cloud within the first hour; uDALES needs about two hours. uDALES applies no initial thl/qt noise because `randthl`/`randqt` are never applied (#395).
-- The residual is not attributed. The candidates, none yet tested and none called leading, are:
+- Candidates for the residual (the A/B below tests (a) and (d)):
   - (a) Doubled SGS TKE dissipation: `src/modsubgrid.f90:495` has `sbdiss = - 2. * (ce1 + ce2*zlt/delta) ...` ("added factor 2 for shear-driven flow"); DALES dev has no factor 2.
   - (b) No TKE sources at the first level: the `sources` loop starts at `kb+1` (`src/modsubgrid.f90:454`), so `e12p(kb)` gets no shear, buoyancy or dissipation source (DALES has a dedicated k = 1 block).
   - (c) `grav/thvs` instead of DALES `grav/thvf(k)` in `zlt` (`src/modsubgrid.f90:392`) and `sbbuo` (`src/modsubgrid.f90:492`).
   - (d) No initial thl/qt noise (#395). Hours 3-6 are still 1.4-1.9x, which is not a spin-up signature, so this alone is unlikely to explain it.
   - (e) The one-step linearised saturation adjustment (`thermo` in `src/modthermodynamics.f90`) overestimates `ql` by about 1-3 %. It has the same sign but is too small, so it is a quantified non-candidate.
-- A/B test of (a) and (d): see below.
+
+## A/B test of (a) and (d)
+
+Throwaway builds of this branch (e5634881), same case and ranks, one 6 h realisation each; report and plots in `/rds/general/user/mvr/ephemeral/sgsab`. Variant A removes the factor `2.` in `sbdiss`. Variant B applies thl/qt initial noise (`randthl = 0.1`, `randqt = 2.5e-5`, the DALES BOMEX values, up to `krand`). Window 3-6 h. The last two columns are the max abs difference from DALES dev over height.
+
+| run | LWP [g/m2] | cloud cover | zi [m] | thl [K] | qt [g/kg] |
+|---|---|---|---|---|---|
+| uDALES as is | 11.37 | 0.226 | 1679 | 0.13 | 0.24 |
+| A: no factor 2 | 7.40 | 0.153 | 1717 | 0.24 | 0.36 |
+| B: thl/qt noise | 12.52 | 0.212 | 1696 | 0.13 | 0.20 |
+| A+B | 8.50 | 0.172 | 1693 | 0.25 | 0.39 |
+| DALES dev | 7.53 | 0.164 | 1684 | - | - |
+
+The doubled dissipation (a) accounts for the cloud excess. Noise (d) makes no significant difference: hourly LWP varies by up to 2x, so about 1 g/m2 is within sampling noise. With A the mean profiles move further from DALES and zi rises by about 35 m, so other SGS differences remain. Reported as #401. The SGS model is not changed on this branch.
 
 ## The DALES 3.2.0 archive is not a like-for-like reference
 
