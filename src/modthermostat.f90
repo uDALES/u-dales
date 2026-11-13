@@ -18,7 +18,7 @@ module modthermostat
 contains
 
   subroutine initthermostat
-    use modglobal, only : ifnamopt, fname_options, cexpnr, kb, ke
+    use modglobal, only : ifnamopt, fname_options, cexpnr, kb, ke, timee
     use modmpi,    only : myid, comm3d, mpierr, my_real, mpi_logical
     use modstat_nc, only : ncinfo, open_nc, define_nc, writestat_dims_nc
     implicit none
@@ -39,7 +39,7 @@ contains
     call MPI_BCAST(tthermostat, 1, MY_REAL,     0, comm3d, mpierr)
     if (.not. lthermostat) return
 
-    tnext = tthermostat
+    tnext = timee + tthermostat      ! timee is set by readinitfiles (restart time) before this
     fnamet(14:16) = cexpnr
     fnamez(14:16) = cexpnr
     call ncinfo(tnct(1,:), 'time', 'Time', 's', 'time')
@@ -80,7 +80,7 @@ contains
   end subroutine initthermostat
 
   subroutine thermostat
-    use modglobal,  only : ib, ie, jb, je, kb, ke, itot, jtot, timee, rk3step, zf, zh, dzf, dzh, &
+    use modglobal,  only : ib, ie, jb, je, kb, ke, timee, rk3step, zf, zh, dzf, dzh, &
                            nsv, lmoist
     use modfields,  only : thl0, qt0, ql0, w0, sv0, rhof, exnf, IIc, IIcs, IIw, IIws
     use modsurfdata, only : thls, qts
@@ -89,20 +89,21 @@ contains
     implicit none
     real :: vt(nvt), vz(kb:ke, nvz)
     real, allocatable :: tmp3(:,:,:)   ! allocatable: an automatic array is ~22 MB/rank on case 303
-    real :: loc(7), glob(7), colwp, gmax, dthl
+    real :: loc(8), glob(8), colwp, gmax, dthl
     integer :: i, j, k, kmx
     real :: ncol
 
     if (.not. lthermostat) return
     if (rk3step /= 3 .or. timee < tnext) return
     tnext = tnext + tthermostat
-    ncol = real(itot) * real(jtot)
     allocate(tmp3(ib:ie,jb:je,kb:ke+1))
 
     ! --- column diagnostics: lwp, cloud cover, three BL heights
     loc = 0.
     do j = jb, je
       do i = ib, ie
+        if (sum(IIc(i,j,kb:ke)) == 0) cycle      ! column entirely inside a building
+        loc(8) = loc(8) + 1.
         colwp = 0.
         do k = kb, ke
           colwp = colwp + rhof(k) * ql0(i,j,k) * dzf(k) * IIc(i,j,k)
@@ -111,20 +112,23 @@ contains
         if (any(ql0(i,j,kb:ke) * IIc(i,j,kb:ke) > 0.)) loc(2) = loc(2) + 1.
         gmax = -huge(1.); kmx = kb + 1
         do k = kb + 1, ke
+          if (IIc(i,j,k) == 0 .or. IIc(i,j,k-1) == 0) cycle
           dthl = (thl0(i,j,k) - thl0(i,j,k-1)) / dzh(k)
           if (dthl > gmax) then
             gmax = dthl; kmx = k
           end if
         end do
         loc(3) = loc(3) + zh(kmx)
-        if (lmoist) loc(4) = loc(4) + crossing(qt0(i,j,kb:ke), 8.e-3)
-        if (nsv > 0) loc(5) = loc(5) + crossing(sv0(i,j,kb:ke,1), 0.5)   ! Task 5: index -> isvsmoke
+        if (lmoist) loc(4) = loc(4) + crossing(qt0(i,j,kb:ke), IIc(i,j,kb:ke), 8.e-3)
+        if (nsv > 0) loc(5) = loc(5) + crossing(sv0(i,j,kb:ke,1), IIc(i,j,kb:ke), 0.5)   ! Task 5: index -> isvsmoke
       end do
     end do
     loc(6) = maxval(w0(ib:ie,jb:je,kb:ke))
     loc(7) = maxval(ql0(ib:ie,jb:je,kb:ke))
     call MPI_ALLREDUCE(loc(1:5), glob(1:5), 5, MY_REAL, MPI_SUM, comm3d, mpierr)
     call MPI_ALLREDUCE(loc(6:7), glob(6:7), 2, MY_REAL, MPI_MAX, comm3d, mpierr)
+    call MPI_ALLREDUCE(loc(8), glob(8), 1, MY_REAL, MPI_SUM, comm3d, mpierr)
+    ncol = max(glob(8), 1.)                  ! columns with at least one fluid cell
     vt(1:5) = glob(1:5) / ncol
     vt(6:7) = glob(6:7)
     vt(8)  = 0.          ! ustar: Task 3
@@ -166,12 +170,13 @@ contains
   contains
 
     !> Height of the highest downward crossing of `thres` in a column; 0 if none.
-    real function crossing(col, thres)
+    real function crossing(col, mask, thres)
       real, intent(in) :: col(kb:ke), thres
+      integer, intent(in) :: mask(kb:ke)
       integer :: kk
       crossing = 0.
       do kk = ke - 1, kb, -1
-        if (col(kk) > thres .and. col(kk+1) <= thres) then
+        if (mask(kk) == 1 .and. mask(kk+1) == 1 .and. col(kk) > thres .and. col(kk+1) <= thres) then
           crossing = zf(kk) + (thres - col(kk)) * (zf(kk+1) - zf(kk)) / (col(kk+1) - col(kk))
           return
         end if

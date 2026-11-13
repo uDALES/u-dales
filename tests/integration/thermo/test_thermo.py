@@ -68,6 +68,22 @@ class TestThermostat(_SolverTest):
             self.assertEqual(float(t["cfrac"][-1]), 1.0)
             self.assertAlmostEqual(float(t["zi_qt8"][-1]), 840.0, delta=20.0)
             self.assertAlmostEqual(float(t["zi"][-1]), 840.0, delta=20.0)
+            # placeholders until the surface (Task 3) and radiation (Task 5) tasks fill them
+            for name in ("ustar", "obl"):
+                self.assertEqual(float(t[name][-1]), 0.0)
+            for name in ("thlprad", "lwu", "lwd"):
+                self.assertTrue(np.all(z[name][-1, :] == 0.0))
+
+    def test_dry_column_has_no_moist_diagnostics(self):
+        d = tc.write_case(self.tmp / "drystat", groups={
+            "RUN": {"runtime": "1.5"},
+            "PHYSICS": {"lmoist": ".false."}, "BC": {"qts": "-1."},
+            "NAMTHERMOSTAT": {"lthermostat": ".true.", "tthermostat": "1."}})
+        self.run_ok(d)
+        with Dataset(d / "thermostat_t.310.nc") as t:
+            self.assertGreaterEqual(len(t["time"]), 1)
+            self.assertEqual(float(t["zi_qt8"][-1]), 0.0)
+            self.assertEqual(float(t["lwp_bar"][-1]), 0.0)
 
 
 if __name__ == "__main__":
