@@ -42,6 +42,8 @@ module modstartup
    integer(KIND=selected_int_kind(6)) :: irandom = 43 !    * number to seed the randomizer with
    integer :: krand = huge(0)  ! returns the largest integer that is not an infinity
    real :: randu = 0.01, randthl = 0.0, randqt = 0.0 !    * uvw,thl and qt amplitude of randomization
+   logical :: lEBclockrestored = .false. ! readrestartfiles restored tEB/tnextEB from the initf file;
+                                         ! readinitfiles must then not re-anchor them at btime
 
    contains
 
@@ -57,7 +59,7 @@ module modstartup
       !-----------------------------------------------------------------|
 
       use modglobal,         only : initglobal, iexpnr, runtime, runmode, dtmax,  &
-                                    lwarmstart, lstratstart, lfielddump, lreadscal, startfile, tfielddump, fieldvars, tsample, tstatsdump, tstatstart, trestart, &
+                                    lwarmstart, lstratstart, lfielddump, lreadscal, lreadfacT, startfile, tfielddump, fieldvars, tsample, tstatsdump, tstatstart, trestart, &
                                     nsv, itot, jtot, ktot, xlen, ylen, xlat, xlon, xday, xtime, lwalldist, &
                                     lmoist, lcoriol, igrw_damp, geodamptime, ifnamopt, fname_options, &
                                     nscasrc,nscasrcl,iwallmom,iwalltemp,iwallmoist,iwallscal,ipoiss,iadv_mom,iadv_tke,iadv_thl,iadv_qt,iadv_sv,courant,diffnr,ladaptive,author,&
@@ -110,7 +112,7 @@ module modstartup
          courant, diffnr, author, &
          libm, lles, &
          lper2inout, lwalldist, &
-         lreadmean, &
+         lreadmean, lreadfacT, &
          nprocx, nprocy, &
          lrandomize
       namelist/DOMAIN/ &
@@ -369,6 +371,7 @@ module modstartup
       call MPI_BCAST(lstratstart, 1, MPI_LOGICAL, 0, comm3d, mpierr)
       call MPI_BCAST(lfielddump, 1, MPI_LOGICAL, 0, comm3d, mpierr)
       call MPI_BCAST(lreadscal, 1, MPI_LOGICAL, 0, comm3d, mpierr) ! J.Tomas: added switch to read scalar pollutant fields (warm start)
+      call MPI_BCAST(lreadfacT, 1, MPI_LOGICAL, 0, comm3d, mpierr) ! switch to read the facet state from the initf restart file (warm start)
       call MPI_BCAST(lscasrc, 1, MPI_LOGICAL, 0, comm3d, mpierr) ! tg3315
       call MPI_BCAST(lscasrcl, 1, MPI_LOGICAL, 0, comm3d, mpierr) ! tg3315
       call MPI_BCAST(lscasrcr, 1, MPI_LOGICAL, 0, comm3d, mpierr) ! tg3315
@@ -954,7 +957,7 @@ module modstartup
          ltempeq, prandtlmoli, &
          tnextfielddump, tfielddump, startfile, lprofforc,&
          idriver,dtdriver,driverstore,tdriverstart,tdriverstart_cold,tdriverdump,lchunkread,ibrank,lrandomize,BCxs,&
-         tEB,tnextEB,dtEB,BCxs_custom,lEB,lfacTlyrs,tfac,tnextfac,dtfac
+         tEB,tnextEB,dtEB,BCxs_custom,tfac,tnextfac,dtfac
       use modsubgriddata, only:ekm, ekh, loneeqn
       use modsurfdata, only:thls, sv_top
       ! use modsurface,        only : surface,dthldz
@@ -1064,7 +1067,8 @@ module modstartup
             end do
          end do
 
-         do j = j, je
+         thv0 = 0.
+         do j = jb, je
             do i = ib, ie
                do k = kb, ke + kh
                   thv0(i, j, k) = (thl0(i, j, k) + rlv*ql0(i, j, k)/(cp)) &
@@ -1610,6 +1614,12 @@ module modstartup
             !write (*, *) "doing warmstart"
             call readrestartfiles
 
+            ! The restart files hold levels kb..ke+kh only; the ghost level kb-1 is used by
+            ! calc_halflev below (and by the cold start, which mirrors it), so set it here
+            ! instead of leaving uninitialised memory that can raise a floating-point trap.
+            thl0(:, :, kb - 1) = thl0(:, :, kb)
+            qt0(:, :, kb - 1)  = qt0(:, :, kb)
+
             ! average initial profiles
             call avexy_ibm(u_init(kb:ke+kh),u0(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,kh,IIu(ib:ie,jb:je,kb:ke+kh),IIus(kb:ke+kh),.false.)
             call avexy_ibm(v_init(kb:ke+kh),v0(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,kh,IIv(ib:ie,jb:je,kb:ke+kh),IIvs(kb:ke+kh),.false.)
@@ -1681,6 +1691,16 @@ module modstartup
             qtm = qt0
             svm = sv0 ! What if nsv=0?
             e12m = e120
+
+            ! Exchange the halos, as the cold start does once its fields are built.
+            ! The restart files carry the one-cell halo only; the outer cells of the
+            ! scalars (ihc = 2, and the kappa scheme reads i-2 on the upwind face) would
+            ! otherwise hold their allocation value until the loop's own exchange, which
+            ! runs after the first advection, so a warm start diverged from the run it
+            ! continued at the west boundary: by 1e-11 on a smooth scalar and 5e-5 once the
+            ! limiter had a rough field to switch on.
+            call halos
+
             ekm(:, :, :) = numol
             ekh(:, :, :) = numol*prandtlmoli !tg3315 added because wttop using ekh in modboundary which is called in startup
 
@@ -1746,7 +1766,8 @@ module modstartup
             end do
             end do
 
-            do j = j, je
+            thv0 = 0.
+            do j = jb, je
             do i = ib, ie
             do k = kb, ke + kh
                thv0(i, j, k) = (thl0(i, j, k) + rlv*ql0(i, j, k)/(cp)) &
@@ -2038,9 +2059,6 @@ module modstartup
             if (.not. ladaptive) dt = dtmax
             !  call boundary
 
-            if (lEB .and. (lfacTlyrs .eqv. .false.)) then
-               if (myid==0) write(*,*) "Warmstarting an EB simulation - consider setting internal facet temperatures"
-            end if
          end if ! lwarmstart
       end if ! not lstratstart
       !-----------------------------------------------------------------
@@ -2126,7 +2144,8 @@ module modstartup
       do k = kb + 1, ke
          whls(k) = (wfls(k)*dzf(k - 1) + wfls(k - 1)*dzf(k))/(2*dzh(k))
       end do
-      whls(ke + 1) = (wfls(ke) + dzf(ke)*(wfls(ke) - wfls(ke - 1))/dzh(ke)) ! tg3315 31/07/18 removed a 0.5
+      ! zh(ke+1) lies half a cell above zf(ke): extrapolate over dzf(ke)/2 (as in DALES)
+      whls(ke + 1) = wfls(ke) + 0.5*dzf(ke)*(wfls(ke) - wfls(ke - 1))/dzh(ke)
 
       !    idtmax = floor(dtmax/tres)
       btime = timee
@@ -2143,8 +2162,12 @@ module modstartup
       ntimee = nint(timee/dtmax)
       tnextrestart = btime + trestart
       tnextfielddump = btime + tfielddump
-      tEB = btime
-      tnextEB = btime + dtEB
+      if (.not. lEBclockrestored) then
+         ! cold start, or a warm start without the energy-balance interval state in
+         ! the initf file: the EB interval starts afresh at btime
+         tEB = btime
+         tnextEB = btime + dtEB
+      end if
       tfac = btime
       tnextfac = btime + dtfac
       deallocate (height, th0av)
@@ -2163,12 +2186,15 @@ module modstartup
          strain2av, nusgsav
       use modglobal, only:ib, ie, ih, jb, je, jh, kb, ke, kh, startfile, timee, totavtime, &
          ifinput, nsv, dt, cexpnr, lreadmean, lreadminl, &
-         totinletav, lreadscal, ltempeq, dzf, numol, prandtlmoli
-      use modmpi, only:cmyid, cmyidx, cmyidy, myid
+         totinletav, lreadscal, ltempeq, dzf, numol, prandtlmoli, &
+         lreadfacT, nfcts, nfaclyrs, lEB, iwallmom, iwalltemp, iwallmoist, ifacrestartversion, &
+         tEB, tnextEB, lwarmstart
+      use modmpi, only:cmyid, cmyidx, cmyidy, myid, comm3d, mpierr, my_real, mpi_logical
       use modsubgriddata, only:ekm
       use modinlet, only:zinterpolate1d, zinterpolatet1d, zinterpolatew1d, zinterpolate2d, &
          Uinl, Urec, Wrec, Utav, Tinl, Trec, &
          kbin, kein, lzinzsim, utaui, Ttav, ttaui
+      use initfac, only:facT, facwsoil, facqsat, fachurel, facf, fachfi, facefi
 
       real, dimension(ib:ie, jb:je, kb:ke)  ::  dummy3d
       real, dimension(ib:ie, kbin:kein)    ::  Utavin
@@ -2180,6 +2206,10 @@ module modstartup
       real, dimension(kbin:kein + 1)        ::  Wrecin
       character(len(startfile)) :: name
       character(50) :: name2, name4
+      character(50) :: namefac
+      logical :: lfacrestart = .false., lscalrestart = .false.
+      integer :: ifacversion, nfctsfile, nfaclyrsfile, iostatfac
+      real :: timeefac, tEBfac, tnextEBfac
       real dummy
       integer i, j, k, n
       !********************************************************************
@@ -2209,17 +2239,112 @@ module modstartup
       close (ifinput)
       !write (6, *) 'finished loading ', name
 
-      if ((nsv > 0) .and. (lreadscal)) then
+      ! Scalar fields. On a warm start they are read from the inits restart set by
+      ! default (lreadscal); the file must exist, there is no fallback. With
+      ! lreadscal = .false. (or for lstratstart) sv0 keeps the scalar.inp profile that
+      ! readinitfiles assigned before calling this routine, i.e. the cold-start value.
+      if ((nsv > 0) .and. (lwarmstart) .and. (lreadscal)) then
          name(5:5) = 's'
-         !write (6, *) 'loading ', name
-         open (unit=ifinput, file=name, form='unformatted')
+         inquire (file=name, exist=lscalrestart)
+         if (.not. lscalrestart) then
+            write (0, *) 'ERROR: scalar restart file ', trim(name), ' not found.'
+            write (0, *) '       A warm start with nsv > 0 and lreadscal = .true. needs the inits files written with the initd set.'
+            write (0, *) '       Set lreadscal = .false. to start the scalars from scalar.inp.'//cexpnr//' instead.'
+            call MPI_ABORT(MPI_COMM_WORLD, 1, mpierr)
+         end if
+         open (unit=ifinput, file=name, form='unformatted', status='old')
          read (ifinput) ((((sv0(i, j, k, n), i=ib - ih, ie + ih), j=jb - jh, je + jh), k=kb, ke + kh), n=1, nsv)
          read (ifinput) timee
          close (ifinput)
-         !write (6, *) 'finished loading ', name
-      elseif ((nsv > 0) .and. (.not. lreadscal)) then
-         sv0 = 0.
-         svprof = 0.
+      end if
+
+      ! Read the facet state written by writerestartfiles. The facet arrays are global
+      ! rather than domain-decomposed, so the file has no rank fields and is read by
+      ! rank 0 and broadcast. With lreadfacT, readfacetfiles (called before readinitfiles
+      ! in program.f90) has not read Tfacinit*.inp, so this is the only source of the
+      ! facet state: a missing, mismatched or truncated file aborts the run.
+      if ((nfcts > 0) .and. (lwarmstart) .and. (lreadfacT) .and. &
+          ((lEB) .or. (iwalltemp == 2) .or. (iwallmom == 2) .or. (iwallmoist == 2))) then
+         namefac = 'initf        .'
+         namefac(6:13) = startfile(6:13)
+         namefac(15:17) = cexpnr
+
+         if (myid == 0) then
+            inquire (file=trim(namefac), exist=lfacrestart)
+         end if
+         call MPI_BCAST(lfacrestart, 1, MPI_LOGICAL, 0, comm3d, mpierr)
+
+         if (lfacrestart) then
+            if (myid == 0) then
+               open (unit=ifinput, file=trim(namefac), form='unformatted', status='old')
+               read (ifinput, iostat=iostatfac) ifacversion, nfctsfile, nfaclyrsfile
+               if (iostatfac /= 0) then
+                  write (0, *) 'ERROR: cannot read the header of facet restart file ', trim(namefac)
+                  call MPI_ABORT(MPI_COMM_WORLD, 1, mpierr)
+               end if
+               if (ifacversion /= ifacrestartversion) then
+                  write (0, *) 'ERROR: facet restart file ', trim(namefac), ' has format version ', ifacversion, &
+                     ' but this build reads version ', ifacrestartversion
+                  call MPI_ABORT(MPI_COMM_WORLD, 1, mpierr)
+               end if
+               if ((nfctsfile /= nfcts) .or. (nfaclyrsfile /= nfaclyrs)) then
+                  write (0, *) 'ERROR: facet restart file ', trim(namefac), ' does not match this simulation'
+                  write (0, *) '       file       : nfcts = ', nfctsfile, ' nfaclyrs = ', nfaclyrsfile
+                  write (0, *) '       namoptions : nfcts = ', nfcts, ' nfaclyrs = ', nfaclyrs
+                  call MPI_ABORT(MPI_COMM_WORLD, 1, mpierr)
+               end if
+               read (ifinput, iostat=iostatfac) ((facT(n, j), n=1, nfcts), j=1, nfaclyrs + 1)
+               if ((iostatfac == 0) .and. (lEB)) read (ifinput, iostat=iostatfac) (facwsoil(n), n=1, nfcts)
+               if (iostatfac == 0) read (ifinput, iostat=iostatfac) (facqsat(n), n=1, nfcts)
+               if (iostatfac == 0) read (ifinput, iostat=iostatfac) (fachurel(n), n=1, nfcts)
+               if (iostatfac == 0) read (ifinput, iostat=iostatfac) ((facf(n, j), n=1, nfcts), j=1, 5)
+               if (iostatfac == 0) read (ifinput, iostat=iostatfac) timeefac
+               ! the energy-balance interval in progress at the checkpoint: time of the last
+               ! and next EB update and the fluxes accumulated since the last one (rank-0
+               ! arrays). Restoring it continues that interval instead of restarting it at
+               ! btime, which would drop the accumulated flux.
+               if ((iostatfac == 0) .and. (lEB)) then
+                  read (ifinput, iostat=iostatfac) tEBfac, tnextEBfac
+                  if (iostatfac == 0) read (ifinput, iostat=iostatfac) (fachfi(n), n=1, nfcts)
+                  if (iostatfac == 0) read (ifinput, iostat=iostatfac) (facefi(n), n=1, nfcts)
+               end if
+               close (ifinput)
+               if (iostatfac /= 0) then
+                  write (0, *) 'ERROR: facet restart file ', trim(namefac), ' is truncated or corrupt (iostat ', &
+                     iostatfac, '); the facet state cannot be restored'
+                  call MPI_ABORT(MPI_COMM_WORLD, 1, mpierr)
+               end if
+               if (lEB) then
+                  tEB = tEBfac
+                  tnextEB = tnextEBfac
+                  lEBclockrestored = .true.
+               end if
+               write (*, *) 'Restored facet state from ', trim(namefac), ' (format version ', ifacversion, &
+                  ', timee ', timeefac, ')'
+               if (lEBclockrestored) then
+                  write (*, *) 'Energy-balance interval restored from restart: tEB = ', tEB, &
+                     ' tnextEB = ', tnextEB
+               end if
+            end if
+
+            ! facwsoil is allocated on rank 0 only and used only there, so it is not broadcast
+            call MPI_BCAST(facT(1:nfcts, 1:nfaclyrs + 1), nfcts*(nfaclyrs + 1), MY_REAL, 0, comm3d, mpierr)
+            call MPI_BCAST(facqsat(1:nfcts), nfcts, MY_REAL, 0, comm3d, mpierr)
+            call MPI_BCAST(fachurel(1:nfcts), nfcts, MY_REAL, 0, comm3d, mpierr)
+            call MPI_BCAST(facf(1:nfcts, 1:5), nfcts*5, MY_REAL, 0, comm3d, mpierr)
+            ! tEB and the accumulators are used on rank 0 only; tnextEB is tested on every rank
+            call MPI_BCAST(lEBclockrestored, 1, MPI_LOGICAL, 0, comm3d, mpierr)
+            if (lEBclockrestored) call MPI_BCAST(tnextEB, 1, MY_REAL, 0, comm3d, mpierr)
+         else
+            ! No fallback: readfacetfiles did not read Tfacinit*.inp for this warm start,
+            ! so without the file there is no facet state at all.
+            if (myid == 0) then
+               write (0, *) 'ERROR: facet restart file ', trim(namefac), ' not found.'
+               write (0, *) '       A warm start with lreadfacT = .true. needs the initf file written with the initd set.'
+               write (0, *) '       Set lreadfacT = .false. to re-seed the facet temperatures from Tfacinit.inp.'//cexpnr
+            end if
+            call MPI_ABORT(MPI_COMM_WORLD, 1, mpierr)
+         end if
       end if
 
       ! read mean variables if asked for by lreadmean

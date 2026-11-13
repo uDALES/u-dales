@@ -2,8 +2,6 @@
 
 Getting started with uDALES to set up your own experiments is straightforward. This page goes through the steps required to [install](#installation) uDALES and to [set-up the directory structure](#repository-set-up). Results are output in netCDF format, for a quick inspection you can use GUI tools such as [Panoply](https://www.giss.nasa.gov/tools/panoply/) or [ncview](http://meteora.ucsd.edu/~pierce/ncview_home_page.html). To learn more about pre- and post-processing steps see the [what's next section](#whats-next).
 
-If you have [Singularity](https://sylabs.io/) available on your system, you can use the provided scripts under `tools/singularity` to build and run uDALES cases locally or on HPC environments. See [Singularity](#singularity) for instructions; otherwise, see the next section.
-
 ## Prerequisites
 
 ### uDALES
@@ -22,7 +20,7 @@ To set up a project template for uDALES with a generic folder structure that you
 
 - [Git](https://git-scm.com/) >= 2.
 - A [GitHub](https://github.com) account. (optional)
-- [Python](https://www.python.org/) >= 3.9.
+- [Python](https://www.python.org/) >= 3.10.
 
 ### Pre-processing
 
@@ -71,6 +69,9 @@ cd uDALES
 git clone --recurse-submodules https://github.com/uDALES/u-dales.git
 ```
 
+!!! tip "Which version to use"
+    For running simulations, we recommend using the latest release — check out its tag after cloning, e.g. `git checkout v2.2.0` (see the [releases page](https://github.com/uDALES/u-dales/releases) for the current version). The `master` branch is the bleeding-edge development version: it is where new features land first, but it may contain unresolved issues. Use `master` if you are [developing uDALES](udales-development.md).
+
 Create directories for experiment set-ups and output data:
 
 ```sh
@@ -104,7 +105,7 @@ In the next steps we will assume your current working directory is the top-level
 
 ## Build on common systems
 
-To compile uDALES (in release mode) on common/local uvuntu or mac systems using helper script, run:
+To compile uDALES (in release mode) on common/local Ubuntu or Mac systems using the helper script, run:
 
 ```sh
 # We assume you are running the following commands from the u-dales directory
@@ -129,19 +130,25 @@ You can compile in parallel mode by passing Make the `j` flag followed by the nu
 
 ## Build on HPCs
 
-To compile uDALES (in release mode) on the ICL HPC cluster run:
+On the supported HPC systems, `tools/build_executable.sh` loads the right modules for you. Run it from the u-dales directory, with the system name and `debug` or `release`:
 
 ```sh
 # We assume you are running the following commands from the u-dales directory
+# General syntax: tools/build_executable.sh <system> <debug|release>
 tools/build_executable.sh icl release
 ```
 
-To compile uDALES (in release mode) on ARCHER2, use:
+| `<system>` | Machine | Toolchain loaded by the script |
+|---|---|---|
+| `icl` | Imperial CX3 | Intel 2021a, Intel MPI, netCDF 4.8.0, FFTW 3.3.9 |
+| `hx1` | Imperial HX1 | Intel 2023a, Intel MPI, netCDF 4.9.2, FFTW 3.3.10 |
+| `archer` | ARCHER2 | Cray compiler wrappers, cray-netcdf, cray-fftw |
+| `ecmwf` | ECMWF Atos HPC2020 | `prgenv/intel`, Intel 2021.4.0, hpcx-openmpi 2.21.3, netCDF 4.10.0, FFTW 3.3.10, CMake 4.2.4 |
+| `common` | Local workstation | No modules; uses the compilers and libraries on your system |
 
-```sh
-# We assume you are running the following commands from the u-dales directory
-tools/build_executable.sh archer release
-```
+The same name is used as `<machine>` when running simulations with `ud_run` (see [Running uDALES](./udales-simulation-setup.md)). The script also keeps a legacy `cca` target, which `ud_run` does not support.
+
+On ECMWF, build on a login node: the configure step downloads a small CMake helper for finding FFTW with `git clone`, which needs internet access. Warnings of the form `CMake Deprecation Warning ... cmake_minimum_required` from CMake 4 are expected and harmless.
 
 Information for developers: if you are a High Performance Cluster (HPC) user you are likely using the [Environment Modules package](http://modules.sourceforge.net/) for the dynamic modification of the user's environment via modulefiles and therefore you may need to hint CMake the PATH to netCDF (see below how).
 
@@ -181,13 +188,19 @@ By default uDALES will compile in `Release` mode. You can change this by specify
 | Name                            | Options            | Default   | Description                                   |
 | ------------------------------- | ------------------ | --------- | --------------------------------------------- |
 | `CMAKE_BUILD_TYPE`              | `Release`, `Debug` | `Release` | Whether to optimise/build with debug flags    |
-| `NETCDF4_DIR`                   | `<path>`           | -         | Path to netCDF-C installation directory       |
+| `NETCDF_DIR`                    | `<path>`           | -         | Path to netCDF-C installation directory       |
 | `NETCDF_FORTRAN_DIR`            | `<path>`           | -         | Path to netCDF-Fortran installation directory |
 | `SKIP_UPDATE_EXTERNAL_PROJECTS` | `ON`, `OFF`        | `OFF`     | Whether to skip updating external projects    |
+| `DOUBLE_PRECISION`              | `ON`, `OFF`        | `ON`      | Build 2DECOMP&FFT with double precision       |
+| `SINGLE_PRECISION_OUTPUT`       | `ON`, `OFF`        | `OFF`     | Write output in single precision              |
+| `FFT_Choice`                    | `fftw3`, `generic` | `fftw3`   | FFT backend for 2DECOMP&FFT                   |
 
-## Singularity
+## Singularity (not recommended)
 
-If you are looking for information on how to install or use Singularity on your system, please refer to the [Singularity documentation](https://sylabs.io/docs). The use of Singularity is undoubtedly the easiest way to build and run cases in uDALES as all dependencies are provided and uDALES will compile out of the box. Furthermore, users wishing to achieve a reasonable level of scientific reproducibility may archive software, tools, and data with their Singularity image containing OS and external libraries to an open access repository (e.g. [Meyer et al., 2020](https://doi.org/10.1029/2019MS001961)).
+!!! warning "Outdated image"
+    The Singularity image has not been updated in several years and still corresponds to uDALES 1.0. Building natively (see above) is the recommended route; the instructions below are retained for legacy use only.
+
+If you are looking for information on how to install or use Singularity on your system, please refer to the [Singularity documentation](https://sylabs.io/docs). Users wishing to achieve a reasonable level of scientific reproducibility may archive software, tools, and data with their Singularity image containing OS and external libraries to an open access repository (e.g. [Meyer et al., 2020](https://doi.org/10.1029/2019MS001961)).
 
 First clone the uDALES repository with:
 

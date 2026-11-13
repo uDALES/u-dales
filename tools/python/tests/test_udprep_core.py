@@ -1,4 +1,5 @@
 import contextlib
+import io
 import sys
 import types
 import unittest
@@ -8,6 +9,7 @@ from tempfile import TemporaryDirectory
 from unittest import mock
 
 import numpy as np
+from scipy import sparse
 
 from _common import PYTHON_DIR
 
@@ -16,6 +18,10 @@ from udprep.udprep_bcs import SPEC as BCS_SPEC  # noqa: E402
 from udprep.udprep_ibm import IBMSection  # noqa: E402
 from udprep.udprep_radiation import RadiationSection  # noqa: E402
 from udprep.udprep_seb import SEBSection  # noqa: E402
+from udgeom.view3d import (  # noqa: E402
+    ViewFactorRepairLimits,
+    ViewFactorValidationError,
+)
 
 class DummySection(Section):
     def ping(self):
@@ -759,6 +765,56 @@ class TestUDPrepCore(unittest.TestCase):
         self.assertEqual(prep.beta.show_changed_params_calls, 1)
 
 class TestRadiationSection(unittest.TestCase):
+    @staticmethod
+    def _view_factor_conditioning_section(policy):
+        sim = DummySim()
+        sim.geom = types.SimpleNamespace(
+            stl=types.SimpleNamespace(area_faces=np.ones(3, dtype=float))
+        )
+        section = RadiationSection("radiation", {}, sim=sim, defaults={})
+        section.view_factor_policy = policy
+        section.view_factor_repair_limits = ViewFactorRepairLimits(
+            max_overfull_area_fraction=1.0,
+            max_exchange_area_reduction_fraction=1.0,
+        )
+        return section
+
+    def test_view_factor_repair_policy_conditions_overfull_matrix(self):
+        section = self._view_factor_conditioning_section("repair")
+        vf = sparse.csr_matrix(
+            np.array(
+                [
+                    [0.0, 0.7, 0.6],
+                    [0.7, 0.0, 0.2],
+                    [0.6, 0.2, 0.0],
+                ]
+            )
+        )
+
+        repaired, sky, report = section._condition_view_factors(vf)
+
+        self.assertIsNotNone(report)
+        self.assertTrue(report.repaired)
+        np.testing.assert_allclose(
+            np.asarray(repaired.sum(axis=1)).reshape(-1) + sky,
+            np.ones(3),
+        )
+
+    def test_view_factor_strict_policy_rejects_overfull_matrix(self):
+        section = self._view_factor_conditioning_section("strict")
+        vf = sparse.csr_matrix(
+            np.array(
+                [
+                    [0.0, 0.7, 0.6],
+                    [0.7, 0.0, 0.2],
+                    [0.6, 0.2, 0.0],
+                ]
+            )
+        )
+
+        with self.assertRaises(ViewFactorValidationError):
+            section._condition_view_factors(vf)
+
     def test_shortwave_method_maps_ishortwave_to_backend(self):
         sim = DummySim()
         sim.ltrees = False
@@ -973,6 +1029,7 @@ class TestRadiationSection(unittest.TestCase):
         section.calc_direct_sw = fake_calc_direct_sw
         section.calc_reflections_sw = fake_calc_reflections_sw
 
+        timing = {}
         sdir, knet, s_veg = section._compute_knet(
             np.array([0.0, 0.0, 1.0]),
             800.0,
@@ -984,6 +1041,7 @@ class TestRadiationSection(unittest.TestCase):
             object(),
             np.ones(3),
             None,
+            timing=timing,
         )
 
         expected = np.round(full_sdir, 2)
@@ -992,6 +1050,10 @@ class TestRadiationSection(unittest.TestCase):
         np.testing.assert_allclose(knet, expected + 1.0)
         self.assertIsInstance(s_veg, np.ndarray)
         self.assertEqual(s_veg.size, 0)
+        self.assertGreaterEqual(timing["direct_wall_seconds"], 0.0)
+        self.assertGreaterEqual(timing["direct_cpu_seconds"], 0.0)
+        self.assertGreaterEqual(timing["net_wall_seconds"], 0.0)
+        self.assertGreaterEqual(timing["net_cpu_seconds"], 0.0)
 
     # ------------------------------------------------------------------
     # Item 1 (P1): run_short_wave_timedep vegetation array-shape contract
@@ -1047,6 +1109,23 @@ class TestRadiationSection(unittest.TestCase):
         section._write_sdir_nc.assert_called_once()
         section.write_timedepsveg.assert_not_called()
 
+    def test_timedep_progress_is_indexed_and_backend_agnostic(self):
+        stream = io.StringIO()
+        with TemporaryDirectory() as tmp, contextlib.redirect_stdout(stream):
+            self._run_timedep(
+                tmp, nfcts=4, ltrees=False, s_veg_value=np.zeros(0, dtype=float)
+            )
+
+        lines = [line for line in stream.getvalue().splitlines() if line]
+        self.assertEqual(len(lines), 3)
+        self.assertRegex(
+            lines[0],
+            r"^\[shortwave\s+1/3\] t=\s+0\.0s mode=direct "
+            r"method=moller wall=\d+\.\d{3}s$",
+        )
+        self.assertIn("[shortwave   3/3]", lines[-1])
+        self.assertNotIn("Time =", stream.getvalue())
+
     def test_timedep_veg_stores_nveg_rows(self):
         nfcts, nveg = 4, 7
         with TemporaryDirectory() as tmp:
@@ -1057,6 +1136,73 @@ class TestRadiationSection(unittest.TestCase):
         _tSP, sveg = section.write_timedepsveg.call_args.args
         self.assertEqual(sveg.shape, (nveg, 3))
         np.testing.assert_allclose(sveg[:, 0], np.arange(nveg))
+
+    def test_timedep_writes_static_netsw_from_first_column(self):
+        with TemporaryDirectory() as tmp:
+            nfcts = 3
+            sim = types.SimpleNamespace(
+                path=Path(tmp),
+                expnr="001",
+                ltrees=False,
+                geom=types.SimpleNamespace(
+                    stl=types.SimpleNamespace(face_normals=np.zeros((nfcts, 3)))
+                ),
+            )
+            sim.assign_prop_to_fac = lambda _prop: np.ones(nfcts)
+            section = RadiationSection("radiation", {}, sim=sim, defaults={})
+            section.ltimedepsw = True
+            section.lEB = False
+            section.isolar = 2
+            section.ishortwave = 4
+            section.runtime = 20.0
+            section.dtSP = 10.0
+            section.year, section.month, section.day = 2020, 6, 21
+            section.hour = 12
+            section.minute = section.second = 0
+
+            section._solar_state_time = mock.Mock(
+                return_value=(np.array([0.0, 0.0, 1.0]), 30.0, 0.0, 800.0, 100.0)
+            )
+            knet_steps = [
+                np.array([10.0, 20.0, 30.0]),
+                np.array([11.0, 21.0, 31.0]),
+                np.array([12.0, 22.0, 32.0]),
+            ]
+            section._compute_knet = mock.Mock(
+                side_effect=[
+                    (np.zeros(nfcts), knet, np.zeros(0, dtype=float))
+                    for knet in knet_steps
+                ]
+            )
+            section._write_sdir_nc = mock.Mock()
+
+            section.run_short_wave_timedep()
+
+            values = np.loadtxt(Path(tmp) / "netsw.inp.001", skiprows=1)
+            np.testing.assert_allclose(values, knet_steps[0], atol=1.0e-4)
+
+    def test_timedep_cache_rewrites_static_netsw_from_cached_file(self):
+        with TemporaryDirectory() as tmp:
+            case_dir = Path(tmp)
+            sim = types.SimpleNamespace(path=case_dir, expnr="001", ltrees=False)
+            section = RadiationSection("radiation", {}, sim=sim, defaults={})
+            section.ltimedepsw = True
+
+            (case_dir / "Sdir.nc").write_bytes(b"cached")
+            (case_dir / "timedepsw.inp.001").write_text(
+                "# time-dependent net shortwave on facets [W/m2]\n"
+                "     0.00     10.00\n"
+                "   100.0    101.0\n"
+                "   200.0    201.0\n",
+                encoding="ascii",
+            )
+            section._compute_knet = mock.Mock()
+
+            section.run_short_wave_timedep()
+
+            section._compute_knet.assert_not_called()
+            values = np.loadtxt(case_dir / "netsw.inp.001", skiprows=1)
+            np.testing.assert_allclose(values, [100.0, 200.0], atol=1.0e-4)
 
     def test_timedep_skips_near_horizon_step_without_crashing(self):
         # P11: a near-horizon step (|cos(zenith)| < 1e-2, where the solver would
@@ -1108,10 +1254,14 @@ class TestRadiationSection(unittest.TestCase):
             expnr="001",
             stl_file="geom.stl",
             geom=types.SimpleNamespace(
-                stl=types.SimpleNamespace(faces=np.zeros((3, 3), dtype=int))
+                stl=types.SimpleNamespace(
+                    faces=np.zeros((3, 3), dtype=int),
+                    area_faces=np.ones(3, dtype=float),
+                )
             ),
         )
         section = RadiationSection("radiation", {}, sim=sim, defaults={})
+        section.view_factor_policy = "strict"
         section.view3d_out = 0
         section.lvfsparse = False
         section.maxD = 1000.0
@@ -1130,6 +1280,7 @@ class TestRadiationSection(unittest.TestCase):
                 run_view3d=mock.DEFAULT,
                 read_view3d_output=mock.DEFAULT,
                 compute_svf=mock.DEFAULT,
+                validate_view_factors=mock.DEFAULT,
                 write_svf=mock.DEFAULT,
                 write_vf=mock.DEFAULT,
                 write_vfsparse=mock.DEFAULT,

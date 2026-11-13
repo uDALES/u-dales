@@ -1,6 +1,9 @@
 
 # Working with uDALES facet data in MATLAB
 
+!!! warning "MATLAB path to be retired in v3.0"
+    These tutorials currently use the MATLAB toolchain. The MATLAB route is deprecated and will be retired from uDALES v3.0 onwards, in favour of the [uDALES Python package](udales-python-package.md).
+
 In this tutorial we cover how to work with uDALES facet data. This pertains to all surface quanties, e.g. shear stress, surface pressure, surface energy balance terms and the temperature inside each of the facets.
 
 The **`udbase`** post-processing class reads in most important input parameters, and contains a number of methods to work with facet data:
@@ -20,7 +23,7 @@ The **`udbase`** post-processing class reads in most important input parameters,
 - [**convert_facvar_to_field**](#convert_facvar_to_field-convert-facet-data-to-grid). This method transfers a facet variable onto the grid, so it can be used for post-processing.
 - [**convert_facflx_to_field**](#convert_facflx_to_field-convert-facet-data-to-3d-density-field). This method converts a facet variable to a density in a 3D field, so it can be used for post-processing (e.g. calculating distributed drag).
 
-**The live matlab file of this tutorial can be found in the repository in the folder /docs/tutorial_mlx.**
+**The live matlab file of this tutorial can be found in the repository in the folder /docs/tutorial_udbase.**
 
 ## Initialising udbase
 

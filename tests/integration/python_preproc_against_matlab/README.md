@@ -21,8 +21,8 @@ Current scope:
 - committed MATLAB-generated preprocessing outputs live directly in the case
   directory
 - the test copies the case to a temp directory, cleans generated preprocessing
-  outputs, reruns Python `tools/write_inputs.py`, and compares the regenerated
-  files against the committed references
+  outputs, reruns Python `tools/write_inputs.py` with `PREPROC_NCPU=8`, and
+  compares the regenerated files against the committed references
 
 Why it exists:
 
@@ -55,15 +55,15 @@ Exploratory real-case note:
 To run the submitted test:
 
 ```bash
-source ../.venv/bin/activate
+source tools/python/.venv/bin/activate
 python tests/integration/python_preproc_against_matlab/test_python_preproc_against_matlab.py
 ```
 
 To refresh the committed MATLAB references for a case:
 
 ```bash
-module load tools/prod MATLAB/2024b Python/3.9.6-GCCcore-11.2.0
-source /rds/general/user/mvr/home/udales/.venv/bin/activate
+module load tools/prod MATLAB/2024b Python/3.13.1-GCCcore-14.2.0
+source tools/python/.venv/bin/activate
 python tools/harvest_preprocessing_reference.py --case-dir tests/cases/100
 python tools/harvest_preprocessing_reference.py --case-dir tests/cases/064
 ```

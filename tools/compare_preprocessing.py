@@ -328,9 +328,12 @@ def _run_matlab(matlab_case_root: Path, case: str, outputs: List[str]) -> str:
 
 def _run_python(python_case_root: Path) -> str:
     cmd = [sys.executable, str(REPO_ROOT / "tools" / "write_inputs.py"), str(python_case_root)]
+    env = dict(os.environ)
+    env.setdefault("PREPROC_NCPU", "8")
     result = subprocess.run(
         cmd,
         cwd=REPO_ROOT,
+        env=env,
         stdout=subprocess.PIPE,
         stderr=subprocess.STDOUT,
         text=True,

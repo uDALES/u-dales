@@ -9,10 +9,12 @@
 #
 # Arguments:
 #   build_system   Build environment to use. Required.
-#                  Allowed values : common | icl
+#                  Allowed values : common | icl | ecmwf
 #                    common - local Linux / WSL system (no module loading)
 #                    icl    - Imperial College London HPC cluster
 #                             (loads CMake and Python environment modules)
+#                    ecmwf  - ECMWF Atos HPC2020
+#                             (loads GNU compiler, CMake and Python modules)
 #
 #   build_target   CMake preprocessing target to build.
 #                  Allowed values : view3d | preprocessing_tools
@@ -46,6 +48,9 @@
 #   # ICL cluster, full build
 #   bash tools/python/setup_venv.sh icl preprocessing_tools
 #
+#   # ECMWF Atos HPC, full build
+#   bash tools/python/setup_venv.sh ecmwf preprocessing_tools
+#
 #   # Use a specific Python interpreter
 #   PYTHON_BIN=/opt/pbs/python/bin/python3 bash tools/python/setup_venv.sh common
 
@@ -73,6 +78,7 @@ usage() {
     echo "  build_system   Build environment to use (required)"
     echo "                   common  - local Linux / WSL system"
     echo "                   icl     - Imperial College London HPC cluster"
+    echo "                   ecmwf   - ECMWF Atos HPC2020"
     echo ""
     echo "  build_target   CMake target to build (default: preprocessing_tools)"
     echo "                   view3d               - View3D executable only"
@@ -86,8 +92,8 @@ die() {
 
 check_python_version() {
     local python_cmd="$1"
-    if ! "$python_cmd" -c "import sys; sys.exit(0 if sys.version_info >= (3, 9) else 1)" >/dev/null 2>&1; then
-        die "Python 3.9 or newer is required (found $("$python_cmd" --version 2>&1))."
+    if ! "$python_cmd" -c "import sys; sys.exit(0 if sys.version_info >= (3, 10) else 1)" >/dev/null 2>&1; then
+        die "Python 3.10 or newer is required (found $("$python_cmd" --version 2>&1))."
     fi
 }
 
@@ -113,6 +119,15 @@ load_build_environment() {
         fi
         module load CMake/3.31.3-GCCcore-14.2.0
         module load Python/3.13.1-GCCcore-14.2.0
+    elif [ "$BUILD_SYSTEM" = "ecmwf" ]; then
+        print_yellow "Loading ECMWF environment modules..."
+        if ! command -v module >/dev/null 2>&1; then
+            die "Environment modules are not available; cannot use build system 'ecmwf'."
+        fi
+        # Keep in sync with the ecmwf branch of tools/build_preprocessing.sh.
+        # /usr/bin/python3 on ECMWF is 3.6, below the 3.10 minimum.
+        module load prgenv/gnu gcc/14.2.0 python3/3.13.16-01 cmake/4.2.4
+        export CC=gcc FC=gfortran
     fi
 }
 
@@ -217,7 +232,7 @@ if [ -z "$BUILD_SYSTEM" ]; then
     exit 1
 fi
 
-if [[ "$BUILD_SYSTEM" != "common" && "$BUILD_SYSTEM" != "icl" ]]; then
+if [[ "$BUILD_SYSTEM" != "common" && "$BUILD_SYSTEM" != "icl" && "$BUILD_SYSTEM" != "ecmwf" ]]; then
     print_red "[ERROR] invalid build system '${BUILD_SYSTEM}'."
     echo ""
     usage
@@ -342,13 +357,13 @@ print_green "=========================================="
 echo ""
 echo "To use the virtual environment:"
 echo "  1. Activate:   source $VENV_DIR/bin/activate"
-echo "  2. Run script: python tools/write_inputs.py [config_dir]"
+echo "  2. Run wrapper: ./tools/write_inputs.sh -p [case_dir]"
 echo "  3. Deactivate: deactivate"
 echo ""
 echo "Example workflow:"
 echo "  cd $UDALES_ROOT"
 echo "  source $VENV_DIR/bin/activate"
-echo "  python tools/write_inputs.py"
+echo "  ./tools/write_inputs.sh -p examples/999"
 echo "  deactivate"
 echo ""
 echo "System tests and comparison scripts also use this environment:"

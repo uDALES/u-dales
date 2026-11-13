@@ -7,6 +7,7 @@ import os
 import re
 import shutil
 import subprocess
+import sys
 import tempfile
 from dataclasses import dataclass
 from pathlib import Path
@@ -221,32 +222,15 @@ def _load_global_fields(run_dir: Path, spec: CaseSpec, target_time: float) -> Di
     return fields
 
 
-def _mpi_exec_and_args() -> Tuple[str, str]:
-    mpiexec = os.environ.get("MPIEXEC")
-    if not mpiexec:
-        mpiexec = "mpiexec"
+# launcher resolution and the one-rank-per-CPU pre-flight check shared by the runners
+sys.path.insert(0, str(REPO_ROOT / "tests" / "integration"))
+import mpi_env  # noqa: E402
 
-    extra_args = os.environ.get("MPI_LAUNCH_EXTRA_ARGS", "").strip()
-    try:
-        version_proc = subprocess.run(
-            [mpiexec, "--version"],
-            check=False,
-            capture_output=True,
-            text=True,
-        )
-        version = (version_proc.stdout or "") + "\n" + (version_proc.stderr or "")
-    except OSError:
-        version = ""
-
-    is_openmpi = re.search(r"Open MPI|OpenRTE", version, flags=re.IGNORECASE) is not None
-    if is_openmpi and "--oversubscribe" not in extra_args:
-        extra_args = f"--oversubscribe {extra_args}".strip()
-    elif (not is_openmpi) and "--oversubscribe" in extra_args:
-        extra_args = " ".join(arg for arg in extra_args.split() if arg != "--oversubscribe")
-    return mpiexec, extra_args
+_mpi_exec_and_args = mpi_env.mpi_exec_and_args
 
 
 def _run_case(path_to_exe: Path, run_dir: Path, case_id: int, nprocs: int) -> Path:
+    mpi_env.preflight(nprocs)
     mpiexec, extra_args = _mpi_exec_and_args()
     exe = path_to_exe / "u-dales"
     log_path = run_dir / "solver.log"

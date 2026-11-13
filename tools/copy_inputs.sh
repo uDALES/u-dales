@@ -21,7 +21,7 @@
 # new sim: "copy_inputs.sh path/1 2" or "copy_inputs.sh path/1 2 c"
 # continue with new sim  "copy_inputs.sh path/1 2 w"
 
-set -e
+set -euo pipefail
 
 if (( $# < 2 )) ; then
   echo "usage: `basename $0` sim#1_local_path sim#2 (start)"
@@ -49,11 +49,11 @@ pushd $1
 	fi
 
 	## check if required variables are set
-	if [ -z $DA_EXPDIR ]; then
+	if [ -z "${DA_EXPDIR:-}" ]; then
 		echo "Experiment directory DA_EXPDIR must be set $inputdir/config.sh"
 		exit 1
 	fi;
-  if [ -z $DA_WORKDIR ]; then
+  if [ -z "${DA_WORKDIR:-}" ]; then
 		echo "Experiment directory DA_WORKDIR must be set $inputdir/config.sh"
 		exit 1
 	fi;
@@ -98,7 +98,7 @@ if [ ! -d $DA_EXPDIR/$src ]; then
 fi
 
 # list of files to copy
-declare -a tocopy=("/namoptions." "/facetarea.inp." "/facets.inp." "/facets_unused." "/factypes.inp." "/heatpump.inp." "/lad.inp." "/lscale.inp." "/netsw.inp." "/prof.inp." "/purifs.inp." "/scalar.inp." "/scals.inp." "/sveg.inp." "/svf.inp." "/Tfacinit.inp." "/timedeplw.inp." "/timedepnudge.inp." "/timedepsw.inp." "/trees.inp." "/veg.inp." "/veg_params.inp." "/vf.nc.inp." "/vfsparse.inp.")
+declare -a tocopy=("/namoptions." "/facetarea.inp." "/facets.inp." "/facets_unused." "/factypes.inp." "/heatpump.inp." "/lad.inp." "/lscale.inp." "/netsw.inp." "/prof.inp." "/purifs.inp." "/scalar.inp." "/scals.inp." "/sveg.inp." "/svf.inp." "/Tfacinit.inp." "/Tfacinit_layers.inp." "/timedeplw.inp." "/timedepnudge.inp." "/timedepsw.inp." "/trees.inp." "/veg.inp." "/veg_params.inp." "/vf.nc.inp." "/vfsparse.inp.")
 
 # copy and rename files
 case $case in
@@ -145,6 +145,18 @@ $varname = $value" "$DA_EXPDIR/$tar/namoptions.$tar"
     fi
 }
 
+# newest file matching a glob, by modification time. A bash loop rather than
+# "ls -t | head -1": with many files ls is killed by SIGPIPE when head closes
+# the pipe, which under pipefail fails the pipeline.
+newest_file() {
+    local f newest=""
+    for f in "$@"; do
+        [ -f "$f" ] || continue
+        if [ -z "$newest" ] || [ "$f" -nt "$newest" ]; then newest=$f; fi
+    done
+    echo "$newest"
+}
+
 # change simulation number in namoptions
 update_namoptions 'iexpnr' $tar '&RUN'
 
@@ -156,7 +168,7 @@ if [ $start == "c" ]; then
 # warmstart: link newest warmstart files
 elif [ $start == "w" ]; then
   # momentum warmstart files (minimum requirement for warmstarts)
-  startfilen=$(ls -t $DA_WORKDIR/$src"/initd"* | head -1)
+  startfilen=$(newest_file "$DA_WORKDIR/$src"/initd*)
   if [ -z "$startfilen" ]; then
     echo "no restart files found in $DA_WORKDIR/$src"
     echo "exit"
@@ -175,7 +187,7 @@ elif [ $start == "w" ]; then
   scalarwarmstart=$DA_WORKDIR/$src"/inits"*
   if compgen -G "$scalarwarmstart" > /dev/null; then
 
-    scalarfilen=$(ls -t $DA_WORKDIR/$src"/inits"* | head -1)
+    scalarfilen=$(newest_file "$DA_WORKDIR/$src"/inits*)
       
     # create links
     scalarfilen=${scalarfilen##*/}  # retain the part after the last slash
@@ -186,6 +198,19 @@ elif [ $start == "w" ]; then
 
     else
       echo "Info: no scalar restart files found in $DA_WORKDIR/$src."
+  fi
+
+  # facet warmstart file (surface energy balance state). This file is written by rank 0
+  # only and has no _<px>_<py> rank fields, so it is matched on the run counter of the
+  # momentum restart file rather than globbed like initd/inits.
+  facetfilen="initf"${startfilen#initd}
+  facetwarmstart=$DA_WORKDIR/$src"/"$facetfilen"."$src
+  if [ -f "$facetwarmstart" ]; then
+    ln -s $facetwarmstart $DA_EXPDIR/$tar/
+  else
+    echo "Info: no facet restart file $facetfilen.$src found in $DA_WORKDIR/$src."
+    echo "Info: facet temperatures will be re-initialised from Tfacinit.inp.$tar,"
+    echo "Info: so the surface energy balance will not continue across the restart."
   fi
 
   # rename links

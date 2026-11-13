@@ -186,6 +186,9 @@ class TestDirectShortwaveReferenceIntegration(_DirectShortwaveCaseMixin, unittes
         scanline_f2py, _, budget, f2py_seconds = self._run_python_method("scanline_f2py", self.RAY_DENSITY)
         metrics = self._compare_fields(scanline_f2py, reference)
         budget_energy_ratio = float(np.sum(reference * self.areas) / budget["fac"])
+        physical_bound = self.IRRADIANCE * np.clip(
+            np.asarray(self.sim.geom.stl.face_normals) @ self.nsun, 0.0, 1.0
+        )
 
         print(
             "\nscanline benchmark:",
@@ -201,6 +204,8 @@ class TestDirectShortwaveReferenceIntegration(_DirectShortwaveCaseMixin, unittes
 
         self.assertLess(fortran_seconds, 120.0)
         self.assertLess(f2py_seconds, 120.0)
+        self.assertTrue(np.all(reference <= physical_bound + 1.0e-2))
+        self.assertTrue(np.all(reference >= 0.0))
         self.assertGreater(metrics["corr"], 0.999999)
         self.assertLess(metrics["mean_abs"], 0.01)
         self.assertLess(metrics["p95_rel"], 1.0e-3)

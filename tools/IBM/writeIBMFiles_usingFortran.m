@@ -36,7 +36,9 @@ disp('Determining both fluid/solid points and facet sections using Fortran.')
 %%Compile Fortran script
 
 % n_threads = 8; % already set in write_inputs.m
-in_mypoly_fortran_path = [folder '/IBM_preproc_fortran/'];
+% The IBM preprocessing sources are shared with the Python route (f2py module
+% and standalone executable) and live in tools/python/fortran/ibm_preproc.
+in_mypoly_fortran_path = [folder '/../python/fortran/ibm_preproc/'];
 addpath(in_mypoly_fortran_path)
 cd(in_mypoly_fortran_path);
 system('gfortran -O3 -fopenmp in_mypoly_functions.f90 boundaryMasking.f90 matchFacetsCells.f90 IBM_preproc_io.f90 IBM_preproc_module.f90 IBM_preproc_main.f90 -o IBM_preproc.exe');

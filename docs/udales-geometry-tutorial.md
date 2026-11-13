@@ -1,6 +1,9 @@
 
 # uDALES urban surface creation
 
+!!! warning "MATLAB path to be retired in v3.0"
+    These tutorials currently use the MATLAB toolchain. The MATLAB route is deprecated and will be retired from uDALES v3.0 onwards, in favour of the [uDALES Python package](udales-python-package.md).
+
 uDALES supports several manners to create urban surfaces. It is possible to run uDALES without specifying an urban surface, in which case a flat terrain is assumed. In most cases however, an urban surface will be specified. uDALES contains a number of functions in the [**udgeom**](#the-udgeom-class) package that aid geometry generation:
 
 - [**udgeom.createFlatSurface**](#udgeomcreateflatsurface). This function creates a flat surface. The main reason for using this function is to be able to discretise the surface in as many facets as possible in case heterogeneous boundary conditions are required.
@@ -8,7 +11,7 @@ uDALES supports several manners to create urban surfaces. It is possible to run 
 - [**udgeom.createCubes**](#udgeomcreatecubes). This function creates cubes, either a single one or an array of cubes.
 - [**udgeom.createRealistic**](#udgeomcreaterealistic). This function creates a realistic urban surface based on an stl file that contains the buildings. The function adds the ground surface.
 
-**The live matlab file of this tutorial can be found in the repository in the folder /docs/tutorial_mlx.**
+**The live matlab file of this tutorial can be found in the repository in the folder /docs/tutorial_udbase.**
 
 ## Initialising udbase
 

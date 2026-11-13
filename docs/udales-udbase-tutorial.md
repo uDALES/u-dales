@@ -1,6 +1,9 @@
 
 # Introduction to uDALES post-processing with MATLAB
 
+!!! warning "MATLAB path to be retired in v3.0"
+    These tutorials currently use the MATLAB toolchain. The MATLAB route is deprecated and will be retired from uDALES v3.0 onwards, in favour of the [uDALES Python package](udales-python-package.md).
+
 This tutorial describes how to read and process facet data of the LES code uDALES using MATLAB. This tutorial introduces the `udbase` post-processing class. There are separate tutorials for processing field files and facet files.
 
 The **`udbase`** post-processing class reads in most important input parameters, and contains a number of methods to load field and facet data.
@@ -29,7 +32,7 @@ The **`udbase`** post-processing class reads in most important input parameters,
 - **convert_facflx_to_field**. This method converts a facet variable to a density in a 3D field, so it can be used for post-processing (e.g. calculating distributed drag).
 - **convert_facvar_to_field**. This method assigns facet variables to the 3D grid, so it can be used for post-processing (e.g. averaging over y).
 
-**The live matlab file of this tutorial can be found in the repository in the folder /docs/tutorial_mlx.**
+**The live matlab file of this tutorial can be found in the repository in the folder /docs/tutorial_udbase.**
 
 ## Initialising udbase
 

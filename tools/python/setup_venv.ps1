@@ -18,7 +18,7 @@
         via CMake/Ninja (since build_preprocessing.sh is bash-only)
 
     Run from the repository root.
-    Requires: Python 3.9+, CMake, Ninja, GCC, GFortran on PATH.
+    Requires: Python 3.10+, CMake, Ninja, GCC, GFortran on PATH.
 
     If the repository path contains spaces (e.g. OneDrive), map the parent
     directory to a drive letter first to avoid f2py failures:
@@ -147,7 +147,7 @@ try {
     $pythonVersion = & $PythonBin --version 2>&1
     Write-Host "Python version: $pythonVersion"
 } catch {
-    Write-Host "Error: '$PythonBin' is not available. Install Python 3.9+ and ensure it is on PATH." -ForegroundColor Red
+    Write-Host "Error: '$PythonBin' is not available. Install Python 3.10+ and ensure it is on PATH." -ForegroundColor Red
     exit 1
 }
 
@@ -254,12 +254,14 @@ Write-Host "==========================================" -ForegroundColor Green
 Write-Host ""
 Write-Host "To use the virtual environment:" -ForegroundColor Cyan
 Write-Host "  1. Activate:   $VenvDir\Scripts\Activate.ps1"
-Write-Host "  2. Run script: python tools\write_inputs.py [config_dir]"
-Write-Host "  3. Deactivate: deactivate"
+Write-Host "  2. Set View3D threads: `$env:PREPROC_NCPU = `"8`""
+Write-Host "  3. Run script: python tools\write_inputs.py [case_dir]"
+Write-Host "  4. Deactivate: deactivate"
 Write-Host ""
 Write-Host "Example workflow:" -ForegroundColor Cyan
 Write-Host "  cd $UDALES_ROOT"
 Write-Host "  $VenvDir\Scripts\Activate.ps1"
-Write-Host "  python tools\write_inputs.py"
+Write-Host "  `$env:PREPROC_NCPU = `"8`""
+Write-Host "  python tools\write_inputs.py examples\999"
 Write-Host "  deactivate"
 Write-Host ""

@@ -912,7 +912,7 @@ classdef preprocessing < dynamicprops
                 thl = zeros(obj.ktot, 1);
                 thl(1) = obj.thl0;
                 for k = 1:obj.ktot - 1
-                    thl(k+1) = thl(k) + obj.lapse * obj.zsize / obj.ktot;
+                    thl(k+1) = thl(k) + obj.lapse * (obj.zf(k+1) - obj.zf(k)); % centre-to-centre distance, valid on stretched grids
                 end
                 obj.pr(:,2) = thl;
             else
@@ -1072,12 +1072,18 @@ classdef preprocessing < dynamicprops
             netcdf.close(ncid);
         end
 
-        function write_vfsparse(obj, vfsparse)
-            %[i,j,s] = find(vfsparse);
-            [i,j,~] = find(vfsparse >= 5e-7); % round to 6 decimal places
-            s = full(vfsparse(vfsparse >= 5e-7));
+        function write_vfsparse(obj, vfsparse, threshold)
+            if nargin < 3
+                threshold = 5e-7;
+            end
+            [i,j,s] = find(vfsparse);
+            keep = s >= threshold;
+            i = i(keep);
+            j = j(keep);
+            s = s(keep);
             fID = fopen(['vfsparse.inp.' num2str(obj.expnr)], 'w');
-            fprintf(fID, '%d %d %.6f\n', sortrows([i, j, s])'); % write to 6 decimal places, sorted by rows
+            fprintf(fID, '%d %d %.8f\n', sortrows([i, j, s])');
+            fclose(fID);
         end
 
         function write_svf(obj, svf)
@@ -1085,7 +1091,7 @@ classdef preprocessing < dynamicprops
             fileID = fopen(fname,'W');
             fprintf(fileID, '# sky view factors\n');
             fclose(fileID);
-            dlmwrite(fname, svf, '-append','delimiter',' ','precision','%4f')
+            dlmwrite(fname, svf, '-append','delimiter',' ','precision','%.8f')
         end
 
         function write_facetarea(obj, facetarea)

@@ -4,6 +4,7 @@ import os
 import re
 import shutil
 import subprocess
+import sys
 import tempfile
 import unittest
 from pathlib import Path
@@ -25,6 +26,12 @@ RUNTIME_MODULES = os.environ.get(
 )
 TREE_FIELDS = ("tr_u", "tr_v", "tr_w")
 NO_TREE_FIELDS = ("ut", "vt", "wt")
+# xytdump SGS profiles. These live on the w-levels, and modibm unconditionally
+# zeroes IIw/IIuw/IIvw at kb for every IBM run, so the bottom level is fully
+# masked and must be reported with the -999. sentinel rather than with an
+# unmasked sum over solid points (issue #306, finding F6).
+XYT_SGS_FIELDS = ("usgsxyt", "vsgsxyt", "thlsgsxyt")
+MASKED_VALUE = -999.0
 ABS_TOL = 1.0e-9
 # The no-tree Xie/Castro parity check compares tdump output, which is written
 # to NetCDF as NF90_FLOAT in modstat_nc.f90. The residual y-split/xy-split wt
@@ -157,31 +164,29 @@ def _load_global_fields(run_dir: Path, case_id: int, prefix: str, fields: Iterab
     return fields
 
 
-def _mpi_exec_and_args() -> Tuple[str, str]:
-    mpiexec = os.environ.get("MPIEXEC")
-    if not mpiexec:
-        mpiifort = shutil.which("mpiifort")
-        if mpiifort:
-            mpiexec = str(Path(mpiifort).parent / "mpiexec")
-        else:
-            mpiexec = "mpiexec"
+def _load_xyt_profiles(run_dir: Path, case_id: int, fields: Iterable[str]) -> Dict[str, np.ndarray]:
+    """Read the single global xytdump file and return the last time record of each field."""
+    path = run_dir / f"xytdump.{case_id}.nc"
+    if not path.is_file():
+        raise RuntimeError(f"No xytdump output found at {path}")
+    profiles: Dict[str, np.ndarray] = {}
+    with nc.Dataset(path) as ds:
+        for field in fields:
+            if field not in ds.variables:
+                raise RuntimeError(f"{path.name} does not contain variable '{field}'")
+            profiles[field] = np.asarray(ds.variables[field][-1], dtype=np.float64)
+    return profiles
 
-    extra_args = os.environ.get("MPI_LAUNCH_EXTRA_ARGS", "").strip()
-    try:
-        version = subprocess.run(
-            [mpiexec, "--version"],
-            check=False,
-            capture_output=True,
-            text=True,
-        ).stdout
-    except OSError:
-        version = ""
-    if re.search(r"Open MPI|OpenRTE", version, flags=re.IGNORECASE) and "--oversubscribe" not in extra_args:
-        extra_args = f"--oversubscribe {extra_args}".strip()
-    return mpiexec, extra_args
+
+# launcher resolution and the one-rank-per-CPU pre-flight check shared by the runners
+sys.path.insert(0, str(REPO_ROOT / "tests" / "integration"))
+import mpi_env  # noqa: E402
+
+_mpi_exec_and_args = mpi_env.mpi_exec_and_args
 
 
 def _run_case(executable: Path, run_dir: Path, case_id: int, nprocs: int) -> None:
+    mpi_env.preflight(nprocs)
     mpiexec, extra_args = _mpi_exec_and_args()
     diag_log = run_dir / "fortran_diagnostics.log"
     for stale in run_dir.glob("monitor*.txt"):
@@ -279,6 +284,7 @@ class _BaseProcessorBoundaryParity(unittest.TestCase):
     PREFIX = ""
     FIELDS = ()
     VEGETATION_ENABLED = True
+    XYT_SGS_ENABLED = False
 
     @classmethod
     def setUpClass(cls) -> None:
@@ -299,6 +305,7 @@ class _BaseProcessorBoundaryParity(unittest.TestCase):
         cls.workdir = tempfile.TemporaryDirectory(prefix="udales-veg-proc-boundary-", dir="/tmp")
         cls.run_dirs: Dict[str, Path] = {}
         cls.outputs: Dict[str, Dict[str, np.ndarray]] = {}
+        cls.xyt_outputs: Dict[str, Dict[str, np.ndarray]] = {}
 
         for label, (nprocx, nprocy) in CONFIGS.items():
             run_dir = Path(cls.workdir.name) / label
@@ -307,6 +314,8 @@ class _BaseProcessorBoundaryParity(unittest.TestCase):
             _run_case(UDALES_BUILD, run_dir, cls.CASE_ID, nprocx * nprocy)
             cls.run_dirs[label] = run_dir
             cls.outputs[label] = _load_global_fields(run_dir, cls.CASE_ID, cls.PREFIX, cls.FIELDS)
+            if cls.XYT_SGS_ENABLED:
+                cls.xyt_outputs[label] = _load_xyt_profiles(run_dir, cls.CASE_ID, XYT_SGS_FIELDS)
 
     @classmethod
     def tearDownClass(cls) -> None:
@@ -391,6 +400,54 @@ class TestTreeProcessorBoundaryParity(_BaseProcessorBoundaryParity):
     PREFIX = "treedump"
     FIELDS = TREE_FIELDS
     VEGETATION_ENABLED = True
+    XYT_SGS_ENABLED = True
+
+    def test_sgs_profiles_report_masked_bottom_level(self) -> None:
+        """The fully masked bottom level of the SGS profiles must be -999.
+
+        modibm sets IIw/IIuw/IIvw(:,:,kb) = 0 for every IBM run, so kb has no
+        fluid points at all. Before the #306 fix, avexy_ibm was called with
+        lnan = .false. for these w-located quantities, which replaced the masked
+        level by an unmasked sum over the solid points divided by the fluid-point
+        count at ke -- a number with no physical meaning that also depends on how
+        the sum is accumulated. Every other masked level uses the -999. sentinel;
+        kb must too.
+        """
+        failures = []
+        for label in CONFIGS:
+            profiles = self.xyt_outputs[label]
+            for field in XYT_SGS_FIELDS:
+                bottom = float(profiles[field][0])
+                if bottom != MASKED_VALUE:
+                    failures.append(
+                        f"{field}(kb) = {bottom!r} for {label}, expected {MASKED_VALUE}"
+                    )
+        if failures:
+            self.fail(
+                "SGS profiles do not report the masked bottom level:\n- "
+                + "\n- ".join(failures)
+            )
+
+    def test_sgs_profiles_masked_bottom_level_is_decomposition_invariant(self) -> None:
+        """Whatever kb holds, it must not depend on the decomposition."""
+        failures = []
+        reference = self.xyt_outputs["serial"]
+        for label in CONFIGS:
+            if label == "serial":
+                continue
+            profiles = self.xyt_outputs[label]
+            for field in XYT_SGS_FIELDS:
+                got = float(profiles[field][0])
+                exp = float(reference[field][0])
+                if abs(got - exp) > ABS_TOL:
+                    failures.append(
+                        f"{field}(kb) = {got!r} for {label} but {exp!r} for serial"
+                    )
+        if failures:
+            self.fail(
+                "SGS profile bottom level depends on the decomposition:\n- "
+                + "\n- ".join(failures)
+            )
 
     def test_fixture_places_vegetation_on_y_processor_boundary(self) -> None:
         y_boundary = self.veg_mask.shape[1] // 2

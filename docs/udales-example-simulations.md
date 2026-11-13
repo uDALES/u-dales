@@ -33,8 +33,8 @@ All examples are run using the following command:
 # We assume you are running the following commands from your
 # top-level project directory.
 
-# General syntax: local_execute.sh exp_directory
-./u-dales/tools/local_execute.sh examples/001
+# General syntax: ud_run <machine> sim exp_directory (common runs local_execute.sh)
+./u-dales/bin/ud_run common sim examples/001
 ```
 
 <!-- omit in toc -->
@@ -73,7 +73,7 @@ Table 1: Main setups of urban case studies and reference example simulation(s).
 | Surface and top scalar BCs                 | energy balance                      | yes                     | 201                          |
 | Output                                     | instantaneous fields                | no                      | 001, 101, 102, 201, 949      |
 | Output                                     | time-averaged fields                | no                      | 201, 950                     |
-| Output                                     | space-averaged (along x,y) profiles | no                      | 002, 101, 102, 201, 501, 950 |
+| Output                                     | space-averaged (along x,y) profiles | no                      | 002, 101, 102, 201, 949, 950 |
 
 <!-- omit in toc -->
 <!---| Domain                                     | equidistant grid                    | yes                     | 001, 002, 101, 102, 501, 502 | --->
@@ -323,7 +323,7 @@ iadv_thl     = 2
 
 #### Isothermal BC for temperature
 
-The temperature on the facets is set by the values in `Tfacinit.f90` (295 K in this case). These temperatures do not change as the energy balance is not used as a default (`lEB = .false.`). A fixed temperature at the the top of the domain (`thl_top`) is set by
+The temperature on the facets is set by the values in `Tfacinit.inp.101` (295 K in this case). These temperatures do not change as the energy balance is not used as a default (`lEB = .false.`). A fixed temperature at the the top of the domain (`thl_top`) is set by
 
 ```fortran
 &BC
@@ -431,7 +431,7 @@ startfile    = 'initd00000267_xxx_xxx.102'
 
 where the name of the `startfile` needs to match the name of the restart files (xxx instead of processor number).
 
-For a warmstart containing scalar concentration fields you need to additionally set
+The scalar fields are continued from the `inits` restart files by default (`lreadscal = .true.` in `&SCALARS`); set `lreadscal = .false.` to start them from `scalar.inp.102` instead. Facet state, when a case has facets with an energy balance or wall functions, is continued from the `initf` restart file in the same way (`lreadfacT`).
 
 #### Volume flow rate forcing in x
 
@@ -466,12 +466,12 @@ nscasrc      = 1
 lreadscal    = .true.
 ```
 
-Here `lreadscal` is necessary as we are running a warmstart.
+`lreadscal = .true.` is the default; it is written out here to make explicit that the scalar field is continued from the restart files rather than re-initialised.
 
 The position, strength and standard deviation of emission of the source are set by:
 
 ```fortran
-&INP
+&INPS
 xS           = 4
 yS           = 8
 zS           = 3
@@ -627,9 +627,9 @@ nnudge       = 64
 
 ### 949
 
-![blocks.501](./assets/images/geom_949.png)
+![blocks.949](./assets/images/geom_949.png)
 
-This simulation is similar to `101` but does not contain any scalars. It is used as the precursor simulation for simulation `949`.
+This simulation is similar to `101` but does not contain any scalars. It is used as the precursor simulation for simulation `950`.
 
 #### Driver/precursor simulation
 
@@ -648,7 +648,7 @@ iplane       = 256
 
 ### 950
 
-![blocks.502](./assets/images/uDALES_geom.png)
+![blocks.950](./assets/images/uDALES_geom.png)
 
 #### Prerequisites simulation with external forcing
 
@@ -704,7 +704,7 @@ runtime      = 100.
 dtmax        = 1.
 ```
 
-and we want to set `dtmax` = `dtdriver` (`501`) to avoid interpolation of the driver snapshots.
+and we want to set `dtmax` = `dtdriver` (`949`) to avoid interpolation of the driver snapshots.
 
 All boundary conditions (momentum, temperature) are set to inflow-outflow by:
 

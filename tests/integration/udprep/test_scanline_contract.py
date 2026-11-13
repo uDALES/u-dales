@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import importlib
 import tempfile
 import unittest
@@ -13,6 +14,7 @@ from udbase import UDBase
 _IMPORT_ERROR = None
 try:
     from udprep.directshortwave import DirectShortwaveSolver
+    from udprep.solar import nsun_from_angles
 except ImportError as exc:
     DirectShortwaveSolver = None
     _IMPORT_ERROR = exc
@@ -59,6 +61,23 @@ class TestScanlineContract(unittest.TestCase):
         self.assertTrue(inputs.nsun.flags["F_CONTIGUOUS"])
         self.assertEqual(inputs.faces_1based.dtype, np.int32)
 
+    def test_static_scanline_geometry_is_reused_between_calls(self) -> None:
+        first = self.solver._build_scanline_inputs(self.nsun, 800.0, resolution=0.1)
+        second = self.solver._build_scanline_inputs(self.nsun, 700.0, resolution=0.2)
+
+        self.assertIs(first.faces_1based, second.faces_1based)
+        self.assertIs(first.facet_points, second.facet_points)
+        self.assertIs(first.face_normals, second.face_normals)
+        self.assertIs(first.vertices, second.vertices)
+        self.assertEqual(second.irradiance, 700.0)
+        self.assertEqual(second.resolution, 0.2)
+
+    def test_scanline_does_not_allocate_ray_casting_volume_fields(self) -> None:
+        self.assertEqual(self.solver.ktot, 0)
+        self.assertEqual(self.solver.lad_3d.size, 0)
+        self.assertEqual(self.solver.dec_3d.size, 0)
+        self.assertEqual(self.solver.veg_index.size, 0)
+
     def test_legacy_serialization_matches_canonical_inputs(self) -> None:
         inputs = self.solver._build_scanline_inputs(self.nsun, 800.0, resolution=0.1)
         with tempfile.TemporaryDirectory(prefix="udales-scanline-contract-") as td:
@@ -73,6 +92,60 @@ class TestScanlineContract(unittest.TestCase):
         np.testing.assert_allclose(vertices, inputs.vertices)
         np.testing.assert_allclose(faces, self.solver._scanline_face_rows(inputs))
         self.assertEqual(info_lines, self.solver._scanline_info_lines(inputs))
+
+    def test_optimized_extension_is_bitwise_stable(self) -> None:
+        fields = []
+        for zenith, azimuth in (
+            (0.0, 0.0),
+            (15.0, 20.0),
+            (45.0, 123.0),
+            (81.5, 189.0),
+        ):
+            sdir, _, _ = self.solver.compute(
+                nsun=nsun_from_angles(zenith, azimuth),
+                irradiance=800.0,
+                resolution=0.1,
+            )
+            fields.append(sdir)
+
+        # Captured after enforcing the local plane-incidence flux bound.
+        digest = hashlib.sha256(np.stack(fields).tobytes(order="C")).hexdigest()
+        self.assertEqual(
+            digest,
+            "2e24403317b174311dd19354bd39995acb491430d5bdca73b1d58eb33426c486",
+        )
+
+    def test_scanline_flux_respects_local_plane_incidence_bound(self) -> None:
+        for zenith, azimuth in ((0.0, 0.0), (45.0, 123.0), (81.5, 189.0)):
+            nsun = nsun_from_angles(zenith, azimuth)
+            sdir, _, _ = self.solver.compute(
+                nsun=nsun,
+                irradiance=800.0,
+                resolution=0.5,
+            )
+            physical_bound = 800.0 * np.clip(
+                self.solver.face_normals @ nsun, 0.0, 1.0
+            )
+            self.assertTrue(np.all(sdir <= physical_bound + 1.0e-5))
+            self.assertTrue(np.all(sdir >= 0.0))
+
+    def test_raw_f2py_flux_respects_local_plane_incidence_bound(self) -> None:
+        for zenith, azimuth in ((0.0, 0.0), (45.0, 123.0), (81.5, 189.0)):
+            nsun = nsun_from_angles(zenith, azimuth)
+            sdir = self.solver._dsmod.calculate_direct_shortwave_f2py(
+                self.solver._scanline_faces_1based,
+                self.solver._scanline_facet_points_f2py,
+                self.solver._scanline_face_normals_f2py,
+                self.solver._scanline_vertices_f2py,
+                nsun,
+                800.0,
+                0.5,
+            )
+            physical_bound = 800.0 * np.clip(
+                self.solver.face_normals @ nsun, 0.0, 1.0
+            )
+            self.assertTrue(np.all(sdir <= physical_bound + 1.0e-4))
+            self.assertTrue(np.all(sdir >= 0.0))
 
 
 if __name__ == "__main__":

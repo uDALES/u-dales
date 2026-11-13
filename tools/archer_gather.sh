@@ -1,6 +1,6 @@
 #!/bin/bash
 
-set -e
+set -euo pipefail
 
 if (( $# < 1 ))
 then
@@ -10,7 +10,7 @@ then
 fi
 
 ## go to output case directory
-pushd $1
+pushd "$1"
 outdir=$(pwd)
 
 ## set experiment number via path
@@ -25,22 +25,22 @@ else
 fi
 
 ## check if required variables are set
-if [ -z $DA_TOOLSDIR ]; then
+if [ -z "${DA_TOOLSDIR:-}" ]; then
     echo "Script directory DA_TOOLSDIR must be set inside $outdir/config.sh"
     exit 1
 fi;
-if [ -z $WALLTIME ]; then
+if [ -z "${WALLTIME:-}" ]; then
     echo "Wall clock time WALLTIME must be set inside $outdir/config.sh"
     exit 1
 fi;
-if [ -z $QOS ]; then
+if [ -z "${QOS:-}" ]; then
     echo "Job quota QOS must be set inside $outdir/config.sh"
     exit 1
 fi;
 
 
 ###### Job script
-cat <<EOF > post-job.$exp.slurm
+cat <<EOF > "post-job.$exp.slurm"
 #!/bin/bash
 #SBATCH --job-name=${exp}_gather
 #SBATCH --time=${WALLTIME}
@@ -50,13 +50,13 @@ cat <<EOF > post-job.$exp.slurm
 #SBATCH --account=n02-ASSURE
 #SBATCH --partition=standard
 #SBATCH --qos=${QOS}
-
-module load nco gsl
-$DA_TOOLSDIR/gather_outputs.sh $outdir
+set -eo pipefail
+module load cray-hdf5 cray-netcdf nco gsl
+"$DA_TOOLSDIR/gather_outputs.sh" "$outdir" >> "$outdir/output.$exp.log" 2>&1
 EOF
 
 ## submit job file to queue
-sbatch post-job.$exp.slurm
+sbatch "post-job.$exp.slurm"
 
 echo "post-job.$exp.slurm submitted."
 
