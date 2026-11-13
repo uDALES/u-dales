@@ -167,8 +167,8 @@ BCs at the bottom (BCbot; only effective if not covered with ground facets): 1 =
 | cf | 2.5 | `REAL` > 0 | Filter constant. | - |
 | cn | 0.76 | `REAL` > 0 | Subfilter scale parameter. | - |
 | Rigc | 0.25 | `REAL` > 0 | Critical Richardson number. | - |
-<!---
 | Prandtl | 0.333 |`REAL` > 0 | Turbulent Prandtl number Km/Kh: Kh = Km/Prandtl in the Smagorinsky, Vreman and one-equation models (for the one-equation model in neutral/unstable cells; Kh goes to Km in strongly stable cells). | - |
+<!---
 | lsmagorinsky | .false . | .true. or .false. | Switch for Smagorinsky subgrid scheme. | - |
 | cs | -1 | > 0 | Smagorinsky constant. | - |
 | nmason | 2 | > 0 | Exponent in Mason correction function.| - |

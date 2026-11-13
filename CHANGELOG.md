@@ -14,7 +14,7 @@ that they are easy to find when upgrading.
 ### Breaking changes
 
 - **One-equation SGS model (`loneeqn`) aligned with DALES.** Four changes to
-  `modsubgrid.f90`, following DALES dev 075ac4e. Who is affected: only runs with
+  `modsubgrid.f90`, following DALES dev 075ac4e (#401). Who is affected: only runs with
   `loneeqn = .true.`; Vreman and Smagorinsky runs are unchanged (bit for bit).
   - The turbulent Prandtl number now means `Kh = Km/Prandtl`, as in DALES and as
     the Smagorinsky and Vreman models already used it (`ch = 1/Prandtl`). With

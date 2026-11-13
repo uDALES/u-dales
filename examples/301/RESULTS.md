@@ -46,7 +46,7 @@ Throwaway builds of this branch (e5634881), same case and ranks, one 6 h realisa
 | A+B | 8.50 | 0.172 | 1693 | 0.25 | 0.39 |
 | DALES dev | 7.53 | 0.164 | 1684 | - | - |
 
-The doubled dissipation (a) accounts for the cloud excess. Noise (d) makes no significant difference: hourly LWP varies by up to 2x, so about 1 g/m2 is within sampling noise. With A the mean profiles move further from DALES and zi rises by about 35 m, so other SGS differences remain. Reported as #401. The SGS model is not changed on this branch.
+The doubled dissipation (a) accounts for the cloud excess. Noise (d) makes no significant difference: hourly LWP varies by up to 2x, so about 1 g/m2 is within sampling noise. With A the mean profiles move further from DALES and zi rises by about 35 m, so other SGS differences remain. Reported as #401. These runs predate the SGS alignment (Task 10: ch = 1/Prandtl, no factor 2, DALES kb sources); results with the aligned model replace them in the close-match validation.
 
 ## The DALES 3.2.0 archive is not a like-for-like reference
 
