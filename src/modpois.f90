@@ -38,16 +38,11 @@ include "fftw3.f"
 external :: dfftw_plan_dft_r2c_1d, dfftw_plan_dft_c2r_1d, dfftw_plan_r2r_1d, dfftw_execute
 
 private
-public :: initpois,poisson,exitpois,p,pup,pvp,pwp,rhs,dpupdx,dpvpdy,dpwpdz,xyzrt,sp,Fxy,Fxyz,dpdztop,pij
+public :: initpois,poisson,exitpois,p,pup,pvp,pwp,xyzrt,sp,dpdztop,pij
 save
 
   real, allocatable, target :: p(:,:,:)   ! difference between p at previous and new step (p = P_new - P_old)
   real, allocatable, target :: pup(:,:,:), pvp(:,:,:), pwp(:,:,:)
-  real, allocatable, target :: rhs(:,:,:)   ! rhs of pressure solver
-  real, allocatable, target :: dpupdx(:,:,:)
-  real, allocatable, target :: dpvpdy(:,:,:)
-  real, allocatable, target :: dpwpdz(:,:,:)
-  real, allocatable, target :: Fxy(:,:,:), Fxyz(:,:,:)
   real, allocatable :: xrt(:), yrt(:), zrt(:)
   real, allocatable, target :: xyzrt(:,:,:), bxyzrt(:,:,:)
   real, allocatable :: a(:), b(:), c(:) ! coefficients for tridiagonal matrix
