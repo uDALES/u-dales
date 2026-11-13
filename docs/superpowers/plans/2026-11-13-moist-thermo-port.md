@@ -1731,3 +1731,75 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
 - [ ] Bit-for-bit check: run `tests/cases/526` and `tests/regression/david_tests` case 103 on the commit before Task 2 and on HEAD; compare restart files byte for byte. Expected: identical. Only Tasks 1 and 3-D1 may change results, and Task 2 onwards must not.
 - [ ] Code review of the whole branch diff against `origin/master` by an independent reviewer (Fable), using the `requesting-code-review` skill. Fix confirmed findings and re-run the tests.
 - [ ] Controller pushes `thermo` and opens a draft PR. Ask the user before pushing.
+
+---
+
+## Addendum (2026-11-13): align uDALES numerics with DALES for BOMEX and RF01
+
+User decision: BOMEX and RF01 must match DALES closely. The audits are in `.superpowers/sdd/2026-11-13-moist-thermo-port/numerics-audit-{dynamics,sgs}.md`. The fixes below are applied **outright**: defaults change, so results change for all users. Each is recorded under **Breaking changes** in `CHANGELOG.md`, with the issue it closes. DALES reference: dev `075ac4e`.
+
+Addendum global constraints:
+- Every behaviour change gets a CHANGELOG "Breaking changes" entry: what changed, why, who is affected.
+- Existing tests whose reference values change get updated, and each update is justified in the commit message. A test that starts failing for an unexplained reason is a stop.
+- Do not touch `build/release` until the controller says the reference runs are finished; build and test with `build/debug`.
+- Follow the surrounding code idiom. MPI is called through implicit externals (ifort #6580).
+
+### Task 10: One-equation SGS model aligned with DALES (C1, C3, C4, C5)
+
+**Files:** src/modsubgrid.f90, src/modsubgriddata.f90, tests (new or updated), CHANGELOG.md, docs (SGS section if one describes these constants).
+
+- C1: the turbulent Prandtl convention. Set `ch = 1.0/Prandtl` (DALES modsubgrid.f90:74). Keep the default `Prandtl = 1/3`, so Kh = 3·Km in unstable/neutral cells, and drop the commented `Prandtl = 3.0` line. Grep every other use of `Prandtl`/`prandtli`/`prandtlturb` (Smagorinsky, Vreman, wall functions, statistics) and confirm each one already uses the Kh = Km/Pr convention. Report each use, and fix any that do not.
+- C3: remove the factor `2.` in `sbdiss` ("added factor 2. for shear-driven flow"), to match DALES `- (ce1 + ce2*zlt/delta) * e120**2 /(2.*zlt)`. Keep the near-wall `damp`, which is uDALES-specific and 1 away from walls.
+- C4:
+  - Initialise `ekm, ekh, zlt, sbdiss, sbshr, sbbuo` to 0 after allocation, as DALES does at modsubgrid.f90:68.
+  - When the MO surface is active (`lmo_surface()` from modsurface), compute the TKE sources at `kb` as DALES's "special treatment for lowest full level: k=1" block in `sources` (DALES modsubgrid.f90:588 onwards). It uses the MO gradients `dudz`/`dvdz` (uDALES equivalents: the MO module's surface gradients; add them to modsurface if they are not stored) and `dthvdz(kb)`.
+  - Otherwise keep today's behaviour at `kb`: no sources, because the wall function sets the near-wall state. Apply this explicitly, without relying on uninitialised memory.
+- C5: use `grav/thvf(k)` instead of `grav/thvs` in the stable length scale `zlt` and in `sbbuo`, as DALES does. Keep the `max(abs(dthvdz),eps1)` guard (#375).
+- Tests:
+  - A unit-style solver test that, for a known stratified state, checks the ekh/ekm ratio is 3 in unstable cells and `ch1 + ch2*zlt/delta` in stable ones.
+  - A check that e12p(kb) is deterministic and 0-source without MO.
+  - All existing supported suites pass. The tke_top_bc and fielddump tests may need reference updates; justify them.
+
+### Task 11: Latent heat, local subsidence, thermostat timing (C2, C6, C8)
+
+**Files:** src/modglobal.f90, src/modforces.f90, src/program.f90 (thermostat call position), tools/python/examples/dales_cases/make_rf01.py, tests/integration/thermo/test_thermo.py, examples/303 (regenerate inputs if the rlv change affects them), CHANGELOG.md.
+
+- C2: set `rlv = 2.53e6` (the DALES value). Grep every literal `2.26e6` in src, tools, tests and docs, and every derived constant (`rlv/cp`, wall-moisture energy balance, modEB latent-heat flux), and update them consistently. Regenerate any committed `*.inp.303` that depends on it via make_rf01.py, and report which files changed.
+- C6: subsidence on the local field, as DALES `lstend` (modforces.f90:298-414). Use the DALES upwind stencil on `thl0`, `qt0`, `sv0` (and `u0`, `v0` if `lmomsubs`), per cell, instead of the slab means `thl0av` etc. Keep uDALES's kb treatment, and say whether DALES does the same. Mask with IBM as the surrounding code does, if a mask is used there.
+- C8: call `thermostat` after `thermodynamics`, so that ql and rhof are current. Check that the restart/tnext logic is unaffected.
+- Tests: the thermo suite must pass, including the radiation balance test (which involves subsidence). Update the RLV constant in test_thermo.py.
+
+### Task 12: Decomposition-independent random perturbations with thl/qt noise (C7, #395)
+
+**Files:** src/modstartup.f90 (randomize_field and its callers), tests, CHANGELOG.md, docs (namoptions: randthl, randqt, krand).
+
+- Replace the one-step LCG on `seed + linear_index`, which produces a sawtooth plane wave, with a counter-based hash. It must give a proper uniform deviate as a function of `(irandom, field_tag, iglob, jglob, k)`, for example a splitmix64- or murmur-style mix in integer(8) with masking to stay within the signed range. Keep the output independent of the MPI decomposition.
+- Give each field its own `field_tag`, so that u, v, w, thl and qt noise are independent.
+- Apply `randthl` to thl and `randqt` to qt (both the m and 0 fields) on cold start, up to `krand`, under the same guard as `randu`. Check how DALES `randomize_new` (modstartup.f90:1667) chooses levels and fields, and match it where the uDALES namelist allows.
+- Tests:
+  - decomposition independence (serial vs 2×2, bit-identical initial fields);
+  - statistics of the deviates (mean about 0, variance of a uniform distribution, spectrum without a dominant wavenumber, correlation between field tags about 0), as a Python check on a dumped initial field;
+  - thl/qt noise is present when randthl/randqt > 0.
+- #395 is closed by this task.
+
+### Task 13: DALES-compatible case settings and documentation
+
+**Files:** examples/301, 302, 303 (namoptions, README, config.sh), tools/python/examples/dales_cases/README.md, docs/udales-namoptions-overview.md (defaults changed in Tasks 10-12).
+
+- 301: `xlat = 15`; DALES BOMEX noise (`randthl = 0.1`, `randqt = 2.5e-5`, `randu = 0` (DALES applies no u/v/w noise), `krand = kmax`); `lqlnr = .true.`.
+  - Time step: choose `courant`/`diffnr`/`dtmax` so that the uDALES dt matches the DALES run's dt (read it from /rds/general/user/mvr/ephemeral/dalesbomex tmser). Note that uDALES uses the L1 sum and DALES the L2 norm. Record the resulting dt in the README.
+- 303 and 302: the equivalent of the above, for 303 against the DALES RF01 reference run (/rds/general/user/mvr/ephemeral/refruns).
+- Fix the 301 README claim that 0.5 is the DALES courant default.
+- Short tests: run each case for 60 s and check that it starts with no NaN.
+
+### Task 14: Close-match validation
+
+- Rebuild Release once the controller confirms it may.
+- Run uDALES 301 and 303 (full length) with the Task 13 settings.
+- Run DALES in a uDALES-compatible configuration: BOMEX and RF01 with a constant-density base profile (`ibas_prf = 5` with a constant-density baseprof.inp, giving Boussinesq-equivalent forcing) and BOMEX with `cu = 0`.
+- Fix the comparison diagnostics:
+  - the zi definitions: compute zi from the same definition (max dthl/dz on the mean profile, and the qt 8 g/kg threshold for RF01) for both codes, from profiles, in compare_dales.py;
+  - the window alignment, i.e. the 10-minute block offset.
+- Compare every pair against the seed-to-seed noise floor of each code from refruns-report.md. A difference counts as small when it is within the noise floor.
+- Update RESULTS.md for 301 and 303 with the tables.
+- Report any remaining difference above the noise floor, with a hypothesis.
