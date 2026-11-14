@@ -47,7 +47,7 @@ ltempeq      = .true.
 /
 
 &DYNAMICS
-lqlnr        = .true.       ! Newton-Raphson ql as DALES (DALES always uses it; its lqlnr is ignored)
+lqlnr        = .true.       ! exact ql (Newton-Raphson); DALES dev: two linearised steps, within 0.2 %
 iadv_mom     = 2            ! DALES iadv_* = 2 (central differences)
 iadv_tke     = 2
 iadv_thl     = 2

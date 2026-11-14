@@ -90,13 +90,13 @@ Possible advection schemes:
 
 | Name | Default | Possible values | Description | Unit |
 | ---- | ------- | --------------- | ----------- | ---- |
-| lqlnr | .false. | .true. or .false. | Calculate the liquid water by Newton-Raphson iteration (.true.) instead of the linearised solve (.false.). DALES always uses Newton-Raphson (its `lqlnr` is ignored), so the DALES-validation cases 301-303 set .true. | - |
+| lqlnr | .false. | .true. or .false. | Calculate the liquid water by Newton-Raphson iteration (.true.) instead of the linearised solve (.false.). DALES dev uses two linearised steps (within about 0.2 % of the exact solution; its `lqlnr` is ignored) and DALES 4.4.2 iterates by default, so the DALES-validation cases 301-303 set .true., the closest option (see [uDALES and DALES numerics](udales-dales-numerics.md)). | - |
 | ipoiss | 0 | 0 | Poisson solver. 0 = using 2D Fast Fourier Transform. | - |
 | iadv_mom | 2 | 2 | Advection scheme for momentum. | - |
 | iadv_tke | 2 | 2 | Advection scheme for TKE. Only used if `loneeqn = True`. | - |
-| iadv_thl | 2 | 2 | Advection scheme for temperature. | - |
+| iadv_thl | 2 | 2, 7 | Advection scheme for temperature: 2 (central differences) or 7 (kappa). | - |
 | iadv_qt | 2 | 2 | Advection scheme for moisture. | - |
-| iadv_sv | 7 | 1, 2, 7 | Advection scheme for scalars. | - |
+| iadv_sv | 7 | 1, 2, 7 | Advection scheme for scalars. Currently overwritten at start-up: every scalar uses 7 (kappa), whatever is set (`modglobal:initglobal`). | - |
 
 ## Namelist BC
 
@@ -178,7 +178,7 @@ BCs at the bottom (BCbot; only effective if not covered with ground facets): 1 =
 
 | Name | Default | Possible values | Description | Unit |
 | ---- | ------- | --------------- | ----------- | ---- |
-| tcheck | 0 | > 0 |  Time interval between checks of velocity divergence and Courant numbers.| [s] |
+| tcheck | 0 | > 0 | Time interval of the run checks written to the log: the mean time step over the interval, the Courant and diffusion numbers, and the velocity divergence. | [s] |
 --->
 
 ## Namelist NAMRADIATION

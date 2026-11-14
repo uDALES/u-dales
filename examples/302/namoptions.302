@@ -43,7 +43,7 @@ ltempeq      = .true.
 /
 
 &DYNAMICS
-lqlnr        = .true.       ! as DALES (inert here, lmoist = .false.)
+lqlnr        = .true.       ! exact ql, the closest option to DALES (inert here, lmoist = .false.)
 iadv_mom     = 2            ! DALES
 iadv_tke     = 2
 iadv_thl     = 7            ! DALES 7 (kappa)

@@ -92,8 +92,10 @@ that they are easy to find when upgrading.
   The first level keeps the downward-only treatment (as in DALES). Who is affected:
   runs with a non-zero `wfls` in `lscale.inp`; urban cases (`wfls = 0`) are unchanged
   bit for bit.
-- **Latent heat of vaporisation `rlv` is now 2.53e6 J/kg** (was 2.26e6), the DALES
-  dev 075ac4e value. It enters the saturation adjustment, `thv`, `dthvdz`, `th0av`
+- **Latent heat of vaporisation `rlv` is now 2.53e6 J/kg**, the DALES dev 075ac4e
+  value. The old 2.26e6 is the value at 100 °C; the atmospheric value is 2.50e6 at
+  0 °C and 2.45e6 at 20 °C. 2.53e6 was chosen so that uDALES and DALES use identical
+  constants; it is about 3 % above the 20 °C value. It enters the saturation adjustment, `thv`, `dthvdz`, `th0av`
   and the derived constants `rlvi` and `rlvocp`, and through them the latent heat
   flux of green-roof facets in the energy balance (`modEB:updateGR`; the soil-water
   budget uses `rlv*rlvi` and is unchanged) and the psychrometric constant and
@@ -112,8 +114,11 @@ that they are easy to find when upgrading.
     the default `Prandtl = 1/3`, `Kh = 3 Km` in unstable and neutral cells,
     going to `Km` in strongly stable ones. The model previously used
     `ch = Prandtl`, which gave `Kh = Km/3`: 9 times less SGS heat and moisture
-    mixing than intended. Cases that set `Prandtl` for the one-equation model
-    must invert it.
+    mixing than intended. No user action is needed, whether or not a case sets
+    `Prandtl`: a value set in `&NAMSUBGRID` now means `Kh = Km/Prandtl` in all three
+    SGS models. Every one-equation run with `Prandtl = 1/3` (the default; no shipped
+    case sets another value) gets 9 times more SGS heat and moisture mixing than
+    before.
   - The SGS TKE dissipation no longer carries the extra factor 2 ("added factor
     2. for shear-driven flow"); it is DALES's `-(ce1 + ce2 l/Δ) e^2/(2l)`. The
     near-wall `damp` factor (1 away from walls) is kept.
@@ -128,6 +133,18 @@ that they are easy to find when upgrading.
   `Kh = Km/Prandtl` was `3.003 Km`; it is now `3 Km`, about 0.1 % less SGS heat,
   moisture and scalar diffusivity. Who is affected: every Smagorinsky, Vreman and
   one-equation run that does not set `Prandtl` in `&NAMSUBGRID`.
+- **`wqsurf` is positive downward**, like `wtsurf`, `wttop`, `wqtop` and the facet
+  fluxes (`modibm:bottom`; the long-term convention is
+  [issue #393](https://github.com/uDALES/u-dales/issues/393)). Before, `wqsurf` alone
+  was positive upward. Who is affected: runs that prescribe a non-zero `wqsurf`
+  (no shipped case did); change the sign of the input to keep the old flux.
+- **`thls` and `qts` must be set** ([issue #375](https://github.com/uDALES/u-dales/issues/375)).
+  `checkinitvalues` aborts when `thls` is unset with `ltempeq` or `lbuoyancy`, or `qts`
+  is unset with `lmoist`; dry runs set `qts = 0`. Before, the -1 sentinels entered
+  `thvs`, so dry runs had `thvs = 0.392 thls` instead of `thls`. The one-equation
+  stable length scale also floors `|dthvdz|` at `eps1`. Who is affected: runs that
+  relied on the sentinels (they now stop at start-up), and dry `ltempeq` runs through
+  `thvs`.
 
 - **SGS flux sign convention.** All subgrid-scale fluxes in the statistics
   output (`usgs*`, `vsgs*`, `wsgs*`, `thlsgs*`, `qtsgs*`, `sv1sgs`–`sv4sgs`,
