@@ -180,8 +180,96 @@ between multiple components rather than one isolated API.
   #269 on the energy-balance case `064`
 - `stretched_grid/`: preprocessing and a short solver run of the energy-balance
   case `064` on an exponentially stretched vertical grid
+- `sgs_statistics/`: SGS statistics validation for `runmode = 1007` on the
+  stretched-grid case `300` across `1x1`, `2x1`, `1x2` and `2x2`
 - `udbase_against_matlab/`: Python-vs-MATLAB parity checks on committed cases
 - `udprep/`: preprocessing integration checks on committed cases and binaries
+
+### MPI launcher and rank counts
+
+The MPI runners share one launch helper, `tools/mpi_env.sh` for the shell
+scripts and `tests/integration/mpi_env.py` for the Python tests. It resolves the
+launcher (`MPIEXEC`, else Intel MPI's `mpiexec` next to `mpiifort`, else
+`mpiexec` from `PATH`), passes `MPI_LAUNCH_EXTRA_ARGS` through unchanged, and
+places Open MPI's session directory under `TMPDIR`.
+
+uDALES runs one rank per CPU and never oversubscribes. Before every launch the
+helper compares the requested ranks with the CPUs granted to the process and
+fails with both numbers when the request cannot be met, for example
+
+```
+ERROR: requested 4 MPI ranks but only 2 CPUs are available (Slurm allocation).
+```
+
+The granted CPUs are, in this order:
+
+- in a Slurm job: `SLURM_NTASKS x SLURM_CPUS_PER_TASK` (else
+  `SLURM_CPUS_ON_NODE x SLURM_JOB_NUM_NODES`)
+- in a PBS Pro job: `NCPUS x` the distinct hosts in `PBS_NODEFILE`, that is the
+  allocated cores; the nodefile line count (one per `mpiprocs`) is only a fallback
+- otherwise: the CPUs the operating system makes available to the process
+  (the affinity mask on Linux, `hw.logicalcpu` on macOS)
+
+The `supported` selection needs four. On nodes with hyperthreading ask the
+scheduler for physical cores (Slurm: `--hint=nomultithread`): the launcher
+binds one rank per core and refuses an allocation of four hardware threads on
+two cores. Outside a scheduler Open MPI counts one slot per core; on a
+hyperthreaded laptop with fewer cores than ranks it stops with "not enough
+slots", and `MPI_LAUNCH_EXTRA_ARGS=--use-hwthread-cpus` lets it run one rank
+per hardware thread instead (GitHub Actions does the same on its 4-vCPU runner
+through the equivalent MCA variables in `.github/workflows/ci.yml`). The
+hosted macOS CI runner has three CPUs, so the
+`supported-macos` selection runs the MPI tests on at most two ranks
+(`ZGRID_MODES`, `UDALES_TEST_NPROCX/NPROCY`) and leaves the fixed 2x2 ibm sparse
+input test to Linux and HPC.
+
+### Running the tests on your platform
+
+Every platform needs the same three things: a built executable, the Python
+environment, and (for the MPI suites) an allocation with as many CPUs as ranks.
+
+- **Executable.** Build with `tools/build_executable.sh <system> release`
+  (or `debug`). `tests/run_tests.py --build-type Release|Debug` passes the
+  matching `build/<release|debug>/u-dales` to every MPI suite; when running a
+  suite on its own set `UDALES_BUILD=<path to u-dales>` (the shell runners
+  default to `build/debug/u-dales`, the Python runners to `build/release/u-dales`).
+  Tests that preprocess a case also need the preprocessing tools
+  (`tools/build_preprocessing.sh <system> preprocessing_tools`, and `VIEW3D_EXE`
+  when View3D is not on `PATH`).
+- **Python.** Activate `tools/python/.venv` (see `tools/python/README_VENV.md`);
+  `tests/run_tests.py` uses whatever interpreter is active.
+- **Runtime modules.** On module-based clusters the solver runs inside a shell
+  that loads `UDALES_RUNTIME_MODULES` (space-separated list, the same modules the
+  executable was built with). Set it in the job script.
+- **Launcher.** `MPIEXEC` when the launcher is not `mpiexec` (Cray systems:
+  `MPIEXEC=srun`); `MPI_LAUNCH_EXTRA_ARGS` for site-specific flags.
+
+Platform notes:
+
+- **Laptop (Linux or macOS).** No scheduler: the granted CPUs are what the OS
+  reports. Four-rank tests need four cores (see the Open MPI slot note above).
+  On macOS keep `TMPDIR` short; the helper sets it for Open MPI.
+- **Slurm clusters (ECMWF Atos, ARCHER2).** Run the selection inside a batch or
+  interactive job with `--ntasks=4 --cpus-per-task=1 --hint=nomultithread`
+  (plus the account and QoS of the site). On ARCHER2 set `MPIEXEC=srun`.
+- **PBS Pro clusters (Imperial CX3, HX1).** Request
+  `-l select=1:ncpus=4:mpiprocs=4` so that both the allocation and the
+  launcher see four slots; the helper reads `NCPUS` and `PBS_NODEFILE`.
+- **GitHub Actions.** `.github/workflows/ci.yml` runs `supported` on Linux
+  (4 vCPUs, hardware threads counted as CPUs) and `supported-macos` on macOS
+  (3 CPUs). Nothing is oversubscribed there either.
+
+A typical cluster job then runs
+
+```bash
+export UDALES_BUILD=$PWD/build/release/u-dales
+export UDALES_RUNTIME_MODULES="<modules used for the build>"
+source tools/python/.venv/bin/activate
+python tests/run_tests.py supported --branch-a origin/master --build-type Release
+```
+
+The `david_tests` regression harness in the `supported` selection reports PASS
+and skips when the working tree has uncommitted changes; commit first to run it.
 
 `tests/cases/` holds shared committed fixtures used by these tests. At present:
 
@@ -202,6 +290,11 @@ between multiple components rather than one isolated API.
   warm-start facet continuity regression
 - `064/`: also used by `integration/stretched_grid/`, which preprocesses and
   runs it again on a stretched vertical grid
+- `300/`: small 16x16x32 case with a **stretched** vertical grid and
+  `libm = .false.`, used by `integration/sgs_statistics/`. The non-uniform `zf`
+  is the point of the fixture: on a uniform grid a `dzf`/`dzh` confusion in the
+  SGS stencils is invisible. It carries only `namoptions.300`, `prof.inp.300`
+  and `lscale.inp.300` — no IBM or facet input is needed.
 
 To run the direct shortwave reference test:
 
@@ -221,6 +314,13 @@ To run the direct MPI operator test:
 
 ```bash
 cd tests/integration/mpi_operators
+./run_test.sh
+```
+
+To run the SGS statistics test (experimental, not part of the merge gate):
+
+```bash
+cd tests/integration/sgs_statistics
 ./run_test.sh
 ```
 

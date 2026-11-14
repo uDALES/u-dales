@@ -17,7 +17,7 @@
 
 # Copyright (C) 2016-2019 the uDALES Team.
 
-set -e
+set -euo pipefail
 
 # Function to check which variables exist in NetCDF files and return only those that are present
 check_existing_variables() {
@@ -72,7 +72,7 @@ if (( $# == 1 )) ; then
     expnr="${datapath: -3}"  ## set experiment number via path
 else
 	echo "error: call script as `basename $0` experiment-directory."
-	exit 0
+	exit 1
 fi
 
 # Absolute path to this script directory

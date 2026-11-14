@@ -66,7 +66,11 @@ build stack, so load it in its own step for the Python/test phase.
 
 MPI launcher notes:
 - prefer the module-provided `mpiexec`
-- if Open MPI is used, set `TMPDIR=/tmp` and `--oversubscribe` for login-node runs
+- never oversubscribe: the runners check the requested ranks against the CPUs granted
+  (`tools/mpi_env.sh`, `tests/integration/mpi_env.py`) and fail with both numbers; run
+  multi-rank tests inside an allocation with as many CPUs as ranks
+- with Open MPI the session directory is placed under `TMPDIR` (default `/tmp`) by the
+  same helpers
 - interactive runs can be slow; prefer repo wrappers
 
 Gotchas (learned the hard way):
@@ -78,7 +82,10 @@ Gotchas (learned the hard way):
   this compiler" errors. `rm -f *.mod *__genmod.f90` in the repo root to clear them.
 - Debug builds land in `build/debug` (lowercase, from the `debug` arg), not `build/Debug`.
 - `git push` from a plain shell here has no GitHub credential (HTTPS remote, no helper/
-  token) — push from VSCode Source Control / a VSCode integrated terminal instead.
+  token). Two options: push from VSCode Source Control / a VSCode integrated terminal, or
+  use the gh CLI's credential helper without changing config:
+  `git -c credential.helper= -c credential.helper='!gh auth git-credential' push origin <branch>`
+  (requires `gh auth status` to show a logged-in account).
 
 Tests:
 ```bash

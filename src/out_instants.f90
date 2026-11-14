@@ -33,9 +33,8 @@ module instant
                          tinstantstart, tinstantdump, dt, timee, btime, runtime, &
                          xf, yf, zf, xh, yh, zh
   use modfields,  only : um, vm, wm, thlm, qtm, svm, ql0, exnf, presf, pres0, &
-                         div, dudx, dvdy, dwdz, &
                          tau_x, tau_y, tau_z, thl_flux
-  ! use modpois,    only : p, pup, pvp, pwp, rhs, dpupdx, dpvpdy, dpwpdz
+  use modpois,    only : p, pup, pvp, pwp
   use modibm,     only : mask_u, mask_v, mask_w, mask_c
   use modthermodynamics, only : air_temperature, relative_humidity
   use modmpi,     only : myid, myidx, myidy, cmyidx, cmyidy, comm3d, mpierr, my_real, nprocx, nprocy
@@ -68,6 +67,15 @@ module instant
     real, pointer :: point(:,:,:)
   end type domainptr
   type(domainptr), dimension(30) :: pfields
+
+  ! Fields that no model array holds. They are computed into dbuf at dump time,
+  ! so requesting them costs nothing when they are not in fieldvars.
+  integer, parameter :: DERIV_DIV  = 1, DERIV_DUDX = 2, DERIV_DVDY = 3, DERIV_DWDZ = 4, &
+                        DERIV_PRHS = 5, DERIV_PDX  = 6, DERIV_PDY  = 7, DERIV_PDZ  = 8
+  integer :: derived_kind(30) = 0   !< per output field: 0 = points at a live model array
+  integer :: derived_slot(30) = 0   !< per output field: its slice of dbuf
+  integer :: nderived = 0
+  real, allocatable, target :: dbuf(:,:,:,:)
 
   !! Slice writing variables
   integer :: xdim, ydim, zdim, kdim  ! Added kdim for multiple slices
@@ -285,18 +293,6 @@ module instant
           case('p0')
             call ncinfo(fldVars(n,:), 'p', 'Kinematic pressure field', 'm^2/s^2', 'tttt')
             pfields(n)%point => pres0(ib-ih:ie+ih, jb-jh:je+jh, kb-kh:ke+kh)
-          ! case('pc')
-          !   call ncinfo(fldVars( n,:),'pc','pressure correction','M','tttt')
-          !   pfields(n)%point => p(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh)
-          ! case('du')
-          !   call ncinfo(fldVars( n,:),'dpupdx','','M','tttt')
-          !   pfields(n)%point => dpupdx(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh)
-          ! case('dv')
-          !   call ncinfo(fldVars( n,:),'dpvpdy','','M','tttt')
-          !   pfields(n)%point => dpvpdy(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh)
-          ! case('dw')
-          !   call ncinfo(fldVars( n,:),'dpwpdz','','M','tttt')
-          !   pfields(n)%point => dpwpdz(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh)
           case default
             print *, "Invalid field variables name. Check namoptions setting for 'fieldvars'. &
                       &The variables can be only from the list: u0,v0,w0,p0,pa,th,ta,rh,qt,ql,s1,s2,s3,s4,s5. &
@@ -375,50 +371,59 @@ module instant
           case('mc')
             call ncinfo(fldVars(n,:), 'mask_c', 'mask c', 'M', 'tttt')
             pfields(n)%point => mask_c(ib:ie, jb:je, kb:ke)
-          ! case('pc')
-          !   call ncinfo(fldVars( n,:),'pc','pressure correction','M','tttt')
-          !   pfields(n)%point => p(ib:ie,jb:je,kb:ke)
-          ! case('pu')
-          !   call ncinfo(fldVars( n,:),'pup','predicted u','M','mttt')
-          !   pfields(n)%point => pup(ib:ie,jb:je,kb:ke)
-          ! case('pv')
-          !   call ncinfo(fldVars( n,:),'pvp','predicted v','M','tmtt')
-          !   pfields(n)%point => pvp(ib:ie,jb:je,kb:ke)
-          ! case('pw')
-          !   call ncinfo(fldVars( n,:),'pwp','predicted w','M','ttmt')
-          !   pfields(n)%point => pwp(ib:ie,jb:je,kb:ke)
-          ! case('rs')
-          !   call ncinfo(fldVars( n,:),'rhs','rhs of poisson equation','M','tttt')
-          !   pfields(n)%point => rhs(ib:ie,jb:je,kb:ke)
-          ! case('du')
-          !   call ncinfo(fldVars( n,:),'dpupdx','','M','tttt')
-          !   pfields(n)%point => dpupdx(ib:ie,jb:je,kb:ke)
-          ! case('dv')
-          !   call ncinfo(fldVars( n,:),'dpvpdy','','M','tttt')
-          !   pfields(n)%point => dpvpdy(ib:ie,jb:je,kb:ke)
-          ! case('dw')
-          !   call ncinfo(fldVars( n,:),'dpwpdz','','M','tttt')
-          !   pfields(n)%point => dpwpdz(ib:ie,jb:je,kb:ke)
-          ! case('di')
-          !   call ncinfo(fldVars(n,:), 'div', 'Divergence after pressure correction', 's^-1', 'tttt')
-          !   pfields(n)%point => div(ib:ie, jb:je, kb:ke)
-          ! case('ux')
-          !   call ncinfo(fldVars( n,:),'dudx','','s^-1','tttt')
-          !   pfields(n)%point => dudx(ib:ie,jb:je,kb:ke)
-          ! case('vy')
-          !   call ncinfo(fldVars( n,:),'dvdy','','s^-1','tttt')
-          !   pfields(n)%point => dvdy(ib:ie,jb:je,kb:ke)
-          ! case('wz')
-          !   call ncinfo(fldVars( n,:),'dwdz','','s^-1','tttt')
-          !   pfields(n)%point => dwdz(ib:ie,jb:je,kb:ke)
+          case('pd')
+            call ncinfo(fldVars(n,:), 'p', 'pressure correction of the last substep', 'm2/s2', 'tttt')
+            pfields(n)%point => p(ib:ie, jb:je, kb:ke)
+          case('pu')
+            call ncinfo(fldVars(n,:), 'pup', 'predicted u of the last substep', 'm/s2', 'mttt')
+            pfields(n)%point => pup(ib:ie, jb:je, kb:ke)
+          case('pv')
+            call ncinfo(fldVars(n,:), 'pvp', 'predicted v of the last substep', 'm/s2', 'tmtt')
+            pfields(n)%point => pvp(ib:ie, jb:je, kb:ke)
+          case('pw')
+            call ncinfo(fldVars(n,:), 'pwp', 'predicted w of the last substep', 'm/s2', 'ttmt')
+            pfields(n)%point => pwp(ib:ie, jb:je, kb:ke)
+          ! Computed at dump time (see compute_derived); the model stores none of these.
+          case('rs')
+            call ncinfo(fldVars(n,:), 'rhs', 'rhs of the Poisson equation (divergence of the predicted velocity)', '1/s2', 'tttt')
+            call register_derived(n, DERIV_PRHS)
+          case('du')
+            call ncinfo(fldVars(n,:), 'dpupdx', 'x-term of the Poisson rhs', '1/s2', 'tttt')
+            call register_derived(n, DERIV_PDX)
+          case('dv')
+            call ncinfo(fldVars(n,:), 'dpvpdy', 'y-term of the Poisson rhs', '1/s2', 'tttt')
+            call register_derived(n, DERIV_PDY)
+          case('dw')
+            call ncinfo(fldVars(n,:), 'dpwpdz', 'z-term of the Poisson rhs', '1/s2', 'tttt')
+            call register_derived(n, DERIV_PDZ)
+          case('di')
+            call ncinfo(fldVars(n,:), 'div', 'Divergence after pressure correction', '1/s', 'tttt')
+            call register_derived(n, DERIV_DIV)
+          case('ux')
+            call ncinfo(fldVars(n,:), 'dudx', 'du/dx after pressure correction', '1/s', 'tttt')
+            call register_derived(n, DERIV_DUDX)
+          case('vy')
+            call ncinfo(fldVars(n,:), 'dvdy', 'dv/dy after pressure correction', '1/s', 'tttt')
+            call register_derived(n, DERIV_DVDY)
+          case('wz')
+            call ncinfo(fldVars(n,:), 'dwdz', 'dw/dz after pressure correction', '1/s', 'tttt')
+            call register_derived(n, DERIV_DWDZ)
           case default
             print *, "Invalid field variables name. Check namoptions setting for 'fieldvars'. &
-                      &The variables can be only from the list: u0,v0,w0,p0,pa,th,ta,rh,qt,ql,s1,s2,s3,s4,s5,tx,ty,tz,hf,mu,mv,mw,mc,di. &
+                      &The variables can be only from the list: u0,v0,w0,p0,pa,th,ta,rh,qt,ql,s1,s2,s3,s4,s5,tx,ty,tz,hf,mu,mv,mw,mc, &
+                      &pd,pu,pv,pw,rs,du,dv,dw,di,ux,vy,wz. &
                       &There should not be any space in the string."
             STOP 1
           end select
         end do
 
+      end if
+
+      if (nderived > 0) then
+        allocate(dbuf(ib:ie,jb:je,kb:ke,nderived)); dbuf = 0.
+        do n = 1, nfieldvars
+          if (derived_kind(n) /= 0) pfields(n)%point => dbuf(:,:,:,derived_slot(n))
+        end do
       end if
 
       ! Create NetCDF file: ins_field.xxx.xxx.nc (one per x-processor column)
@@ -439,27 +444,15 @@ module instant
     end subroutine instant_field_init
 
     subroutine instant_field_main
-      ! use modglobal, only : dxfi, dyi, dzhi
       implicit none
       integer :: n, k
       real, allocatable :: tempfield(:,:,:), rhfield(:,:,:), pabsfield(:,:,:)
-      ! integer :: i, j, k
 
       if (.not. lfielddump) return
 
-      ! To be uncommented it fo be output via ins_field_out
-      ! do k = kb, ke
-      !   do j = jb, je
-      !     do i = ib, ie
-      !       dudx(i,j,k) = (um(i+1,j,k) - um(i,j,k)) * dxfi(i)
-      !       dvdy(i,j,k) = (vm(i,j+1,k) - vm(i,j,k)) * dyi
-      !       dwdz(i,j,k) = (wm(i,j,k+1) - wm(i,j,k)) * dzfi(k) ! cell-centred: spans the cell
-      !       div(i,j,k)  = (um(i+1,j,k) - um(i,j,k)) * dxfi(i) + &
-      !                      (vm(i,j+1,k) - vm(i,j,k)) * dyi + &
-      !                      (wm(i,j,k+1) - wm(i,j,k)) * dzfi(k)
-      !     end do
-      !   end do
-      ! end do
+      do n = 1, nfieldvars
+        if (derived_kind(n) /= 0) call compute_derived(derived_kind(n), dbuf(:,:,:,derived_slot(n)))
+      end do
 
       ! Write time
       if (myidy == 0) call writestat_nc(ncidfield, 'time', timee, nrecfield, .true.)
@@ -507,7 +500,79 @@ module instant
       if (.not. lfielddump) return
       if (myidy == 0) call exitstat_nc(ncidfield)
       if (allocated(fldVars)) deallocate(fldVars)
+      if (allocated(dbuf)) deallocate(dbuf)
     end subroutine instant_field_exit
+
+    !> Mark output field n as computed at dump time (one of the DERIV_* codes).
+    subroutine register_derived(n, kind)
+      implicit none
+      integer, intent(in) :: n, kind
+      nderived = nderived + 1
+      derived_kind(n) = kind
+      derived_slot(n) = nderived
+    end subroutine register_derived
+
+    !> Fill out (interior cells) with the diagnostic kind, one of the DERIV_* codes.
+    !! The velocity derivatives span the cell (face to face), so they sit at the
+    !! cell centre; the Poisson terms come from modpois. instant_main runs at
+    !! rk3step == 3 after tstep_integrate, where um/vm/wm already hold the
+    !! corrected velocity of the completed step (the same arrays written as u/v/w).
+    subroutine compute_derived(kind, out)
+      use modglobal, only : dxfi, dyi, dzfi
+      use modpois,   only : poisson_rhs_diagnostic
+      implicit none
+      integer, intent(in)  :: kind
+      real,    intent(out) :: out(ib:ie,jb:je,kb:ke)
+      integer :: i, j, k
+
+      select case (kind)
+      case (DERIV_DIV)
+        do k = kb, ke
+          do j = jb, je
+            do i = ib, ie
+              out(i,j,k) = (um(i+1,j,k) - um(i,j,k))*dxfi(i) &
+                         + (vm(i,j+1,k) - vm(i,j,k))*dyi &
+                         + (wm(i,j,k+1) - wm(i,j,k))*dzfi(k)
+            end do
+          end do
+        end do
+      case (DERIV_DUDX)
+        do k = kb, ke
+          do j = jb, je
+            do i = ib, ie
+              out(i,j,k) = (um(i+1,j,k) - um(i,j,k))*dxfi(i)
+            end do
+          end do
+        end do
+      case (DERIV_DVDY)
+        do k = kb, ke
+          do j = jb, je
+            do i = ib, ie
+              out(i,j,k) = (vm(i,j+1,k) - vm(i,j,k))*dyi
+            end do
+          end do
+        end do
+      case (DERIV_DWDZ)
+        do k = kb, ke
+          do j = jb, je
+            do i = ib, ie
+              out(i,j,k) = (wm(i,j,k+1) - wm(i,j,k))*dzfi(k)
+            end do
+          end do
+        end do
+      case (DERIV_PRHS)
+        call poisson_rhs_diagnostic(0, out)
+      case (DERIV_PDX)
+        call poisson_rhs_diagnostic(1, out)
+      case (DERIV_PDY)
+        call poisson_rhs_diagnostic(2, out)
+      case (DERIV_PDZ)
+        call poisson_rhs_diagnostic(3, out)
+      case default
+        write(0, *) 'ERROR: instant field output: unknown derived field code ', kind
+        stop 1
+      end select
+    end subroutine compute_derived
 
 
     subroutine instant_slice_init

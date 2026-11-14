@@ -182,7 +182,7 @@ Contents of stats_xyt.110.nc:
     wpthlp         Turbulent heat flux                        K m/s          256x3     zm, time
     wpwp           w variance - cell centered                 m^2/s^2        256x3     zt, time
     wqt            Dispersive moisture flux                   kg m/kg s      256x3     zm, time
-    wsgs           SGS mom. flux                              m^2/s^2        256x3     zm, time
+    wsgs           SGS normal stress                          m^2/s^2        256x3     zt, time
     wthl           Dispersive heat flux                       K m/s          256x3     zm, time
     ww             Dispersive mom. flux                       m^2/s^2        256x3     zm, time
     zm             Vertical displacement of cell edges        m              256       zm
@@ -257,31 +257,38 @@ As can be seen, during the first time-interval, the flow is substantially slower
 Using the continuity equation it can be shown that for period domains $\langle \bar{w} \rangle =0$, which also implies that $\langle \bar{w} \textrm{"}\rangle =0$. This means that the dispersive momentum flux $\langle \bar{u\;} \textrm{"}\bar{w\;} \textrm{"}\rangle$ is equal to $\langle \bar{\;u} \;\bar{\;w} \rangle$. Thus, we can load the mean turbulent horizontal momentum flux $\langle \bar{u^{\prime } w^{\prime } } \rangle$ and dispersive flux $\langle \bar{u\;} \textrm{"}\bar{w\;} \textrm{"}\rangle$ can be loaded as:
 
 ```matlab
-zt      = sim.load_stat_xyt('zt');   % location of vertical fluxes of horizontal momentum
+zm      = sim.load_stat_xyt('zm');   % location of vertical fluxes of horizontal momentum
 upwpxyt = sim.load_stat_xyt('upwp'); % turbulence fluxes (p indicates prime)
 uwxyt   = sim.load_stat_xyt('uw');   % dispersive fluxes
+usgsxyt = sim.load_stat_xyt('usgs'); % subgrid-scale fluxes
 ```
 
-Note that these terms should be plotted against against `zt` (cell center) since they represent the vertical exchange of horizontal momentum. Again, we plot the averages for each time interval (now we can do this more compactly as we do not need to create the legend entries):
+Note that these terms should be plotted against `zm` (cell edge), which is the vertical coordinate the file metadata reports for them. Again, we plot the averages for each time interval (now we can do this more compactly as we do not need to create the legend entries):
 
 ```matlab
 figure
-subplot(1,3,1);
-plot(upwpxyt, zt, 'LineWidth',1);
+subplot(1,4,1);
+plot(upwpxyt, zm, 'LineWidth',1);
 xlabel ('$\langle \overline{u^\prime w^\prime} \rangle$ [m$^2$/s$^2$]', ...
     'Interpreter', 'latex')
 ylabel ('$z$ [m]', 'Interpreter', 'latex')
 xlim([-0.5 0])
 
-subplot(1,3,2);
-plot(uwxyt, zt, 'LineWidth',1);
+subplot(1,4,2);
+plot(uwxyt, zm, 'LineWidth',1);
 xlabel (['$\langle \overline{u}^{\prime\prime} \overline{w}^{\prime\prime} \rangle$' ...
     ' [m$^2$/s$^2$]'], 'Interpreter', 'latex')
 xlim([-0.5 0])
 
-subplot(1,3,3);
-plot(uwxyt+upwpxyt, zt, 'LineWidth',1);
-xlabel (['$\langle \overline{u^\prime w^\prime} \rangle+\langle \overline{u}^{\prime\prime} \overline{w}^{\prime\prime} \rangle$' ...
+subplot(1,4,3);
+plot(usgsxyt, zm, 'LineWidth',1);
+xlabel ('$\langle \overline{u^\prime w^\prime} \rangle_{sgs}$ [m$^2$/s$^2$]', ...
+    'Interpreter', 'latex')
+xlim([-0.5 0])
+
+subplot(1,4,4);
+plot(uwxyt+upwpxyt+usgsxyt, zm, 'LineWidth',1);
+xlabel (['$\langle \overline{u^\prime w^\prime} \rangle+\langle \overline{u}^{\prime\prime} \overline{w}^{\prime\prime} \rangle+\langle \overline{u^\prime w^\prime} \rangle_{sgs}$' ...
     ' [m$^2$/s$^2$]'], 'Interpreter', 'latex')
 xlim([-0.5 0])
 legend(leg, 'Location','northwest', 'Interpreter', 'latex')
@@ -289,7 +296,9 @@ legend(leg, 'Location','northwest', 'Interpreter', 'latex')
 
 ![figure_1.png](udales-fields-tutorial_media/figure_1.png)
 
-To interpret this data, it is easiest to start with the right-most figure which plots the sum of the dispersive and turbulent fluxes. In a steady state (and for a simulation with a constant pressure gradient of average velocity), we expect this quantity to form a straight line, which is the case for the last two time-intervals. The data are also nearly collapsing for the last two time-intervals, once more suggesting that these flows are close to a statistical steady state.
+To interpret this data, it is easiest to start with the right-most figure which plots the sum of the dispersive, turbulent and subgrid-scale fluxes. In a steady state (and for a simulation with a constant pressure gradient of average velocity), we expect this quantity to form a straight line, which is the case for the last two time-intervals. The data are also nearly collapsing for the last two time-intervals, once more suggesting that these flows are close to a statistical steady state.
+
+All three contributions must be added to obtain the total flux: `usgsxyt` is stored with the same sign convention as the resolved fluxes, so it is added rather than subtracted (see [Output files](udales-output-files.md#sign-convention)). Note that the total flux still does not close exactly at the wall, because the SGS statistics do not include the flux the wall model and the immersed-boundary method impose at surfaces.
 
 The turbulent and dispersive fluxes show substantial variation for all three curves, showing that much longer averaging is needed to obtain reliable statistics for these quantities [4].
 
@@ -363,7 +372,7 @@ Contents of stats_t.110.nc:
     wps4p          Turbulent scalar flux 4                     g/m^2s         128x128x256x3    xt, yt, zm, time
     wpthlp         Turbulent heat flux                         K m/s          128x128x256x3    xt, yt, zm, time
     wpwp           w variance - cell centered                  m^2/s^2        128x128x256x3    xt, yt, zt, time
-    wsgs           SGS w flux                                  m^2/s^2        128x128x256x3    xt, yt, zm, time
+    wsgs           SGS normal stress                           m^2/s^2        128x128x256x3    xt, yt, zt, time
     xm             West-East displacement of cell edges        m              128              xm
     xt             West-East displacement of cell centers      m              128              xt
     ym             South-North displacement of cell edges      m              128              ym

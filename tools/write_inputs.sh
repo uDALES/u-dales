@@ -30,7 +30,7 @@
 # Assuming running from top-level project directory.
 # u-dales/tools/write_inputs.sh <-m|-p> <PATH_TO_CASE> [c|l]
 
-set -e
+set -euo pipefail
 
 script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
@@ -49,8 +49,8 @@ extract_nompthreads() {
 	local nompthreads_line
 	local nompthreads_value
 
-	occurrence_count=$(grep -io "nompthreads" "$namoptions_file" | wc -l)
-	occurrence_count=${occurrence_count//[[:space:]]/}
+	# grep -c returns 1 when nothing matches; that is a count of 0, not an error
+	occurrence_count=$(grep -ic "nompthreads" "$namoptions_file" || true)
 
 	if [ "$occurrence_count" -eq 0 ]; then
 		return 0
@@ -209,6 +209,7 @@ cd "$DA_TOOLSDIR"
 export DA_TOOLSDIR="$DA_TOOLSDIR"
 export DA_EXPDIR="$DA_EXPDIR"
 export MATLAB_USE_USERWORK=0
+export OMP_NUM_THREADS=$PREPROC_NCPU
 export PYTHONUNBUFFERED=1
 export GFORTRAN_UNBUFFERED_PRECONNECTED=1
 export PREPROC_NCPU="$PREPROC_NCPU"

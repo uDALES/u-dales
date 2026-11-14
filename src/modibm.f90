@@ -1209,31 +1209,24 @@ module modibm
 
    subroutine ibmwallfun
      use modglobal, only : libm, iwallmom, xhat, yhat, zhat, ltempeq, lmoist, &
-                           ib, ie, ih, ihc, jb, je, jh, jhc, kb, ke, kh, khc, nsv, totheatflux, totqflux, nfcts, rk3step, timee, nfcts, lwritefac, dt, dtfac, tfac, tnextfac
-     use modfields, only : thl0, qt0, sv0, up, vp, wp, thlp, qtp, svp, &
-                           tau_x, tau_y, tau_z, thl_flux
+                           ih, ihc, jh, jhc, kh, khc, nsv, totheatflux, totqflux, nfcts, rk3step, timee, lwritefac, dt, dtfac, tfac, tnextfac
+     use modfields, only : thl0, qt0, sv0, up, vp, wp, thlp, qtp, svp
      use modmpi, only : myid
      use modstat_nc, only : writestat_nc, writestat_1D_nc, writestat_2D_nc
 
-     real, allocatable :: rhs(:,:,:)
      integer n
 
       if (.not. libm) return
 
-      allocate(rhs(ib-ih:ie+ih,jb-jh:je+jh,kb:ke+kh))
-
+      ! The former whole-field snapshot/diff bookkeeping (rhs = up; wallfun;
+      ! tau_x += up - rhs: ~16 full-grid sweeps + a heap allocation per substep)
+      ! is gone: the wall functions now accumulate their stress/flux deltas
+      ! directly into tau_x/tau_y/tau_z/thl_flux at the facet sections they
+      ! modify, gated on lfielddump (the only consumer; see #330).
       if (iwallmom > 1) then
-        rhs = up
         call wallfunmom(xhat, up, bound_info_u)
-        tau_x(:,:,kb:ke+kh) = tau_x(:,:,kb:ke+kh) + (up - rhs)
-
-        rhs = vp
         call wallfunmom(yhat, vp, bound_info_v)
-        tau_y(:,:,kb:ke+kh) = tau_y(:,:,kb:ke+kh) + (vp - rhs)
-
-        rhs = wp
         call wallfunmom(zhat, wp, bound_info_w)
-        tau_z(:,:,kb:ke+kh) = tau_z(:,:,kb:ke+kh) + (wp - rhs)
 
         ! mom_flux_sum = sum(tau_x(ib:ie,jb:je,kb+1:ke) + tau_y(ib:ie,jb:je,kb+1:ke) + tau_z(ib:ie,jb:je,kb+1:ke))
         ! call MPI_ALLREDUCE(mom_flux_sum, mom_flux_tot, 1, MY_REAL, MPI_SUM, comm3d, mpierr)
@@ -1256,11 +1249,9 @@ module modibm
       call diffw_corr
 
       if (ltempeq .or. lmoist .or. lwritefac) then
-        rhs = thlp
         totheatflux = 0 ! Reset total heat flux to zero so we only account for that in this step.
         totqflux = 0
         call wallfunheat
-        thl_flux(:,:,kb:ke+kh) = thl_flux(:,:,kb:ke+kh) + (thlp - rhs)
         if (ltempeq) call diffc_corr(thl0, thlp, ih, jh, kh)
         if (lmoist)  call diffc_corr(qt0, qtp, ih, jh, kh)
 
@@ -1283,8 +1274,6 @@ module modibm
       do n = 1,nsv
         call diffc_corr(sv0(:,:,:,n), svp(:,:,:,n), ihc, jhc, khc)
       end do
-
-      deallocate(rhs)
 
       if (lwritefac .and. rk3step==3) then
         if (myid == 0) then
@@ -1328,8 +1317,9 @@ module modibm
 
    subroutine wallfunmom(dir, rhs, bound_info)
      use modglobal, only : ib, ie, ih, jb, je, jh, kb, ke, kh, xf, yf, zf, xh, yh, zh, &
-                           dx, dy, dzf, dzh, iwallmom, xhat, yhat, zhat, vec0, nfcts, lwritefac, rk3step
-     use modfields, only : u0, v0, w0, thl0
+                           dx, dy, dzf, dzh, iwallmom, xhat, yhat, zhat, vec0, nfcts, lwritefac, rk3step, &
+                           lfielddump
+     use modfields, only : u0, v0, w0, thl0, tau_x, tau_y, tau_z
      use initfac,   only : facT, facz0, facz0h, facnorm, faca
      use decomp_2d, only : zstart
      use modmpi,    only : comm3d, mpi_sum, mpierr, my_real
@@ -1343,6 +1333,7 @@ module modibm
           utan, ctm, a, a_is, a_xn, a_yn, a_zn, stress_ix, stress_iy, stress_iz, xrec, yrec, zrec
      real, dimension(3) :: uvec, norm, strm, span, stressvec
      logical :: valid, lwgrid
+     real, dimension(:,:,:), pointer :: tau
      real, dimension(1:nfcts) :: fac_tau_loc, fac_tau
      !real, dimension(:), allocatable :: fac_tau, fac_pres
 
@@ -1353,12 +1344,15 @@ module modibm
      case(1)
        interp_velocity_ptr => interp_velocity_u
        interp_temperature_ptr => interp_temperature_u
+       tau => tau_x
      case(2)
        interp_velocity_ptr => interp_velocity_v
        interp_temperature_ptr => interp_temperature_v
+       tau => tau_y
      case(3)
        interp_velocity_ptr => interp_velocity_w
        interp_temperature_ptr => interp_temperature_w
+       tau => tau_z
      end select
 
      ! w lives on zh(k), so its control volume is dzh(k) thick; u and v live on zf(k) (dzf(k)).
@@ -1461,6 +1455,7 @@ module modibm
        end if
        momvol = stress_dir * area / vol
        rhs(i,j,k) = rhs(i,j,k) - momvol
+       if (lfielddump) tau(i,j,k) = tau(i,j,k) - momvol ! stress delta for fielddump (see #330)
        fac_tau_loc(fac) = fac_tau_loc(fac) + stress_dir * area ! output stresses on facets
      end do
 
@@ -1485,8 +1480,9 @@ module modibm
 
    subroutine wallfunheat
      use modglobal, only : ib, ie, jb, je, xf, yf, zf, xh, yh, zh, dx, dy, dzf, &
-                           xhat, yhat, zhat, vec0, ltempeq, lmoist, iwalltemp, iwallmoist, lEB, lwritefac, nfcts, rk3step, totheatflux, totqflux
-     use modfields, only : u0, v0, w0, thl0, thlp, qt0, qtp, pres0
+                           xhat, yhat, zhat, vec0, ltempeq, lmoist, iwalltemp, iwallmoist, lEB, lwritefac, nfcts, rk3step, totheatflux, totqflux, &
+                           lfielddump
+     use modfields, only : u0, v0, w0, thl0, thlp, qt0, qtp, pres0, thl_flux
      use initfac,   only : facT, facz0, facz0h, facnorm, fachf, facef, facqsat, fachurel, facf, faclGR, facwater, faca
      use modmpi,    only : comm3d, mpi_sum, mpierr, my_real
      use modibmdata, only : bctfxm, bctfxp, bctfym, bctfyp, bctfz
@@ -1595,6 +1591,7 @@ module modibm
          ! facet sensible heat flux = volumetric heat capacity of air * flux * sectionarea / facetarea [W/m^2]
          ! volume of the scalar cell centred on zf(k) is dx*dy*dzf(k) (dzh(k) is the centre-to-centre distance)
          thlp(i,j,k) = thlp(i,j,k) - flux * area / (dx*dy*dzf(k))
+         if (lfielddump) thl_flux(i,j,k) = thl_flux(i,j,k) - flux * area / (dx*dy*dzf(k)) ! flux delta for fielddump (see #330)
 
          totheatflux = totheatflux + flux*area ! [Km^3s^-1] This sums the flux over all facets (unconditional, mirrors totqflux; decouples periodicEBcorr from lEB)
 
@@ -1880,7 +1877,7 @@ module modibm
 
    real function interp_temperature_w(i, j, k)
      ! interpolates the temperature at w-grid location i,j,k
-     use modglobal, only :  dzf, dzh
+     use modglobal, only :  dzf
      use modfields, only :  thl0
      integer, intent(in) :: i, j, k
      real :: wk, wkm
@@ -2070,9 +2067,9 @@ module modibm
       !kind of obsolete when road facets are being used
       !vegetated floor not added (could simply be copied from vegetated horizontal facets)
       use modwallfunctions, only:wfuno, wfmneutral
-      use modglobal, only:ib, ie, ih, jh, kb,ke,kh, jb, je, kb, nsv, &
-         dzf, dzfi, ltempeq, lmoist, BCbotT, BCbotq, BCbotm, BCbots, dzh2i
-      use modfields, only : u0,v0,e120,e12m,thl0,qt0,sv0,up,vp,wp,thlp,qtp,svp,momfluxb,tfluxb,tau_x,tau_y,tau_z,thl_flux
+      use modglobal, only:ib, ie, ih, jh, kb, kh, jb, je, nsv, &
+         dzf, dzfi, ltempeq, lmoist, BCbotT, BCbotq, BCbotm, BCbots, dzh2i, lfielddump
+      use modfields, only : u0,v0,e120,e12m,thl0,qt0,sv0,up,vp,thlp,qtp,svp,momfluxb,tfluxb,tau_x,tau_y,tau_z,thl_flux
       use modsurfdata, only:wtsurf, wqsurf, thls, z0, z0h
       use modsubgriddata, only:ekh
       implicit none
@@ -2082,10 +2079,22 @@ module modibm
       e12m(:, :, kb - 1) = e12m(:, :, kb)
       ! wm(:, :, kb) = 0. ! SO moved to modboundary
       ! w0(:, :, kb) = 0.
-      tau_x(:,:,kb:ke+kh) = up
-      tau_y(:,:,kb:ke+kh) = vp
-      tau_z(:,:,kb:ke+kh) = wp
-      thl_flux(:,:,kb:ke+kh) = thlp
+
+      ! tau_*/thl_flux are per-substep stress/flux deltas consumed only by
+      ! fielddump; ibmwallfun accumulates into them after this reset. The
+      ! bottom wall functions modify the kb plane only, so the former 8
+      ! full-field snapshot/diff sweeps reduce to plane copies (#330).
+      if (lfielddump) then
+         tau_x = 0.
+         tau_y = 0.
+         tau_z = 0.
+         thl_flux = 0.
+         if (lbottom) then
+            tau_x(:,:,kb) = up(:,:,kb)
+            tau_y(:,:,kb) = vp(:,:,kb)
+            thl_flux(:,:,kb) = thlp(:,:,kb)
+         end if
+      end if
 
       !if (.not.(libm)) then
       if (lbottom) then
@@ -2161,10 +2170,11 @@ module modibm
 
       end if
 
-      tau_x(:,:,kb:ke+kh) = up - tau_x(:,:,kb:ke+kh)
-      tau_y(:,:,kb:ke+kh) = vp - tau_y(:,:,kb:ke+kh)
-      tau_z(:,:,kb:ke+kh) = wp - tau_z(:,:,kb:ke+kh)
-      thl_flux(:,:,kb:ke+kh) = thlp - thl_flux(:,:,kb:ke+kh)
+      if (lfielddump .and. lbottom) then
+         tau_x(:,:,kb) = up(:,:,kb) - tau_x(:,:,kb)
+         tau_y(:,:,kb) = vp(:,:,kb) - tau_y(:,:,kb)
+         thl_flux(:,:,kb) = thlp(:,:,kb) - thl_flux(:,:,kb)
+      end if
 
       return
    end subroutine bottom

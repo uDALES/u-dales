@@ -284,7 +284,7 @@ BCs at the bottom (BCbot; only effective if not covered with ground facets): 1 =
 | ---- | ------- | --------------- | ----------- | ---- |
 | lfielddump | .false. | .true. or .false. | Switch for instantaneous field output. | - |
 | tfielddump | 10000. | | Output time for fields. | [s] |
-| fieldvars | '' | Any of the given labels, several are separated by a comma: u0,v0,w0,p0,pa,th,ta,rh,qt,ql,s1,s2,s3,s4,s5 | Variable names of fields (`pa` writes hydrostatic absolute pressure as `pabs`). | - |
+| fieldvars | '' | Any of the given labels, several are separated by a comma: u0,v0,w0,p0,pa,th,ta,rh,qt,ql,s1,s2,s3,s4,s5 (prognostic and derived fields); di,ux,vy,wz (divergence of the corrected velocity and its three terms); pd,pu,pv,pw (pressure correction and predicted velocities of the last substep); rs,du,dv,dw (right-hand side of the Poisson equation and its three terms) | Variable names of fields (`pa` writes hydrostatic absolute pressure as `pabs`). The di/ux/vy/wz/rs/du/dv/dw fields are computed at output time only. | - |
 | receptor_height | 1.1 | `REAL` > 0 | Height above model ground (`z=0`) used for pedestrian-level output. | [m] |
 | nreceptor_heights | 0 | Integer 0 to 1000 | Number of entries in `receptor_heights`; 0 keeps the legacy single `receptor_height` output. | - |
 | receptor_heights | - | Positive, finite, strictly increasing list | Requested heights for `ws_local`; first entry must equal `receptor_height`. With more than one height, `ws_local` gains a `receptor_height` dimension in `stats_t` and `stats_kslice`. | [m] |

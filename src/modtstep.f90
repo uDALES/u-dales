@@ -199,6 +199,11 @@ subroutine tstep_integrate
 !    write(6,*) 'dpdx = ', dpdxl(kb)
   end if
 
+  ! Tendency zeroing and the substep-3 *m copies are fused into the integration
+  ! nests (formerly ~14 separate whole-array passes per substep; see #330).
+  ! The *p halos are 0 from allocation and only ever written on the boundary
+  ! planes handled in the guarded blocks below, so no blanket zeroing is needed.
+  ! The rk3step branch is loop-invariant (unswitched by the compiler).
   if (loneeqn) then
     do k=kb,ke
       do j=jb,je
@@ -208,10 +213,18 @@ subroutine tstep_integrate
           w0(i,j,k)   = wm(i,j,k)   + rk3coef * wp(i,j,k)
           e120(i,j,k) = e12m(i,j,k) + rk3coef * e12p(i,j,k)
           e120(i,j,k) = max(e12min,e120(i,j,k))
-          e12m(i,j,k) = max(e12min,e12m(i,j,k))
-          do n=1,nsv
-            sv0(i,j,k,n) = svm(i,j,k,n) + rk3coef * svp(i,j,k,n)
-          enddo
+          up(i,j,k) = 0.
+          vp(i,j,k) = 0.
+          wp(i,j,k) = 0.
+          e12p(i,j,k) = 0.
+          if (rk3step == 3) then
+            um(i,j,k) = u0(i,j,k)
+            vm(i,j,k) = v0(i,j,k)
+            wm(i,j,k) = w0(i,j,k)
+            e12m(i,j,k) = e120(i,j,k)
+          else
+            e12m(i,j,k) = max(e12min,e12m(i,j,k))
+          end if
         enddo
       enddo
     end do
@@ -222,13 +235,31 @@ subroutine tstep_integrate
           u0(i,j,k)   = um(i,j,k)   + rk3coef * up(i,j,k)
           v0(i,j,k)   = vm(i,j,k)   + rk3coef * vp(i,j,k)
           w0(i,j,k)   = wm(i,j,k)   + rk3coef * wp(i,j,k)
-          do n=1,nsv
-            sv0(i,j,k,n) = svm(i,j,k,n) + rk3coef * svp(i,j,k,n)
-          enddo
+          up(i,j,k) = 0.
+          vp(i,j,k) = 0.
+          wp(i,j,k) = 0.
+          if (rk3step == 3) then
+            um(i,j,k) = u0(i,j,k)
+            vm(i,j,k) = v0(i,j,k)
+            wm(i,j,k) = w0(i,j,k)
+          end if
         enddo
       enddo
     enddo
   end if
+
+  ! scalars: n hoisted out of the spatial nest (n is the slowest-varying index)
+  do n=1,nsv
+    do k=kb,ke
+      do j=jb,je
+        do i=ib,ie
+          sv0(i,j,k,n) = svm(i,j,k,n) + rk3coef * svp(i,j,k,n)
+          svp(i,j,k,n) = 0.
+          if (rk3step == 3) svm(i,j,k,n) = sv0(i,j,k,n)
+        enddo
+      enddo
+    enddo
+  enddo
 
   ! Chemistry is applied once per full time step, on the last RK3 substep. This
   ! used to be spelled `rk3coef == dt`, which holds only for rk3step==3 because
@@ -238,33 +269,39 @@ subroutine tstep_integrate
   end if
 
   if (ltempeq) then
-  do k=kb,ke
+    do k=kb,ke
       do j=jb,je
         do i=ib,ie
           thl0(i,j,k) = thlm(i,j,k) + rk3coef * thlp(i,j,k)
+          thl0c(i,j,k) = thl0(i,j,k)
+          thlp(i,j,k) = 0.
+          if (rk3step == 3) thlm(i,j,k) = thl0(i,j,k)
         enddo
       enddo
     enddo
-
-  thl0c(ib:ie,jb:je,kb:ke) = thl0(ib:ie,jb:je,kb:ke)
-
   end if
   if (lmoist) then
-   do k=kb,ke
-     do j=jb,je
-       do i=ib,ie
-         qt0(i,j,k) = qtm(i,j,k) + rk3coef * qtp(i,j,k)
-       enddo
+    do k=kb,ke
+      do j=jb,je
+        do i=ib,ie
+          qt0(i,j,k) = qtm(i,j,k) + rk3coef * qtp(i,j,k)
+          qtp(i,j,k) = 0.
+          if (rk3step == 3) qtm(i,j,k) = qt0(i,j,k)
+        enddo
       enddo
     enddo
   end if
 
   if ((BCxm .ne. BCxm_periodic) .and. ierank) then
     u0(ie+1,jb:je,kb:ke) = um(ie+1,jb:je,kb:ke)  + rk3coef * up(ie+1,jb:je,kb:ke)
+    up(ie+1,jb:je,kb:ke) = 0.
+    if (rk3step == 3) um(ie+1,jb:je,kb:ke) = u0(ie+1,jb:je,kb:ke)
   end if
 
   if ((BCym .ne. BCym_periodic) .and. jerank) then
     v0(ib:ie,je+1,kb:ke) = vm(ib:ie,je+1,kb:ke)  + rk3coef * vp(ib:ie,je+1,kb:ke)
+    vp(ib:ie,je+1,kb:ke) = 0.
+    if (rk3step == 3) vm(ib:ie,je+1,kb:ke) = v0(ib:ie,je+1,kb:ke)
   end if
 
   if (BCtopm .eq. BCtopm_pressure) then
@@ -283,6 +320,8 @@ subroutine tstep_integrate
     !   end do
     ! end do
     w0(ib:ie,jb:je,ke+1) = wm(ib:ie,jb:je,ke+1)  + rk3coef * wp(ib:ie,jb:je,ke+1)
+    wp(ib:ie,jb:je,ke+1) = 0.
+    if (rk3step == 3) wm(ib:ie,jb:je,ke+1) = w0(ib:ie,jb:je,ke+1)
   end if
 
 
@@ -318,24 +357,6 @@ subroutine tstep_integrate
 
         end if
       endif
-
-  up=0.
-  vp=0.
-  wp=0.
-  thlp=0.
-  svp=0.
-  e12p=0.
-  qtp=0.
-
-  if(rk3step == 3) then
-    um = u0
-    vm = v0
-    wm = w0
-    thlm = thl0
-    e12m = e120
-    svm = sv0
-    qtm = qt0
-  end if
 
 end subroutine tstep_integrate
 

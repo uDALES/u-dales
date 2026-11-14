@@ -8,6 +8,8 @@ Current cases:
 - `101/`: IBM sparse-input reference case
 - `525/`: flat-terrain tree case for direct shortwave integration checks
 - `526/`: reduced tree case for legacy vegetation regression against `v2.2.0`
+- `300/`: small 16x16x32 case with a stretched vertical grid and `libm = .false.`,
+  carrying only `namoptions.300`, `prof.inp.300` and `lscale.inp.300`
 
 Current consumers:
 
@@ -16,6 +18,12 @@ Current consumers:
 - `integration/processor_boundaries/test_processor_boundaries.py`
   - `100/` as the staged base case for no-tree decomposition checks
   - `526/` as the staged base case for vegetation decomposition checks
+- `integration/sgs_statistics/run_test.sh`
+  - `300/` as the staged base case for the SGS statistics kernel test (`runmode = 1007`)
+- `integration/tke_top_bc/test_tke_top_bc.py`
+  - `300/` switched to the one-equation SGS model, one run per `BCtopm`
+- `integration/fielddump_diagnostics/test_fielddump_diagnostics.py`
+  - `300/` on 2x2 ranks with every output-time fielddump diagnostic requested
 - `integration/ibm_sparse_input/run_test.sh`
   - `101/` as the staged base case for the `read_sparse_ijk()` IBM test
 - `integration/directshortwave/test_directshortwave.py`

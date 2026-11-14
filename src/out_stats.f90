@@ -51,7 +51,7 @@ module stats
 
   implicit none
   private
-  public :: stats_init, stats_main, stats_exit
+  public :: stats_init, stats_main, stats_exit, stats_sgs_fluxes
   save
 
   integer :: xdim, ydim, zdim
@@ -955,7 +955,7 @@ module stats
 
       call ncinfo( tVars(ctrt+13,:), 'usgs'    , 'SGS u flux'                 , 'm^2/s^2'   , 'mtmt' )
       call ncinfo( tVars(ctrt+14,:), 'vsgs'    , 'SGS v flux'                 , 'm^2/s^2'   , 'tmmt' )
-      call ncinfo( tVars(ctrt+15,:), 'wsgs'    , 'SGS w flux'                 , 'm^2/s^2'   , 'ttmt' )
+      call ncinfo( tVars(ctrt+15,:), 'wsgs'    , 'SGS normal stress'          , 'm^2/s^2'   , 'tttt' )
       ctrt = ctrt+15
     end subroutine stats_ncdescription_tavg_vel
 
@@ -1184,7 +1184,7 @@ module stats
       call ncinfo( xytVars(ctrxyt+17,:), 'tke'      , 'TKE - cell centered'        , 'm^2/s^2'   , 'tt' )
       call ncinfo( xytVars(ctrxyt+18,:), 'usgs'     , 'SGS mom. flux'              , 'm^2/s^2'   , 'mt' )
       call ncinfo( xytVars(ctrxyt+19,:), 'vsgs'     , 'SGS mom. flux'              , 'm^2/s^2'   , 'mt' )
-      call ncinfo( xytVars(ctrxyt+20,:), 'wsgs'     , 'SGS mom. flux'              , 'm^2/s^2'   , 'mt' )
+      call ncinfo( xytVars(ctrxyt+20,:), 'wsgs'     , 'SGS normal stress'          , 'm^2/s^2'   , 'tt' )
       call ncinfo( xytVars(ctrxyt+21,:), 'pabs'     , 'Hydrostatic absolute pressure', 'Pa'      , 'tt' )
       ctrxyt = ctrxyt+21
     end subroutine stats_init_xytavg_vel
@@ -1288,7 +1288,7 @@ module stats
       call ncinfo( xyVars(ctrxy+13,:), 'ww'       , 'Advective mom. flux'      , 'm^2/s^2'   , 'mt' )
       call ncinfo( xyVars(ctrxy+14,:), 'usgs'     , 'SGS mom. flux'            , 'm^2/s^2'   , 'mt' )
       call ncinfo( xyVars(ctrxy+15,:), 'vsgs'     , 'SGS mom. flux'            , 'm^2/s^2'   , 'mt' )
-      call ncinfo( xyVars(ctrxy+16,:), 'wsgs'     , 'SGS mom. flux'            , 'm^2/s^2'   , 'mt' )
+      call ncinfo( xyVars(ctrxy+16,:), 'wsgs'     , 'SGS normal stress'        , 'm^2/s^2'   , 'tt' )
       call ncinfo( xyVars(ctrxy+17,:), 'pabs'     , 'Hydrostatic absolute pressure', 'Pa'      , 'tt' )
       ctrxy = ctrxy+17
     end subroutine stats_init_xyavg_vel
@@ -1374,7 +1374,7 @@ module stats
       call ncinfo( ytVars(ctryt+ 8,:), 'vpvp'     , 'v variance - cell centered' , 'm^2/s^2'   , 't0tt' )
       call ncinfo( ytVars(ctryt+ 9,:), 'wpwp'     , 'w variance - cell centered' , 'm^2/s^2'   , 't0tt' )
       call ncinfo( ytVars(ctryt+10,:), 'usgs'     , 'SGS mom. flux'              , 'm^2/s^2'   , 'm0mt' )
-      call ncinfo( ytVars(ctryt+11,:), 'wsgs'     , 'SGS mom. flux'              , 'm^2/s^2'   , 't0mt' )
+      call ncinfo( ytVars(ctryt+11,:), 'wsgs'     , 'SGS normal stress'          , 'm^2/s^2'   , 't0tt' )
       call ncinfo( ytVars(ctryt+12,:), 'pabs'     , 'Hydrostatic absolute pressure', 'Pa'      , 't0tt' )
       ctryt = ctryt+12
     end subroutine stats_init_ytavg_vel
@@ -1487,7 +1487,7 @@ module stats
       call ncinfo( yVars(ctry+ 5,:), 'upwp'     , 'Turbulent mom. flux'      , 'm^2/s^2'   , 'm0mt' )
       call ncinfo( yVars(ctry+ 6,:), 'uw'       , 'Advective mom. flux'      , 'm^2/s^2'   , 'm0mt' )
       call ncinfo( yVars(ctry+ 7,:), 'usgs'     , 'SGS mom. flux'            , 'm^2/s^2'   , 'm0mt' )
-      call ncinfo( yVars(ctry+ 8,:), 'wsgs'     , 'SGS mom. flux'            , 'm^2/s^2'   , 't0mt' )
+      call ncinfo( yVars(ctry+ 8,:), 'wsgs'     , 'SGS normal stress'        , 'm^2/s^2'   , 't0tt' )
       call ncinfo( yVars(ctry+ 9,:), 'pabs'     , 'Hydrostatic absolute pressure', 'Pa'      , 't0tt' )
       ctry = ctry+9
     end subroutine stats_init_yavg_vel
@@ -1666,7 +1666,6 @@ module stats
     subroutine stats_interpolate_and_sgs_vel
       implicit none
       integer :: i, j, k
-      real    :: emom
 
       !> Perform required interpolations to cell faces and centers
       call stats_interpolate_k(uik, um(ib:ie,jb:je,kb-kh:ke+kh))
@@ -1689,35 +1688,7 @@ module stats
         end do
       end do
 
-      !> Perform required interpolations to cell centers
-      do k=kb,ke+kh
-        do j=jb,je
-          do i=ib,ie
-            ! SGS fluxes
-            ! interps ekm to cell corner (uw)
-            emom = ( dzf(k-1) * ( ekm(i,j,k)*dxf(i-1)  + ekm(i-1,j,k)*dxf(i) )  + &
-                     dzf(k)   * ( ekm(i,j,k-1)*dxf(i-1) + ekm(i-1,j,k-1)*dxf(i) ) )*dxhi(i) * dzhiq(k)
-            usgs(i,j,k)  = emom * ( (um(i,j,k)-um(i,j,k-1)) *dzhi(k) &
-                            +(wm(i,j,k)-wm(i-1,j,k))  *dxhi(i))
-
-            ! interps ekm to cell corner (vw)
-            emom = ( dzf(k-1) * ( ekm(i,j,k)  + ekm(i,j-1,k) )  + &
-                     dzf(k)   * ( ekm(i,j,k-1) + ekm(i,j-1,k-1) ) ) * dzhiq(k)
-            vsgs(i,j,k)  = emom * ( (vm(i,j,k)-vm(i,j,k-1)) *dzhi(k) &
-                            +(wm(i,j,k)-wm(i,j-1,k))  *dyi)
-          end do
-        end do
-      end do
-
-      do k=kb,ke
-        do j=jb,je
-          do i=ib,ie
-            wsgs(i,j,k) = ( ekm(i,j,k) * (wm(i,j,k+1)-wm(i,j,k)) *dzfi(k) &
-                            -ekm(i,j,k-1)* (wm(i,j,k)-wm(i,j,k-1)) *dzfi(k-1) ) * 2. &
-                            * dzhi(k) ! tg3315 check this
-          end do
-        end do
-      end do
+      call stats_sgs_momentum(usgs, vsgs, wsgs)
     end subroutine stats_interpolate_and_sgs_vel
 
     subroutine stats_interpolate_and_sgs_temp
@@ -1777,17 +1748,83 @@ module stats
       end do
     end subroutine stats_interpolate_k
 
+    !> SGS flux of a scalar at the w-levels, -K_h dphi/dz with K_h interpolated
+    !! to the w-level as in modsubgrid (diffc), so that resolved + SGS fluxes add
+    !! up and a down-gradient flux is negative. Filled kb..ke+kh: the top level
+    !! is read by the ke+kh averages.
     subroutine stats_compute_sgs(varsgs,varm,ekvar)
       implicit none
-      real, intent(inout) :: varsgs(ib:ie,jb:je,kb:ke+kh)
-      real, intent(in)    :: varm(ib:ie,jb:je,kb-kh:ke+kh)
-      real, intent(in)    :: ekvar(ib:ie,jb:je,kb-kh:ke+kh)
+      real, intent(out) :: varsgs(ib:ie,jb:je,kb:ke+kh)
+      real, intent(in)  :: varm(ib:ie,jb:je,kb-kh:ke+kh)
+      real, intent(in)  :: ekvar(ib:ie,jb:je,kb-kh:ke+kh)
       integer :: k
-      do k=kb,ke
-        varsgs(:,:,k) = 0.5 * (dzf(k-1)*ekvar(:,:,k) + dzf(k)*ekvar(:,:,k-1)) &
-                            * (varm(:,:,k)-varm(:,:,k-1)) * dzh2i(k)
+      varsgs = 0.
+      do k=kb,ke+kh
+        varsgs(:,:,k) = -0.5 * (dzf(k-1)*ekvar(:,:,k) + dzf(k)*ekvar(:,:,k-1)) &
+                             * (varm(:,:,k)-varm(:,:,k-1)) * dzh2i(k)
       end do
     end subroutine stats_compute_sgs
+
+    !> SGS momentum fluxes with the solver's stencils and sign (down-gradient is
+    !! negative). usgs and vsgs are the shear stresses tau_13 and tau_23 at the
+    !! uw and vw cell corners (w-levels); wsgs is the normal stress
+    !! tau_33 = -2 K_m dw/dz, which lives at the cell centre (filled kb..ke,
+    !! zero at ke+kh).
+    subroutine stats_sgs_momentum(usgs_o, vsgs_o, wsgs_o)
+      implicit none
+      real, intent(out) :: usgs_o(ib:ie,jb:je,kb:ke+kh)
+      real, intent(out) :: vsgs_o(ib:ie,jb:je,kb:ke+kh)
+      real, intent(out) :: wsgs_o(ib:ie,jb:je,kb:ke+kh)
+      integer :: i, j, k
+      real    :: emom
+
+      usgs_o = 0.; vsgs_o = 0.; wsgs_o = 0.
+      do k=kb,ke+kh
+        do j=jb,je
+          do i=ib,ie
+            ! interps ekm to cell corner (uw)
+            emom = ( dzf(k-1) * ( ekm(i,j,k)*dxf(i-1)  + ekm(i-1,j,k)*dxf(i) )  + &
+                     dzf(k)   * ( ekm(i,j,k-1)*dxf(i-1) + ekm(i-1,j,k-1)*dxf(i) ) )*dxhi(i) * dzhiq(k)
+            usgs_o(i,j,k) = -emom * ( (um(i,j,k)-um(i,j,k-1)) *dzhi(k) &
+                                     +(wm(i,j,k)-wm(i-1,j,k)) *dxhi(i))
+
+            ! interps ekm to cell corner (vw)
+            emom = ( dzf(k-1) * ( ekm(i,j,k)   + ekm(i,j-1,k) )  + &
+                     dzf(k)   * ( ekm(i,j,k-1) + ekm(i,j-1,k-1) ) ) * dzhiq(k)
+            vsgs_o(i,j,k) = -emom * ( (vm(i,j,k)-vm(i,j,k-1)) *dzhi(k) &
+                                     +(wm(i,j,k)-wm(i,j-1,k)) *dyi)
+          end do
+        end do
+      end do
+
+      do k=kb,ke
+        do j=jb,je
+          do i=ib,ie
+            wsgs_o(i,j,k) = -2. * ekm(i,j,k) * (wm(i,j,k+1)-wm(i,j,k)) * dzfi(k)
+          end do
+        end do
+      end do
+    end subroutine stats_sgs_momentum
+
+    !> All SGS fluxes the statistics write, from the current um/vm/wm/thlm/qtm
+    !! and ekm/ekh, into caller-provided arrays. Public so the in-solver test
+    !! (tests_sgs_statistics) can check them against the tendencies of
+    !! modsubgrid without going through the statistics files. thlsgs/qtsgs are
+    !! zero when ltempeq/lmoist is off.
+    subroutine stats_sgs_fluxes(usgs_o, vsgs_o, wsgs_o, thlsgs_o, qtsgs_o)
+      implicit none
+      real, intent(out) :: usgs_o(ib:ie,jb:je,kb:ke+kh)
+      real, intent(out) :: vsgs_o(ib:ie,jb:je,kb:ke+kh)
+      real, intent(out) :: wsgs_o(ib:ie,jb:je,kb:ke+kh)
+      real, intent(out) :: thlsgs_o(ib:ie,jb:je,kb:ke+kh)
+      real, intent(out) :: qtsgs_o(ib:ie,jb:je,kb:ke+kh)
+
+      call stats_sgs_momentum(usgs_o, vsgs_o, wsgs_o)
+      thlsgs_o = 0.
+      qtsgs_o  = 0.
+      if (ltempeq) call stats_compute_sgs(thlsgs_o, thlm(ib:ie,jb:je,kb-kh:ke+kh), ekh(ib:ie,jb:je,kb-kh:ke+kh))
+      if (lmoist)  call stats_compute_sgs(qtsgs_o,  qtm(ib:ie,jb:je,kb-kh:ke+kh),  ekh(ib:ie,jb:je,kb-kh:ke+kh))
+    end subroutine stats_sgs_fluxes
 
 
     !! ## %% Time averaging computations routines
@@ -1952,21 +1989,21 @@ module stats
       !> Means
       call spatial_avg(uxyt,ut(ib:ie,jb:je,kb:ke+kh),kb,ke,IIu(ib:ie,jb:je,kb:ke+kh),IIus(kb:ke+kh),.false.)
       call spatial_avg(vxyt,vt(ib:ie,jb:je,kb:ke+kh),kb,ke,IIv(ib:ie,jb:je,kb:ke+kh),IIvs(kb:ke+kh),.false.)
-      call spatial_avg(wxyt,wt(ib:ie,jb:je,kb:ke+kh),kb,ke,IIw(ib:ie,jb:je,kb:ke+kh),IIws(kb:ke+kh),.false.)
+      call spatial_avg(wxyt,wt(ib:ie,jb:je,kb:ke+kh),kb,ke,IIw(ib:ie,jb:je,kb:ke+kh),IIws(kb:ke+kh),.true.)
       call spatial_avg(pxyt,pt(ib:ie,jb:je,kb:ke+kh),kb,ke,IIc(ib:ie,jb:je,kb:ke+kh),IIcs(kb:ke+kh),.false.)
 
       !> Turbulent fluxes
-      call spatial_avg(upwpxytik,uwtik(ib:ie,jb:je,kb:ke+kh)-utik(ib:ie,jb:je,kb:ke+kh)*wtik(ib:ie,jb:je,kb:ke+kh),kb,ke,IIuw(ib:ie,jb:je,kb:ke+kh),IIuws(kb:ke+kh),.false.)
-      call spatial_avg(vpwpxytjk,vwtjk(ib:ie,jb:je,kb:ke+kh)-vtjk(ib:ie,jb:je,kb:ke+kh)*wtjk(ib:ie,jb:je,kb:ke+kh),kb,ke,IIvw(ib:ie,jb:je,kb:ke+kh),IIvws(kb:ke+kh),.false.)
-      call spatial_avg(upvpxytij,uvtij(ib:ie,jb:je,kb:ke+kh)-utij(ib:ie,jb:je,kb:ke+kh)*vtij(ib:ie,jb:je,kb:ke+kh),kb,ke,IIuv(ib:ie,jb:je,kb:ke+kh),IIuvs(kb:ke+kh),.false.)
+      call spatial_avg(upwpxytik,uwtik(ib:ie,jb:je,kb:ke+kh)-utik(ib:ie,jb:je,kb:ke+kh)*wtik(ib:ie,jb:je,kb:ke+kh),kb,ke,IIuw(ib:ie,jb:je,kb:ke+kh),IIuws(kb:ke+kh),.true.)
+      call spatial_avg(vpwpxytjk,vwtjk(ib:ie,jb:je,kb:ke+kh)-vtjk(ib:ie,jb:je,kb:ke+kh)*wtjk(ib:ie,jb:je,kb:ke+kh),kb,ke,IIvw(ib:ie,jb:je,kb:ke+kh),IIvws(kb:ke+kh),.true.)
+      call spatial_avg(upvpxytij,uvtij(ib:ie,jb:je,kb:ke+kh)-utij(ib:ie,jb:je,kb:ke+kh)*vtij(ib:ie,jb:je,kb:ke+kh),kb,ke,IIuv(ib:ie,jb:je,kb:ke+kh),IIuvs(kb:ke+kh),.true.)
 
       !> Dispersive fluxes
-      call spatial_avg(uwxytik,utik(ib:ie,jb:je,kb:ke+kh)*wtik(ib:ie,jb:je,kb:ke+kh),kb,ke,IIuw(ib:ie,jb:je,kb:ke+kh),IIuws(kb:ke+kh),.false.)
-      call spatial_avg(vwxytjk,vtjk(ib:ie,jb:je,kb:ke+kh)*wtjk(ib:ie,jb:je,kb:ke+kh),kb,ke,IIvw(ib:ie,jb:je,kb:ke+kh),IIvws(kb:ke+kh),.false.)
-      call spatial_avg(uvxytij,utij(ib:ie,jb:je,kb:ke+kh)*vtij(ib:ie,jb:je,kb:ke+kh),kb,ke,IIuv(ib:ie,jb:je,kb:ke+kh),IIuvs(kb:ke+kh),.false.)
+      call spatial_avg(uwxytik,utik(ib:ie,jb:je,kb:ke+kh)*wtik(ib:ie,jb:je,kb:ke+kh),kb,ke,IIuw(ib:ie,jb:je,kb:ke+kh),IIuws(kb:ke+kh),.true.)
+      call spatial_avg(vwxytjk,vtjk(ib:ie,jb:je,kb:ke+kh)*wtjk(ib:ie,jb:je,kb:ke+kh),kb,ke,IIvw(ib:ie,jb:je,kb:ke+kh),IIvws(kb:ke+kh),.true.)
+      call spatial_avg(uvxytij,utij(ib:ie,jb:je,kb:ke+kh)*vtij(ib:ie,jb:je,kb:ke+kh),kb,ke,IIuv(ib:ie,jb:je,kb:ke+kh),IIuvs(kb:ke+kh),.true.)
       call spatial_avg(uuxyti,ut(ib:ie,jb:je,kb:ke+kh)*ut(ib:ie,jb:je,kb:ke+kh),kb,ke,IIu(ib:ie,jb:je,kb:ke+kh),IIus(kb:ke+kh),.false.)
       call spatial_avg(vvxytj,vt(ib:ie,jb:je,kb:ke+kh)*vt(ib:ie,jb:je,kb:ke+kh),kb,ke,IIv(ib:ie,jb:je,kb:ke+kh),IIvs(kb:ke+kh),.false.)
-      call spatial_avg(wwxytk,wt(ib:ie,jb:je,kb:ke+kh)*wt(ib:ie,jb:je,kb:ke+kh),kb,ke,IIw(ib:ie,jb:je,kb:ke+kh),IIws(kb:ke+kh),.false.)
+      call spatial_avg(wwxytk,wt(ib:ie,jb:je,kb:ke+kh)*wt(ib:ie,jb:je,kb:ke+kh),kb,ke,IIw(ib:ie,jb:je,kb:ke+kh),IIws(kb:ke+kh),.true.)
 
       !> Variances and TKE
       call spatial_avg(upupxytc,uutc(ib:ie,jb:je,kb:ke+kh)-utc(ib:ie,jb:je,kb:ke+kh)*utc(ib:ie,jb:je,kb:ke+kh),kb,ke,IIc(ib:ie,jb:je,kb:ke+kh),IIcs(kb:ke+kh),.false.)
@@ -1975,29 +2012,29 @@ module stats
       call spatial_avg(tkexytc,0.5*((wwtc(ib:ie,jb:je,kb:ke+kh)-wtc(ib:ie,jb:je,kb:ke+kh)*wtc(ib:ie,jb:je,kb:ke+kh))+(vvtc(ib:ie,jb:je,kb:ke+kh)-vtc(ib:ie,jb:je,kb:ke+kh)*vtc(ib:ie,jb:je,kb:ke+kh))+(uutc(ib:ie,jb:je,kb:ke+kh)-utc(ib:ie,jb:je,kb:ke+kh)*utc(ib:ie,jb:je,kb:ke+kh))),kb,ke,IIc(ib:ie,jb:je,kb:ke+kh),IIcs(kb:ke+kh),.false.)
 
       !> SGS fluxes
-      call spatial_avg(usgsxyt,usgst(ib:ie,jb:je,kb:ke+kh),kb,ke,IIuw(ib:ie,jb:je,kb:ke+kh),IIuws(kb:ke+kh),.false.)
-      call spatial_avg(vsgsxyt,vsgst(ib:ie,jb:je,kb:ke+kh),kb,ke,IIvw(ib:ie,jb:je,kb:ke+kh),IIvws(kb:ke+kh),.false.)
-      call spatial_avg(wsgsxyt,wsgst(ib:ie,jb:je,kb:ke+kh),kb,ke,IIw(ib:ie,jb:je,kb:ke+kh),IIws(kb:ke+kh),.false.)
+      call spatial_avg(usgsxyt,usgst(ib:ie,jb:je,kb:ke+kh),kb,ke,IIuw(ib:ie,jb:je,kb:ke+kh),IIuws(kb:ke+kh),.true.)
+      call spatial_avg(vsgsxyt,vsgst(ib:ie,jb:je,kb:ke+kh),kb,ke,IIvw(ib:ie,jb:je,kb:ke+kh),IIvws(kb:ke+kh),.true.)
+      call spatial_avg(wsgsxyt,wsgst(ib:ie,jb:je,kb:ke+kh),kb,ke,IIc(ib:ie,jb:je,kb:ke+kh),IIcs(kb:ke+kh),.false.)
     end subroutine stats_compute_xytavg_vel
 
     subroutine stats_compute_xytavg_temp
       implicit none
       call spatial_avg(thlxyt,thlt(ib:ie,jb:je,kb:ke+kh),kb,ke,IIc(ib:ie,jb:je,kb:ke+kh),IIcs(kb:ke+kh),.false.)
       call spatial_avg(tempxyt,tempt(ib:ie,jb:je,kb:ke+kh),kb,ke,IIc(ib:ie,jb:je,kb:ke+kh),IIcs(kb:ke+kh),.false.)
-      call spatial_avg(wpthlpxytk,wthltk(ib:ie,jb:je,kb:ke+kh)-wt(ib:ie,jb:je,kb:ke+kh)*thltk(ib:ie,jb:je,kb:ke+kh),kb,ke,IIw(ib:ie,jb:je,kb:ke+kh),IIws(kb:ke+kh),.false.)
-      call spatial_avg(wthlxytk,wt(ib:ie,jb:je,kb:ke+kh)*thltk(ib:ie,jb:je,kb:ke+kh),kb,ke,IIw(ib:ie,jb:je,kb:ke+kh),IIws(kb:ke+kh),.false.)
+      call spatial_avg(wpthlpxytk,wthltk(ib:ie,jb:je,kb:ke+kh)-wt(ib:ie,jb:je,kb:ke+kh)*thltk(ib:ie,jb:je,kb:ke+kh),kb,ke,IIw(ib:ie,jb:je,kb:ke+kh),IIws(kb:ke+kh),.true.)
+      call spatial_avg(wthlxytk,wt(ib:ie,jb:je,kb:ke+kh)*thltk(ib:ie,jb:je,kb:ke+kh),kb,ke,IIw(ib:ie,jb:je,kb:ke+kh),IIws(kb:ke+kh),.true.)
       call spatial_avg(thlpthlpxyt,thlthlt(ib:ie,jb:je,kb:ke+kh)-thlt(ib:ie,jb:je,kb:ke+kh)*thlt(ib:ie,jb:je,kb:ke+kh),kb,ke,IIc(ib:ie,jb:je,kb:ke+kh),IIcs(kb:ke+kh),.false.)
-      call spatial_avg(thlsgsxyt,thlsgst(ib:ie,jb:je,kb:ke+kh),kb,ke,IIw(ib:ie,jb:je,kb:ke+kh),IIws(kb:ke+kh),.false.)
+      call spatial_avg(thlsgsxyt,thlsgst(ib:ie,jb:je,kb:ke+kh),kb,ke,IIw(ib:ie,jb:je,kb:ke+kh),IIws(kb:ke+kh),.true.)
     end subroutine stats_compute_xytavg_temp
 
     subroutine stats_compute_xytavg_moist
       implicit none
       call spatial_avg(qtxyt,qtt(ib:ie,jb:je,kb:ke+kh),kb,ke,IIc(ib:ie,jb:je,kb:ke+kh),IIcs(kb:ke+kh),.false.)
       call spatial_avg(qlxyt,qlt(ib:ie,jb:je,kb:ke+kh),kb,ke,IIc(ib:ie,jb:je,kb:ke+kh),IIcs(kb:ke+kh),.false.)
-      call spatial_avg(wpqtpxytk,wqttk(ib:ie,jb:je,kb:ke+kh)-wt(ib:ie,jb:je,kb:ke+kh)*qttk(ib:ie,jb:je,kb:ke+kh),kb,ke,IIw(ib:ie,jb:je,kb:ke+kh),IIws(kb:ke+kh),.false.)
-      call spatial_avg(wqtxytk,wt(ib:ie,jb:je,kb:ke+kh)*qttk(ib:ie,jb:je,kb:ke+kh),kb,ke,IIw(ib:ie,jb:je,kb:ke+kh),IIws(kb:ke+kh),.false.)
+      call spatial_avg(wpqtpxytk,wqttk(ib:ie,jb:je,kb:ke+kh)-wt(ib:ie,jb:je,kb:ke+kh)*qttk(ib:ie,jb:je,kb:ke+kh),kb,ke,IIw(ib:ie,jb:je,kb:ke+kh),IIws(kb:ke+kh),.true.)
+      call spatial_avg(wqtxytk,wt(ib:ie,jb:je,kb:ke+kh)*qttk(ib:ie,jb:je,kb:ke+kh),kb,ke,IIw(ib:ie,jb:je,kb:ke+kh),IIws(kb:ke+kh),.true.)
       call spatial_avg(qtpqtpxyt,qtqtt(ib:ie,jb:je,kb:ke+kh)-qtt(ib:ie,jb:je,kb:ke+kh)*qtt(ib:ie,jb:je,kb:ke+kh),kb,ke,IIc(ib:ie,jb:je,kb:ke+kh),IIcs(kb:ke+kh),.false.)
-      call spatial_avg(qtsgsxyt,qtsgst(ib:ie,jb:je,kb:ke+kh),kb,ke,IIw(ib:ie,jb:je,kb:ke+kh),IIws(kb:ke+kh),.false.)
+      call spatial_avg(qtsgsxyt,qtsgst(ib:ie,jb:je,kb:ke+kh),kb,ke,IIw(ib:ie,jb:je,kb:ke+kh),IIws(kb:ke+kh),.true.)
     end subroutine stats_compute_xytavg_moist
 
     subroutine stats_compute_xytavg_relative_humidity
@@ -2012,7 +2049,7 @@ module stats
       !> Mean
       call spatial_avg(uxy,um(ib:ie,jb:je,kb:ke+kh),kb,ke,IIu(ib:ie,jb:je,kb:ke+kh),IIus(kb:ke+kh),.false.)
       call spatial_avg(vxy,vm(ib:ie,jb:je,kb:ke+kh),kb,ke,IIv(ib:ie,jb:je,kb:ke+kh),IIvs(kb:ke+kh),.false.)
-      call spatial_avg(wxy,wm(ib:ie,jb:je,kb:ke+kh),kb,ke,IIw(ib:ie,jb:je,kb:ke+kh),IIws(kb:ke+kh),.false.)
+      call spatial_avg(wxy,wm(ib:ie,jb:je,kb:ke+kh),kb,ke,IIw(ib:ie,jb:je,kb:ke+kh),IIws(kb:ke+kh),.true.)
       call spatial_avg(pxy,pres0(ib:ie,jb:je,kb:ke+kh),kb,ke,IIc(ib:ie,jb:je,kb:ke+kh),IIcs(kb:ke+kh),.false.)
 
       !> Advective fluxes and some necesseary mean
@@ -2030,15 +2067,18 @@ module stats
       call spatial_avg(vvxyj,vm(ib:ie,jb:je,kb:ke+kh)*vm(ib:ie,jb:je,kb:ke+kh),kb,ke,IIv(ib:ie,jb:je,kb:ke+kh),IIvs(kb:ke+kh),.true.)
       call spatial_avg(wwxyk,wm(ib:ie,jb:je,kb:ke+kh)*wm(ib:ie,jb:je,kb:ke+kh),kb,ke,IIw(ib:ie,jb:je,kb:ke+kh),IIws(kb:ke+kh),.true.)
 
-      !> Turbulent fluxes
+      !> Turbulent fluxes (masked where the corner mask has no fluid point, e.g. kb)
       upwpxyik = uwxyik - uxyik*wxyik
       vpwpxyjk = vwxyjk - vxyjk*wxyjk
       upvpxyij = uvxyij - uxyij*vxyij
+      where (IIuws(kb:ke+kh)==0) upwpxyik = -999.
+      where (IIvws(kb:ke+kh)==0) vpwpxyjk = -999.
+      where (IIuvs(kb:ke+kh)==0) upvpxyij = -999.
 
       !> SGS fluxes
-      call spatial_avg(usgsxy,usgs(ib:ie,jb:je,kb:ke+kh),kb,ke,IIuw(ib:ie,jb:je,kb:ke+kh),IIuws(kb:ke+kh),.false.)
-      call spatial_avg(vsgsxy,vsgs(ib:ie,jb:je,kb:ke+kh),kb,ke,IIvw(ib:ie,jb:je,kb:ke+kh),IIvws(kb:ke+kh),.false.)
-      call spatial_avg(wsgsxy,wsgs(ib:ie,jb:je,kb:ke+kh),kb,ke,IIw(ib:ie,jb:je,kb:ke+kh),IIws(kb:ke+kh),.false.)
+      call spatial_avg(usgsxy,usgs(ib:ie,jb:je,kb:ke+kh),kb,ke,IIuw(ib:ie,jb:je,kb:ke+kh),IIuws(kb:ke+kh),.true.)
+      call spatial_avg(vsgsxy,vsgs(ib:ie,jb:je,kb:ke+kh),kb,ke,IIvw(ib:ie,jb:je,kb:ke+kh),IIvws(kb:ke+kh),.true.)
+      call spatial_avg(wsgsxy,wsgs(ib:ie,jb:je,kb:ke+kh),kb,ke,IIc(ib:ie,jb:je,kb:ke+kh),IIcs(kb:ke+kh),.false.)
     end subroutine stats_compute_xyavg_vel
 
     subroutine stats_compute_xyavg_temp
@@ -2048,7 +2088,8 @@ module stats
       call spatial_avg(wthlxyk,wm(ib:ie,jb:je,kb:ke+kh)*thlk(ib:ie,jb:je,kb:ke+kh),kb,ke,IIw(ib:ie,jb:je,kb:ke+kh),IIws(kb:ke+kh),.true.)
       call spatial_avg(thlxyk,thlk(ib:ie,jb:je,kb:ke+kh),kb,ke,IIw(ib:ie,jb:je,kb:ke+kh),IIws(kb:ke+kh),.true.)
       wpthlpxyk = wthlxyk - wxy*thlxyk
-      call spatial_avg(thlsgsxy,thlsgs(ib:ie,jb:je,kb:ke+kh),kb,ke,IIw(ib:ie,jb:je,kb:ke+kh),IIws(kb:ke+kh),.false.)
+      where (IIws(kb:ke+kh)==0) wpthlpxyk = -999.
+      call spatial_avg(thlsgsxy,thlsgs(ib:ie,jb:je,kb:ke+kh),kb,ke,IIw(ib:ie,jb:je,kb:ke+kh),IIws(kb:ke+kh),.true.)
     end subroutine stats_compute_xyavg_temp
 
     subroutine stats_compute_xyavg_moist
@@ -2058,7 +2099,8 @@ module stats
       call spatial_avg(wqtxyk,wm(ib:ie,jb:je,kb:ke+kh)*qtk(ib:ie,jb:je,kb:ke+kh),kb,ke,IIw(ib:ie,jb:je,kb:ke+kh),IIws(kb:ke+kh),.true.)
       call spatial_avg(qtxyk,qtk(ib:ie,jb:je,kb:ke+kh),kb,ke,IIw(ib:ie,jb:je,kb:ke+kh),IIws(kb:ke+kh),.true.)
       wpqtpxyk = wqtxyk - wxy*qtxyk
-      call spatial_avg(qtsgsxy,qtsgs(ib:ie,jb:je,kb:ke+kh),kb,ke,IIw(ib:ie,jb:je,kb:ke+kh),IIws(kb:ke+kh),.false.)
+      where (IIws(kb:ke+kh)==0) wpqtpxyk = -999.
+      call spatial_avg(qtsgsxy,qtsgs(ib:ie,jb:je,kb:ke+kh),kb,ke,IIw(ib:ie,jb:je,kb:ke+kh),IIws(kb:ke+kh),.true.)
     end subroutine stats_compute_xyavg_moist
 
     subroutine stats_compute_xyavg_relative_humidity
@@ -2089,7 +2131,7 @@ module stats
 
       !> SGS fluxes
       call spatial_avg(usgsyt,usgst(ib:ie,jb:je,kb:ke),IIuw(ib:ie,jb:je,kb:ke),IIuwt)
-      call spatial_avg(wsgsyt,wsgst(ib:ie,jb:je,kb:ke),IIw(ib:ie,jb:je,kb:ke),IIwt)
+      call spatial_avg(wsgsyt,wsgst(ib:ie,jb:je,kb:ke),IIc(ib:ie,jb:je,kb:ke),IIct)
     end subroutine stats_compute_ytavg_vel
 
     subroutine stats_compute_ytavg_temp
@@ -2152,7 +2194,7 @@ module stats
 
       !> SGS fluxes
       call spatial_avg(usgsy,usgs(ib:ie,jb:je,kb:ke),IIuw(ib:ie,jb:je,kb:ke),IIuwt)
-      call spatial_avg(wsgsy,wsgs(ib:ie,jb:je,kb:ke),IIw(ib:ie,jb:je,kb:ke),IIwt)
+      call spatial_avg(wsgsy,wsgs(ib:ie,jb:je,kb:ke),IIc(ib:ie,jb:je,kb:ke),IIct)
     end subroutine stats_compute_yavg_vel
 
     subroutine stats_compute_yavg_temp
@@ -2377,7 +2419,9 @@ module stats
           else if (name == trim(svpsvptname(n))) then
             fld = svsvt(:,:,kb:ke,n) - svt(:,:,kb:ke,n)*svt(:,:,kb:ke,n);  return
           else if (name == trim(svsgsname(n))) then
-            fld = svsgst(:,:,kb:ke,n);                                     return
+            fld = svsgst(:,:,kb:ke,n)
+            where (IIw(ib:ie,jb:je,kb:ke)==0) fld = -999.
+            return
           end if
         end do
         write(0,*) 'ERROR stats_tavg_field: unknown time-averaged variable ', name

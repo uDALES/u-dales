@@ -4,16 +4,24 @@ on: [push, pull_request]
 
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
-  # The integration tests launch up to 4 MPI ranks on hosted runners that expose
-  # 2 physical cores. Open MPI 5 (PRRTE), which Ubuntu 26.04 and Homebrew ship,
-  # counts one slot per core and refuses such launches unless oversubscription
-  # is allowed; the test runners add --oversubscribe only when they recognise
-  # the launcher from `mpiexec --version`, which the Ubuntu 26.04 package does
-  # not answer reliably. Allow it through the MCA parameters instead, which the
-  # launcher reads regardless of how it is invoked: the first is for Open MPI 4
-  # (ORTE), the second for Open MPI 5 (PRRTE). Both are ignored by other MPIs.
-  OMPI_MCA_rmaps_base_oversubscribe: "true"
-  PRTE_MCA_rmaps_default_mapping_policy: ":oversubscribe"
+  # uDALES runs one MPI rank per CPU and never oversubscribes: every runner checks
+  # the requested ranks against the CPUs granted to it (tools/mpi_env.sh,
+  # tests/integration/mpi_env.py) and fails with both numbers otherwise. The
+  # hosted Linux runner exposes 4 CPUs as 2 cores with 2 hardware threads each;
+  # Open MPI counts one slot per core and binds one rank per core by default, so
+  # tell it to treat hardware threads as CPUs (what `mpiexec --use-hwthread-cpus`
+  # does). That is a mapping choice, not oversubscription: four ranks on four
+  # CPUs. Open MPI 4 (ORTE) takes slots and binding from the one hwloc variable.
+  # Open MPI 5 (PRRTE) keeps the two apart, as --use-hwthread-cpus does
+  # internally: the HWTCPUS mapping qualifier sets the CPU unit used for mapping
+  # and binding, prte_set_default_slots the slot count (either alone fails: the
+  # qualifier leaves one slot per core, the slot count leaves core binding). All
+  # are ignored by other MPIs. The macOS runner has three CPUs, so the
+  # supported-macos selection runs the MPI tests on at most two ranks
+  # (tests/test_suites.yml).
+  OMPI_MCA_hwloc_base_use_hwthreads_as_cpus: "true"
+  PRTE_MCA_rmaps_default_mapping_policy: ":hwtcpus"
+  PRTE_MCA_prte_set_default_slots: "hwthreads"
 
 jobs:
   build-and-supported-tests:

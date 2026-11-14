@@ -47,11 +47,27 @@ module modstatsdump
   contains
 
   subroutine initstatsdump
-    use modmpi,     only : myid,cmyidx,cmyidy
+    use modmpi,     only : myid,cmyidx,cmyidy,mpierr
     use modglobal,  only : imax,jmax,cexpnr,kb,ke
     use modstat_nc, only : ncinfo,open_nc,define_nc,writestat_dims_nc
     use modfields,  only : ncstattke,ncstatmint
     implicit none
+
+    !> The TKE-budget output has been non-functional for years: genstats is not
+    !  called in statsdump and nusgsav/disssgsav are never accumulated, so tkedump
+    !  would be written full of zeros. Abort rather than emit a plausible-looking
+    !  but meaningless file. See issue #352 for the repair.
+    if (ltkedump) then
+      if (myid == 0) then
+        write(0, *) 'ERROR: ltkedump is disabled'
+        write(0, *) 'The TKE-budget statistics path is not operational: genstats is'
+        write(0, *) 'not called and nusgsav/disssgsav are never accumulated, so'
+        write(0, *) 'tkedump.'//cexpnr//'.nc would contain zeros only.'
+        write(0, *) 'Set ltkedump = .false. See uDALES issue #352.'
+      end if
+      call MPI_FINALIZE(mpierr)
+      stop 1
+    end if
 
     allocate(ncstattke(nstattke,4))
     allocate(ncstatmint(nstatmint,4))

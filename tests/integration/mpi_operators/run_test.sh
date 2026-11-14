@@ -23,24 +23,9 @@ NAMELIST_DIR="${NAMELIST_DIR:-${SCRIPT_DIR}}"
 NAMELIST="${NAMELIST:-namoptions.100}"
 TMPDIR_PARENT="${TMPDIR_PARENT:-}"
 
-if [ -z "${MPIEXEC:-}" ] && command -v mpiifort >/dev/null 2>&1; then
-    MPIEXEC="$(dirname "$(command -v mpiifort)")/mpiexec"
-else
-    MPIEXEC="${MPIEXEC:-mpiexec}"
-fi
-MPI_LAUNCH_EXTRA_ARGS="${MPI_LAUNCH_EXTRA_ARGS:-}"
-MPI_VERSION_OUTPUT="$("$MPIEXEC" --version 2>/dev/null || true)"
-
-if printf '%s\n' "$MPI_VERSION_OUTPUT" | grep -Eqi "Open MPI|OpenRTE"; then
-    MPI_LAUNCH_EXTRA_ARGS="--oversubscribe ${MPI_LAUNCH_EXTRA_ARGS}"
-    TMPDIR="${TMPDIR:-/tmp}"
-    export TMPDIR
-    export OMPI_MCA_prte_tmpdir_base="${OMPI_MCA_prte_tmpdir_base:-$TMPDIR}"
-    export PRTE_MCA_prte_tmpdir_base="${PRTE_MCA_prte_tmpdir_base:-$TMPDIR}"
-    if [ -z "$TMPDIR_PARENT" ]; then
-        TMPDIR_PARENT="$TMPDIR"
-    fi
-fi
+# launcher, extra arguments and the one-rank-per-CPU pre-flight check (never oversubscribe)
+# shellcheck disable=SC1091
+source "${REPO_ROOT}/tools/mpi_env.sh"
 
 if [ ! -f "$UDALES_BUILD" ]; then
     echo "ERROR: u-dales executable not found at: $UDALES_BUILD"
@@ -87,6 +72,7 @@ run_mode() {
     local run_rc=0
     (
         cd "$run_dir" || exit 1
+        mpi_preflight "$np" || exit 1
         "$MPIEXEC" $MPI_LAUNCH_EXTRA_ARGS -n "$np" "$UDALES_BUILD" "$NAMELIST" > run.log 2>&1
     ) || run_rc=$?
 

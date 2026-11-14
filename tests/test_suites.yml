@@ -149,21 +149,34 @@ groups:
         command:
           - "{python}"
           - "{tests_dir}/integration/stretched_grid/test_stretched_grid.py"
+      - label: "supported: SGS TKE top boundary condition"
+        class: supported
+        kind: regression
+        component: solver
+        platform: hpc
+        cost: fast
+        env_UDALES_BUILD: "{repo_root}/build/{build_type_lower}/u-dales"
+        command:
+          - "{python}"
+          - "{tests_dir}/integration/tke_top_bc/test_tke_top_bc.py"
+      - label: "supported: fielddump output-time diagnostics"
+        class: supported
+        kind: integration
+        component: solver
+        platform: hpc
+        cost: fast
+        env_UDALES_BUILD: "{repo_root}/build/{build_type_lower}/u-dales"
+        command:
+          - "{python}"
+          - "{tests_dir}/integration/fielddump_diagnostics/test_fielddump_diagnostics.py"
 
   supported-macos:
     includes:
       - python-library
     suites:
-      - label: "supported: ibm sparse input integration"
-        class: supported
-        kind: integration
-        component: ibm
-        platform: hpc
-        cost: medium
-        env_UDALES_BUILD: "{repo_root}/build/{build_type_lower}/u-dales"
-        command:
-          - "bash"
-          - "{tests_dir}/integration/ibm_sparse_input/run_test.sh"
+      # The hosted macOS runner has three CPUs and uDALES never oversubscribes:
+      # the ibm sparse input test needs its fixed 2x2 decomposition and runs on
+      # Linux and HPC only; the other MPI tests run here on at most two ranks.
       - label: "supported: vertical grid metrics integration"
         class: supported
         kind: integration
@@ -171,6 +184,7 @@ groups:
         platform: hpc
         cost: medium
         env_UDALES_BUILD: "{repo_root}/build/{build_type_lower}/u-dales"
+        env_ZGRID_MODES: "uniform stretched stretched_badpois"
         command:
           - "bash"
           - "{tests_dir}/integration/zgrid_metrics/run_test.sh"
@@ -181,6 +195,8 @@ groups:
         platform: hpc
         cost: medium
         env_UDALES_BUILD: "{repo_root}/build/{build_type_lower}/u-dales"
+        env_UDALES_TEST_NPROCX: "1"
+        env_UDALES_TEST_NPROCY: "2"
         command:
           - "{python}"
           - "{tests_dir}/integration/stretched_grid/test_stretched_grid.py"
@@ -250,6 +266,16 @@ groups:
         command:
           - "bash"
           - "{tests_dir}/integration/warmstart_facets/run_test.sh"
+      - label: "experimental: sgs statistics integration"
+        class: experimental
+        kind: integration
+        component: solver
+        platform: any
+        cost: fast
+        env_UDALES_BUILD: "{repo_root}/build/{build_type_lower}/u-dales"
+        command:
+          - "bash"
+          - "{tests_dir}/integration/sgs_statistics/run_test.sh"
       - label: "experimental: mpi averaging regression"
         class: experimental
         kind: regression
