@@ -354,8 +354,8 @@ class TestSGSOneEqn(_SolverTest):
     def test_closure_and_sources(self):
         d = tc.write_case(self.tmp / "sgs1eq", groups={
             "RUN": {"runmode": "1008"},
-            "NAMSUBGRID": {"loneeqn": ".true.", "lvreman": ".false.", "ldelta": ".false.",
-                           "Prandtl": "0.33333333333333333"}})
+            # Prandtl is left at its default, which must be exactly 1/3 (checked in tests.f90)
+            "NAMSUBGRID": {"loneeqn": ".true.", "lvreman": ".false.", "ldelta": ".false."}})
         res = self.run_ok(d)
         out = res.stdout + res.stderr
         print("\n" + "\n".join(l for l in out.splitlines() if "worst" in l or "FAIL" in l))

@@ -755,8 +755,8 @@ contains
   !!       work arrays are pre-filled with garbage), and interior dissipation without
   !!       the old factor 2, buoyancy with grav/thvf(k);
   !!   (c) sources with the MO surface: the kb sources use dudz_mo/dvdz_mo and dthvdz(kb).
-  !! The namelist must set loneeqn = .true., ldelta = .false. and Prandtl = 1/3 to full
-  !! precision (the default 0.333 gives 3.003).
+  !! The namelist must set loneeqn = .true. and ldelta = .false.; Prandtl must be 1/3 to
+  !! full precision (the default).
   logical function tests_sgs_oneeqn()
     use modglobal,      only : ib, ie, jb, je, kb, ke, runmode, delta, grav, eps1, numol, &
                                prandtlmoli, pi, BCbotm, BCbotm_mo

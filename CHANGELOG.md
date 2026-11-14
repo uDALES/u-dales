@@ -48,10 +48,11 @@ that they are easy to find when upgrading.
   (DYCOMS RF01) now prescribes `wqsurf = -3.72578241e-5` (115 W/m2 / (1.22 x 2.53e6)).
 - **One-equation SGS model (`loneeqn`) aligned with DALES.** Four changes to
   `modsubgrid.f90`, following DALES dev 075ac4e (#401). Who is affected: only runs with
-  `loneeqn = .true.`; Vreman and Smagorinsky runs are unchanged (bit for bit).
+  `loneeqn = .true.` (Vreman and Smagorinsky runs change only through the new
+  `Prandtl` default, see the next entry).
   - The turbulent Prandtl number now means `Kh = Km/Prandtl`, as in DALES and as
     the Smagorinsky and Vreman models already used it (`ch = 1/Prandtl`). With
-    the default `Prandtl = 0.333`, `Kh = 3 Km` in unstable and neutral cells,
+    the default `Prandtl = 1/3`, `Kh = 3 Km` in unstable and neutral cells,
     going to `Km` in strongly stable ones. The model previously used
     `ch = Prandtl`, which gave `Kh = Km/3`: 9 times less SGS heat and moisture
     mixing than intended. Cases that set `Prandtl` for the one-equation model
@@ -66,6 +67,10 @@ that they are easy to find when upgrading.
     MO surface-layer shears `dudz`, `dvdz` and `dthvdz(kb)`. With the other
     bottom conditions there are still no sources at `kb`, but they are now set
     to zero explicitly; before, uninitialised memory was added to `e12p(kb)`.
+- **Default turbulent Prandtl number is exactly 1/3** (was 0.333), the DALES value.
+  `Kh = Km/Prandtl` was `3.003 Km`; it is now `3 Km`, about 0.1 % less SGS heat,
+  moisture and scalar diffusivity. Who is affected: every Smagorinsky, Vreman and
+  one-equation run that does not set `Prandtl` in `&NAMSUBGRID`.
 
 - **SGS flux sign convention.** All subgrid-scale fluxes in the statistics
   output (`usgs*`, `vsgs*`, `wsgs*`, `thlsgs*`, `qtsgs*`, `sv1sgs`–`sv4sgs`,
