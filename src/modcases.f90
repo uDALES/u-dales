@@ -18,6 +18,9 @@
 !! - stats     in the time loop after thermostat, every RK substep; a stats hook
 !!             gates itself on rk3step == 3 and its own output time
 !!
+!! A case namelist group that is in namoptions while its hook is not in case_hooks is
+!! reported with a warning on rank 0 (warn_unlisted_groups), since the group would be ignored.
+!!
 !! See docs/udales-case-hooks.md for how to add a case.
 !
 ! This file is part of uDALES (https://github.com/uDALES/u-dales).
@@ -38,6 +41,7 @@
 ! Copyright (C) 2016- the uDALES Team, Imperial College London.
 !
 module modcases
+  use mpi   ! explicit MPI interfaces: gfortran rejects MPI_BCAST calls of different types in one file otherwise
   implicit none
   private
   public :: initcases, call_hooks_init, call_hooks_radiation, call_hooks_forcing, call_hooks_stats
@@ -69,23 +73,25 @@ contains
   !> Read &NAMCASES and register the listed hooks (all ranks).
   subroutine initcases
     use modglobal, only : ifnamopt, fname_options
-    use modmpi,    only : myid, comm3d, mpierr, mpi_character
+    use modmpi,    only : myid, comm3d, mpierr, mpi_character, mpi_integer
     implicit none
     integer :: ierr
+    character(80) :: msg
     namelist/NAMCASES/ case_hooks
 
     if (myid == 0) then
       open(ifnamopt, file=fname_options, status='old', iostat=ierr)
       read (ifnamopt, NAMCASES, iostat=ierr)
-      if (ierr > 0) then
-        write(0, *) 'ERROR: Problem in namoptions NAMCASES'
-        write(0, *) 'iostat error: ', ierr
-        stop 1
-      end if
       close(ifnamopt)
+    end if
+    call MPI_BCAST(ierr, 1, MPI_INTEGER, 0, comm3d, mpierr)   ! all ranks abort together
+    if (ierr > 0) then
+      write(msg, '(a,i0)') 'Problem in namoptions NAMCASES, iostat = ', ierr
+      call fail(trim(msg), '')
     end if
     call MPI_BCAST(case_hooks, len(case_hooks), MPI_CHARACTER, 0, comm3d, mpierr)
     call register_list(case_hooks)
+    call warn_unlisted_groups
   end subroutine initcases
 
   !> Abort on all ranks with one message (two lines) from rank 0.
@@ -99,6 +105,29 @@ contains
     end if
     call abort_all_ranks(1)
   end subroutine fail
+
+  !> Warn (rank 0) about the namelist group of a known case that is present while its hook is not listed.
+  subroutine warn_unlisted_groups
+    use modmpi,           only : myid
+    use case_dycoms_rf01, only : dycoms_rf01_group_present
+    implicit none
+    if (myid /= 0) return
+    if (.not. is_registered('dycoms_rf01')) then
+      if (dycoms_rf01_group_present()) write(0, '(2a)') 'WARNING: &NAMCASE_DYCOMS is in namoptions but ', &
+        "'dycoms_rf01' is not in case_hooks (&NAMCASES); the group is ignored"
+    end if
+  end subroutine warn_unlisted_groups
+
+  !> True if the hook `name` is already registered.
+  logical function is_registered(name)
+    implicit none
+    character(*), intent(in) :: name
+    integer :: n
+    is_registered = .false.
+    do n = 1, nhooks
+      if (trim(hooks(n)%name) == name) is_registered = .true.
+    end do
+  end function is_registered
 
   !> Split a comma-separated list and register each non-empty name.
   subroutine register_list(list)
@@ -123,11 +152,8 @@ contains
   subroutine register_case(name)
     implicit none
     character(*), intent(in) :: name
-    integer :: n
 
-    do n = 1, nhooks
-      if (trim(hooks(n)%name) == name) call fail('case hook listed twice in case_hooks: ' // name, '')
-    end do
+    if (is_registered(name)) call fail('case hook listed twice in case_hooks: ' // name, '')
     if (nhooks == max_hooks) call fail('too many case hooks in case_hooks', '')
     nhooks = nhooks + 1
     hooks(nhooks)%name = name

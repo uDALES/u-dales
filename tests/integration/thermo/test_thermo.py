@@ -496,6 +496,37 @@ class TestCaseHooks(_SolverTest):
                                      "NAMTHERMOSTAT": {"lthermostat": ".true.", "zi_sv_index": "1"}},
                     "zi_sv_index > 0 requires", sv=np.ones((64, 1)))
 
+    def test_thermostat_without_interval_aborts(self):
+        self._abort("therm_noint", {"NAMTHERMOSTAT": {"lthermostat": ".true."}},
+                    "requires tthermostat > 0 (no default)")
+
+    def test_negative_radiation_parameters_abort(self):
+        self._abort("rad_negflux", {"NAMRADIATION": dict(self.RAD, dlwbot="-5.")},
+                    "dlwtop and dlwbot must be >= 0")
+        self._abort("rad_negtime", {"NAMRADIATION": dict(self.RAD, timerad="-1.")},
+                    "timerad must be >= 0")
+
+    def test_unreadable_namelist_aborts_once_on_all_ranks(self):
+        # a read error in a new namelist group is collective: rank 0 reports once, all ranks abort
+        d = tc.write_case(self.tmp / "nml_bad", groups={
+            "RUN": {"nprocx": "2"}, "NAMTHERMOSTAT": {"lthermostat": "banana"}})
+        res = tc.run(d, 2)
+        out = res.stdout + res.stderr
+        self.assertNotEqual(res.returncode, 0)
+        self.assertEqual(out.count("Problem in namoptions NAMTHERMOSTAT"), 1)
+
+    def test_case_group_without_hook_warns(self):
+        # &NAMCASE_DYCOMS is present but 'dycoms_rf01' is not in case_hooks: the run goes on, with a warning
+        d = tc.write_case(self.tmp / "hook_unlisted", groups={
+            "NAMCASE_DYCOMS": {"dycoms_D": "3.75e-6", "dycoms_qt_thres": "8.e-3"}})
+        res = self.run_ok(d)
+        self.assertIn("&NAMCASE_DYCOMS is in namoptions but 'dycoms_rf01' is not in case_hooks", res.stdout + res.stderr)
+
+    def test_no_warning_when_hook_listed(self):
+        d = tc.write_case(self.tmp / "hook_listed", groups=dict(TestRadiation.DYCOMS, NAMRADIATION=self.RAD))
+        res = self.run_ok(d)
+        self.assertNotIn("is not in case_hooks", res.stdout + res.stderr)
+
     def test_no_hooks_identical_to_run_without_namelist(self):
         # case_hooks = '' must be a no-op: every thermostat output identical to a run
         # without &NAMCASES (laminar, one rank).
@@ -593,6 +624,20 @@ class TestThermoLevels(_SolverTest):
         out = res.stdout + res.stderr
         print("\n" + "\n".join(l for l in out.splitlines() if "worst" in l or "FAIL" in l))
         self.assertIn("ALL TESTS PASSED: tests_thermo_levels", out)
+
+
+class TestMOKernels(_SolverTest):
+    """In-solver test (runmode 1012, tests.f90:tests_mo_kernels) of the pure Monin-Obukhov kernels:
+    psim/psih against Businger-Dyer (unstable) and Beljaars-Holtslag (stable) reference values,
+    phim/phih, the dudz_mo/dvdz_mo formula u* phim/(kappa z1) u/|U| (Task 10 review M5), and the
+    calc_obl_iter round trip from the bulk Richardson number of a known L."""
+
+    def test_stability_functions_and_obl_iteration(self):
+        d = tc.write_case(self.tmp / "mokernels", groups={"RUN": {"runmode": "1012"}})
+        res = self.run_ok(d)
+        out = res.stdout + res.stderr
+        print("\n" + "\n".join(l for l in out.splitlines() if "worst" in l or "FAIL" in l))
+        self.assertIn("ALL TESTS PASSED: tests_mo_kernels", out)
 
 
 class TestRandomPerturbation(_SolverTest):

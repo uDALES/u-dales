@@ -2,6 +2,10 @@
 module modraddata
   implicit none
   save
+  private
+  public :: irad_none, irad_par, iradiation, timerad, rad_longw, rad_shortw, rad_ls, &
+            rad_absorber, rad_absorber_sv, rka, dlwtop, dlwbot, thlprad, lwd, lwu
+
   integer, parameter :: irad_none = 0     !< no radiation
   integer, parameter :: irad_par  = 2     !< parametrised longwave (DALES radpar)
   integer :: iradiation = irad_none
@@ -14,7 +18,6 @@ module modraddata
   real    :: rka        = 0.              !< extinction coefficient kappa [m2/kg]; required (> 0)
   real    :: dlwtop     = 0.              !< F0 [W/m2]; dlwtop or dlwbot required (> 0)
   real    :: dlwbot     = 0.              !< F1 [W/m2]
-  real    :: tnextrad = 0.
   real, allocatable :: thlprad(:,:,:)     !< radiative thl tendency [K/s] (ib:ie,jb:je,kb:ke)
   real, allocatable :: lwd(:,:,:)         !< F0 term of net upward LW flux at faces [W/m2] (kb:ke+1)
   real, allocatable :: lwu(:,:,:)         !< F1 term of net upward LW flux at faces [W/m2] (kb:ke+1)

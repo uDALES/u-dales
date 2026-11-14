@@ -2,13 +2,14 @@
 !> profiles, the uDALES counterpart of DALES tmser/profiles. Kept separate from
 !> modstatsdump so it can move into the statsout framework as one unit.
 module modthermostat
+  use mpi   ! explicit MPI interfaces: gfortran rejects MPI_BCAST calls of different types in one file otherwise
   implicit none
   save
   private
-  public :: initthermostat, thermostat, exitthermostat, lthermostat, tthermostat
+  public :: initthermostat, thermostat, exitthermostat
 
   logical :: lthermostat = .false.
-  real    :: tthermostat = 60.    !< output interval [s]
+  real    :: tthermostat = 0.     !< output interval [s]; required (> 0) if lthermostat
   real    :: tnext = 0.
   integer :: ncidt, ncidz, nrect = 0, nrecz = 0
   real    :: zi_qt_thres = 0.      !< zi_qt: qt threshold [kg/kg]; 0 = off
@@ -24,21 +25,23 @@ contains
 
   subroutine initthermostat
     use modglobal, only : ifnamopt, fname_options, cexpnr, kb, ke, timee
-    use modmpi,    only : myid, comm3d, mpierr, my_real, mpi_logical, mpi_integer
+    use modmpi,    only : myid, comm3d, mpierr, my_real, mpi_logical, mpi_integer, abort_all_ranks
     use modstat_nc, only : ncinfo, open_nc, define_nc, writestat_dims_nc
     implicit none
     integer :: ierr, n
+    character(80) :: msg
     namelist/NAMTHERMOSTAT/ lthermostat, tthermostat, zi_qt_thres, zi_sv_index, zi_sv_thres
 
     if (myid == 0) then
       open(ifnamopt, file=fname_options, status='old', iostat=ierr)
       read (ifnamopt, NAMTHERMOSTAT, iostat=ierr)
-      if (ierr > 0) then
-        write(0, *) 'ERROR: Problem in namoptions NAMTHERMOSTAT'
-        write(0, *) 'iostat error: ', ierr
-        stop 1
-      end if
+      if (ierr > 0) write(msg, '(a,i0)') 'Problem in namoptions NAMTHERMOSTAT, iostat = ', ierr
       close(ifnamopt)
+    end if
+    call MPI_BCAST(ierr, 1, MPI_INTEGER, 0, comm3d, mpierr)   ! all ranks abort together
+    if (ierr > 0) then
+      if (myid == 0) write(0, '(2a)') 'ERROR: ', trim(msg)
+      call abort_all_ranks(1)
     end if
     call MPI_BCAST(lthermostat, 1, MPI_LOGICAL, 0, comm3d, mpierr)
     call MPI_BCAST(tthermostat, 1, MY_REAL,     0, comm3d, mpierr)
@@ -229,6 +232,11 @@ contains
     if (zi_sv_index < 0 .or. zi_sv_index > nsv .or. (zi_sv_index > 0 .and. zi_sv_thres <= 0.)) then
       if (myid == 0) write(0, '(2a,i0,es12.4)') 'ERROR: &NAMTHERMOSTAT zi_sv_index > 0 requires zi_sv_index <= nsv ', &
                                  'and zi_sv_thres > 0; got ', zi_sv_index, zi_sv_thres
+      call abort_all_ranks(1)
+    end if
+    if (lthermostat .and. tthermostat <= 0.) then
+      if (myid == 0) write(0, '(a,es12.4)') 'ERROR: &NAMTHERMOSTAT lthermostat = .true. requires tthermostat > 0 (no default); got ', &
+                                 tthermostat
       call abort_all_ranks(1)
     end if
     if (myid /= 0) return

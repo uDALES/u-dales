@@ -25,7 +25,7 @@ This list refers to the original code-base [DALES](https://github.com/dalesteam/
 | randu | 0.01 |`REAL` > 0 | Amplitude of velocity field randomisation (u, v, w, independent noise, uniform in +-randu). | [m/s] |
 | randthl | 0.0 | `REAL` >= 0 | Amplitude of temperature (thl) randomisation, uniform in +-randthl, independent of the velocity noise. 0 switches it off. | [K] |
 | randqt | 0.0 | `REAL` >= 0 | Amplitude of moisture (qt) randomisation, uniform in +-randqt, capped pointwise at the local qt so that qt stays non-negative. 0 switches it off. | [kg/kg] |
-| krand | `ktot` | `INTEGER` > 0 | Highest level (counted from the ground) to which randu, randthl and randqt are applied. | - |
+| krand | `huge(0)` (clipped to `ktot`) | `INTEGER` > 0 | Highest level (counted from the ground) to which randu, randthl and randqt are applied. The default is the largest integer, which the code clips to the top level, so all levels are perturbed. | - |
 | libm | .true. | .true. or .false. | Switch that determines whether the Immersed Boundary Method is turned on. | - |
 | lles | .true. | .true. or .false. | Switch that determines whether the subgrid model is turned on or constant ekm and ekh are used (DNS). | - |
 | nprocx | -  | `INTEGER` > 0 | Number of pencils in the x-direction (see 2decomp documentation [https://2decomp-fft.github.io/]), must be a divisor of itot. | - |
@@ -182,7 +182,7 @@ BCs at the bottom (BCbot; only effective if not covered with ground facets): 1 =
 
 ## Namelist NAMRADIATION
 
-Parametrised longwave radiation (Stevens et al. 2005; DALES `radpar`). Off by default. Requires `ltempeq = .true.`; the liquid-water absorber (default) also requires `lmoist = .true.`. The tendency is added to `thlp` every Runge-Kutta substep and recomputed at the first substep of each update. With `iradiation = 2`, `rka` and one of `dlwtop`/`dlwbot` must be set (no defaults); with `iradiation = 0`, any other setting of this group is ignored with a warning.
+Parametrised longwave radiation (Stevens et al. 2005; DALES `radpar`). Off by default. Requires `ltempeq = .true.`; the liquid-water absorber (default) also requires `lmoist = .true.`. The tendency is added to `thlp` every Runge-Kutta substep and recomputed at the first substep of each update. With `iradiation = 2`, `rka` and one of `dlwtop`/`dlwbot` must be set (no defaults; a negative `timerad`, `dlwtop` or `dlwbot` aborts); with `iradiation = 0`, any other setting of this group is ignored with a warning.
 
 | Name | Default | Possible values | Description | Unit |
 | ---- | ------- | --------------- | ----------- | ---- |
@@ -192,9 +192,9 @@ Parametrised longwave radiation (Stevens et al. 2005; DALES `radpar`). Off by de
 | rad_shortw | .false. | .false. | Shortwave radiation is not supported; `.true.` aborts. | - |
 | rad_absorber | 'ql' | 'ql' or 'sv' | Absorber of the longwave scheme: cloud liquid water `ql` (requires `lmoist`), or scalar `rad_absorber_sv` (e.g. smoke). Both use `rka`, `dlwtop` and `dlwbot`. Any other value aborts. | - |
 | rad_absorber_sv | 0 (unset) | 1 to `nsv` | Index of the absorbing scalar. Required with `rad_absorber = 'sv'`; the run aborts if it is not set, and also if it is set with `rad_absorber = 'ql'`. | - |
-| rka | 0. (unset) | `REAL` > 0 | Extinction coefficient kappa. Required with `iradiation = 2`. | [m2/kg] |
-| dlwtop | 0. | `REAL` | Downward longwave flux at the top, F0. With `iradiation = 2`, `dlwtop` or `dlwbot` must be > 0. | [W/m2] |
-| dlwbot | 0. | `REAL` | Upward longwave flux at the bottom, F1. | [W/m2] |
+| rka | 0. (unset) | `REAL` > 0 | Extinction coefficient kappa. Required when `iradiation = 2`. | [m2/kg] |
+| dlwtop | 0. (unset) | `REAL` >= 0 | Downward longwave flux at the top, F0. Required when `iradiation = 2`, unless `dlwbot` > 0 (at least one of the two must be > 0). | [W/m2] |
+| dlwbot | 0. | `REAL` >= 0 | Upward longwave flux at the bottom, F1. 0 switches it off. Required (> 0) only if `dlwtop` is 0. | [W/m2] |
 | rad_ls | .false. | .true. or .false. | DALES compatibility only: ignored with a warning; the `thlpcar` column of `lscale.inp` is always applied. | - |
 
 ## Namelist NAMCASES
@@ -203,7 +203,7 @@ Case hooks: case-specific physics kept out of the core modules, in `src/cases/` 
 
 | Name | Default | Possible values | Description | Unit |
 | ---- | ------- | --------------- | ----------- | ---- |
-| case_hooks | '' | comma-separated list of hook names | Hooks to switch on. Valid names: `dycoms_rf01`. An unknown or repeated name aborts. | - |
+| case_hooks | '' | comma-separated list of hook names | Hooks to switch on. Valid names: `dycoms_rf01`. An unknown or repeated name aborts. A case group in namoptions (e.g. `&NAMCASE_DYCOMS`) whose hook is not listed is ignored, with a warning on rank 0. | - |
 
 ### Namelist NAMCASE_DYCOMS
 
@@ -221,7 +221,7 @@ Time-series and profile diagnostics for boundary-layer cases (BOMEX, smoke, DYCO
 | Name | Default | Possible values | Description | Unit |
 | ---- | ------- | --------------- | ----------- | ---- |
 | lthermostat | .false. | .true. or .false. | Write `thermostat_t.<expnr>.nc` and `thermostat_z.<expnr>.nc`. | - |
-| tthermostat | 60. | `REAL` > 0 | Output interval. | [s] |
+| tthermostat | 0. (unset) | `REAL` > 0 | Output interval. Required when `lthermostat = .true.`; the run aborts if it is not set. | [s] |
 | zi_qt_thres | 0. (off) | `REAL` >= 0 | `qt` threshold whose highest downward crossing is written as `zi_qt`. 0 writes no `zi_qt`; > 0 requires `lmoist`. | [kg/kg] |
 | zi_sv_index | 0 (off) | 0 to `nsv` | Scalar whose highest downward crossing of `zi_sv_thres` is written as `zi_sv`. 0 writes no `zi_sv`. | - |
 | zi_sv_thres | 0. (unset) | `REAL` > 0 | Threshold of the `zi_sv` diagnostic. Required with `zi_sv_index > 0`; the run aborts if it is not set. | scalar unit |

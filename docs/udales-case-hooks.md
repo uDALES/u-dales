@@ -14,7 +14,7 @@ The core modules call the registered hooks at fixed points. Without `&NAMCASES`,
 
 `src/modcases.f90` is the registry:
 
-- `initcases` reads `&NAMCASES` and splits `case_hooks` at commas. For each name, `register_case` calls the matching `register_<name>` routine (a `select case`). An unknown name aborts and lists the valid names; a name listed twice aborts.
+- `initcases` reads `&NAMCASES` and splits `case_hooks` at commas. For each name, `register_case` calls the matching `register_<name>` routine (a `select case`). An unknown name aborts and lists the valid names; a name listed twice aborts. After registering, `warn_unlisted_groups` tries to read the namelist group of every known case that is not listed and warns on rank 0 if it is present, since the group would be ignored (each case module provides a `<name>_group_present` function for this).
 - A `register_<name>` routine fills one `hook_set`, a derived type with one procedure pointer per hook point. Fortran has no arrays of procedure pointers, so the registry keeps an array of these derived types instead.
 - The `register_<name>` routine also reads and checks the case's namelist (through a `<name>_config` routine of the case module), so a misconfigured case aborts at startup, before the facet and initial-field setup.
 - The core code calls `call_hooks_<point>`, which runs the hook of every registered case that set that point, in `case_hooks` order.
@@ -53,7 +53,7 @@ Hooks take no arguments: they use the model state through `use` statements, like
 
     The case has its own namelist, `&NAMCASE_DYCOMS`, read from the same `namoptions` file at registration (rank 0 reads, then `MPI_BCAST`), with the usual error handling. Parameters that are not obviously nonzero default to 0, and the run aborts with a clear message when they are not set; the case's `namoptions` sets them explicitly. **Case namelist variables carry the case prefix** (`dycoms_D`, not `D`): `tools/python/namelists.json` maps variable names to namelist groups globally, so a generic name would capture the same name in every other group.
 
-2. **Register it** in `src/modcases.f90`: add the name to `valid_names`, a branch to the `select case` in `register_case`, and a `register_<name>` routine that sets the pointers of the hook points the case uses:
+2. **Register it** in `src/modcases.f90`: add the name to `valid_names`, a branch to the `select case` in `register_case`, a check of its group in `warn_unlisted_groups`, and a `register_<name>` routine that sets the pointers of the hook points the case uses:
 
     ```fortran
     case ('dycoms_rf01')

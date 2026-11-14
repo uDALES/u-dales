@@ -2,10 +2,14 @@
 !> src/modradiation.f90 (radiation, radpar longwave branch). Case-specific
 !> terms (DYCOMS free troposphere) are case hooks, see modcases.
 module modradiation
-  use modraddata
+  use mpi   ! explicit MPI interfaces: gfortran rejects MPI_BCAST calls of different types in one file otherwise
+  use modraddata, only : irad_none, irad_par, iradiation, timerad, rad_longw, rad_shortw, rad_ls, &
+                         rad_absorber, rad_absorber_sv, rka, dlwtop, dlwbot, thlprad, lwd, lwu
   implicit none
   private
   public :: initradiation, radiation, exitradiation
+
+  real :: tnextrad = 0.   !< time of the next radiation update [s]
 
 contains
 
@@ -14,6 +18,7 @@ contains
     use modmpi,    only : myid, comm3d, mpierr, my_real, mpi_logical, mpi_integer, mpi_character
     implicit none
     integer :: ierr
+    character(160) :: msg
     namelist/NAMRADIATION/ iradiation, timerad, rad_longw, rad_shortw, rad_ls, &
          rad_absorber, rad_absorber_sv, rka, dlwtop, dlwbot
 
@@ -21,12 +26,12 @@ contains
       open(ifnamopt, file=fname_options, status='old', iostat=ierr)
       read (ifnamopt, NAMRADIATION, iostat=ierr)
       if (ierr > 0) then
-        write(0, *) 'ERROR: Problem in namoptions NAMRADIATION'
-        write(0, *) 'iostat error: ', ierr
-        stop 1
+        write(msg, '(a,i0)') 'Problem in namoptions NAMRADIATION, iostat = ', ierr
       end if
       close(ifnamopt)
     end if
+    call MPI_BCAST(ierr, 1, MPI_INTEGER, 0, comm3d, mpierr)   ! all ranks abort together
+    if (ierr > 0) call fail(msg)
     call MPI_BCAST(iradiation,  1, MPI_INTEGER, 0, comm3d, mpierr)
     call MPI_BCAST(timerad,     1, MY_REAL,     0, comm3d, mpierr)
     call MPI_BCAST(rad_longw,   1, MPI_LOGICAL, 0, comm3d, mpierr)
@@ -65,6 +70,14 @@ contains
     end if
     if (rad_shortw) call fail('rad_shortw is not supported in uDALES')
     if (.not. ltempeq) call fail('iradiation = 2 requires ltempeq = .true.')
+    if (timerad < 0.) then
+      write(msg, '(a,es12.4)') '&NAMRADIATION timerad must be >= 0; got ', timerad
+      call fail(msg)
+    end if
+    if (dlwtop < 0. .or. dlwbot < 0.) then
+      write(msg, '(a,2es12.4)') '&NAMRADIATION dlwtop and dlwbot must be >= 0; got ', dlwtop, dlwbot
+      call fail(msg)
+    end if
     if (rka <= 0. .or. (dlwtop <= 0. .and. dlwbot <= 0.)) then
       write(msg, '(a,3es12.4)') '&NAMRADIATION: iradiation = 2 requires rka > 0 and dlwtop > 0 or dlwbot > 0'// &
                                 ' (no defaults); got rka, dlwtop, dlwbot =', rka, dlwtop, dlwbot

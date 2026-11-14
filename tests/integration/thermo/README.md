@@ -39,8 +39,9 @@ Run: `python tests/integration/thermo/test_thermo.py -v [TestClass]`.
   pre-Task-16 `rad_smoke` reference `smoke_pre_task16.txt`, see below), `zi_sv`, and the DYCOMS free-troposphere
   term of the `dycoms_rf01` case hook (flux form vs pointwise form, column integral, subsidence balance),
   against the closed-form longwave expressions
-- `TestCaseHooks`: the `&NAMCASES` registry (unknown names abort, `case_hooks = ''` is a no-op) and the
-  aborts for required parameters that are not set
+- `TestCaseHooks`: the `&NAMCASES` registry (unknown names abort, `case_hooks = ''` is a no-op), the
+  aborts for required parameters that are not set (including `tthermostat`), a namelist read error aborting
+  once on all ranks, and the warning for a case group whose hook is not listed
 - `TestDecomposition`: radiation, MO surface and moist SGS in a randomised
   short run (`runtime` 2.5 s, `dtmax` 1 s, about 3 steps) on 1, 2 (x) and 4 (2 x 2) ranks. Reference: the serial run.
 - `TestSGSOneEqn`: the one-equation SGS model (Task 10) through the in-solver
@@ -52,6 +53,9 @@ Run: `python tests/integration/thermo/test_thermo.py -v [TestClass]`.
   it, and a synthetic fully solid level (`thvf = -999`), which must get the
   neutral length scale and no buoyancy source. Reference: the closed-form
   expressions, constants recomputed independently.
+- `TestMOKernels`: in-solver `runmode = 1012` (`tests.f90:tests_mo_kernels`): `psim`/`psih` against Businger-Dyer
+  and Beljaars-Holtslag reference values, `phim`/`phih`, the `dudz_mo`/`dvdz_mo` formula
+  `u* phim(z1/L) / (kappa z1) * u/|U|`, and the `calc_obl_iter` round trip from the bulk Richardson number of a known `L`.
 - `TestThermoLevels`: in-solver `runmode = 1010` (`tests.f90:tests_thermo_levels`):
   after `thermodynamics`, `ql0(k)` and `ql0h(k)` are the saturation adjustment of
   `thl0`/`qt0` and `thl0h`/`qt0h` at the same level, cell by cell (#403).

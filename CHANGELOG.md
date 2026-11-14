@@ -184,6 +184,18 @@ that they are easy to find when upgrading.
   `rad_smoke`, `isvsmoke`, the `zi_smoke`/`zi_qt8` outputs and the former
   `rka = 130`/`dlwtop = 74` defaults were never released.
 
+- **Engineering hygiene of the modules added on this branch** (issue #402 applied to the new
+  code only): `modsurface`, `modradiation`, `modraddata`, `modthermostat`, `modcases` and
+  `case_dycoms_rf01` are private by default with explicit public lists; configuration errors
+  and namelist read errors in them abort all ranks through `modmpi:abort_all_ranks`, after
+  one message from rank 0 (this includes the new start-up checks in `checkinitvalues` and the
+  `fieldvars = 'dt'` check); `tthermostat` has no default (0) and `lthermostat = .true.`
+  aborts without it (it was 60 s, never released); `iradiation = 2` also rejects negative
+  `timerad`, `dlwtop`, `dlwbot`; a case namelist group whose hook is not in `case_hooks`
+  gives a warning; `randomize_field` no longer aliases its inout field with the qt cap
+  (results unchanged to the bit). New test runmode 1012 (`tests_mo_kernels`) checks the
+  Monin-Obukhov kernels against reference values. Bit-identical results otherwise.
+
 - In-solver test `runmode` 1008 (`tests_sgs_oneeqn`, run from
   `tests/integration/thermo/test_thermo.py:TestSGSOneEqn`) checking the
   one-equation SGS closure (`Kh/Km`, stable length scale) and its TKE sources.

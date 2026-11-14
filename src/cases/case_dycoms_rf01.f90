@@ -25,9 +25,10 @@
 ! Copyright (C) 2016- the uDALES Team, Imperial College London.
 !
 module case_dycoms_rf01
+  use mpi   ! explicit MPI interfaces: gfortran rejects MPI_BCAST calls of different types in one file otherwise
   implicit none
   private
-  public :: dycoms_rf01_config, dycoms_rf01_init, dycoms_rf01_radiation
+  public :: dycoms_rf01_config, dycoms_rf01_init, dycoms_rf01_radiation, dycoms_rf01_group_present
   save
 
   ! Case-prefixed names: tools/python/namelists.json maps variable names to groups globally.
@@ -36,24 +37,40 @@ module case_dycoms_rf01
 
 contains
 
-  !> Read &NAMCASE_DYCOMS and check that the case can run (at registration, all ranks).
-  subroutine dycoms_rf01_config
-    use modglobal,  only : ifnamopt, fname_options, lmoist
-    use modraddata, only : iradiation, irad_par
-    use modmpi,     only : myid, comm3d, mpierr, my_real
+  !> Read &NAMCASE_DYCOMS on rank 0; ierr as of the namelist read (< 0: group absent).
+  subroutine read_group(ierr)
+    use modglobal, only : ifnamopt, fname_options
     implicit none
-    integer :: ierr
+    integer, intent(out) :: ierr
     namelist/NAMCASE_DYCOMS/ dycoms_D, dycoms_qt_thres
 
-    if (myid == 0) then
-      open(ifnamopt, file=fname_options, status='old', iostat=ierr)
-      read (ifnamopt, NAMCASE_DYCOMS, iostat=ierr)
-      if (ierr > 0) then
-        write(0, *) 'ERROR: Problem in namoptions NAMCASE_DYCOMS'
-        write(0, *) 'iostat error: ', ierr
-        stop 1
-      end if
-      close(ifnamopt)
+    open(ifnamopt, file=fname_options, status='old', iostat=ierr)
+    read (ifnamopt, NAMCASE_DYCOMS, iostat=ierr)
+    close(ifnamopt)
+  end subroutine read_group
+
+  !> True on rank 0 if &NAMCASE_DYCOMS is in namoptions (for modcases:warn_unlisted_groups).
+  logical function dycoms_rf01_group_present()
+    implicit none
+    integer :: ierr
+    call read_group(ierr)
+    dycoms_rf01_group_present = (ierr == 0)
+  end function dycoms_rf01_group_present
+
+  !> Read &NAMCASE_DYCOMS and check that the case can run (at registration, all ranks).
+  subroutine dycoms_rf01_config
+    use modglobal,  only : lmoist
+    use modraddata, only : iradiation, irad_par
+    use modmpi,     only : myid, comm3d, mpierr, my_real, mpi_integer
+    implicit none
+    integer :: ierr
+    character(80) :: msg
+
+    if (myid == 0) call read_group(ierr)
+    call MPI_BCAST(ierr, 1, MPI_INTEGER, 0, comm3d, mpierr)   ! all ranks abort together
+    if (ierr > 0) then
+      write(msg, '(a,i0)') 'Problem in namoptions NAMCASE_DYCOMS, iostat = ', ierr
+      call fail(trim(msg))
     end if
     call MPI_BCAST(dycoms_D,        1, MY_REAL, 0, comm3d, mpierr)
     call MPI_BCAST(dycoms_qt_thres, 1, MY_REAL, 0, comm3d, mpierr)
