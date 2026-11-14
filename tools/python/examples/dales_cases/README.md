@@ -103,7 +103,7 @@ Then apply `dales_inputs/dales-075ac4e-t19.patch` on top (Task 19):
   `      real,parameter :: fkar     = 0.4              !<    *Von Karman constant` became
   `      real,parameter :: fkar     = 0.41             !<    *Von Karman constant (t19 patch: uDALES value)`.
   With 0.4 vs 0.41, DALES u* is about 2.5 % lower at the same wind. With uDALES at 0.40 no edit is needed.
-- No DALES upstream issue has been filed for the `iradiation = 10` reset, so this patch is still the only fix.
+- The `iradiation = 10` reset has been reported upstream as a comment on [dalesteam/dales#347](https://github.com/dalesteam/dales/issues/347#issuecomment-6878639996); until DALES changes it, this patch is needed.
 Build as in the DALES README; with Intel 2021a on CX3, compile `modheterostats.f90` at `-O1` (ifort ICE).
 
 Do not set `krandumax > 0` with the default `krandumin = 1` in DALES: that perturbs w at k = 1 (the surface),
