@@ -60,9 +60,11 @@ and 0.25 gave identical series; `diffnr = 0.1` made diffusion limit the step (4.
 See the full report `.superpowers/sdd/2026-11-13-moist-thermo-port/task-13-report.md` for all runs.
 
 For a **fixed** step (needed for an identical-dt comparison with DALES, where `ladaptive = .false.` and `dtmax`
-is the step), uncomment the two commented lines in `&RUN` of `namoptions.301`: `ladaptive = .false.`, `dtmax = 3.0`;
-`courant` and `diffnr` are then ignored and `runtime` should be a multiple of `dtmax`. 3.0 s is about the DALES mean
-(3.7 s over 6 h, 3.2 s in hours 3-6); DALES needs `ladaptive = .false.` and `dtmax = 3.0`, too (`courant` and `peclet` unused).
+is the step), uncomment the two commented lines in `&RUN` of `namoptions.301`: `ladaptive = .false.`, `dtmax = 2.0`;
+`courant` and `diffnr` are then ignored and `runtime` should be a multiple of `dtmax`. 2.0 s is below the adaptive step
+of both codes in the close-match runs (RESULTS.md); DALES needs `ladaptive = .false.` and `dtmax = 2.0`, too
+(`tools/python/examples/dales_cases/dales_inputs/bomex`). The time-step table above was measured with the e12 halo
+bug of RESULTS.md present; with that bug fixed, uDALES's adaptive step is shorter (hourly means 2.2-4.1 s).
 
 ## Deviations from DALES
 

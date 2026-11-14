@@ -7,9 +7,9 @@ ladaptive    = .true.       ! adaptive step, matched to the DALES BOMEX run (REA
 dtmax        = 20.          ! DALES default; never reached in this case
 courant      = 0.55         ! uDALES L1 Courant number, no Galilean shift: gives the DALES mean dt (README)
 diffnr       = 0.2          ! = DALES peclet 0.15 x 1.32 (uDALES sums 3 terms); not the limiting criterion here
-! Fixed time step (use for the DALES comparison, Task 14: DALES must run the same dt):
+! Fixed time step (the DALES close-match comparison, RESULTS.md; DALES runs the same dt):
 ! ladaptive  = .false.      ! then dt = dtmax; courant and diffnr are ignored; runtime must be a multiple of dtmax
-! dtmax      = 3.0          ! s; about the DALES mean dt (3.7 s over 6 h, 3.2 s in hours 3-6), Courant about 0.3 at u = 9 m/s
+! dtmax      = 2.0          ! s; below the DALES adaptive dt (hourly means 3.6-6.2 s) and the uDALES one (2.2-4.1 s); stable (RESULTS.md)
 libm         = .false.
 lles         = .true.
 nprocx       = 4
