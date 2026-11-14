@@ -88,6 +88,10 @@ extra_javascript:
   - 'javascripts/mathjax.js'
   - 'https://unpkg.com/mathjax@3/es5/tex-mml-chtml.js'
 
+# Working documents (design specs, plans) are not part of the site
+exclude_docs: |
+  superpowers/
+
 # Page tree
 nav:
   - Home: index.md

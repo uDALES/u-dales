@@ -36,7 +36,7 @@ Run: `python tests/integration/thermo/test_thermo.py -v [TestClass]`.
   `thl`, `qt` and `exnf` with the uDALES adjustment (checks `rlv`, the
   thermostat timing and that `ql0(k)` belongs to level k, #403).
 - `TestRadiation`: `thlprad` for liquid and smoke (`rad_absorber = 'sv'`, also bit-identical to the
-  pre-Task-16 `rad_smoke` reference `smoke_pre_task16.txt`, see below), `zi_sv`, and the DYCOMS free-troposphere
+  recorded reference `smoke_reference.txt`, see below), `zi_sv`, and the DYCOMS free-troposphere
   term of the `dycoms_rf01` case hook (flux form vs pointwise form, column integral, subsidence balance),
   against the closed-form longwave expressions
 - `TestCaseHooks`: the `&NAMCASES` registry (unknown names abort, `case_hooks = ''` is a no-op), the
@@ -44,7 +44,7 @@ Run: `python tests/integration/thermo/test_thermo.py -v [TestClass]`.
   once on all ranks, and the warning for a case group whose hook is not listed
 - `TestDecomposition`: radiation, MO surface and moist SGS in a randomised
   short run (`runtime` 2.5 s, `dtmax` 1 s, about 3 steps) on 1, 2 (x) and 4 (2 x 2) ranks. Reference: the serial run.
-- `TestSGSOneEqn`: the one-equation SGS model (Task 10) through the in-solver
+- `TestSGSOneEqn`: the one-equation SGS model through the in-solver
   `runmode = 1008` (`tests.f90:tests_sgs_oneeqn`), serial, on a synthetic
   stratified state. Kh/Km = 1/Prandtl = 3 where `dthvdz <= 0` and
   `ch1 + ch2*zlt/delta` where `dthvdz > 0` (zlt with `grav/thvf`), interior
@@ -64,10 +64,9 @@ Run: `python tests/integration/thermo/test_thermo.py -v [TestClass]`.
   `whls` changes sign with height and `lmomsubs` is on. Every cell is compared with
   the DALES dev 075ac4e `lstend` upwind formula, including both kb rules.
 
-`smoke_pre_task16.txt` pins the smoke longwave path exactly (`assert_array_equal`) to
-the output of the removed `rad_smoke = .true.` code (commit 5c58b2e3, Debug build). It
-proves that the Task 16 refactor (`rad_absorber = 'sv'`) changed nothing. Any later,
+`smoke_reference.txt` pins the smoke longwave path exactly (`assert_array_equal`) to
+the output of an earlier smoke-specific implementation (Debug build). It
+proves that the generic `rad_absorber = 'sv'` path reproduces it. Any later,
 intended change to the smoke path, the laminar dry column or the thermostat output
 breaks it, and a Release `UDALES_BUILD` may differ in the last bit: then retire the test
-(or regenerate the fixture from the new code and say so in the commit). Retire it at the
-latest when the `thermo` branch is merged.
+(or regenerate the fixture from the new code and say so in the commit). Retire it when it is no longer useful.

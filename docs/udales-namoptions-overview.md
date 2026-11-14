@@ -142,8 +142,8 @@ BCs at the bottom (BCbot; only effective if not covered with ground facets): 1 =
 | wtsurf | -1. |`REAL` | Kinematic heat flux at domain bottom, positive downward (into the surface) (if `lbottom = .true.`). | [Km/s] |
 | wqsurf | -1. | `REAL`| Kinematic moisture flux at domain bottom, positive downward (into the surface) (if `lbottom = .true.`).  | [m/s] |
 | ustin | -1. | `REAL` > 0 | Prescribed friction velocity for `BCbotm = 5` (Monin-Obukhov). | [m/s] |
-| thls | -1. |  `REAL`| Temperature at domain bottom (if `lbottom = .true.`).  | [K] |
-| qts | -1. | `REAL` | Moisture at domain bottom (if `lbottom = .true.`). Used in modthermodynamics to get a BC for the moisture profile. | [kg/kg] |
+| thls | -1. (unset) |  `REAL` > 0 | Temperature at domain bottom (if `lbottom = .true.`). Required (> 0) with `ltempeq` or `lbuoyancy`; the run aborts if it is unset. | [K] |
+| qts | -1. (unset) | `REAL` >= 0 | Moisture at domain bottom (if `lbottom = .true.`). Used in modthermodynamics to get a BC for the moisture profile. Required with `lmoist` (the run aborts if it is unset); dry runs use 0. | [kg/kg] |
 | z0 | -1. |  `REAL`| Momentum roughness length of the domain bottom (if `lbottom = .true.`).  | [m] |
 | z0h | -1. |  `REAL`| Heat roughness length of the domain bottom (if `lbottom = .true.`).| [m] |
 
@@ -217,7 +217,7 @@ Parameters of the `dycoms_rf01` hook: the free-troposphere term of the DYCOMS-II
 
 ## Namelist NAMTHERMOSTAT
 
-Time-series and profile diagnostics for boundary-layer cases (BOMEX, smoke, DYCOMS). Off by default. Variable names follow DALES `modthermostat`. Output files are described below. Invalid `zi_*` settings abort; `zi_sv_thres` without `zi_sv_index`, and `zi_*` settings with `lthermostat = .false.`, are ignored with a warning.
+Time-series and profile diagnostics for boundary-layer cases (BOMEX, smoke, DYCOMS). Off by default. Variable names follow DALES where an equivalent exists (`modtimestat`, `modgenstat`). Output files are described below. Invalid `zi_*` settings abort; `zi_sv_thres` without `zi_sv_index`, and `zi_*` settings with `lthermostat = .false.`, are ignored with a warning.
 
 | Name | Default | Possible values | Description | Unit |
 | ---- | ------- | --------------- | ----------- | ---- |
@@ -279,6 +279,7 @@ Both files are written by rank 0 in single precision, every `tthermostat`. Avera
 | iwallmoist | 1 | 1, 2 |  Building wall moisture flux. | - |
 | iwallscal | 1 | 1, 2 | Building wall scalar flux | - |
 | lbottom | .false. | .true., .false. | Switch for using wall function as bottom BC. *Used only if no ground facets.* | - |
+| fkar | 0.40 | `REAL` > 0 | von Karman constant of the wall functions and the Monin-Obukhov surface (the DALES, PALM and WRF value). Was 0.41 before; set `fkar = 0.41` to keep the old wall stresses (see the CHANGELOG). The inlet generator keeps its own 0.41. | - |
 | nsolpts_u | 0 | `INTEGER` | Number of solid points on u-grid. | - |
 | nsolpts_v | 0 | `INTEGER` | Number of solid points on v-grid. | - |
 | nsolpts_w | 0 | `INTEGER` | Number of solid points on w-grid. | - |

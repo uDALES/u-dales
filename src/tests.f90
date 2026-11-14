@@ -747,7 +747,7 @@ contains
 
   end function tests_sgs_statistics
 
-  !> One-equation SGS TKE model (Task 10, aligned with DALES dev 075ac4e modsubgrid.f90).
+  !> One-equation SGS TKE model (aligned with DALES dev 075ac4e modsubgrid.f90).
   !! Serial, on a synthetic stratified state; the closure and sources are called directly.
   !!   (a) closure: Kh/Km (molecular parts removed) is 1/Prandtl = 3 where dthvdz <= 0 and
   !!       ch1 + ch2*zlt/delta where dthvdz > 0, with zlt from grav/thvf(k) (not thvs);

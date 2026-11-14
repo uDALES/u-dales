@@ -220,7 +220,7 @@ class TestThermostat(_SolverTest):
             self.assertEqual(float(t["cfrac"][-1]), 1.0)
             self.assertAlmostEqual(float(t["zi_qt"][-1]), 840.0, delta=20.0)
             self.assertAlmostEqual(float(t["zi"][-1]), 840.0, delta=20.0)
-            # placeholder until the radiation task (Task 5) fills them
+            # no radiation in this case: the radiation profiles stay zero
             for name in ("thlprad", "lwu", "lwd"):
                 self.assertTrue(np.all(z[name][-1, :] == 0.0))
 
@@ -327,13 +327,12 @@ class TestRadiation(_SolverTest):
         self._report("smoke", got, ref)
         np.testing.assert_allclose(got, ref, rtol=1e-2, atol=1e-2 * np.abs(ref).max())
 
-    def test_smoke_identical_to_pre_task16_reference(self):
-        # smoke_pre_task16.txt: the same case run with the removed rad_smoke = .true.,
-        # isvsmoke = 1 (commit 5c58b2e3, Debug). rad_absorber = 'sv' must reproduce it,
-        # and zi_sv (index 1, threshold 0.5) the removed zi_smoke (700 m).
+    def test_smoke_identical_to_smoke_reference(self):
+        # smoke_reference.txt: the same case recorded with an earlier smoke-specific longwave
+        # implementation (Debug build). rad_absorber = 'sv' must reproduce it exactly.
         d, _ = self._smoke_run("rad_smoke_pre16", runtime="2.5",
                                thermostat={"zi_sv_index": "1", "zi_sv_thres": "0.5"})
-        ref = np.loadtxt(Path(__file__).with_name("smoke_pre_task16.txt"), dtype=np.float32)
+        ref = np.loadtxt(Path(__file__).with_name("smoke_reference.txt"), dtype=np.float32)
         with Dataset(d / "thermostat_z.310.nc") as z, Dataset(d / "thermostat_t.310.nc") as t:
             for col, v in enumerate(("thl", "thlprad", "lwd", "lwu")):
                 with self.subTest(var=v):
@@ -674,7 +673,7 @@ class TestThermoLevels(_SolverTest):
 class TestMOKernels(_SolverTest):
     """In-solver test (runmode 1012, tests.f90:tests_mo_kernels) of the pure Monin-Obukhov kernels:
     psim/psih against Businger-Dyer (unstable) and Beljaars-Holtslag (stable) reference values,
-    phim/phih, the dudz_mo/dvdz_mo formula u* phim/(kappa z1) u/|U| (Task 10 review M5), and the
+    phim/phih, the dudz_mo/dvdz_mo formula u* phim/(kappa z1) u/|U| (the first-level shear used by the one-equation SGS sources), and the
     calc_obl_iter round trip from the bulk Richardson number of a known L."""
 
     def test_stability_functions_and_obl_iteration(self):

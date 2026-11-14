@@ -192,7 +192,7 @@ that they are easy to find when upgrading.
   surface-layer shears, and `dthvdz(kb)` has the moist/dry surface-layer form. Requires
   `lbottom = .true.`, `ltempeq`, `BCbotT = 1`, `z0, z0h > 0`, `wtsurf` (and `wqsurf` with `lmoist`)
   set; the start-up checks abort otherwise. Not tested together with buildings, and the MO
-  state is not in the restart files (see [boundary conditions](docs/udales-boundary-conditions.md)).
+  state is not in the restart files (see [boundary conditions](udales-boundary-conditions.md)).
   Off unless `BCbotm = 4/5`; other runs are bit-identical.
 - **Parametrised longwave radiation** (`&NAMRADIATION`, `iradiation = 2`; `modradiation`,
   `modraddata`), DALES `radpar`: cloud-water absorber `rad_absorber = 'ql' | 'sv'`

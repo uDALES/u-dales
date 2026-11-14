@@ -57,7 +57,6 @@ the 60 s `tcheck` means), 6 h runs on CX3 with `build/release`:
 `courant = 0.55` matches the DALES mean within 5 % over 0-1 h, 3-6 h and 0-6 h; hours 1-3 are 26 % longer, because DALES's
 diffusion limit and uDALES's Courant limit do not evolve alike and one parameter pair cannot track both. `diffnr = 0.2`
 and 0.25 gave identical series; `diffnr = 0.1` made diffusion limit the step (4.6, 4.3, 2.8 s in the three windows with `courant = 1`).
-See the full report `.superpowers/sdd/2026-11-13-moist-thermo-port/task-13-report.md` for all runs.
 
 For a **fixed** step (needed for an identical-dt comparison with DALES, where `ladaptive = .false.` and `dtmax`
 is the step), uncomment the two commented lines in `&RUN` of `namoptions.301`: `ladaptive = .false.`, `dtmax = 2.0`;

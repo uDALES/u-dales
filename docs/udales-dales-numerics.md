@@ -4,8 +4,8 @@ This page lists, item by item, where the numerics of uDALES agree with classical
 and which settings the DALES validation cases (BOMEX, DYCOMS-II RF01, smoke) use. It is meant to be kept up to
 date: when either code changes one of the items below, change the row.
 
-**Versions.** uDALES: branch `thermo` (moist thermodynamics port), cited as `src/<file>:<line>` at commit
-c6aa1cda. DALES: `dev` at 075ac4e, cited as `DALES <file>:<line>` (paths under `src/`). Where DALES 4.4.2 (the
+**Versions.** uDALES: the moist thermodynamics port, cited as `src/<file>:<line>` as of the pull request that
+introduced this page (line numbers drift; the routine name is the stable key). DALES: `dev` at 075ac4e, cited as `DALES <file>:<line>` (paths under `src/`). Where DALES 4.4.2 (the
 last release checked) differs from dev, the row says so.
 
 **Status labels.**
@@ -87,7 +87,7 @@ DALES has no RF01 case; its stratocumulus case (RF02) uses the 5th-order scheme 
 passive scalars. The cumulus cases use cd2 for momentum, thl and qt, with a Galilean shift that keeps the mean
 wind relative to the grid small.
 
-**What this branch's validation used:** cd2 for u, v, w, e12, thl and qt in both codes (examples 301 and 303;
+**What the validation used:** cd2 for u, v, w, e12, thl and qt in both codes (examples 301 and 303;
 DALES inputs in `tools/python/examples/dales_cases/dales_inputs`). That is the DALES BOMEX choice, but not the
 DALES stratocumulus choice. Where it matters:
 
@@ -295,7 +295,7 @@ thl and the smoke scalar (qt is cd2 in uDALES and kappa in DALES, but inert: `lm
 sponge (`igrw_damp = 0`), thl noise 0.1 K on all levels. `xlat` is not set (uDALES default 52 degrees), which has no effect
 because `lcoriol = .false.`. No DALES smoke reference run exists.
 
-## Changes on this branch that alter results
+## Changes that alter results
 
 The changes that brought uDALES closer to DALES (SGS model, constants, surface timing, subsidence, perturbations,
 the e12 halo exchange) alter the results of existing runs. Who is affected, and by how much, is recorded in the

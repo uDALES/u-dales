@@ -42,7 +42,7 @@ Ensemble statistics
   For each quantity: window mean per run; ensemble mean; spread = sample standard deviation of the
   members' window means (ddof = 1; reported as 0 for a single run). ratio (min) = |mean_U - mean_D| /
   min(spread_U, spread_D) and ratio (max) = |mean_U - mean_D| / max(spread_U, spread_D). "Very close"
-  (the Task 14 bar: the means differ by less than the spread within either ensemble) is ratio (min) < 1
+  (the validation bar: the means differ by less than the spread within either ensemble) is ratio (min) < 1
   in the strict reading, ratio (max) < 1 in the lenient one; both are reported. For profiles the same
   is done level by level; the tables give the maximum |difference|, the rms difference, the rms spreads,
   both rms ratios and the fraction of levels with |diff| < min(spreads), over z <= zmax (PROFILE_ZMAX).
@@ -368,7 +368,7 @@ def main(argv=None) -> int:
                         f"{100 * p['frac_levels_within']:.0f} % |\n")
         f.write("\nratio (min) = |mean_U - mean_D| / min(spread_U, spread_D), ratio (max) uses max(spread_U, spread_D); "
                 "spread = sample std of the members' window means. ratio (min) < 1: the means differ by less than the spread "
-                "of both ensembles (the strict reading of the Task 14 bar); ratio (max) < 1: less than the spread of at least one. "
+                "of both ensembles (the strict reading of the validation bar); ratio (max) < 1: less than the spread of at least one. "
                 "Levels within bar: |diff(z)| < min(spread_U(z), spread_D(z)).\n")
         nh = int(np.floor(tend + 1e-6))
         if nh >= 1:

@@ -53,9 +53,6 @@ cooling (`tltendrad` is zero; reported as dalesteam/dales#348), while `examples/
 `thlpcar`. Compare against a run with current DALES `dev` (which applies it), or set the `thlpcar` column of
 `lscale.inp.301` to 0 for a check against 3.2.0. See `examples/301/RESULTS.md`.
 
-Smoke-test timings (60 s of simulated time, login node, release build; main-loop CPU time per simulated
-minute): see the Task 7 report.
-
 ## Numerics settings of the cases (301-303)
 
 The converter prints DALES `courant`, `randthl`, `randqt`, `randu` and `xlat` for transcription, but most of
@@ -82,7 +79,7 @@ integral, written by `make_dales_baseprof.py`), cd2 advection for every variable
 (`krandumax = 0`) and, for RF01, `wqsurf` with rlv = 2.53e6. Only `irandom` changes between ensemble members.
 For an adaptive run set `ladaptive = .true.` and `dtmax = 20.` (the fixed `dtmax` otherwise caps the step).
 
-The DALES build needs `dales_inputs/dales-075ac4e-t14.patch`, applied to a copy of the DALES tree after copying
+The DALES build needs `dales_inputs/dales-075ac4e-user-es.patch`, applied to a copy of the DALES tree after copying
 `cases/dycoms_rf02/moduser.f90` to `src/moduser.f90`:
 - `src/moduser.f90` `rad_user`: the RF01 free-troposphere term in the flux-divergence form at half levels with zi
   reset per column, identical to uDALES `src/cases/case_dycoms_rf01.f90`. The dycoms_rf02 version uses the
@@ -90,19 +87,15 @@ The DALES build needs `dales_inputs/dales-075ac4e-t14.patch`, applied to a copy 
   `i = 2, j1` and does not reset zi per column.
 - `src/modthermodynamics.f90`: the liquid saturation-vapour-pressure table uses Tetens with the uDALES constants
   instead of Murphy-Koop (about 0.1 % in es), so both codes use the same es.
-Then apply `dales_inputs/dales-075ac4e-t19.patch` on top (Task 19):
+Then apply `dales_inputs/dales-075ac4e-iradiation10.patch` on top:
 - `src/modradiation.f90`: DALES dev 075ac4e switches `rad_longw`, `rad_shortw` and `rad_smoke` off for
   `iradiation = 10` (`irad_user`), so the `radpar` call in the `irad_user` branch is unreachable and only
   `rad_user` runs. Without this hunk the RF01 reference has **no cloud-top longwave cooling** (F0 = 70, F1 = 22
-  W/m2), only the free-troposphere term. Every DALES RF01 reference before Task 19 (`refruns/d303`, `t14/d303`)
-  has this defect.
-- von Karman constant: DALES uses `fkar = 0.4`; uDALES used 0.41 until the thermo branch changed its default to
-  0.40 (as DALES and PALM). The Task 19 comparison runs used a DALES build with `fkar = 0.41` in `modglobal.f90`
-  (a one-line edit, not part of this patch) so that both codes used 0.41. The edit, `src/modglobal.f90` line 101 of
-  DALES dev 075ac4e:
-  `      real,parameter :: fkar     = 0.4              !<    *Von Karman constant` became
-  `      real,parameter :: fkar     = 0.41             !<    *Von Karman constant (t19 patch: uDALES value)`.
-  With 0.4 vs 0.41, DALES u* is about 2.5 % lower at the same wind. With uDALES at 0.40 no edit is needed.
+  W/m2), only the free-troposphere term. A DALES RF01 reference run without this hunk has this defect.
+- von Karman constant: DALES uses `fkar = 0.4`; uDALES used 0.41 until its default `fkar` became 0.40 (as DALES and
+  PALM), so no edit is needed. To compare with a uDALES run that sets `fkar = 0.41`, change `src/modglobal.f90`
+  line 101 of DALES dev 075ac4e (`real,parameter :: fkar = 0.4`) to 0.41; with 0.4 against 0.41 the DALES u* is about
+  2.5 % lower at the same wind.
 - The `iradiation = 10` reset has been reported upstream as a comment on [dalesteam/dales#347](https://github.com/dalesteam/dales/issues/347#issuecomment-6878639996); until DALES changes it, this patch is needed.
 Build as in the DALES README; with Intel 2021a on CX3, compile `modheterostats.f90` at `-O1` (ifort ICE).
 

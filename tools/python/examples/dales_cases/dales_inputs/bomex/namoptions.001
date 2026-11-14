@@ -1,4 +1,4 @@
-! DALES dev 075ac4e BOMEX in the uDALES-compatible configuration of examples/301 (Task 14):
+! DALES dev 075ac4e BOMEX in the uDALES-compatible configuration of examples/301:
 ! fixed dt, no Galilean shift (cu = 0), constant-density base state (ibas_prf = 5), cd2 everywhere.
 ! Edit irandom per ensemble member; for the adaptive variant set ladaptive = .true. (courant, peclet defaults).
 &RUN

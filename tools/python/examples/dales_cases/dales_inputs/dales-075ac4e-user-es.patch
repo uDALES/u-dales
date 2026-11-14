@@ -5,7 +5,7 @@
  
  subroutine rad_user
 -! DYCOMS version of rad_user adds a radiative forcing above the inversion layer
-+! t14 patch: DYCOMS-II RF01 free-troposphere term in the flux-divergence form at half levels,
++! uDALES-comparison patch: DYCOMS-II RF01 free-troposphere term in the flux-divergence form at half levels,
 +! with the local zi reset per column; algebraically identical to uDALES
 +! src/cases/case_dycoms_rf01.f90 (dycoms_rf01_radiation, local_zi, ft_flux), a = 1 K m^(-4/3).
  use modfields, only : qt0
@@ -72,7 +72,7 @@
         ttab(m)=150.+0.2*m
 -       esatltab(m)=exp(54.842763-6763.22/ttab(m)-4.21*log(ttab(m))+0.000367*ttab(m)+&
 -            tanh(0.0415*(ttab(m)-218.8))*(53.878-1331.22/ttab(m)-9.44523*log(ttab(m))+ 0.014025*ttab(m)))
-+       ! t14 patch: Tetens over water with the uDALES constants (es0, at, bt, tmelt), to match uDALES
++       ! uDALES-comparison patch: Tetens over water with the uDALES constants (es0, at, bt, tmelt), to match uDALES
 +       esatltab(m)=610.78*exp(17.27*(ttab(m)-273.16)/(ttab(m)-35.86))
  
         esatitab(m)=exp(9.550426-5723.265/ttab(m)+3.53068*log(ttab(m))-0.00728332*ttab(m))

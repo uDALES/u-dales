@@ -1,5 +1,5 @@
-# Pre-Task-16 smoke reference (rad_smoke = .true., isvsmoke = 1), last thermostat_z record
-# of TestRadiation smoke case with runtime 2.5, base 5c58b2e3 Debug build.
+# Smoke longwave reference (earlier smoke-specific implementation, Debug build), last thermostat_z record
+# of TestRadiation smoke case with runtime 2.5.
 # thl thlprad lwd lwu
 2.880000000e+02 -9.017141200e-11 3.525131660e-06 0.000000000e+00
 2.880000000e+02 -1.471615607e-10 5.751766821e-06 0.000000000e+00

@@ -41,11 +41,11 @@ Surface.pyx, `RadiationDyCOMS_RF01` in Radiation.pyx).
 
 ## Time step
 
-The adaptive settings were matched (Task 13) to the earlier, invalid DALES run `refruns/d303` and to uDALES with the
-e12 halo bug (#405, fixed in 674395fe). With the fix and the rebuilt DALES reference (Task 14, RESULTS.md) the uDALES
+The adaptive settings were first matched to an earlier DALES run and to uDALES with the
+e12 halo bug (#405, since fixed). With the fix the uDALES
 step is 0.47-0.50 s against DALES 0.40-0.43 s (hourly means), so the adaptive pair is no longer matched; the
 close-match comparison uses the fixed step below. All DALES steps quoted here come from DALES runs without
-cloud-top longwave cooling (before the Task 19 fix, RESULTS.md) and have not been re-measured against the
+cloud-top longwave cooling (before the `iradiation = 10` fix, RESULTS.md) and have not been re-measured against the
 corrected DALES; the adaptive pair is secondary. The earlier DALES run was limited by diffusion (`peclet = 0.15`, 32368 of 35236 steps), not by its Courant number (L2, 0.1-0.14 at `courant = 0.5`):
 
 | window | DALES (invalid run) | uDALES `diffnr = 0.16` | uDALES `diffnr = 0.25` |
@@ -75,7 +75,7 @@ sqrt(0.0011) x 8.9 m/s). PyCLES uses a constant Cm = 0.0011, so u* here is sligh
 With uDALES's zero-flux top boundary for thl, the DYCOMS free-troposphere radiative cooling is not balanced
 by subsidence warming in the topmost cell, which therefore cools by about 0.2 K over 4 h. That cell lies inside
 the sponge layer (the sponge starts at about 1125 m, the top cell is centred at 1497.5 m), so it should not
-reach the boundary layer or the cloud. It is documented here as a controller ruling; no correction is applied.
+reach the boundary layer or the cloud. It is documented here; no correction is applied.
 
 ## Numerics compared with DALES
 
@@ -90,8 +90,8 @@ reported runs in [RESULTS.md](RESULTS.md).
 | Galilean shift | none | none | yes |
 | SGS | one-equation TKE, DALES constants | the same | yes |
 | saturation adjustment, es | exact (`lqlnr`), Tetens | two-step (within 0.2 %), Tetens (patched) | nearly |
-| surface | MO, u* diagnosed from one domain-mean L; kappa 0.41 in the reported runs | `isurf = 4`, per-column L; kappa 0.41 (rebuilt) | kappa yes; local vs mean no (u* agrees to 0.0001 m/s) |
-| radiation | radpar longwave + free-troposphere hook, every step | radpar (`iradiation = 10` with the t19 patch) + patched `rad_user` | yes |
+| surface | MO, u* diagnosed from one domain-mean L; kappa 0.40 | `isurf = 4`, per-column L; kappa 0.4 (native) | kappa yes; local vs mean no (u* agrees to 0.0001 m/s) |
+| radiation | radpar longwave + free-troposphere hook, every step | radpar (`iradiation = 10` with `dales-075ac4e-iradiation10.patch`) + patched `rad_user` | yes |
 | sponge, noise | `igrw_damp = 2`, `ksp = 225`; thl 0.1 K, qt 2.5e-5 on all levels | the same | yes (different generators) |
 
 ## Deviations from DALES/PyCLES

@@ -1,7 +1,6 @@
 # Tier-2 validation results: 302 smoke
 
-Run at commit e2b1a0a5 (Release, Intel/CX3), single node, PBS job 4640940 on cx3 (16 ranks), main loop 1250 s, walltime used 21 min (limit 60 min), no NaN. Run directory: `/rds/general/user/mvr/ephemeral/t2/302` (outside repo).
-Plots: `/rds/general/user/mvr/ephemeral/t2/plots302/timeseries.png`, `/rds/general/user/mvr/ephemeral/t2/plots302/profiles.png`, `summary.md`.
+Early run (Release, Intel/CX3, single node, 16 ranks), main loop 1250 s, no NaN.
 
 **Published-range checks are pending citable values**: `PUBLISHED` in compare_dales.py is empty by design, so there is no pass/fail table; numbers below are reported without verdicts. Interpretation is tentative.
 
