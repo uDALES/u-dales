@@ -41,8 +41,7 @@ that they are easy to find when upgrading.
   qt capped at its local value so that it stays non-negative). Affected: every case with
   `lrandomize = .true.` (the default) gets different initial velocity noise of the same
   amplitude, so results are no longer bit-identical to earlier versions (statistically
-  equivalent). Cases with `lrandomize = .false.` are unchanged. New test runmode 1011 writes
-  the initial fielddump record and stops.
+  equivalent). Cases with `lrandomize = .false.` are unchanged.
 
 - **Cloud liquid water `ql0` is now stored at the right level**
   ([issue #403](https://github.com/uDALES/u-dales/issues/403)). `modthermodynamics:thermo`
@@ -63,27 +62,6 @@ that they are easy to find when upgrading.
   Dry runs and moist runs that never saturate are unchanged. A warm start from a
   restart file written before this fix carries the shifted `ql0` into the first
   substep's radiation, which is a one-substep transient.
-- **Monin-Obukhov surface state is computed before the SGS model.** With
-  `BCbotm = 4/5`, the Obukhov length, `u*`, the surface-layer gradients and the
-  re-diagnosed `thls`/`qts`/`thvs` are now computed at the start of each RK substep
-  (`modsurface:surface_mo_state`, called before `advection`/`subgrid`), as in DALES
-  dev 075ac4e (`surface` before `advection` and `subgrid`). Before, they were computed
-  in `bottom`, after `subgrid`, so the one-equation SGS TKE sources at `kb` used the
-  surface-layer shear `dudz`/`dvdz` of the previous substep (and zero on the first
-  substep). `dthvdz(kb)` keeps its timing: `calthv` sets it at the end of the
-  previous substep, as in DALES. `bottom` still applies the stress. On a cold start
-  the MO state is now also computed during startup, before a second
-  `thermodynamics` call, so the first substep already has the MO `dthvdz(kb)`
-  (DALES `readinitfiles` does the same). Who is affected: runs with `BCbotm = 4/5`;
-  with `loneeqn = .true.` every substep changes; with Vreman or Smagorinsky the
-  change comes only from the cold-start initial state (the time-loop reorder alone
-  was verified bit-identical for them). All other runs are unchanged bit for bit.
-- **Thermostat diagnostics are sampled after `thermodynamics`.** `thermostat` now
-  runs at the end of the time step, after `boundary` and `thermodynamics`, so `ql`,
-  `rhof`, `exnf` and the slab means it writes belong to the same state as `thl`,
-  `qt` and `w` (DALES samples its time series after thermodynamics too). Before,
-  `ql0` and `rhof` were one RK substep old. The output times are unchanged. Who is
-  affected: only runs with `lthermostat = .true.`; the solution itself is unchanged.
 - **Large-scale subsidence acts on the local fields.** `lstend` now applies the
   upwind subsidence term `-whls dphi/dz` to `thl0`, `qt0`, `sv0` (and `u0`, `v0` with
   `lmomsubs`) cell by cell, as DALES dev 075ac4e does, instead of to the slab means
@@ -123,12 +101,15 @@ that they are easy to find when upgrading.
     2. for shear-driven flow"); it is DALES's `-(ce1 + ce2 l/Δ) e^2/(2l)`. The
     near-wall `damp` factor (1 away from walls) is kept.
   - The stable length scale and the buoyancy source use `grav/thvf(k)` (slab
-    mean virtual potential temperature) instead of `grav/thvs`, as in DALES.
+    mean virtual potential temperature) instead of `grav/thvs`, as in DALES. In a
+    fully solid slab above `kb` (IBM) `thvf(k)` holds the `-999` fill, so those
+    levels use the neutral length scale and no buoyancy source; the fluid cells next
+    to such a slab see this through the SGS diffusion of `e12`.
   - The TKE sources at the first level `kb`: with the Monin-Obukhov surface
-    (`BCbotm = 4/5`) they are now computed as in DALES's k = 1 block, using the
-    MO surface-layer shears `dudz`, `dvdz` and `dthvdz(kb)`. With the other
-    bottom conditions there are still no sources at `kb`, but they are now set
-    to zero explicitly; before, uninitialised memory was added to `e12p(kb)`.
+    (`BCbotm = 4/5`, new, see Added) they are computed as in DALES's k = 1 block,
+    from the surface-layer shears and `dthvdz(kb)`. With the other bottom
+    conditions there are still no sources at `kb`, but they are now set to zero
+    explicitly; before, uninitialised memory was added to `e12p(kb)`.
 - **Default turbulent Prandtl number is exactly 1/3** (was 0.333), the DALES value.
   `Kh = Km/Prandtl` was `3.003 Km`; it is now `3 Km`, about 0.1 % less SGS heat,
   moisture and scalar diffusivity. Who is affected: every Smagorinsky, Vreman and
@@ -180,13 +161,13 @@ that they are easy to find when upgrading.
 
 ### Fixed
 
-- One-equation SGS model: in a fully solid slab above `kb` the slab-mean `thvf(k)`
-  holds the `-999` fill, so `grav/thvf(k)` gave a negative buoyancy parameter (a NaN
-  length scale where `dthvdz > 0`, a wrong-sign buoyancy source). Those levels now use
-  the neutral length scale and no buoyancy source. The values change in the solid
-  cells, but the fluid cells directly above or below such a slab see the change
-  through the SGS diffusion of `e12` (`diffe` has no IBM mask); before, a NaN could
-  reach them the same way.
+- `modthermodynamics:thermo` no longer reads the iteration counter `niter` uninitialised
+  in the Newton-Raphson saturation adjustment (`lqlnr = .true.`)
+  ([issue #400](https://github.com/uDALES/u-dales/issues/400)). `niter` is a diagnostic
+  counter only (`nitert` is not used), so results are unchanged.
+- `modthermodynamics:calthv`: in a saturated cell where the dry and saturated gradient
+  coefficients coincide the moist `dthvdz` divided by zero; it now uses the saturated
+  value. Only affects `lmoist = .true.` runs with exactly uniform saturated cells.
 - The SGS statistics no longer read uninitialised data at the top level
   `ke+kh`, and all SGS output arrays are zeroed before use.
 - The 3-D `sv1sgs`–`sv4sgs` output in `tdump` is now masked with `IIw`, so solid
@@ -202,36 +183,53 @@ that they are easy to find when upgrading.
 
 ### Added
 
+- **Monin-Obukhov surface layer** (`BCbotm = 4`, or `5` with a prescribed friction velocity
+  `ustin`; `modsurface`), ported from DALES dev 075ac4e (`isurf = 4, 3`). The Obukhov length,
+  `u*`, the surface-layer gradients and the re-diagnosed `thls`/`qts`/`thvs` are computed at the
+  start of each RK substep (`surface_mo_state`, before advection and the SGS model, as in
+  DALES; on a cold start also during start-up, before a second `thermodynamics` call);
+  `bottom` applies the stress. The one-equation SGS TKE sources at `kb` use the
+  surface-layer shears, and `dthvdz(kb)` has the moist/dry surface-layer form. Requires
+  `lbottom = .true.`, `ltempeq`, `BCbotT = 1`, `z0, z0h > 0`, `wtsurf` (and `wqsurf` with `lmoist`)
+  set; the start-up checks abort otherwise. Not tested together with buildings, and the MO
+  state is not in the restart files (see [boundary conditions](docs/udales-boundary-conditions.md)).
+  Off unless `BCbotm = 4/5`; other runs are bit-identical.
+- **Parametrised longwave radiation** (`&NAMRADIATION`, `iradiation = 2`; `modradiation`,
+  `modraddata`), DALES `radpar`: cloud-water absorber `rad_absorber = 'ql' | 'sv'`
+  (`rad_absorber_sv`), optics `rka`, `dlwtop`, `dlwbot` and `timerad`. `rka` and `dlwtop` (or `dlwbot`)
+  have no defaults (0) and `iradiation = 2` aborts without them. Off by default (`iradiation = 0`).
 - **Case hooks** (`src/modcases.f90`, `&NAMCASES case_hooks`): case-specific physics
   lives in `src/cases/` and is switched on by name at run time instead of by switches in
   the core modules; see `docs/udales-case-hooks.md`. Hook points: init, radiation,
   forcing, stats; without hooks the results are bit-identical. First hook:
-  `dycoms_rf01` (`&NAMCASE_DYCOMS dycoms_D, dycoms_qt_thres`), the DYCOMS-II RF01 free-troposphere
-  radiation term, now computed as the divergence of the analytic flux between cell
-  faces (finite at the inversion, conserves the column integral). The generic radiation
-  absorber `rad_absorber = 'ql' | 'sv'` (`rad_absorber_sv`) and the thermostat
-  diagnostics `zi_sv` (`zi_sv_index`, `zi_sv_thres`) and `zi_qt` (`zi_qt_thres`), each
-  written only when set, replace the smoke switches and the hard-coded `zi_qt8`. The
-  radiation optics `rka` and `dlwtop` have no defaults (0) and `iradiation = 2` aborts
-  without them. The removed `lrad_dycoms`, `rad_dycoms_D`, `rad_dycoms_qtthres`,
-  `rad_smoke`, `isvsmoke`, the `zi_smoke`/`zi_qt8` outputs and the former
-  `rka = 130`/`dlwtop = 74` defaults were never released.
-
-- **Engineering hygiene of the modules added on this branch** (issue #402 applied to the new
-  code only): `modsurface`, `modradiation`, `modraddata`, `modthermostat`, `modcases` and
-  `case_dycoms_rf01` are private by default with explicit public lists; configuration errors
-  and namelist read errors in them abort all ranks through `modmpi:abort_all_ranks`, after
-  one message from rank 0 (this includes the new start-up checks in `checkinitvalues` and the
-  `fieldvars = 'dt'` check); `tthermostat` has no default (0) and `lthermostat = .true.`
-  aborts without it (it was 60 s, never released); `iradiation = 2` also rejects negative
-  `timerad`, `dlwtop`, `dlwbot`; a case namelist group whose hook is not in `case_hooks`
-  gives a warning; `randomize_field` no longer aliases its inout field with the qt cap
-  (results unchanged to the bit). New test runmode 1012 (`tests_mo_kernels`) checks the
-  Monin-Obukhov kernels against reference values. Bit-identical results otherwise.
-
-- In-solver test `runmode` 1008 (`tests_sgs_oneeqn`, run from
-  `tests/integration/thermo/test_thermo.py:TestSGSOneEqn`) checking the
-  one-equation SGS closure (`Kh/Km`, stable length scale) and its TKE sources.
+  `dycoms_rf01` (`&NAMCASE_DYCOMS dycoms_D, dycoms_qt_thres`), the DYCOMS-II RF01
+  free-troposphere radiation term, computed as the divergence of the analytic flux between cell
+  faces (finite at the inversion, conserves the column integral).
+- **Thermostat diagnostics** (`&NAMTHERMOSTAT`, `lthermostat`, `tthermostat`;
+  `modthermostat`): `thermostat_t.<expnr>.nc` (liquid water path, cloud cover, boundary-layer
+  heights, `wmax`, `qlmax`, `ustar`, `obl`, `thls`, `qts`, first-level `u`, `v`) and
+  `thermostat_z.<expnr>.nc` (slab-mean profiles). Sampled at the end of the time step, after
+  `thermodynamics`, so `ql`, `rhof`, `exnf` and the slab means belong to the same state as
+  `thl`, `qt` and `w`. The tracer boundary-layer heights `zi_sv` (`zi_sv_index`, `zi_sv_thres`) and
+  `zi_qt` (`zi_qt_thres`) are written only when set. `tthermostat` has no default (0) and
+  `lthermostat = .true.` aborts without it. Off by default; the solution itself is unaffected.
+- **Moist `dthvdz(kb)`** at the surface level (`calthv`, with the Monin-Obukhov surface; otherwise
+  0 as before), and `fieldvars = 'dt'` writes `dthvdz` to the field dump.
+- **Initial `thl` and `qt` noise** (`randthl`, `randqt`; see Breaking changes, issue #395).
+- **Examples 301 (BOMEX), 302 (smoke cloud, scalar radiation absorber) and 303 (DYCOMS-II RF01)**, with
+  the DALES comparison tooling in `tools/python/examples/dales_cases` (input converter,
+  `compare_dales.py`, DALES input sets and patches); results in each example's `RESULTS.md`.
+- **Tests**: in-solver runmodes 1008 (`tests_sgs_oneeqn`: one-equation SGS closure and TKE
+  sources), 1009 (`tests_lstend`), 1010 (`tests_thermo_levels`: `ql0` level, #403), 1011 (cold
+  start, write the initial fielddump record and stop), 1012 (`tests_mo_kernels`:
+  Monin-Obukhov kernels), driven by `tests/integration/thermo/test_thermo.py` (includes the
+  1-rank against multi-rank check of the e12 halos).
+- **Module hygiene for the new modules**: `modsurface`, `modradiation`, `modraddata`,
+  `modthermostat`, `modcases` and `case_dycoms_rf01` are private by default with explicit
+  public lists; configuration and namelist read errors in them abort all ranks through
+  `modmpi:abort_all_ranks`, after one message from rank 0 (this includes the new start-up
+  checks in `checkinitvalues`); `iradiation = 2` also rejects negative `timerad`, `dlwtop`,
+  `dlwbot`; a case namelist group whose hook is not in `case_hooks` gives a warning.
 
 - `docs/udales-output-files.md` now documents the SGS flux definitions, their
   sign convention, and the fact that the SGS statistics carry **no** surface or
