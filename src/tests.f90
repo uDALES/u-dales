@@ -20,7 +20,7 @@ module tests
   implicit none
   save
   public :: tests_read_sparse_ijk, tests_2decomp_init_exit, tests_mpi_operators, tests_zgrid_metrics, tests_sgs_statistics, &
-            tests_sgs_oneeqn
+            tests_sgs_oneeqn, tests_lstend
 
 contains
 
@@ -975,6 +975,143 @@ contains
     tests_sgs_oneeqn = all_passed
 
   end function tests_sgs_oneeqn
+
+  !> Large-scale subsidence (modforces:lstend) against DALES dev 075ac4e lstend, cell by
+  !! cell. thl0, qt0, sv0(:,:,:,1), u0 and v0 vary in x and z, whls changes sign with
+  !! height, lmomsubs is on and the horizontal large-scale gradients are zero, so the
+  !! tendency is the upwind subsidence term only:
+  !!   whls(k+1) < 0:     -whls(k+1)*(phi(k+1) - phi(k))/dzh(k+1)
+  !!   else, k > kb:      -whls(k)  *(phi(k)   - phi(k-1))/dzh(k)
+  !!   else, k = kb:      0 (mean ascent neglected at the first level)
+  !! Two passes with opposite whls cover both kb rules. A slab-mean stencil fails the
+  !! test, because the fields vary in x. The namelist must set nsv >= 1.
+  logical function tests_lstend()
+    use modglobal, only : ib, ie, jb, je, kb, ke, dzh, nsv, lmomsubs, itot, runmode, pi
+    use modfields, only : initfields, thl0, qt0, sv0, u0, v0, thlp, qtp, svp, up, vp, whls, &
+                          u0av, v0av
+    use modforces, only : lstend
+    use modmpi,    only : mpi_max
+    use decomp_2d, only : zstart
+
+    implicit none
+
+    real, parameter :: tol = 1.e-12
+    integer :: i, j, k, gi, ipass, n, ndown, nup, nkb
+    real :: worst, scale, sgn, e, s, xvar, loc(2), glob(2)
+    logical :: all_passed, lmomsubs_save
+    real, allocatable :: expt(:,:,:,:), got(:,:,:,:), phi(:,:,:,:)
+
+    if (myid == 0) then
+      write(*, '(A)') '================================================'
+      write(*, '(A, I8)') 'runmode = ', runmode
+      write(*, '(A)') 'tests_lstend: LOCAL-FIELD SUBSIDENCE TEST'
+      write(*, '(A)') '------------------------------------------------'
+    end if
+
+    call initfields
+    all_passed = .true.
+    if (nsv < 1) then
+      if (myid == 0) write(*,'(A)') 'FAIL namelist must set nsv >= 1'
+      tests_lstend = .false.
+      return
+    end if
+    lmomsubs_save = lmomsubs
+    lmomsubs = .true.
+    u0av = 0.; v0av = 0.
+
+    do k = lbound(thl0,3), ubound(thl0,3)
+      do j = lbound(thl0,2), ubound(thl0,2)
+        do i = lbound(thl0,1), ubound(thl0,1)
+          gi = zstart(1) + i - 1
+          s = sin(2.*pi*real(gi)/real(itot))
+          thl0(i,j,k) = 290. + 0.004*real(k) + 0.3*s*cos(0.2*real(k)) + 0.01*real(j)
+          qt0(i,j,k)  = 1.e-2 - 2.e-5*real(k) + 1.e-4*s*sin(0.3*real(k))
+          u0(i,j,k)   = 5. + 0.05*real(k) + 0.8*s*cos(0.15*real(k))
+          v0(i,j,k)   = -2. + 0.03*real(k) - 0.6*s*sin(0.25*real(k) + 0.1*real(j))
+        end do
+      end do
+    end do
+    do k = lbound(sv0,3), ubound(sv0,3)
+      do j = lbound(sv0,2), ubound(sv0,2)
+        do i = lbound(sv0,1), ubound(sv0,1)
+          gi = zstart(1) + i - 1
+          s = sin(2.*pi*real(gi)/real(itot))
+          sv0(i,j,k,1) = 1. + 0.02*real(k) + 0.5*s*cos(0.35*real(k))
+        end do
+      end do
+    end do
+
+    allocate(expt(ib:ie,jb:je,kb:ke,5), got(ib:ie,jb:je,kb:ke,5), phi(ib:ie,jb:je,kb-1:ke+1,5))
+    phi(:,:,:,1) = thl0(ib:ie,jb:je,kb-1:ke+1)
+    phi(:,:,:,2) = qt0 (ib:ie,jb:je,kb-1:ke+1)
+    phi(:,:,:,3) = sv0 (ib:ie,jb:je,kb-1:ke+1,1)
+    phi(:,:,:,4) = u0  (ib:ie,jb:je,kb-1:ke+1)
+    phi(:,:,:,5) = v0  (ib:ie,jb:je,kb-1:ke+1)
+
+    ndown = 0; nup = 0; nkb = 0; worst = 0.; xvar = 0.
+    do ipass = 1, 2
+      sgn = merge(1., -1., ipass == 1)
+      ! descent aloft and ascent below (pass 1), the opposite in pass 2; zero at one level
+      do k = lbound(whls,1), ubound(whls,1)
+        whls(k) = sgn * 0.01 * real((kb + ke)/2 - k) / real(ke - kb + 1)
+      end do
+      thlp = 0.; qtp = 0.; svp = 0.; up = 0.; vp = 0.
+      call lstend
+      got(:,:,:,1) = thlp(ib:ie,jb:je,kb:ke)
+      got(:,:,:,2) = qtp (ib:ie,jb:je,kb:ke)
+      got(:,:,:,3) = svp (ib:ie,jb:je,kb:ke,1)
+      got(:,:,:,4) = up  (ib:ie,jb:je,kb:ke)
+      got(:,:,:,5) = vp  (ib:ie,jb:je,kb:ke)
+      do k = kb, ke
+        if (whls(k+1) < 0.) then
+          ndown = ndown + 1
+          expt(:,:,k,:) = -whls(k+1) * (phi(:,:,k+1,:) - phi(:,:,k,:)) / dzh(k+1)
+        else if (k > kb) then
+          nup = nup + 1
+          expt(:,:,k,:) = -whls(k) * (phi(:,:,k,:) - phi(:,:,k-1,:)) / dzh(k)
+        else
+          nkb = nkb + 1
+          expt(:,:,k,:) = 0.
+        end if
+      end do
+      do n = 1, 5
+        scale = max(maxval(abs(expt(:,:,:,n))), tiny(1.))
+        e = maxval(abs(got(:,:,:,n) - expt(:,:,:,n))) / scale
+        worst = max(worst, e)
+        xvar = max(xvar, maxval(abs(got(ie,jb,:,n) - got(ib,jb,:,n))) / scale)
+      end do
+    end do
+    loc = (/worst, xvar/)
+    call MPI_ALLREDUCE(loc, glob, 2, MY_REAL, MPI_MAX, comm3d, mpierr)
+    worst = glob(1); xvar = glob(2)
+    lmomsubs = lmomsubs_save
+    deallocate(expt, got, phi)
+
+    if (myid == 0) write(*,'(A,3(1X,I0),1X,A,ES12.4,1X,A,ES12.4)') &
+         'lstend levels descent/ascent/kb-ascent', ndown, nup, nkb, &
+         'worst relative deviation', worst, 'x variation', xvar
+    if (worst > tol) then
+      if (myid == 0) write(*,'(A,ES12.4)') 'FAIL lstend differs from the DALES upwind formula', worst
+      all_passed = .false.
+    end if
+    if (ndown == 0 .or. nup == 0 .or. nkb == 0 .or. xvar < 1.e-3) then
+      if (myid == 0) write(*,'(A)') 'FAIL lstend test is vacuous (need descent, ascent, kb ascent, x variation)'
+      all_passed = .false.
+    end if
+
+    if (all_passed .and. myid == 0) then
+      write(*, '(A)') '------------------------------------------------'
+      write(*, '(A)') 'ALL TESTS PASSED: tests_lstend'
+      write(*, '(A)') '================================================'
+    else if ((.not. all_passed) .and. myid == 0) then
+      write(*, '(A)') '------------------------------------------------'
+      write(*, '(A)') 'TESTS FAILED: tests_lstend'
+      write(*, '(A)') '================================================'
+    end if
+
+    tests_lstend = all_passed
+
+  end function tests_lstend
 
   !> Shared comparators. Report the largest absolute deviation and where it is.
   logical function compare_real_1d(label, got, exp, tol)

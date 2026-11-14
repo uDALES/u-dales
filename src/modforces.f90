@@ -742,8 +742,11 @@ module modforces
     ! thl0, qt0, sv0 (and u0, v0 if lmomsubs), per cell, rather than on the slab means.
     ! First level kb: only the downward (whls(kb+1) < 0) term; the effect of mean ascent
     ! is neglected there. DALES does the same at k = 1, and without a factor 0.5.
-    ! No IBM mask, as before: lstend acts on every cell and the IBM routines that run
-    ! after it treat the solid cells (urban cases have whls = 0 in any case).
+    ! No IBM mask, as before: lstend acts on every cell. The solid-cell tendencies are
+    ! overwritten afterwards (ibmnorm / modibm:solid). A fluid cell next to a solid cell
+    ! reads the solid value in its stencil: for scalars the mean of the fluid neighbours,
+    ! for u, v (lmomsubs) zero. The old slab-mean code used fluid-only means. This only
+    ! matters when buildings are combined with wfls /= 0 (urban cases have whls = 0).
     use modglobal, only : ib,ie,jb,je,kb,ke,dzh,nsv,lmomsubs
     use modfields, only : up,vp,thlp,qtp,svp,&
                           whls,u0av,v0av,thl0,qt0,sv0,u0,v0,&

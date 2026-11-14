@@ -362,5 +362,19 @@ class TestSGSOneEqn(_SolverTest):
         self.assertIn("ALL TESTS PASSED: tests_sgs_oneeqn", out)
 
 
+class TestLstend(_SolverTest):
+    """In-solver test (runmode 1009, tests.f90:tests_lstend) of the local-field subsidence:
+    every cell against the DALES dev 075ac4e lstend upwind formula, for thl, qt, sv, u and v
+    (lmomsubs), with whls changing sign and fields varying in x."""
+
+    def test_local_upwind_subsidence(self):
+        d = tc.write_case(self.tmp / "lstend", groups={
+            "RUN": {"runmode": "1009"}, "SCALARS": {"nsv": "1"}}, sv=np.ones((64, 1)))
+        res = self.run_ok(d)
+        out = res.stdout + res.stderr
+        print("\n" + "\n".join(l for l in out.splitlines() if "lstend levels" in l or "FAIL" in l))
+        self.assertIn("ALL TESTS PASSED: tests_lstend", out)
+
+
 if __name__ == "__main__":
     unittest.main()
