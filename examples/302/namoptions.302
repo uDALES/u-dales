@@ -77,8 +77,8 @@ ustin        = 0.2          ! DALES; unused with BCbotm = 4
 &NAMRADIATION
 iradiation   = 2
 rad_longw    = .true.
-rad_smoke    = .true.
-isvsmoke     = 1
+rad_absorber = 'sv'         ! smoke scalar as the absorber (DALES rad_smoke)
+rad_absorber_sv = 1
 rka          = 0.02         ! DALES
 dlwtop       = 60.          ! DALES
 dlwbot       = 0.
@@ -88,4 +88,6 @@ timerad      = 0.           ! every step (DALES file: 600 s)
 &NAMTHERMOSTAT
 lthermostat  = .true.
 tthermostat  = 60.
+zi_sv_index  = 1            ! zi_sv: BL height from the smoke = 0.5 crossing
+zi_sv_thres  = 0.5
 /

@@ -11,19 +11,23 @@ module modthermostat
   real    :: tthermostat = 60.    !< output interval [s]
   real    :: tnext = 0.
   integer :: ncidt, ncidz, nrect = 0, nrecz = 0
-  integer, parameter :: nvt = 13, nvz = 11
+  integer :: zi_sv_index = 0       !< scalar for the zi_sv diagnostic; 0 = off
+  real    :: zi_sv_thres = 0.      !< zi_sv: threshold of scalar zi_sv_index; required (> 0) if on
+  integer, parameter :: nvtmax = 13, nvz = 11, ivt_zi_sv = 5
+  integer :: nvt = 0               !< number of time series written
+  integer :: ivt(nvtmax)           !< indices into vt/nct of the time series written
   character(80) :: fnamet = 'thermostat_t.xxx.nc', fnamez = 'thermostat_z.xxx.nc'
-  character(80) :: tnct(1,4), tncz(1,4), nct(nvt,4), ncz(nvz,4)
+  character(80) :: tnct(1,4), tncz(1,4), nct(nvtmax,4), ncz(nvz,4)
 
 contains
 
   subroutine initthermostat
-    use modglobal, only : ifnamopt, fname_options, cexpnr, kb, ke, timee
-    use modmpi,    only : myid, comm3d, mpierr, my_real, mpi_logical
+    use modglobal, only : ifnamopt, fname_options, cexpnr, kb, ke, timee, nsv
+    use modmpi,    only : myid, comm3d, mpierr, my_real, mpi_logical, mpi_integer
     use modstat_nc, only : ncinfo, open_nc, define_nc, writestat_dims_nc
     implicit none
-    integer :: ierr
-    namelist/NAMTHERMOSTAT/ lthermostat, tthermostat
+    integer :: ierr, n
+    namelist/NAMTHERMOSTAT/ lthermostat, tthermostat, zi_sv_index, zi_sv_thres
 
     if (myid == 0) then
       open(ifnamopt, file=fname_options, status='old', iostat=ierr)
@@ -37,7 +41,14 @@ contains
     end if
     call MPI_BCAST(lthermostat, 1, MPI_LOGICAL, 0, comm3d, mpierr)
     call MPI_BCAST(tthermostat, 1, MY_REAL,     0, comm3d, mpierr)
+    call MPI_BCAST(zi_sv_index, 1, MPI_INTEGER, 0, comm3d, mpierr)
+    call MPI_BCAST(zi_sv_thres, 1, MY_REAL,     0, comm3d, mpierr)
     if (.not. lthermostat) return
+    if (zi_sv_index /= 0 .and. (zi_sv_index < 1 .or. zi_sv_index > nsv .or. zi_sv_thres <= 0.)) then
+      write(0, *) 'ERROR: zi_sv_index > 0 requires zi_sv_index <= nsv and zi_sv_thres > 0; got ', &
+                  zi_sv_index, zi_sv_thres
+      stop 1
+    end if
 
     tnext = timee + tthermostat      ! timee is set by readinitfiles (restart time) before this
     fnamet(14:16) = cexpnr
@@ -48,7 +59,7 @@ contains
     call ncinfo(nct( 2,:), 'cfrac',    'Cloud cover',                   '-',      'time')
     call ncinfo(nct( 3,:), 'zi',       'BL height (max dthl/dz)',       'm',      'time')
     call ncinfo(nct( 4,:), 'zi_qt8',   'BL height (qt = 8 g/kg)',       'm',      'time')
-    call ncinfo(nct( 5,:), 'zi_smoke', 'BL height (smoke = 0.5)',       'm',      'time')
+    call ncinfo(nct( 5,:), 'zi_sv',    'BL height (scalar zi_sv_index = zi_sv_thres)', 'm', 'time')
     call ncinfo(nct( 6,:), 'wmax',     'Maximum vertical velocity',     'm/s',    'time')
     call ncinfo(nct( 7,:), 'qlmax',    'Maximum liquid water',          'kg/kg',  'time')
     call ncinfo(nct( 8,:), 'ustar',    'Friction velocity',             'm/s',    'time')
@@ -57,6 +68,12 @@ contains
     call ncinfo(nct(11,:), 'qts',      'Surface qt',                    'kg/kg',  'time')
     call ncinfo(nct(12,:), 'u1',       'Slab-mean u at first level',    'm/s',    'time')
     call ncinfo(nct(13,:), 'v1',       'Slab-mean v at first level',    'm/s',    'time')
+    nvt = 0
+    do n = 1, nvtmax
+      if (n == ivt_zi_sv .and. zi_sv_index == 0) cycle    ! zi_sv only when configured
+      nvt = nvt + 1
+      ivt(nvt) = n
+    end do
     call ncinfo(ncz( 1,:), 'thl',     'Liquid water potential temperature', 'K',      'tt')
     call ncinfo(ncz( 2,:), 'qt',      'Total water',                        'kg/kg',  'tt')
     call ncinfo(ncz( 3,:), 'ql',      'Liquid water',                       'kg/kg',  'tt')
@@ -71,7 +88,7 @@ contains
     if (myid == 0) then
       call open_nc(fnamet, ncidt, nrect)
       if (nrect == 0) call define_nc(ncidt, 1, tnct)
-      call define_nc(ncidt, nvt, nct)
+      call define_nc(ncidt, nvt, nct(ivt(1:nvt),:))
       call open_nc(fnamez, ncidz, nrecz, n3=ke-kb+1)
       if (nrecz == 0) then
         call define_nc(ncidz, 1, tncz)
@@ -83,15 +100,15 @@ contains
 
   subroutine thermostat
     use modglobal,  only : ib, ie, jb, je, kb, ke, timee, rk3step, zf, zh, dzf, dzh, &
-                           nsv, lmoist
+                           lmoist
     use modfields,  only : thl0, qt0, ql0, w0, sv0, rhof, exnf, IIc, IIcs, IIw, IIws, u0av, v0av
     use modsurfdata, only : thls, qts
-    use modraddata, only : thlprad, lwu, lwd, iradiation, irad_none, rad_smoke, isvsmoke
+    use modraddata, only : thlprad, lwu, lwd, iradiation, irad_none
     use modsurface, only : ustar_mo, obl_mo
     use modmpi,     only : myid, comm3d, mpierr, my_real, mpi_sum, mpi_max, avexy_ibm
     use modstat_nc, only : writestat_nc
     implicit none
-    real :: vt(nvt), vz(kb:ke, nvz)
+    real :: vt(nvtmax), vz(kb:ke, nvz)
     real, allocatable :: tmp3(:,:,:)   ! allocatable: an automatic array is ~22 MB/rank on case 303
     real :: loc(8), glob(8), colwp, gmax, dthl
     integer :: i, j, k, kmx
@@ -124,13 +141,7 @@ contains
         end do
         loc(3) = loc(3) + zh(kmx)
         if (lmoist) loc(4) = loc(4) + crossing(qt0(i,j,kb:ke), IIc(i,j,kb:ke), 8.e-3)
-        if (nsv > 0) then
-          if (rad_smoke) then
-            loc(5) = loc(5) + crossing(sv0(i,j,kb:ke,isvsmoke), IIc(i,j,kb:ke), 0.5)
-          else
-            loc(5) = loc(5) + crossing(sv0(i,j,kb:ke,1), IIc(i,j,kb:ke), 0.5)
-          end if
-        end if
+        if (zi_sv_index > 0) loc(5) = loc(5) + crossing(sv0(i,j,kb:ke,zi_sv_index), IIc(i,j,kb:ke), zi_sv_thres)
       end do
     end do
     loc(6) = maxval(w0(ib:ie,jb:je,kb:ke))
@@ -183,7 +194,7 @@ contains
 
     if (myid == 0) then
       call writestat_nc(ncidt, 1, tnct, (/timee/), nrect, .true.)
-      call writestat_nc(ncidt, nvt, nct, vt, nrect, .false.)
+      call writestat_nc(ncidt, nvt, nct(ivt(1:nvt),:), vt(ivt(1:nvt)), nrect, .false.)
       call writestat_nc(ncidz, 1, tncz, (/timee/), nrecz, .true.)
       call writestat_nc(ncidz, nvz, ncz, vz, nrecz, ke-kb+1)
     end if

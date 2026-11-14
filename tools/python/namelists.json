@@ -130,6 +130,13 @@
       "uinf",
       "vinf"
     ],
+    "NAMCASES": [
+      "case_hooks"
+    ],
+    "NAMCASE_DYCOMS": [
+      "d",
+      "qt_thres"
+    ],
     "NAMCHECKSIM": [
       "tcheck"
     ],
@@ -137,14 +144,11 @@
       "dlwbot",
       "dlwtop",
       "iradiation",
-      "isvsmoke",
-      "lrad_dycoms",
-      "rad_dycoms_d",
-      "rad_dycoms_qtthres",
+      "rad_absorber",
+      "rad_absorber_sv",
       "rad_longw",
       "rad_ls",
       "rad_shortw",
-      "rad_smoke",
       "rka",
       "timerad"
     ],
@@ -179,7 +183,9 @@
     ],
     "NAMTHERMOSTAT": [
       "lthermostat",
-      "tthermostat"
+      "tthermostat",
+      "zi_sv_index",
+      "zi_sv_thres"
     ],
     "OUTPUT": [
       "fieldvars",
@@ -349,12 +355,14 @@
     "bczp": "BC",
     "bldt": "ENERGYBALANCE",
     "c_vreman": "NAMSUBGRID",
+    "case_hooks": "NAMCASES",
     "cd": "TREES",
     "cf": "NAMSUBGRID",
     "chunkread_size": "DRIVER",
     "cn": "NAMSUBGRID",
     "courant": "RUN",
     "cs": "NAMSUBGRID",
+    "d": "NAMCASE_DYCOMS",
     "dec": "TREES",
     "di": "INLET",
     "diffnr": "RUN",
@@ -394,7 +402,6 @@
     "iradiation": "NAMRADIATION",
     "irandom": "RUN",
     "islice": "OUTPUT",
-    "isvsmoke": "NAMRADIATION",
     "itot": "DOMAIN",
     "iwallmoist": "WALLS",
     "iwallmom": "WALLS",
@@ -449,7 +456,6 @@
     "lprofforc": "PHYSICS",
     "lpurif": "PURIFS",
     "lqlnr": "DYNAMICS",
-    "lrad_dycoms": "NAMRADIATION",
     "lrandomize": "RUN",
     "lreadmean": "RUN",
     "lreadminl": "INLET",
@@ -524,15 +530,15 @@
     "qh_dot_hp": "HEATPUMP",
     "qpu": "PURIFS",
     "qstar": "TREES",
+    "qt_thres": "NAMCASE_DYCOMS",
     "qt_top": "BC",
     "qts": "BC",
     "r_s": "TREES",
-    "rad_dycoms_d": "NAMRADIATION",
-    "rad_dycoms_qtthres": "NAMRADIATION",
+    "rad_absorber": "NAMRADIATION",
+    "rad_absorber_sv": "NAMRADIATION",
     "rad_longw": "NAMRADIATION",
     "rad_ls": "NAMRADIATION",
     "rad_shortw": "NAMRADIATION",
-    "rad_smoke": "NAMRADIATION",
     "randqt": "RUN",
     "randthl": "RUN",
     "randu": "RUN",
@@ -581,6 +587,8 @@
     "xtime": "DOMAIN",
     "ylen": "DOMAIN",
     "z0": "BC",
-    "z0h": "BC"
+    "z0h": "BC",
+    "zi_sv_index": "NAMTHERMOSTAT",
+    "zi_sv_thres": "NAMTHERMOSTAT"
   }
 }

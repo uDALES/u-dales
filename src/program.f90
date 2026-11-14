@@ -57,6 +57,7 @@ program uDALES
   use modstatsdump,    only : initstatsdump,statsdump,exitstatsdump    !tg3315
   use modthermostat,   only : initthermostat,thermostat,exitthermostat
   use modradiation,    only : initradiation,radiation,exitradiation
+  use modcases,        only : initcases,call_hooks_init,call_hooks_forcing,call_hooks_stats
   use modtimedep,      only : inittimedep,timedep
   use tests,           only : tests_read_sparse_ijk,tests_2decomp_init_exit,tests_mpi_operators,tests_zgrid_metrics,tests_sgs_statistics,tests_sgs_oneeqn,tests_lstend,tests_thermo_levels
   implicit none
@@ -87,6 +88,7 @@ program uDALES
 
   call initthermodynamics
   call initradiation
+  call initcases        ! read &NAMCASES, register the case hooks
 
   call initsubgrid
   call initsurface_mo
@@ -132,6 +134,8 @@ program uDALES
   call createpurifiers
 
   call init_heatpump
+
+  call call_hooks_init  ! case hooks: after startup, cold and warm start
 
   !call fielddump
 
@@ -187,6 +191,8 @@ program uDALES
     call forces         !remaining terms of ns equation
 
     call lstend         !large scale forcings
+
+    call call_hooks_forcing ! case hooks (no-op without &NAMCASES)
 
     call radiation      ! parametrised longwave radiation (iradiation = 2)
 
@@ -244,6 +250,8 @@ program uDALES
 
     ! after thermodynamics, so that ql0, rhof and exnf match thl0/qt0 (as DALES timestat)
     call thermostat
+
+    call call_hooks_stats ! case-specific diagnostics (no-op without &NAMCASES)
 
 !-----------------------------------------------------
 !   3.7  WRITE RESTARTFILES AND DO STATISTICS

@@ -8,15 +8,12 @@ module modraddata
   real    :: timerad    = 0.              !< update interval [s]; 0 = every step
   logical :: rad_longw  = .true.          !< longwave on
   logical :: rad_shortw = .false.         !< not supported: aborts
-  logical :: rad_smoke  = .false.         !< absorber is scalar isvsmoke instead of ql0
   logical :: rad_ls     = .false.         !< DALES compatibility only (thlpcar is applied in forces)
-  logical :: lrad_dycoms = .false.        !< DYCOMS free-troposphere term (Stevens et al. 2005)
-  integer :: isvsmoke   = 1               !< scalar index of the smoke absorber
+  character(2) :: rad_absorber = 'ql'     !< absorber: 'ql' (liquid water) or 'sv' (scalar rad_absorber_sv)
+  integer :: rad_absorber_sv = 0          !< scalar index of the absorber if rad_absorber = 'sv'; required
   real    :: rka        = 130.            !< extinction coefficient kappa [m2/kg]
   real    :: dlwtop     = 74.             !< F0 [W/m2]
   real    :: dlwbot     = 0.              !< F1 [W/m2]
-  real    :: rad_dycoms_D       = 3.75e-6 !< large-scale divergence in the FT term [1/s]
-  real    :: rad_dycoms_qtthres = 8.e-3   !< qt defining the local inversion height [kg/kg]
   real    :: tnextrad = 0.
   real, allocatable :: thlprad(:,:,:)     !< radiative thl tendency [K/s] (ib:ie,jb:je,kb:ke)
   real, allocatable :: lwd(:,:,:)         !< F0 term of net upward LW flux at faces [W/m2] (kb:ke+1)

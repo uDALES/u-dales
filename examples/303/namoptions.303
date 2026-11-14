@@ -73,14 +73,19 @@ z0h          = 1.069564e-05
 &NAMRADIATION
 iradiation   = 2
 rad_longw    = .true.
-rad_smoke    = .false.
 rka          = 85.          ! m2/kg (PyCLES kap)
 dlwtop       = 70.          ! F0
 dlwbot       = 22.          ! F1
-lrad_dycoms  = .true.
-rad_dycoms_D = 3.75e-6
-rad_dycoms_qtthres = 8.0e-3
 timerad      = 0.
+/
+
+&NAMCASES
+case_hooks   = 'dycoms_rf01'   ! free-troposphere radiation term (src/cases/case_dycoms_rf01.f90)
+/
+
+&NAMCASE_DYCOMS
+D            = 3.75e-6      ! large-scale divergence [1/s]
+qt_thres     = 8.0e-3       ! qt defining the local inversion height [kg/kg]
 /
 
 &NAMTHERMOSTAT

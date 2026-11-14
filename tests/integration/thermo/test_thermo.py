@@ -296,13 +296,21 @@ class TestRadiation(_SolverTest):
         np.testing.assert_allclose(got, ref, rtol=1e-2, atol=1e-2 * np.abs(ref).max())
         self.assertLess(got.min(), -1e-4)          # cloud-top cooling present
 
-    def test_smoke_longwave_matches_formula(self):
-        rad = dict(self.RAD, rad_smoke=".true.", isvsmoke="1", rka="0.02", dlwtop="60.", dlwbot="0.")
+    SMOKE = dict(RAD, rad_absorber="'sv'", rad_absorber_sv="1", rka="0.02", dlwtop="60.", dlwbot="0.")
+
+    def _smoke_run(self, name, runtime="0.5", thermostat=None):
         zf = (np.arange(64) + 0.5) * 20.0
         smoke = np.where(zf < 700, 1.0, 0.0)
-        d = self._run("rad_smoke", rad, groups={"PHYSICS": {"lmoist": ".false."}, "BC": {"qts": "-1."},
-                                                "SCALARS": {"nsv": "1"}},
+        th = {"lthermostat": ".true.", "tthermostat": "0.5"}
+        th.update(thermostat or {})
+        d = self._run(name, self.SMOKE, groups={"RUN": {"runtime": runtime}, "PHYSICS": {"lmoist": ".false."},
+                                                "BC": {"qts": "-1."}, "SCALARS": {"nsv": "1"},
+                                                "NAMTHERMOSTAT": th},
                       thl=np.where(zf < 700, 288.0, 295.0), qt=np.zeros(64), sv=smoke[:, None])
+        return d, smoke
+
+    def test_smoke_longwave_matches_formula(self):
+        d, smoke = self._smoke_run("rad_smoke")
         with Dataset(d / "thermostat_z.310.nc") as z:
             rho, exn = np.asarray(z["rhof"][-1]), np.asarray(z["exnf"][-1])
             got = np.asarray(z["thlprad"][-1])
@@ -310,34 +318,87 @@ class TestRadiation(_SolverTest):
         self._report("smoke", got, ref)
         np.testing.assert_allclose(got, ref, rtol=1e-2, atol=1e-2 * np.abs(ref).max())
 
-    def test_dycoms_term_matches_formula(self):
-        zf = (np.arange(64) + 0.5) * 20.0
-        D = 3.75e-6
-        rad = dict(self.RAD, lrad_dycoms=".true.", rad_dycoms_D=str(D))
-        d = self._run("ft_formula", rad)
-        with Dataset(d / "thermostat_z.310.nc") as z:
-            ql, qt, rho, exn = (np.asarray(z[v][-1], dtype=float) for v in ("ql", "qt", "rhof", "exnf"))
-            got = np.asarray(z["thlprad"][-1])
-        # zi by the solver's rule: highest level with qt > 8 g/kg, linear to the next level.
-        # (Laminar RF01: 832.7 m, between the 830/850 m cells, not 840 m.)
-        k = np.where(qt > 8e-3)[0].max()
-        zi = zf[k] + (8e-3 - qt[k]) * (zf[k + 1] - zf[k]) / (qt[k + 1] - qt[k])
-        ref = radpar_reference(ql, rho, exn, 20.0, 70.0, 22.0, 85.0)
-        ft = zf > zi
-        ref[ft] -= D / 3 * (np.cbrt(zf[ft] - zi) + zi * (zf[ft] - zi) ** (-2 / 3))   # cooling
-        self._report("dycoms", got, ref)
-        np.testing.assert_allclose(got, ref, rtol=1e-2, atol=1e-2 * np.abs(ref).max())
-        self.assertTrue(np.all(got[ft] < 0))
+    def test_smoke_identical_to_pre_task16_reference(self):
+        # smoke_pre_task16.txt: the same case run with the removed rad_smoke = .true.,
+        # isvsmoke = 1 (commit 5c58b2e3, Debug). rad_absorber = 'sv' must reproduce it,
+        # and zi_sv (index 1, threshold 0.5) the removed zi_smoke (700 m).
+        d, _ = self._smoke_run("rad_smoke_pre16", runtime="2.5",
+                               thermostat={"zi_sv_index": "1", "zi_sv_thres": "0.5"})
+        ref = np.loadtxt(Path(__file__).with_name("smoke_pre_task16.txt"), dtype=np.float32)
+        with Dataset(d / "thermostat_z.310.nc") as z, Dataset(d / "thermostat_t.310.nc") as t:
+            for col, v in enumerate(("thl", "thlprad", "lwd", "lwu")):
+                with self.subTest(var=v):
+                    np.testing.assert_array_equal(np.asarray(z[v][-1], dtype=np.float32), ref[:, col])
+            np.testing.assert_array_equal(np.asarray(t["zi_sv"][:]), 700.0)
+
+    def test_zi_sv_written_only_when_configured(self):
+        d, _ = self._smoke_run("zi_sv_off")
+        with Dataset(d / "thermostat_t.310.nc") as t:
+            self.assertNotIn("zi_sv", t.variables)
+            self.assertIn("zi_qt8", t.variables)
+
+    # --- DYCOMS free-troposphere term (case hook dycoms_rf01)
+    D = 3.75e-6
+    DYCOMS = {"NAMCASES": {"case_hooks": "'dycoms_rf01'"},
+              "NAMCASE_DYCOMS": {"D": str(D), "qt_thres": "8.e-3"}}
+
+    @staticmethod
+    def _ft_flux(z, zi, D):
+        """F(z) / (rho_i cp) of Stevens et al. (2005), alpha_z = 1; 0 at and below zi."""
+        s = np.maximum(z - zi, 0.0)
+        return np.where(z > zi, D * (s ** (4 / 3) / 4 + zi * np.cbrt(s)), 0.0)
+
+    def _ft_term(self):
+        """FT tendency of the first step: hook run minus no-hook run (same initial state,
+        so the radpar parts are identical), with zi from the initial qt profile."""
+        if not hasattr(type(self), "_ft"):
+            a = self._run("ft_hook", self.RAD, groups=self.DYCOMS)
+            b = self._run("ft_none", self.RAD)
+            with Dataset(a / "thermostat_z.310.nc") as za, Dataset(b / "thermostat_z.310.nc") as zb:
+                ft = np.asarray(za["thlprad"][0], dtype=float) - np.asarray(zb["thlprad"][0], dtype=float)
+            zf = (np.arange(64) + 0.5) * 20.0
+            qt = tc.rf01_profiles(zf)[1]
+            k = np.where(qt > 8e-3)[0].max()
+            zi = zf[k] + (8e-3 - qt[k]) * (zf[k + 1] - zf[k]) / (qt[k + 1] - qt[k])   # 832.67 m
+            type(self)._ft = (ft, zi)
+        return self._ft
+
+    def test_dycoms_flux_form_matches_pointwise_form(self):
+        # The flux form is the cell mean of the pointwise form, so their difference is
+        # dz^2/24 f''/f ~ (dz^2/24)(10/9)/(z-zi)^2 relative (the zi (z-zi)^(-2/3) term
+        # dominates): 5e-3 at 3 dz above zi, below 1e-3 from 7 dz. A sign error or a
+        # missing term is O(1).
+        ft, zi = self._ft_term()
+        dz = 20.0
+        zf = (np.arange(64) + 0.5) * dz
+        sel = zf - zi > 3 * dz
+        pw = -self.D / 3 * (np.cbrt(zf[sel] - zi) + zi * (zf[sel] - zi) ** (-2 / 3))
+        rel = np.abs(ft[sel] - pw) / np.abs(pw)
+        bound = 1.2 * dz ** 2 / 24 * (10 / 9) / (zf[sel] - zi) ** 2 + 1e-5
+        print(f"\n[dycoms] flux vs pointwise, z - zi > 3 dz: max rel {rel.max():.3e}; "
+              f"z - zi > 7 dz: {rel[zf[sel] - zi > 7 * dz].max():.3e}")
+        self.assertTrue(np.all(rel < bound), msg=f"rel {rel} bound {bound}")
+        self.assertLess(rel[zf[sel] - zi > 7 * dz].max(), 1e-3)
+        self.assertTrue(np.all(ft[zf + dz / 2 > zi] < 0))        # cooling in and above the zi cell
+        np.testing.assert_array_equal(ft[zf + dz / 2 <= zi], 0.0)   # nothing below
+
+    def test_dycoms_flux_form_conserves_column_integral(self):
+        # sum(thlprad dz) = -(F(top) - F(zi)) / (rho_i cp); F(zi) = 0. Float32 records.
+        ft, zi = self._ft_term()
+        top = 64 * 20.0
+        integral = (ft * 20.0).sum()
+        ref = -self._ft_flux(np.array(top), zi, self.D)
+        print(f"\n[dycoms] column integral {integral:.6e} vs -F(top) {float(ref):.6e}")
+        np.testing.assert_allclose(integral, ref, rtol=1e-5)
 
     def test_dycoms_term_balances_subsidence(self):
         # 300 s so the free-troposphere subsidence signal (~2e-2 K) is far above
         # float32 resolution (3e-5 K at 297 K).
         zf = (np.arange(64) + 0.5) * 20.0
-        D = 3.75e-6
-        rad = dict(self.RAD, lrad_dycoms=".true.", rad_dycoms_D=str(D))
+        D = self.D
         common = dict(wfls=-D * zf, groups={"RUN": {"runtime": "299.5"},
                                             "NAMTHERMOSTAT": {"lthermostat": ".true.", "tthermostat": "300."}})
-        a = self._run("ft_both", rad, **common)
+        a = self._run("ft_both", self.RAD, groups=dict(common["groups"], **self.DYCOMS), wfls=common["wfls"])
         b = self._run("ft_subs", {"iradiation": "0"}, **common)
         with Dataset(a / "thermostat_z.310.nc") as za, Dataset(b / "thermostat_z.310.nc") as zb:
             dthl_both = np.asarray(za["thl"][-1], dtype=float) - tc.rf01_profiles(zf)[0]
@@ -353,6 +414,60 @@ class TestRadiation(_SolverTest):
         self.assertLess(np.abs(dthl_both[ft]).max(), 0.25 * np.abs(dthl_subs[ft]).max())
 
 
+class TestCaseHooks(_SolverTest):
+    """&NAMCASES registry (modcases) and the checks of the data-driven options."""
+
+    RAD = TestRadiation.RAD
+
+    def _abort(self, name, groups, expect, **case):
+        d = tc.write_case(self.tmp / name, groups=groups, **case)
+        res = tc.run(d)
+        out = res.stdout + res.stderr
+        self.assertNotEqual(res.returncode, 0)
+        self.assertIn(expect, out)
+        return out
+
+    def test_unknown_hook_aborts_and_lists_valid_names(self):
+        out = self._abort("hook_unknown", {"NAMCASES": {"case_hooks": "'dycoms_rf02'"}},
+                          "unknown case hook in case_hooks: dycoms_rf02")
+        self.assertIn("Valid case hooks: dycoms_rf01", out)
+
+    def test_dycoms_without_parameters_aborts(self):
+        self._abort("hook_noparams", {"NAMRADIATION": self.RAD,
+                                      "NAMCASES": {"case_hooks": "'dycoms_rf01'"}},
+                    "requires D > 0 and qt_thres > 0")
+
+    def test_dycoms_without_radiation_aborts(self):
+        self._abort("hook_norad", dict(TestRadiation.DYCOMS), "requires iradiation = 2")
+
+    def test_sv_absorber_without_index_aborts(self):
+        self._abort("abs_noidx", {"NAMRADIATION": dict(self.RAD, rad_absorber="'sv'"),
+                                  "SCALARS": {"nsv": "1"}},
+                    "requires 1 <= rad_absorber_sv <= nsv", sv=np.ones((64, 1)))
+
+    def test_zi_sv_without_threshold_aborts(self):
+        self._abort("zisv_nothres", {"SCALARS": {"nsv": "1"},
+                                     "NAMTHERMOSTAT": {"lthermostat": ".true.", "zi_sv_index": "1"}},
+                    "zi_sv_index > 0 requires", sv=np.ones((64, 1)))
+
+    def test_no_hooks_identical_to_run_without_namelist(self):
+        # case_hooks = '' must be a no-op: every thermostat output identical to a run
+        # without &NAMCASES (laminar, one rank).
+        groups = {"RUN": {"runtime": "2.5"}, "NAMRADIATION": self.RAD,
+                  "NAMTHERMOSTAT": {"lthermostat": ".true.", "tthermostat": "0.5"}}
+        runs = {}
+        for label, extra in (("absent", {}), ("empty", {"NAMCASES": {"case_hooks": "''"}})):
+            d = tc.write_case(self.tmp / f"nohook_{label}", groups=dict(groups, **extra))
+            self.run_ok(d)
+            runs[label] = d
+        for f in ("thermostat_t.310.nc", "thermostat_z.310.nc"):
+            with Dataset(runs["absent"] / f) as a, Dataset(runs["empty"] / f) as b:
+                self.assertEqual(set(a.variables), set(b.variables))
+                for v in a.variables:
+                    with self.subTest(file=f, var=v):
+                        np.testing.assert_array_equal(np.asarray(b[v][:]), np.asarray(a[v][:]))
+
+
 class TestDecomposition(_SolverTest):
     """Radiation + MO surface + moist SGS give the same answer on 1, 2 and 4 ranks."""
 
@@ -360,8 +475,9 @@ class TestDecomposition(_SolverTest):
         groups = {"RUN": {"runtime": "2.5", "lrandomize": ".true."},
                   "BC": {"BCbotm": "4", "wtsurf": "-0.012", "wqsurf": "-4.7e-5",
                          "z0": "2.e-4", "z0h": "2.e-4"},
-                  "NAMRADIATION": dict(TestRadiation.RAD, lrad_dycoms=".true."),
-                  "NAMTHERMOSTAT": {"lthermostat": ".true.", "tthermostat": "1."}}
+                  "NAMRADIATION": TestRadiation.RAD,
+                  "NAMTHERMOSTAT": {"lthermostat": ".true.", "tthermostat": "1."},
+                  **TestRadiation.DYCOMS}
         zf = (np.arange(64) + 0.5) * 20.0
         out = {}
         for label, npx, npy in (("serial", 1, 1), ("x", 2, 1), ("xy", 2, 2)):
