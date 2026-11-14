@@ -59,7 +59,7 @@ it the step is within 5 % of DALES. A run with `courant = 1.0` gave the same ser
 numbers come from 30 min runs (1260-1800 s were reached), before the cloud develops; later in the run the step will
 differ. For a **fixed** step, uncomment the two commented lines in `&RUN` of `namoptions.303` (`ladaptive = .false.`,
 `dtmax = 0.3`): `courant` and `diffnr` are then ignored, and `runtime` must be a multiple of `dtmax`. 0.3 s is below the
-adaptive step of both codes (DALES hourly means 0.39-0.43 s) and divides the 60 s output interval; it is the step of the
+adaptive step of both codes (DALES hourly means 0.40-0.43 s) and divides the 60 s output interval; it is the step of the
 close-match comparison in RESULTS.md (DALES inputs in `tools/python/examples/dales_cases/dales_inputs/rf01`).
 
 ## RF01 z0 value

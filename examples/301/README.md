@@ -64,7 +64,7 @@ is the step), uncomment the two commented lines in `&RUN` of `namoptions.301`: `
 `courant` and `diffnr` are then ignored and `runtime` should be a multiple of `dtmax`. 2.0 s is below the adaptive step
 of both codes in the close-match runs (RESULTS.md); DALES needs `ladaptive = .false.` and `dtmax = 2.0`, too
 (`tools/python/examples/dales_cases/dales_inputs/bomex`). The time-step table above was measured with the e12 halo
-bug of RESULTS.md present; with that bug fixed, uDALES's adaptive step is shorter (hourly means 2.2-4.1 s).
+bug of RESULTS.md present; with that bug fixed, uDALES's adaptive step is shorter (hourly means 2.3-4.0 s).
 
 ## Numerics compared with DALES
 
