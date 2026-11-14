@@ -4,13 +4,18 @@
 
 **Verdict.** At commit c220463a uDALES fails the close-match bar by a wide margin (LWP 2.3 vs 6.9 g/m2, cloud
 cover 0.03 vs 0.20). The cause is a uDALES bug, found here: **the SGS TKE `e120`/`e12m` halos are never exchanged
-between MPI ranks** (below). With a 6-line throwaway fix of that bug (not committed), uDALES and DALES agree within
-the seed-to-seed spread for LWP, cloud cover, u* and all five profiles; zi is 19 m (half a grid cell) higher in uDALES,
+between MPI ranks** (issue #405, fixed in commit 674395fe). With that fix, uDALES and DALES agree within the
+seed-to-seed spread for LWP and cloud cover, and for all five profiles the rms difference is below the smaller rms
+spread of the two ensembles (ratio 0.38-0.66; 49-83 % of the levels are inside both spreads). u* is prescribed in
+BOMEX (`BCbotm = 5` / `isurf = 3`), so its match is not a test. zi is 19 m (half a 40 m grid cell) higher in uDALES,
 1.2-1.6 spreads, not significant with 3 seeds (t = 1.7).
 
 Runs: `/rds/general/user/mvr/ephemeral/t14` (outside the repo). uDALES `build/release` of c220463a (`u-dales.c220463a`)
 and the same source plus the e12 halo exchange (`u-dales.c220463a+e12halo`, worktree `t14/bis/vfix`), 8 ranks (4 x 2).
-DALES dev 075ac4e with `tools/python/examples/dales_cases/dales-075ac4e-t14.patch`, 16 ranks (4 x 4), inputs
+That binary is code-equivalent to 674395fe: `src/` of the build tree differs from `src/` at 674395fe only in the
+comment on the `if (loneeqn)` line of `modboundary.f90:halos` (checked with `diff -r`), and c220463a..674395fe
+touches no other file under `src/`.
+DALES dev 075ac4e with `tools/python/examples/dales_cases/dales_inputs/dales-075ac4e-t14.patch`, 16 ranks (4 x 4), inputs
 `tools/python/examples/dales_cases/dales_inputs/bomex`. Three seeds per code (`irandom` 43, 44, 45). Analysis:
 `compare_dales.py 301 <out> --udales ... --dales ...`; outputs in `t14/an/301*`.
 
@@ -52,6 +57,10 @@ uDALES + e12 halo fix vs DALES (`t14/an/301fixed_fix`). Spread = sample std over
 | cloud cover | 0.195, 0.212, 0.208 | 0.205 (0.009) | 0.207, 0.201, 0.204 | 0.204 (0.003) | +0.002 | 0.52 | 0.18 |
 | zi, max dthl/dz [m] | 1673, 1691, 1660 | 1675 (16) | 1647, 1669, 1651 | 1656 (12) | +19 | 1.64 | 1.23 |
 | u* [m/s] | 0.28 (prescribed) | 0.28 | 0.28 | 0.28 | 0 | - | - |
+
+Profile bar: the rms over height of the ensemble-mean difference, divided by the smaller of the two rms spreads
+(rms over height of the per-level sample std); below 1 means the profile difference is smaller than the noise of
+either ensemble on average. The last column is the stricter per-level count.
 
 | profile (z <= 2500 m) | max abs diff (z) | rms diff | rms spread U / D | rms diff / min rms spread | levels with diff < both spreads |
 |---|---|---|---|---|---|
@@ -110,9 +119,10 @@ ranks. With `nprocx > 1` or `nprocy > 1` the e12 halos at every subdomain edge k
 - Bisection (6 h BOMEX, t2-era namoptions): abe14ed9 good, b7e4813d (Task 10, Kh = Km/Prandtl and no factor 2 in the
   dissipation) and every later commit bad. Task 10 did not introduce the bug; it removed two compensating errors
   (Kh = Km/3 and doubled dissipation) that had been hiding it. `Prandtl = 3.` (Kh = Km/3) on c220463a with the bug gives LWP 6.8 (compensation, not a fix).
-- The fix (in the throwaway worktree only; diff in the Task 14 report): in `halos`, `if (loneeqn) then;
-  call exchange_halo_z(e120); call exchange_halo_z(e12m); end if`, with `e120, e12m` from modfields and `loneeqn`
-  from modsubgriddata. It changes every one-equation run with more than one rank in x or y.
+- The fix (issue #405, commit 674395fe, with the regression test `TestSGSHaloExchange` and a CHANGELOG entry): in
+  `halos`, `if (loneeqn) then; call exchange_halo_z(e120); call exchange_halo_z(e12m); end if`, with `e120, e12m`
+  from modfields and `loneeqn` from modsubgriddata. It changes every one-equation run with more than one rank in x
+  or y. The Task 14 numbers above were produced before the commit with a code-equivalent binary (see Runs).
 The Task 13 time-step tuning (`courant = 0.55`) and every earlier uDALES BOMEX number in this file were affected.
 
 ## Earlier results (superseded; all affected by the e12 halo bug)

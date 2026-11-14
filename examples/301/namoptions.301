@@ -5,7 +5,7 @@ runtime      = 21600.       ! 6 h (task spec; DALES case file has 28800 s)
 trestart     = 21600.
 ladaptive    = .true.       ! adaptive step, matched to the DALES BOMEX run (README, "Time step")
 dtmax        = 20.          ! DALES default; never reached in this case
-courant      = 0.55         ! uDALES L1 Courant number, no Galilean shift: gives the DALES mean dt (README)
+courant      = 0.55         ! uDALES L1 Courant number; tuned (Task 13) before the e12 halo fix #405, now gives 2.2-4.1 s vs DALES 3.6-6.2 s (RESULTS.md)
 diffnr       = 0.2          ! = DALES peclet 0.15 x 1.32 (uDALES sums 3 terms); not the limiting criterion here
 ! Fixed time step (the DALES close-match comparison, RESULTS.md; DALES runs the same dt):
 ! ladaptive  = .false.      ! then dt = dtmax; courant and diffnr are ignored; runtime must be a multiple of dtmax

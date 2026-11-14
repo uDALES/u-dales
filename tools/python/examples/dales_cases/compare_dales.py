@@ -106,7 +106,13 @@ def zi_grad(thl, zt, zm):
 
 
 def zi_qt(qt, zt, thres):
-    """Highest downward crossing of `thres` (linear between full levels); nan if none."""
+    """Highest downward crossing of `thres` (linear between full levels); nan if none.
+
+    As the uDALES hook (src/cases/case_dycoms_rf01.f90:local_zi) and the DALES patch: a
+    profile with qt above `thres` at the top level has no zi (nan), not a crossing below it.
+    """
+    if qt[-1] > thres:
+        return float("nan")
     for k in range(qt.size - 2, -1, -1):
         if qt[k] > thres and qt[k + 1] <= thres:
             return float(zt[k] + (thres - qt[k]) * (zt[k + 1] - zt[k]) / (qt[k + 1] - qt[k]))

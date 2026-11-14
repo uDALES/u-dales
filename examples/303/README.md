@@ -34,15 +34,16 @@ Surface.pyx, `RadiationDyCOMS_RF01` in Radiation.pyx).
 | thermostat | `lthermostat`, `tthermostat = 60` s | task spec |
 | initial noise | `lrandomize`, `randthl = 0.1` K, `randqt = 2.5e-5` kg/kg, `randu = 0`, `krand = 300` (all levels), `irandom = 43` | DALES `cases/dycoms_rf02/namoptions.001` (`randthl`, `randqt`, `irandom`; all levels); DALES applies no u, v, w noise |
 | `lqlnr` | `.true.` | as DALES (always Newton-Raphson) |
-| time step | `ladaptive`, `courant = 0.5`, `diffnr = 0.16`, `dtmax = 20` | PROVISIONAL until Task 14, see "Time step" |
+| time step | `ladaptive`, `courant = 0.5`, `diffnr = 0.16`, `dtmax = 20` | tuned against the invalid DALES run, see "Time step"; the DALES comparison uses a fixed 0.3 s |
 | `tcheck` | 60 s | mean dt to the log every minute |
 | decomposition | `nprocx = 8`, `nprocy = 4` (`ktot = 300` and `jtot = 96` divisible by 4) | |
 
 ## Time step
 
-PROVISIONAL: Task 14 rebuilds the DALES RF01 reference (the earlier one, `refruns/d303`, collapsed and is invalid) and
-fixes the step for both codes. Until then the adaptive step is matched to that earlier DALES run, whose step was
-limited by diffusion (`peclet = 0.15`, 32368 of 35236 steps), not by its Courant number (L2, 0.1-0.14 at `courant = 0.5`):
+The adaptive settings were matched (Task 13) to the earlier, invalid DALES run `refruns/d303` and to uDALES with the
+e12 halo bug (#405, fixed in 674395fe). With the fix and the rebuilt DALES reference (Task 14, RESULTS.md) the uDALES
+step is 0.47-0.50 s against DALES 0.40-0.43 s (hourly means), so the adaptive pair is no longer matched; the
+close-match comparison uses the fixed step below. The earlier DALES run was limited by diffusion (`peclet = 0.15`, 32368 of 35236 steps), not by its Courant number (L2, 0.1-0.14 at `courant = 0.5`):
 
 | window | DALES (invalid run) | uDALES `diffnr = 0.16` | uDALES `diffnr = 0.25` |
 |---|---|---|---|

@@ -6,8 +6,9 @@
 the first hour (LWP 60 to 10-15 g/m2), so the earlier "no collapse" of uDALES (below) does not survive the SGS
 alignment. But uDALES keeps more cloud and entrains faster than DALES, far outside the seed spread: LWP 15.8 vs
 9.4 g/m2, cloud cover 0.81 vs 0.63, zi_qt8 859 vs 834 m, we 4.8 vs 2.6 mm/s, u* +2.3 %. Not diagnosed yet; hypotheses
-and next steps below. All uDALES numbers here include the e12 halo fix of `examples/301/RESULTS.md` (throwaway build,
-not committed); the committed c220463a has the bug (adaptive run shown for reference).
+and next steps below. All uDALES numbers here include the e12 halo fix (issue #405, commit 674395fe; the Task 14
+binary `u-dales.c220463a+e12halo` is code-equivalent to 674395fe, see `examples/301/RESULTS.md`); c220463a has the bug
+(adaptive run shown for reference).
 
 Runs: `/rds/general/user/mvr/ephemeral/t14`: uDALES `x303/f4{3,4,5}` (c220463a + e12 halo fix, 32 ranks 8 x 4),
 DALES `d303/f4{3,4,5}` (dev 075ac4e + `dales_inputs/dales-075ac4e-t14.patch`, inputs `dales_inputs/rf01`, 32 ranks
