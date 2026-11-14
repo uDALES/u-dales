@@ -13,6 +13,15 @@ that they are easy to find when upgrading.
 
 ### Breaking changes
 
+- **Monin-Obukhov surface state is computed before the SGS model.** With
+  `BCbotm = 4/5`, the Obukhov length, `u*`, the surface-layer gradients and the
+  re-diagnosed `thls`/`qts`/`thvs` are now computed at the start of each RK substep
+  (`modsurface:surface_mo_state`, called before `advection`/`subgrid`), as in DALES
+  dev 075ac4e (`surface` before `advection` and `subgrid`). Before, they were computed
+  in `bottom`, after `subgrid`, so the one-equation SGS sources at `kb` and
+  `dthvdz(kb)` used the gradients of the previous substep. `bottom` still applies
+  the stress. Who is affected: only runs with `BCbotm = 4/5`; all other runs are
+  unchanged bit for bit.
 - **One-equation SGS model (`loneeqn`) aligned with DALES.** Four changes to
   `modsubgrid.f90`, following DALES dev 075ac4e (#401). Who is affected: only runs with
   `loneeqn = .true.`; Vreman and Smagorinsky runs are unchanged (bit for bit).

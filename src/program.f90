@@ -34,7 +34,7 @@ program uDALES
   use modboundary,       only : initboundary,boundary,grwdamp,halos
   use modthermodynamics, only : initthermodynamics,thermodynamics
   use modsubgrid,        only : initsubgrid,subgrid
-  use modsurface,        only : initsurface_mo
+  use modsurface,        only : initsurface_mo,exitsurface_mo,surface_mo_state,lmo_surface
   use modforces,         only : calcfluidvolumes,forces,coriolis,lstend,fixuinf1,fixuinf2,fixthetainf,nudge,masscorr,shiftedPBCs,periodicEBcorr
   use modpois,           only : initpois,poisson
   use modibm,            only : initibm,createmasks,ibmwallfun,ibmnorm,bottom
@@ -148,6 +148,13 @@ program uDALES
     call timedep
 
 !-----------------------------------------------------
+!   3.1   MONIN-OBUKHOV SURFACE STATE (BCbotm = 4/5)
+!-----------------------------------------------------
+    ! DALES order: surface before advection and subgrid, so the SGS kb sources use the
+    ! MO gradients of this substep. The stress itself is applied in bottom.
+    if (lmo_surface()) call surface_mo_state
+
+!-----------------------------------------------------
 !   3.2   ADVECTION AND DIFFUSION
 !-----------------------------------------------------
 
@@ -247,6 +254,7 @@ program uDALES
   call exitstatsdump     !tg3315
   call exitthermostat
   call exitradiation
+  call exitsurface_mo
   call exit_heatpump
   !call exitmodules
   !call exittest

@@ -2101,7 +2101,7 @@ module modibm
       elseif (BCbotm.eq.3) then
       call wfmneutral(ih, jh, kh, up, vp, momfluxb, u0, v0, z0, 91)
       elseif ((BCbotm.eq.BCbotm_mo) .or. (BCbotm.eq.BCbotm_mo_ustar)) then
-      call surface_mo
+      call surface_mo   ! stress only; the MO state is set by surface_mo_state before subgrid
       else
       write(0, *) "ERROR: bottom boundary type for momentum undefined"
       stop 1

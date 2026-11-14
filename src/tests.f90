@@ -765,7 +765,7 @@ contains
     use modsubgrid,     only : initsubgrid, closure, sources
     use modsubgriddata, only : ekm, ekh, zlt, sbshr, sbbuo, sbdiss, loneeqn, ldelta, Prandtl, &
                                cn, cf, Rigc, alpha_kolm
-    use modsurface,     only : initsurface_mo, dudz_mo, dvdz_mo
+    use modsurface,     only : initsurface_mo, lmo_surface, dudz_mo, dvdz_mo
     use modboundary,    only : initboundary
     use modibm,         only : initibm, createmasks
     use initfac,        only : readfacetfiles
@@ -864,8 +864,8 @@ contains
     !----------------------------------------------------------------------
     ! (b) sources without the MO surface
     !----------------------------------------------------------------------
-    if (BCbotm == BCbotm_mo) then
-      if (myid == 0) write(*,'(A)') 'FAIL namelist must not select the MO surface (BCbotm = 4)'
+    if (lmo_surface()) then
+      if (myid == 0) write(*,'(A)') 'FAIL namelist must not select the MO surface (BCbotm = 4/5)'
       all_passed = .false.
     end if
     sbshr(:,:,kb) = 1.e30; sbbuo(:,:,kb) = -1.e30; sbdiss(:,:,kb) = 1.e30

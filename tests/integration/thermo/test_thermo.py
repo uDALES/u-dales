@@ -80,7 +80,7 @@ class TestMO(_SolverTest):
         bc = {"BCbotm": str(bcbotm), "wtsurf": "-0.05", "wqsurf": "-5.0e-5",
               "z0": "2.e-4", "z0h": "2.e-4", "thls": "289.0", "qts": "9.0e-3"}
         bc.update(extra_bc or {})
-        # 20 fixed 1-s steps so the laminar (thls, obl) pair has converged: surface_mo
+        # 20 fixed 1-s steps so the laminar (thls, obl) pair has converged: surface_mo_state
         # runs every RK substep and re-diagnoses thls each time.
         d = tc.write_case(self.tmp / name, u=7.0, v=-5.5, groups={
             "RUN": {"runtime": "19.5"}, "BC": bc,
@@ -138,7 +138,7 @@ class TestCalthv(_SolverTest):
             "BC": {"BCbotm": "4", "wtsurf": "-0.05", "wqsurf": "-5.0e-5", "z0": "2.e-4", "z0h": "2.e-4"},
             "NAMTHERMOSTAT": {"lthermostat": ".true.", "tthermostat": "1."}})
         self.run_ok(d)
-        # Record alignment (approximate). Per RK substep the order is: bottom (-> surface_mo)
+        # Record alignment (approximate). Per RK substep the order is: surface_mo_state
         # ... tstep_integrate -> fielddump/thermostat (write only at rk3step == 3 when due)
         # -> boundary -> thermodynamics; calthv runs on EVERY substep. Dump record n holds
         # end-of-step-n thl/qt. The dthvdz in dump record n+1 was computed by calthv at the

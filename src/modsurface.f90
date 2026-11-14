@@ -4,12 +4,17 @@
 !>   BCbotm = 4 (BCbotm_mo):       u* from MO similarity            (DALES isurf = 4)
 !>   BCbotm = 5 (BCbotm_mo_ustar): u* = ustin                       (DALES isurf = 3)
 !> Heat and moisture fluxes stay prescribed by wtsurf/wqsurf (BCbotT/BCbotq = 1).
+!> Two steps, in the DALES order (program.f90: surface before advection and subgrid):
+!>   surface_mo_state: obl, u*, the surface-layer gradients and the tskin/qskin
+!>                     re-diagnosis. Called from the time loop before subgrid.
+!>   surface_mo:       the bottom stress from that state. Called from modibm:bottom,
+!>                     after subgrid (it needs the current ekm).
 module modsurface
   implicit none
   save
   private
-  public :: initsurface_mo, surface_mo, lmo_surface, ustar_mo, obl_mo, dthldz_mo, dqtdz_mo, &
-            dudz_mo, dvdz_mo
+  public :: initsurface_mo, exitsurface_mo, surface_mo_state, surface_mo, lmo_surface, &
+            ustar_mo, obl_mo, dthldz_mo, dqtdz_mo, dudz_mo, dvdz_mo
 
   real :: ustar_mo  = 0.      !< friction velocity [m/s]
   real :: obl_mo    = -0.1    !< Obukhov length [m] (also the iteration's first guess)
@@ -22,8 +27,8 @@ module modsurface
 
 contains
 
-  !> Allocate the per-column MO gradients. They stay zero until the first surface_mo,
-  !> as dthldz_mo/dqtdz_mo do (subgrid runs before bottom on the first substep).
+  !> Allocate the per-column MO gradients. They stay zero until the first
+  !> surface_mo_state, as dthldz_mo/dqtdz_mo do.
   subroutine initsurface_mo
     use modglobal, only : ib, ie, jb, je
     if (.not. allocated(dudz_mo)) allocate(dudz_mo(ib:ie,jb:je))
@@ -32,21 +37,30 @@ contains
     dvdz_mo = 0.
   end subroutine initsurface_mo
 
+  subroutine exitsurface_mo
+    if (allocated(dudz_mo)) deallocate(dudz_mo)
+    if (allocated(dvdz_mo)) deallocate(dvdz_mo)
+  end subroutine exitsurface_mo
+
   logical function lmo_surface()
     use modglobal, only : BCbotm, BCbotm_mo, BCbotm_mo_ustar
     lmo_surface = (BCbotm == BCbotm_mo) .or. (BCbotm == BCbotm_mo_ustar)
   end function lmo_surface
 
-  subroutine surface_mo
-    use modglobal,  only : ib, ie, jb, je, kb, itot, jtot, zf, dzf, dzfi, dzhi, dzhiq, &
-                           dxf, dxhi, fkar, rv, rd, lmoist, BCbotm, BCbotm_mo_ustar
-    use modfields,  only : u0, v0, up, vp, thl0, qt0, u0av, v0av, thl0av, qt0av, momfluxb
+  !> MO surface state: obl_mo, ustar_mo, the surface-layer gradients and the
+  !> tskin/qskin re-diagnosis into thls/qts/thvs. DALES dev 075ac4e program.f90 calls
+  !> surface (L232) before advection and subgrid (L237-238), so the SGS kb sources and
+  !> dthvdz(kb) see the gradients of the current substep. Called from the time loop
+  !> before subgrid when lmo_surface().
+  subroutine surface_mo_state
+    use modglobal,  only : ib, ie, jb, je, kb, itot, jtot, zf, fkar, rv, rd, lmoist, &
+                           BCbotm, BCbotm_mo_ustar
+    use modfields,  only : u0, v0, thl0, qt0, u0av, v0av, thl0av, qt0av
     use modsurfdata, only : wtsurf, wqsurf, thls, qts, thvs, z0, z0h, ustin
-    use modsubgriddata, only : ekm
     use modmpi,     only : comm3d, mpierr, my_real, mpi_sum
     implicit none
     integer :: i, j
-    real :: z1, horvav, cm, cs, scaling, upcu, vpcv, horv, emom, utan2, bcmom
+    real :: z1, horvav, cm, cs, scaling, upcu, vpcv, horv
     real :: loc(2), glob(2), wthl_up, wqt_up
 
     z1 = zf(kb)
@@ -108,6 +122,16 @@ contains
     thls = glob(1) / (real(itot) * real(jtot))
     if (lmoist) qts = glob(2) / (real(itot) * real(jtot))
     thvs = thls * (1. + (rv/rd - 1.) * qts)
+  end subroutine surface_mo_state
+
+  !> Bottom stress from the MO state of surface_mo_state (called from modibm:bottom).
+  subroutine surface_mo
+    use modglobal,  only : ib, ie, jb, je, kb, dzf, dzfi, dzhi, dzhiq, dxf, dxhi
+    use modfields,  only : u0, v0, up, vp, momfluxb
+    use modsubgriddata, only : ekm
+    implicit none
+    integer :: i, j
+    real :: horv, emom, utan2, bcmom
 
     ! momentum: replace the resolved diffusive flux through the bottom face by
     ! u'w' = -u*^2 u/|U| (pattern of modwallfunctions:wfmneutral, case 91)
