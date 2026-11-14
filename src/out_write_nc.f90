@@ -6,7 +6,8 @@
 !! Inspired on the UCLA-LES routine by Bjorn Stevens.
 !! \author Thijs Heus, MPI-M
 !! \par Revision list
-!!   Dipanjan Majumdar, ICL (2025)
+!!   Dipanjan Majumdar, ICL (2023-2026)
+!!   Jingzi Huang, ICL (2024-2026)
 !! \todo documentation
 !! \todo restartfiles in NetCDF?
 !
@@ -29,7 +30,8 @@
 !
 module modstat_nc
     use netcdf
-    use modmpi, only : myid
+    use modmpi, only : myidy, myidx, myid1dy, nbrboty, nbrtopy, nprocy, comm1dy
+    
     implicit none
     integer, save :: timeID=0, ztID=0, zmID=0, xtID=0, xmID=0, ytID=0, ymID=0, ztsID=0, fctID=0, lyrID=0
     real(kind=4) :: nc_fillvalue = -999.
@@ -40,14 +42,13 @@ module modstat_nc
       module procedure writestat_2D_nc
       module procedure writestat_3D_nc
       module procedure writestat_3D_short_nc
+      module procedure writestat_time_new_nc
+      module procedure writestat_1D_var_nc
+      module procedure writestat_2D_var_nc
+      module procedure writestat_3D_var_nc
     end interface writestat_nc
 contains
 
-
-  subroutine initstat_nc
-    implicit none
-
-  end subroutine initstat_nc
 !
 ! ----------------------------------------------------------------------
 !> Subroutine Open_NC: Opens a NetCDF File and identifies starting record
@@ -345,7 +346,6 @@ contains
  end subroutine exitstat_nc
   subroutine writestat_dims_nc(ncid)
     use modglobal, only : xf,xh,yf,yh,zf,zh,jmax,imax
-    use modmpi, only : myidx, myidy
     implicit none
     integer, intent(in) :: ncid
     integer             :: i=0,iret,length,varid
@@ -406,6 +406,22 @@ contains
     iret = nf90_sync(ncid)
 
   end subroutine writestat_time_nc
+
+  subroutine writestat_time_new_nc(ncid,ncname,var,nrec,lraise)
+    implicit none
+    integer,      intent(in)    :: ncid
+    integer,      intent(inout) :: nrec
+    real,         intent(in)    :: var
+    character(*), intent(in)    :: ncname
+    logical,      intent(in)    :: lraise
+
+    integer :: iret, VarID
+
+    if(lraise) nrec = nrec+1
+    iret = nf90_inq_varid(ncid, ncname, VarID)
+    iret = nf90_put_var(ncid, VarID, var, start=(/nrec/))
+    iret = nf90_sync(ncid)
+  end subroutine writestat_time_new_nc
 
   subroutine writestat_1D_nc(ncid,nvar,ncname,vars,nrec,dim1)
     implicit none
@@ -485,6 +501,339 @@ contains
 
   end subroutine writestat_3D_short_nc
 
+  subroutine writestat_1D_var_nc(ncid,ncname,var,nrec,dim)
+    implicit none
+    integer,      intent(in) :: ncid, nrec, dim
+    real,         intent(in) :: var(dim)
+    character(*), intent(in) :: ncname
+
+    integer :: iret, VarID
+
+    iret = nf90_inq_varid(ncid, ncname, VarID)
+    iret = nf90_put_var(ncid, VarID, var, (/1,nrec/), (/dim,1/))
+    iret = nf90_sync(ncid)
+  end subroutine writestat_1D_var_nc
+  subroutine writestat_2D_var_nc(ncid,ncname,var,nrec,dim1,dim2)
+    implicit none
+    integer, intent(in)      :: ncid, nrec, dim1, dim2
+    real, intent(in)         :: var(dim1,dim2)
+    character(*), intent(in) :: ncname
+
+    integer :: iret, VarID
+
+    iret = nf90_inq_varid(ncid, ncname, VarID)
+    iret = nf90_put_var(ncid, VarID, var, (/1,1,nrec/), (/dim1,dim2,1/))
+    iret = nf90_sync(ncid)
+  end subroutine writestat_2D_var_nc
+  subroutine writestat_3D_var_nc(ncid,ncname,var,nrec,dim1,dim2,dim3)
+    implicit none
+    integer,      intent(in) :: ncid, nrec, dim1, dim2, dim3
+    real,         intent(in) :: var(dim1,dim2,dim3)
+    character(*), intent(in) :: ncname
+    
+    integer :: iret, VarID
+
+    iret = nf90_inq_varid(ncid, ncname, VarID)
+    iret = nf90_put_var(ncid, VarID, var, (/1,1,1,nrec/), (/dim1,dim2,dim3,1/))
+    iret = nf90_sync(ncid)
+  end subroutine writestat_3D_var_nc
+
+subroutine writeoffset(ncid, ncname, var, nrec, dim1, dim2, dim3)
+  use mpi
+  use modmpi, only : MY_REAL
+  implicit none
+
+  integer,      intent(in) :: ncid, nrec, dim1, dim2, dim3
+  real,         intent(in) :: var(dim1,dim2,dim3)
+  character(*), intent(in) :: ncname
+
+  integer :: iret, VarID, ierr, status(MPI_STATUS_SIZE)
+  integer, dimension(4) :: startpos, countpos
+  integer :: step, src
+  real, dimension(dim1,dim2,dim3) :: bufin, bufout
+	
+  call MPI_BARRIER(comm1dy, ierr)
+
+  bufin = var
+
+  iret = nf90_inq_varid(ncid, ncname, VarID)
+
+  countpos = (/ dim1,dim2,dim3, 1 /)
+
+  do step = 1, nprocy
+     if (myid1dy == 0) then
+        src = step - 1
+        startpos = (/ 1, 1 + src*dim2, 1, nrec /)
+        iret = nf90_put_var(ncid, VarID, bufin, start=startpos, count=countpos)
+     end if
+
+     call MPI_SENDRECV( &
+          bufin,  size(bufin),  MY_REAL, nbrboty, 1000+step, &
+          bufout, size(bufout), MY_REAL, nbrtopy, 1000+step, &
+          comm1dy, status, ierr )
+     
+     bufin = bufout
+  end do
+
+  if (myid1dy == 0) then
+     iret = nf90_sync(ncid)
+  end if
+
+end subroutine writeoffset
+
+! Gather a two-dimensional x-y field over the y decomposition and write one
+! time record. The x decomposition remains split across the usual per-x-rank
+! statistics files, matching writeoffset for three-dimensional fields.
+subroutine writeoffset_2d(ncid, ncname, var, nrec, dim1, dim2)
+  use mpi
+  use modmpi, only : MY_REAL
+  implicit none
+
+  integer,      intent(in) :: ncid, nrec, dim1, dim2
+  real,         intent(in) :: var(dim1,dim2)
+  character(*), intent(in) :: ncname
+
+  integer :: iret, VarID, ierr, status(MPI_STATUS_SIZE)
+  integer, dimension(3) :: startpos, countpos
+  integer :: step, src
+  real, dimension(dim1,dim2) :: bufin, bufout
+
+  call MPI_BARRIER(comm1dy, ierr)
+
+  bufin = var
+  iret = nf90_inq_varid(ncid, ncname, VarID)
+  countpos = (/ dim1, dim2, 1 /)
+
+  do step = 1, nprocy
+    if (myid1dy == 0) then
+      src = step - 1
+      startpos = (/ 1, 1 + src*dim2, nrec /)
+      iret = nf90_put_var(ncid, VarID, bufin, start=startpos, count=countpos)
+    end if
+
+    call MPI_SENDRECV( &
+         bufin,  size(bufin),  MY_REAL, nbrboty, 3000+step, &
+         bufout, size(bufout), MY_REAL, nbrtopy, 3000+step, &
+         comm1dy, status, ierr )
+
+    bufin = bufout
+  end do
+
+  if (myid1dy == 0) then
+    iret = nf90_sync(ncid)
+  end if
+end subroutine writeoffset_2d
+
+
+! 1D ring writer along X-direction (comm1dx)
+subroutine writeoffset_1dx(ncid, ncname, var, nrec, dim1, dim2, dim3)
+  use mpi
+  use modmpi, only : MY_REAL, comm1dx, myid1dx, nprocx, nbrbotx, nbrtopx
+  implicit none
+
+  integer,      intent(in) :: ncid, nrec, dim1, dim2, dim3
+  real,         intent(in) :: var(dim1,dim2,dim3)
+  character(*), intent(in) :: ncname
+
+  integer :: iret, VarID, ierr, status(MPI_STATUS_SIZE)
+  integer, dimension(4) :: startpos, countpos
+  integer :: step, src
+  real, dimension(dim1,dim2,dim3) :: bufin, bufout
+
+  call MPI_BARRIER(comm1dx, ierr)
+
+  bufin = var
+
+  iret = nf90_inq_varid(ncid, ncname, VarID)
+
+  countpos = (/ dim1,dim2,dim3, 1 /)
+
+  do step = 1, nprocx
+    if (myid1dx == 0) then
+      src = step - 1
+      startpos = (/ 1 + src*dim1, 1, 1, nrec /)
+      iret = nf90_put_var(ncid, VarID, bufin, start=startpos, count=countpos)
+    end if
+
+    call MPI_SENDRECV( &
+       bufin,  size(bufin),  MY_REAL, nbrbotx, 2000+step, &
+       bufout, size(bufout), MY_REAL, nbrtopx, 2000+step, &
+       comm1dx, status, ierr )
+     
+    bufin = bufout
+  end do
+
+  if (myid1dx == 0) then
+    iret = nf90_sync(ncid)
+  end if
+
+end subroutine writeoffset_1dx
+
+  subroutine write_pedestrian_wind_metadata_nc(ncid, receptor_height)
+    implicit none
+
+    integer, intent(in) :: ncid
+    real, intent(in) :: receptor_height
+
+    integer :: status, height_varid, wind_varid, ndims
+    integer :: no_dims(0)
+    real :: stored_height, tolerance
+    logical :: height_exists
+
+    status = nf90_inq_varid(ncid, 'receptor_height', height_varid)
+    height_exists = status == NF90_NOERR
+    if (height_exists) then
+      status = nf90_inquire_variable(ncid, height_varid, ndims=ndims)
+      call nchandle_error(status)
+      if (ndims /= 0) then
+        write(0,*) 'ERROR: Existing receptor_height is an array; cannot use a single height.'
+        stop 1
+      end if
+      status = nf90_get_var(ncid, height_varid, stored_height)
+      call nchandle_error(status)
+      tolerance = 100.*epsilon(1.)*max(1., abs(stored_height), abs(receptor_height))
+      if (abs(stored_height-receptor_height) > tolerance) then
+        write(0,'(a,f10.3,a,f10.3,a)') 'ERROR: Existing receptor_height=', stored_height, &
+                                       ' m differs from configured value ', receptor_height, ' m.'
+        stop 1
+      end if
+    else if (status /= NF90_ENOTVAR) then
+      call nchandle_error(status)
+    end if
+
+    status = nf90_redef(ncid)
+    call nchandle_error(status)
+
+    if (.not. height_exists) then
+      status = nf90_def_var(ncid, 'receptor_height', NF90_FLOAT, no_dims, height_varid)
+      call nchandle_error(status)
+    end if
+
+    status = nf90_put_att(ncid, height_varid, 'longname', &
+                          'Height above model ground used for ws_local')
+    call nchandle_error(status)
+    status = nf90_put_att(ncid, height_varid, 'standard_name', 'height')
+    call nchandle_error(status)
+    status = nf90_put_att(ncid, height_varid, 'units', 'm')
+    call nchandle_error(status)
+    status = nf90_put_att(ncid, height_varid, 'positive', 'up')
+    call nchandle_error(status)
+
+    status = nf90_inq_varid(ncid, 'ws_local', wind_varid)
+    call nchandle_error(status)
+    status = nf90_inquire_variable(ncid, wind_varid, ndims=ndims)
+    call nchandle_error(status)
+    if (ndims /= 3) then
+      write(0,*) 'ERROR: Existing ws_local has incompatible dimensions for a single height.'
+      stop 1
+    end if
+    status = nf90_put_att(ncid, wind_varid, 'coordinates', 'receptor_height')
+    call nchandle_error(status)
+
+    status = nf90_enddef(ncid)
+    call nchandle_error(status)
+    status = nf90_put_var(ncid, height_varid, receptor_height)
+    call nchandle_error(status)
+    status = nf90_sync(ncid)
+    call nchandle_error(status)
+  end subroutine write_pedestrian_wind_metadata_nc
+
+  subroutine write_pedestrian_wind_heights_nc(ncid, heights)
+    implicit none
+    integer, intent(in) :: ncid
+    real, intent(in) :: heights(:)
+    integer :: status, height_dimid, height_varid, wind_varid, xt_dimid, yt_dimid, time_dimid
+    integer :: ndims, stored_count, dimids(NF90_MAX_VAR_DIMS)
+    real, allocatable :: stored_heights(:)
+    logical :: height_exists
+
+    status = nf90_inq_varid(ncid, 'receptor_height', height_varid)
+    height_exists = status == NF90_NOERR
+    if (height_exists) then
+      status = nf90_inquire_variable(ncid, height_varid, ndims=ndims, dimids=dimids)
+      call nchandle_error(status)
+      if (ndims /= 1) then
+        write(0,*) 'ERROR: Existing receptor_height is scalar; cannot use multiple heights.'
+        stop 1
+      end if
+      height_dimid = dimids(1)
+      status = nf90_inquire_dimension(ncid, height_dimid, len=stored_count)
+      call nchandle_error(status)
+      if (stored_count /= size(heights)) then
+        write(0,*) 'ERROR: Existing receptor_height count differs from configured count.'
+        stop 1
+      end if
+      allocate(stored_heights(stored_count))
+      status = nf90_get_var(ncid, height_varid, stored_heights)
+      call nchandle_error(status)
+      if (any(abs(stored_heights-heights) > &
+          100.*epsilon(1.)*max(1.,abs(stored_heights),abs(heights)))) then
+        write(0,*) 'ERROR: Existing receptor_height values differ from configured heights.'
+        stop 1
+      end if
+    else if (status /= NF90_ENOTVAR) then
+      call nchandle_error(status)
+    end if
+
+    status = nf90_inq_dimid(ncid, 'xt', xt_dimid)
+    call nchandle_error(status)
+    status = nf90_inq_dimid(ncid, 'yt', yt_dimid)
+    call nchandle_error(status)
+    status = nf90_inq_dimid(ncid, 'time', time_dimid)
+    call nchandle_error(status)
+
+    status = nf90_redef(ncid)
+    call nchandle_error(status)
+    if (.not. height_exists) then
+      status = nf90_def_dim(ncid, 'receptor_height', size(heights), height_dimid)
+      call nchandle_error(status)
+      status = nf90_def_var(ncid, 'receptor_height', NF90_FLOAT, (/height_dimid/), height_varid)
+      call nchandle_error(status)
+    end if
+    status = nf90_put_att(ncid, height_varid, 'longname', 'Heights above model ground used for ws_local')
+    call nchandle_error(status)
+    status = nf90_put_att(ncid, height_varid, 'standard_name', 'height')
+    call nchandle_error(status)
+    status = nf90_put_att(ncid, height_varid, 'units', 'm')
+    call nchandle_error(status)
+    status = nf90_put_att(ncid, height_varid, 'positive', 'up')
+    call nchandle_error(status)
+
+    status = nf90_inq_varid(ncid, 'ws_local', wind_varid)
+    if (status == NF90_ENOTVAR) then
+      status = nf90_def_var(ncid, 'ws_local', NF90_FLOAT, &
+                            (/xt_dimid,yt_dimid,height_dimid,time_dimid/), wind_varid)
+      call nchandle_error(status)
+      status = nf90_put_att(ncid, wind_varid, '_FillValue', nc_fillvalue)
+      call nchandle_error(status)
+    else
+      call nchandle_error(status)
+      status = nf90_inquire_variable(ncid, wind_varid, ndims=ndims, dimids=dimids)
+      call nchandle_error(status)
+      if (ndims /= 4) then
+        write(0,*) 'ERROR: Existing ws_local has incompatible dimensions for multiple heights.'
+        stop 1
+      end if
+      if (any(dimids(1:4) /= (/xt_dimid,yt_dimid,height_dimid,time_dimid/))) then
+        write(0,*) 'ERROR: Existing ws_local dimension order differs from configured output.'
+        stop 1
+      end if
+    end if
+    status = nf90_put_att(ncid, wind_varid, 'longname', &
+                          'Time-mean horizontal wind speed at configured heights above model ground')
+    call nchandle_error(status)
+    status = nf90_put_att(ncid, wind_varid, 'units', 'm/s')
+    call nchandle_error(status)
+    status = nf90_put_att(ncid, wind_varid, 'coordinates', 'receptor_height')
+    call nchandle_error(status)
+    status = nf90_enddef(ncid)
+    call nchandle_error(status)
+    status = nf90_put_var(ncid, height_varid, heights)
+    call nchandle_error(status)
+    status = nf90_sync(ncid)
+    call nchandle_error(status)
+  end subroutine write_pedestrian_wind_heights_nc
+
 
   subroutine ncinfo(out,in1,in2,in3,in4)
 
@@ -498,7 +847,6 @@ contains
   end subroutine ncinfo
 
   subroutine nchandle_error(status)
-    use netcdf
     implicit none
 
     integer, intent(in) :: status

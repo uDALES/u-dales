@@ -19,7 +19,8 @@ module tests
 
   implicit none
   save
-  public :: tests_read_sparse_ijk, tests_2decomp_init_exit, tests_mpi_operators, tests_zgrid_metrics, tests_sgs_statistics
+  public :: tests_read_sparse_ijk, tests_2decomp_init_exit, tests_mpi_operators
+  public :: init_tests, exit_tests, tests_roundtrip, tests_zgrid_metrics, tests_sgs_statistics
 
 contains
 
@@ -46,7 +47,7 @@ contains
   !> Returns .true. if all tests pass, .false. otherwise
   logical function tests_read_sparse_ijk()
     use modglobal,    only : runmode
-    use readinput, only : read_sparse_ijk
+    use readsparsefiles, only : read_sparse_ijk
     use modibm,       only : initibm
     use modibm,       only : solid_info_u, solid_info_v, solid_info_w, solid_info_c
     use modibm,       only : bound_info_u, bound_info_v, bound_info_w, bound_info_c
@@ -484,7 +485,75 @@ contains
 
   end function tests_zgrid_metrics
 
-  !> Validate the SGS fluxes written by the statistics output (modstatsdump).
+  !> Prepare for the input round-trip test (TEST_ROUNDTRIP).  Unlike the other
+  !! test runmodes, this one is dispatched directly after initrunparams, so it
+  !! sets up its own decomposition and finalizes MPI itself in exit_tests.
+  subroutine init_tests
+    use mpi
+    use modmpi,     only : nprocx, nprocy
+    use modstartup, only : init2decomp
+    implicit none
+
+    integer :: ierr, myid
+
+    call MPI_COMM_RANK(MPI_COMM_WORLD, myid, ierr)
+
+    if (nprocx * nprocy > 32) then
+      if (myid == 0) then
+        write(*,*) 'ERROR: input round-trip test refuses to run with more than 32 MPI ranks.'
+        write(*,*) 'Requested nprocx*nprocy =', nprocx * nprocy
+      end if
+      call MPI_ABORT(MPI_COMM_WORLD, 1, ierr)
+    end if
+
+    call init2decomp
+
+  end subroutine init_tests
+
+  subroutine exit_tests
+    use mpi
+    implicit none
+
+    integer :: ierr
+
+    call decomp_2d_finalize
+    call MPI_FINALIZE(ierr)
+  end subroutine exit_tests
+
+  !> Input round-trip test: the last rank writes the interpreted namelist
+  !! state so it can be compared against the input namelists with f90nml.
+  subroutine tests_roundtrip
+    use mpi
+    use modmpi,         only : nprocx, nprocy
+    use readnamelists, only : writenamelists
+    implicit none
+
+    integer :: ierr, nprocs, myid, last_proc
+
+    call MPI_COMM_RANK(MPI_COMM_WORLD, myid, ierr)
+    call MPI_COMM_SIZE(MPI_COMM_WORLD, nprocs, ierr)
+    last_proc = nprocs - 1
+
+    if (myid == 0) then
+      write(*,*) '========================================='
+      write(*,*) 'INPUT ROUND-TRIP TEST'
+      write(*,*) '========================================='
+      write(*,*) 'Total processes:', nprocs
+      write(*,*) 'Requested nprocx*nprocy:', nprocx * nprocy
+      write(*,*) 'Last process ID:', last_proc
+      write(*,*) '========================================='
+    end if
+
+    call MPI_BARRIER(MPI_COMM_WORLD, ierr)
+
+    if (myid == last_proc) then
+      write(*,*) '  Last process (', myid, ') received ALL INPUT VALUES:'
+      call writenamelists
+    end if
+
+  end subroutine tests_roundtrip
+
+  !> Validate the SGS fluxes written by the statistics output (out_stats.f90).
   !! Uses the stretched-grid case 300 (libm = .false.) so that the vertical
   !! metric factors are genuinely non-uniform and dzf/dzh confusion is visible.
   !!
@@ -510,7 +579,7 @@ contains
     use modsubgrid,   only : initsubgrid, diffc, diffu, diffw, ekh, ekm
     use modboundary,  only : initboundary
     use modibm,       only : initibm, createmasks
-    use modstatsdump, only : compute_sgs_fluxes
+    use stats,        only : stats_sgs_fluxes
     use initfac,      only : readfacetfiles
     use decomp_2d,    only : zstart
 
@@ -525,7 +594,6 @@ contains
 
     real, allocatable :: usgs(:,:,:), vsgs(:,:,:), wsgs(:,:,:)
     real, allocatable :: thlsgs(:,:,:), qtsgs(:,:,:)
-    real, allocatable :: sv1sgs(:,:,:), sv2sgs(:,:,:), sv3sgs(:,:,:), sv4sgs(:,:,:)
     real, allocatable :: zc(:), zw(:), got(:,:,:), exp(:,:,:)
     logical :: all_passed
     real    :: trunc_tol, scale
@@ -536,7 +604,7 @@ contains
       write(*, '(A, I8)') 'runmode = ', runmode
       write(*, '(A)') 'tests_sgs_statistics: SGS STATISTICS TEST'
       write(*, '(A)') '------------------------------------------------'
-      write(*, '(A)') 'Using stretched-grid case 300 to validate modstatsdump SGS fluxes'
+      write(*, '(A)') 'Using stretched-grid case 300 to validate the out_stats SGS fluxes'
     end if
 
     call initfields
@@ -546,15 +614,12 @@ contains
     call initibm
     call createmasks
 
-    allocate(usgs  (ib-ih:ie+ih,jb-jh:je+jh,kb:ke+kh))
-    allocate(vsgs  (ib-ih:ie+ih,jb-jh:je+jh,kb:ke+kh))
-    allocate(wsgs  (ib-ih:ie+ih,jb-jh:je+jh,kb:ke+kh))
-    allocate(thlsgs(ib-ih:ie+ih,jb-jh:je+jh,kb:ke+kh))
-    allocate(qtsgs (ib-ih:ie+ih,jb-jh:je+jh,kb:ke+kh))
-    allocate(sv1sgs(ib:ie,jb:je,kb:ke+kh))
-    allocate(sv2sgs(ib:ie,jb:je,kb:ke+kh))
-    allocate(sv3sgs(ib:ie,jb:je,kb:ke+kh))
-    allocate(sv4sgs(ib:ie,jb:je,kb:ke+kh))
+    ! the statistics hold the SGS fluxes on the interior cells only
+    allocate(usgs  (ib:ie,jb:je,kb:ke+kh))
+    allocate(vsgs  (ib:ie,jb:je,kb:ke+kh))
+    allocate(wsgs  (ib:ie,jb:je,kb:ke+kh))
+    allocate(thlsgs(ib:ie,jb:je,kb:ke+kh))
+    allocate(qtsgs (ib:ie,jb:je,kb:ke+kh))
     allocate(got(ib:ie,jb:je,kb:ke+kh), exp(ib:ie,jb:je,kb:ke+kh))
 
     ! Cell-centre heights, extended one level below the surface by mirroring
@@ -587,7 +652,7 @@ contains
       end do
     end do
 
-    call compute_sgs_fluxes(usgs,vsgs,wsgs,thlsgs,qtsgs,sv1sgs,sv2sgs,sv3sgs,sv4sgs)
+    call stats_sgs_fluxes(usgs,vsgs,wsgs,thlsgs,qtsgs)
 
     ! (a1) exact discrete identity: the second-order stencils are exact for a
     !      quadratic in z and a linear in x, so no truncation error enters here.
@@ -677,7 +742,7 @@ contains
     w0   = wm
     thl0 = thlm
 
-    call compute_sgs_fluxes(usgs,vsgs,wsgs,thlsgs,qtsgs,sv1sgs,sv2sgs,sv3sgs,sv4sgs)
+    call stats_sgs_fluxes(usgs,vsgs,wsgs,thlsgs,qtsgs)
 
     up   = 0.
     thlp = 0.
@@ -717,7 +782,7 @@ contains
     v0 = vm
     w0 = wm
 
-    call compute_sgs_fluxes(usgs,vsgs,wsgs,thlsgs,qtsgs,sv1sgs,sv2sgs,sv3sgs,sv4sgs)
+    call stats_sgs_fluxes(usgs,vsgs,wsgs,thlsgs,qtsgs)
 
     wp = 0.
     call diffw(wp)
@@ -730,7 +795,7 @@ contains
     scale = max(maxval(abs(exp)), 1.)
     if (.not. compare_real_3d('diffw vs div(wsgs)', got, exp, 1.e-10*scale)) all_passed = .false.
 
-    deallocate(usgs, vsgs, wsgs, thlsgs, qtsgs, sv1sgs, sv2sgs, sv3sgs, sv4sgs, got, exp, zc, zw)
+    deallocate(usgs, vsgs, wsgs, thlsgs, qtsgs, got, exp, zc, zw)
 
     if (all_passed .and. myid == 0) then
       write(*, '(A)') '------------------------------------------------'

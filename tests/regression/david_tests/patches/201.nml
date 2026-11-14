@@ -3,6 +3,6 @@ runtime = 2.5
 /
 
 &OUTPUT
-tfielddump = 2.
+tinstantdump = 2.
 tstatsdump = 2.
 /

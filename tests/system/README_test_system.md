@@ -177,8 +177,9 @@ The script exits with code `0` (all passed) or `1` (any failure).
 1. Create `experiments/<NNN>/` with the simulation input files and a `config.sh`
    that exports `DA_EXPDIR`, `DA_BUILD`, `DA_WORKDIR`, and `NCPU`.
 2. Run the simulation once manually to produce output, then copy the NetCDF
-   output files (`xytdump.<NNN>.nc`, `tdump.<NNN>.nc`, `fielddump.<NNN>.nc`,
-   and `treedump.<NNN>.nc` if applicable) to `ref_data/<NNN>/`.
+   output files (`stats_xy.<NNN>.nc`, `stats_t.<rank>.<NNN>.nc`,
+   `ins_field.<rank>.<NNN>.nc`, and `stats_tree.<rank>.<NNN>.nc` if
+   applicable) to `ref_data/<NNN>/`.
 3. Optionally also copy the generated input files to `ref_data/<NNN>/` to
    enable input comparison.
 4. Pass the case number on the command line:

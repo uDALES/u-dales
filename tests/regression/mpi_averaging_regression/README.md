@@ -10,7 +10,7 @@ four processor decompositions:
 - no-tree case `100`
 - tree case `526`
 - `serial`, `x_split`, `y_split`, and `xy_split`
-- reconstructed global `tdump` / `treedump` fields
+- reconstructed global `stats_t` / `stats_tree` fields
 - optional solver log diagnostics from `checksim`
 
 The goal is to catch behavioural drift in the MPI averaging and reduction

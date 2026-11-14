@@ -162,6 +162,11 @@ between multiple components rather than one isolated API.
 - `directshortwave/`: Python-driven preprocessing integration tests for direct
   shortwave on committed cases `100` and `525`
 - `ibm_sparse_input/`: MPI validation for `read_sparse_ijk()` using `runmode = 1004`
+- `input/`: namelist input interface checks. `test_roundtrip_input.py` runs
+  `u-dales`, writes the interpreted namelist state from the last rank, and
+  compares input and output namelists with `f90nml`; `test_sourcecode.py`
+  performs a static consistency check between Fortran namelist definitions,
+  MPI broadcasts, and the schema used for tooling/editor support
 - `zgrid_metrics/`: vertical grid metric identities for a uniform and a
   stretched profile using `runmode = 1006`, including the rejection of a
   stretched grid with an equidistant-only Poisson configuration
