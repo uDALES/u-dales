@@ -51,7 +51,7 @@ from convert_dales_case import write_table  # noqa: E402
 CP = 1004.0       # J/kg/K, modglobal cp
 RLV = 2.53e6      # J/kg, modglobal rlv (= DALES dev 075ac4e)
 RHO = 1.22        # kg/m3, SurfaceDYCOMS_RF01 (qt_flux = fq / lv / 1.22)
-FKAR = 0.41       # von Karman constant, modglobal fkar
+FKAR = 0.40       # von Karman constant, modglobal fkar (default 0.40)
 SHF, LHF = 15.0, 115.0   # W/m2, upward
 CM = 0.0011
 ZI = 840.0

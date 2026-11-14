@@ -73,8 +73,8 @@ thls         = 289.         ! first guess (surface thl is diagnosed every step)
 qts          = 9.0e-3       ! first guess
 wtsurf       = -1.22460976e-02   ! SHF 15 W/m2 upward / (1.22 kg/m3 * 1004 J/kg/K); negative = upward (D1)
 wqsurf       = -3.72578241e-05   ! LHF 115 W/m2 upward / (1.22 kg/m3 * 2.53e6 J/kg)
-z0           = 1.069564e-05      ! 2.5 m * exp(-0.41 / sqrt(0.0011)); printed by make_rf01.py
-z0h          = 1.069564e-05
+z0           = 1.445944e-05      ! 2.5 m * exp(-0.40 / sqrt(0.0011)); printed by make_rf01.py
+z0h          = 1.445944e-05
 /
 
 &NAMRADIATION

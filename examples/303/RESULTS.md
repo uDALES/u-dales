@@ -21,6 +21,10 @@ with kappa^2. **The runs reported here used kappa = 0.41 in both codes** (DALES 
 `modglobal.f90`). From the change of the uDALES default `fkar` to 0.40 (the DALES and PALM value) onward, both
 codes use 0.40 and DALES needs no `fkar` edit.
 
+Note (Task 20): the reported runs used kappa = 0.41 in both codes; the committed `namoptions.303` and
+`dales_inputs/rf01/namoptions.001` now use kappa = 0.40 with the recomputed `z0 = z0h = 1.445944e-5 m` (same neutral
+Cm = 0.0011). Not rerun.
+
 Runs: uDALES `/rds/general/user/mvr/ephemeral/t14/x303/f4{3,4,5}` (binary code-equivalent to 674395fe, 8 x 4 ranks;
 the same runs as Task 14). DALES `/rds/general/user/mvr/ephemeral/t19/f303/dfix_4{3,4,5}` (dev 075ac4e + the t14
 and t19 patches, `fkar = 0.41`, inputs `dales_inputs/rf01`, 8 x 4 ranks), seeds 43, 44, 45; window 3-4 h;

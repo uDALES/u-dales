@@ -13,6 +13,14 @@ that they are easy to find when upgrading.
 
 ### Breaking changes
 
+- **The von Karman constant default `fkar` is 0.40 instead of 0.41.** It is now the value used by DALES
+  (`fkar = 0.4`), PALM (`kappa = 0.4`) and WRF; the 2.3 % u* gap between uDALES and DALES in the RF01 comparison
+  was entirely this constant. `fkar` remains a `&WALLS` input. Also, the inlet-generator boundary-layer-thickness
+  relations in `modinlet` used a hard-coded 0.41 and now use `fkar`. Affected: every run that does not set `fkar`,
+  through the wall functions (`modwallfunctions`, `modibm`) and the Monin-Obukhov surface (`modsurface`,
+  `BCbotm = 4, 5`); for the same roughness length the wall stresses fall by about 5 % (kappa^2 is 0.160 instead of
+  0.168). To keep the old behaviour set `fkar = 0.41` in `&WALLS`. Example 303 and the DALES RF01 inputs use the
+  recomputed `z0 = z0h = 1.445944e-5 m` (same neutral Cm = 0.0011).
 - **The SGS TKE halos are exchanged between MPI ranks** ([issue #405](https://github.com/uDALES/u-dales/issues/405)).
   `modboundary:halos` never called `exchange_halo_z` for `e120` and `e12m`, so with the
   one-equation closure (`loneeqn = .true.`) and `nprocx > 1` or `nprocy > 1` the e12 halo

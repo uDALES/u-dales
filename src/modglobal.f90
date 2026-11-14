@@ -330,7 +330,7 @@ module modglobal
    !      real,parameter :: ekmin    = 1.e-6            !<    *minimum value for k-coefficient.
    real, parameter :: ekmin = 1.e-12 !<    *minimum value for k-coefficient.
    real, parameter :: e12min = 5.e-5 !<    *minimum value for TKE.
-   real :: fkar = 0.41 !<   *Von Karman constant
+   real :: fkar = 0.40 !<   *Von Karman constant
    real, parameter :: eps1 = 1.e-10 !<    *very small number*
    real, parameter :: epscloud = 1.e-5 !<    *limit for cloud calculation 0.01 g/kg
    real, parameter :: boltz = 5.67e-8 !<    *Stefan-Boltzmann constant

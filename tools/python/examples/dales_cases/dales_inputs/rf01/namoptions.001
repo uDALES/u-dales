@@ -49,8 +49,8 @@ igrw_damp  =  2          ! default, written out: sponge over the top quarter as 
 /
 &NAMSURFACE
 isurf      =  4          ! prescribed fluxes, MO u* (uDALES BCbotm = 4)
-z0mav      =  1.069564e-5
-z0hav      =  1.069564e-5
+z0mav      =  1.445944e-5
+z0hav      =  1.445944e-5
 thls       =  289.
 wtsurf     =  1.22460976e-2   ! = -uDALES wtsurf (DALES positive upward)
 wqsurf     =  3.72578241e-5   ! = -uDALES wqsurf (LHF 115 W/m2 / (1.22 * 2.53e6))

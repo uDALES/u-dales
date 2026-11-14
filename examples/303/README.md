@@ -25,7 +25,7 @@ Surface.pyx, `RadiationDyCOMS_RF01` in Radiation.pyx).
 | Coriolis | `lcoriol`, `xlat = 31.5` (f = 0.762e-4 1/s) | PyCLES `coriolis_param` |
 | `wtsurf` | -1.2246098e-2 K m/s | 15 W/m2 upward / (1.22 kg/m3 x 1004 J/kg/K); negative = upward (D1); rho from PyCLES, cp from uDALES |
 | `wqsurf` | -3.7257824e-5 kg/kg m/s | 115 W/m2 upward / (1.22 kg/m3 x 2.53e6 J/kg); uDALES `rlv` (the DALES value); PyCLES uses its own temperature-dependent L (about 2.5e6), which would give 3.8e-5 |
-| surface | `BCbotm = 4`, `z0 = z0h = 1.069564e-5` m | `z0 = (dz/2) exp(-0.41 / sqrt(0.0011))`: neutral Cm = 0.0011 at the first level (PyCLES `cm = 0.0011`) |
+| surface | `BCbotm = 4`, `z0 = z0h = 1.445944e-5` m | `z0 = (dz/2) exp(-0.40 / sqrt(0.0011))`: neutral Cm = 0.0011 at the first level (PyCLES `cm = 0.0011`) |
 | `thls`, `qts` | 289 K, 9e-3 | first guesses; MO diagnoses both every step |
 | radiation | `iradiation = 2`, `rad_longw`, `rka = 85`, `dlwtop = 70`, `dlwbot = 22`, `case_hooks = 'dycoms_rf01'` with `&NAMCASE_DYCOMS` `dycoms_D = 3.75e-6`, `dycoms_qt_thres = 8e-3` | PyCLES `RadiationDyCOMS_RF01` (`kap = 85, f0 = 70, f1 = 22, divergence = 3.75e-6`); the 8 g/kg threshold is that of DALES `rad_user` |
 | `timerad` | 0 | task spec |
@@ -61,7 +61,7 @@ close-match comparison in RESULTS.md (DALES inputs in `tools/python/examples/dal
 
 ## RF01 z0 value
 
-`z0 = z0h = 1.069564e-5 m`. With `BCbotm = 4` uDALES computes `Cm = kappa^2 / ln(z1/z0)^2` (stability
+`z0 = z0h = 1.445944e-5 m`. With `BCbotm = 4` uDALES computes `Cm = kappa^2 / ln(z1/z0)^2` (stability
 corrections included) at `z1 = 2.5 m`; the value above gives exactly Cm = 0.0011 for neutral conditions
 (printed and checked by `make_rf01.py`). In the unstable boundary layer of RF01 the effective Cm is larger than
 0.0011 because of the stability correction (the first 60 s of the smoke test gave u* = 0.29 m/s, about

@@ -94,7 +94,7 @@ def run(run_dir: Path, nprocs: int = 1) -> subprocess.CompletedProcess:
     return subprocess.run(["bash", "-lc", cmd], cwd=REPO_ROOT, capture_output=True, text=True)
 
 
-FKAR, GRAV, RD, RV = 0.41, 9.81, 287.04, 461.5
+FKAR, GRAV, RD, RV = 0.40, 9.81, 287.04, 461.5
 
 
 def psim(z):

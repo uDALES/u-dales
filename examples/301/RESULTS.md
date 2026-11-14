@@ -1,5 +1,8 @@
 # Tier-2 validation results: 301 BOMEX
 
+Note (Task 20): the runs reported here used kappa = 0.41 in both codes; the uDALES default `fkar` is now 0.40 (the
+DALES value). `namoptions.301` prescribes z0 = 2e-4 m independently of kappa, so it needs no change. Not rerun.
+
 ## Close-match validation against DALES dev (Task 14, 2026-11-14)
 
 **Verdict.** At commit c220463a uDALES fails the close-match bar by a wide margin (LWP 2.3 vs 6.9 g/m2, cloud
