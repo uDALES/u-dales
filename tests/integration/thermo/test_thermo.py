@@ -117,6 +117,18 @@ RV_RD = 461.5 / 287.04
 RLV, CP = 2.53e6, 1004.0   # check modglobal: rlv, cp
 
 
+def ql_udales(thl, qt, exn):
+    """uDALES modthermodynamics:thermo (lqlnr = .false.): one linearised step, Tetens."""
+    rd, rv, pref0 = 287.04, 461.5, 1.0e5
+    tl = thl * exn
+    p = pref0 * exn ** (CP / rd)
+    es = 610.78 * np.exp(17.27 * (tl - 273.16) / (tl - 35.86))
+    qsl = rd / rv * es / (p - (1 - rd / rv) * es)
+    b1 = RLV ** 2 / (tl ** 2 * CP * rv)
+    qs = qsl * (1 + b1 * qt) / (1 + b1 * qsl)
+    return np.maximum(qt - qs, 0.0)
+
+
 def dthvdz_surface(thl, qt, ql, exn, dthldz, dqtdz):
     """DALES dev 075ac4e calthv, surface level."""
     if ql > 0:
@@ -139,8 +151,8 @@ class TestCalthv(_SolverTest):
             "NAMTHERMOSTAT": {"lthermostat": ".true.", "tthermostat": "1."}})
         self.run_ok(d)
         # Record alignment (approximate). Per RK substep the order is: surface_mo_state
-        # ... tstep_integrate -> fielddump/thermostat (write only at rk3step == 3 when due)
-        # -> boundary -> thermodynamics; calthv runs on EVERY substep. Dump record n holds
+        # ... tstep_integrate -> fielddump -> boundary -> thermodynamics -> thermostat (writes
+        # only at rk3step == 3 when due); calthv runs on EVERY substep. Dump record n holds
         # end-of-step-n thl/qt. The dthvdz in dump record n+1 was computed by calthv at the
         # end of RK substep 2 of step n+1, from the substep-2 intermediate fields and the
         # ustar_mo/obl_mo of that substep. That is closer to thermostat record n+1 (substep 3
@@ -213,6 +225,48 @@ class TestThermostat(_SolverTest):
             self.assertGreaterEqual(len(t["time"]), 1)
             self.assertEqual(float(t["zi_qt8"][-1]), 0.0)
             self.assertEqual(float(t["lwp_bar"][-1]), 0.0)
+
+    def _ql_record(self):
+        """Record ql and ql recomputed from the same record's thl, qt, exnf with the uDALES
+        one-step adjustment (Tetens, b1 = rlv^2/(Tl^2 cp rv)). thermo uses the pressure of
+        the previous diagfld, so agreement is ~1e-5, not exact."""
+        if not hasattr(self, "_qlrec"):
+            zf = (np.arange(64) + 0.5) * 20.0
+            thl, qt = tc.rf01_profiles(zf)
+            thl = thl + np.where(zf <= 840.0, 1.0e-3 * zf / 20.0, 0.0)
+            qt = qt - np.where(zf <= 840.0, 1.0e-7 * zf / 20.0, 0.0)
+            d = tc.write_case(self.tmp / "stat_ql", thl=thl, qt=qt, groups={
+                "RUN": {"runtime": "2.5"},
+                "NAMTHERMOSTAT": {"lthermostat": ".true.", "tthermostat": "1."}})
+            self.run_ok(d)
+            with Dataset(d / "thermostat_z.310.nc") as z:
+                ql, thl_r, qt_r, exn_r = (np.asarray(z[v][-1, :], dtype=float)
+                                          for v in ("ql", "thl", "qt", "exnf"))
+            type(self)._qlrec = (ql, ql_udales(thl_r, qt_r, exn_r))
+        return self._qlrec
+
+    def test_record_ql_consistent_with_rlv_known_offset(self):
+        # Checks rlv (a wrong rlv changes ql by ~12 %) and that the record's ql belongs to the
+        # same state as its thl/qt (thermostat after thermodynamics), allowing for the known
+        # one-level offset below: record ql(k) is the ql of level k+1.
+        ql, ref = self._ql_record()
+        sat = ref[1:] > 0.1 * ref.max()
+        self.assertGreater(int(sat.sum()), 5)
+        dev = np.abs(ql[:-1][sat] - ref[1:][sat]) / ref[1:][sat]
+        print(f"\n[ql] {int(sat.sum())} saturated levels, record ql(k) vs recomputed ql(k+1): "
+              f"max rel dev {dev.max():.3e}")
+        np.testing.assert_allclose(ql[:-1][sat], ref[1:][sat], rtol=1e-4)
+
+    # KNOWN BUG (pre-existing, on master since v2.0): modthermodynamics:thermo declares
+    # ql(..., kb:ke+kh) but ql0 is allocated kb-kh:ke+kh (alloc_z), so the full-level call
+    # stores the ql of level k+1 in ql0(k). When thermo is fixed, remove the decorator and
+    # the previous test.
+    @unittest.expectedFailure
+    def test_record_ql_matches_record_thl_qt(self):
+        ql, ref = self._ql_record()
+        sat = ref > 0.1 * ref.max()
+        np.testing.assert_allclose(ql[sat], ref[sat], rtol=1e-4)
+
 
 def radpar_reference(absorber, rho, exn, dz, f0, f1, kappa):
     """Stevens et al. (2005) / DALES radpar longwave, one column. Returns thl tendency [K/s]."""

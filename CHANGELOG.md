@@ -48,7 +48,8 @@ that they are easy to find when upgrading.
   flux of green-roof facets in the energy balance (`modEB:updateGR`; the soil-water
   budget uses `rlv*rlvi` and is unchanged) and the psychrometric constant and
   moisture sources of the tree model (`vegetation`, `lmoist` and `ltempeq`). For
-  the same `thl` and `qt`, cloud liquid water is about 12-14 % lower than before.
+  the same `thl` and `qt`, cloud liquid water is about 10-15 % lower than before
+  (more in warmer clouds).
   Who is affected: runs with `lmoist = .true.` that form cloud, moist runs with
   trees, and energy-balance runs with green roofs. Dry runs are unchanged. Case 303
   (DYCOMS RF01) now prescribes `wqsurf = -3.72578241e-5` (115 W/m2 / (1.22 x 2.53e6)).
