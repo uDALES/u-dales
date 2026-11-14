@@ -28,7 +28,7 @@ Outputs of interest: `thermostat_t.301.nc`, `thermostat_z.301.nc`.
 | SGS | `loneeqn = .true.` (1.5-order TKE), `ldelta = .false.` | DALES `ldelta = .false.`; one-equation closure as DALES |
 | advection | `iadv_mom = iadv_tke = iadv_thl = iadv_qt = 2` | DALES `iadv_* = 2` |
 | sponge | `igrw_damp = 2`, `ksp` default (top quarter, `rnu0 = 2.75e-3`) | DALES default `igrw_damp = 2`; the `ksp` default is the same formula |
-| `lqlnr` | `.true.` | liquid water by Newton-Raphson as DALES (DALES ignores its own `lqlnr` and always iterates) |
+| `lqlnr` | `.true.` | exact liquid water by Newton-Raphson; DALES dev uses two linearised steps (within 0.2 % of exact) and ignores its `lqlnr` |
 | surface | `libm = .false.`, `lbottom = .true.`, `nfcts = 0`, `BCbotT = BCbotq = 1` | flat bottom without buildings |
 | thermostat | `lthermostat`, `tthermostat = 60` s | task spec |
 | `timerad` | 0 | task spec (radiation every step; unused with `iradiation = 0`) |
@@ -66,6 +66,22 @@ of both codes in the close-match runs (RESULTS.md); DALES needs `ladaptive = .fa
 (`tools/python/examples/dales_cases/dales_inputs/bomex`). The time-step table above was measured with the e12 halo
 bug of RESULTS.md present; with that bug fixed, uDALES's adaptive step is shorter (hourly means 2.2-4.1 s).
 
+## Numerics compared with DALES
+
+Short version; the item-by-item comparison and the reasons are in [uDALES and DALES numerics](../../docs/udales-dales-numerics.md), the full settings of the
+reported runs in [RESULTS.md](RESULTS.md).
+
+| item | uDALES 301 | DALES reference (`dales_inputs/bomex`) | matched? |
+|---|---|---|---|
+| advection | cd2 for u, v, w, e12, thl, qt | cd2 (the DALES BOMEX case too) | yes |
+| time step | fixed 2.0 s for the comparison (adaptive L1 `courant = 0.55` by default) | fixed 2.0 s (adaptive: L2 `courant = 1.0`, `peclet = 0.15`) | fixed yes; adaptive no |
+| base state, Exner | Boussinesq; Exner updated every step | `ibas_prf = 5`, constant density; Exner frozen at the uDALES initial profile | by construction; Exner drift about 1e-5 |
+| Galilean shift | none | `cu = 0` (the DALES case uses `cu = -8`) | yes; the shift itself is not tested |
+| SGS | one-equation TKE, DALES constants | the same | yes |
+| saturation adjustment, es | exact (`lqlnr`), Tetens | two-step (within 0.2 %), Tetens (patched) | nearly |
+| surface | MO, u* = 0.28 prescribed, one domain-mean L | `isurf = 3`, per-column L (`lmostlocal` default) | values yes; local vs mean no |
+| sponge, noise | `igrw_damp = 2`, `ksp = 60`; thl 0.1 K, qt 2.5e-5 on all levels | the same | yes (different generators) |
+
 ## Deviations from DALES
 
 - MO surface: `BCbotm = 5` follows DALES `isurf = 3` (u* = ustin, prescribed fluxes), so the
@@ -76,8 +92,8 @@ bug of RESULTS.md present; with that bug fixed, uDALES's adaptive step is shorte
   (see "Time step").
 - Courant norm: uDALES limits the L1 sum `|u|/dx + |v|/dy + |w|/dz`, DALES the L2 norm, and DALES's
   default `courant` is 1.0 (not 0.5); `courant` is therefore a tuned value here, not a transcribed one.
-- Advection and SGS details differ from DALES in the places uDALES differs (no 5th-order scheme, SGS
-  details); BOMEX uses second-order central differences in DALES too.
+- uDALES has no 5th-order advection scheme; BOMEX uses second-order central differences in DALES too. The
+  remaining differences are listed in [uDALES and DALES numerics](../../docs/udales-dales-numerics.md).
 - Duration 6 h instead of 8 h (task spec).
 - Output: only the thermostat files (statistics, field dumps and cross sections are off).
 

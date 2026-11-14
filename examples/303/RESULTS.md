@@ -93,11 +93,11 @@ adjustment, SGS, subsidence, sponge, top BC, noise), with these case-specific ro
 |---|---|---|---|
 | grid | 96 x 96 x 300, 35 m x 35 m x 5 m | same | yes |
 | time step | fixed 0.3 s | fixed 0.3 s (48000 steps) | yes |
-| surface | `BCbotm = 4` (MO, prescribed fluxes, u* diagnosed), z0 = z0h = 1.07e-5 m, wtsurf 1.2246e-2 K m/s, wqsurf 3.7258e-5 up | `isurf = 4`, z0mav = z0hav, same fluxes (rlv 2.53e6, rho 1.22) | settings yes; u* differs by 2.3 % from the first minute (finding 2) |
+| surface | `BCbotm = 4` (MO, prescribed fluxes, u* diagnosed), z0 = z0h = 1.07e-5 m, wtsurf 1.2246e-2 K m/s, wqsurf 3.7258e-5 up | `isurf = 4`, z0mav = z0hav, same fluxes (rlv 2.53e6, rho 1.22) | settings yes; u* differs by 2.3 % from the first minute (finding 2). DALES ran per-column MO (`lmostlocal = .true.`, its dev default), uDALES one domain-mean Obukhov length and u*: not matched (with kappa aligned, Task 19, u* agrees to 0.0001 m/s) |
 | radiation | `iradiation = 2` (radpar longwave: rka 85, F0 70, F1 22), every step | `iradiation = 10` (radpar + rad_user), same values, every step | yes (same formula, both computed at the first RK substep) |
 | free-troposphere term | flux-divergence form at half levels, D = 3.75e-6, qt = 8 g/kg zi per column (case hook) | patched rad_user, identical | yes |
 | noise | thl +-0.1 K, qt +-2.5e-5, all 300 levels, no velocity noise | same (`krandumax = 0`) | amplitudes yes (generators differ) |
-| sponge | `igrw_damp = 2`, ksp = 225 (z 1127.5 m) | default `igrw_damp = 2`, same | yes |
+| sponge | `igrw_damp = 2`, ksp = 225 (zf = 1122.5 m) | default `igrw_damp = 2`, same | yes |
 | Coriolis, geostrophic wind, subsidence | xlat 31.5; ug = (7, -5.5); wfls = -3.75e-6 z | same `lscale.inp` | yes |
 
 Fixed dt: DALES adaptive (diffusion-limited, peclet 0.15) hourly means 0.43, 0.40, 0.42, 0.42 s; uDALES + fix
