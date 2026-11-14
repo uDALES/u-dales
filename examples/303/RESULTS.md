@@ -1,5 +1,104 @@
 # Tier-2 validation results: 303 DYCOMS-II RF01
 
+## Close-match validation against DALES dev (Task 14, 2026-11-14)
+
+**Verdict: not close.** With identical cd2 numerics and a fixed dt of 0.3 s, both codes lose most of the cloud in
+the first hour (LWP 60 to 10-15 g/m2), so the earlier "no collapse" of uDALES (below) does not survive the SGS
+alignment. But uDALES keeps more cloud and entrains faster than DALES, far outside the seed spread: LWP 15.8 vs
+9.4 g/m2, cloud cover 0.81 vs 0.63, zi_qt8 859 vs 834 m, we 4.8 vs 2.6 mm/s, u* +2.3 %. Not diagnosed yet; hypotheses
+and next steps below. All uDALES numbers here include the e12 halo fix of `examples/301/RESULTS.md` (throwaway build,
+not committed); the committed c220463a has the bug (adaptive run shown for reference).
+
+Runs: `/rds/general/user/mvr/ephemeral/t14`: uDALES `x303/f4{3,4,5}` (c220463a + e12 halo fix, 32 ranks 8 x 4),
+DALES `d303/f4{3,4,5}` (dev 075ac4e + `dales_inputs/dales-075ac4e-t14.patch`, inputs `dales_inputs/rf01`, 32 ranks
+8 x 4), seeds 43, 44, 45; window 3-4 h; `compare_dales.py 303 ...`, outputs in `t14/an/303*`.
+
+### Identical settings, side by side
+
+As in `examples/301/RESULTS.md` (advection, time scheme, Galilean shift, base state, exner, constants, es, saturation
+adjustment, SGS, subsidence, sponge, top BC, noise), with these case-specific rows:
+
+| setting | uDALES (examples/303) | DALES (dales_inputs/rf01) | matched? |
+|---|---|---|---|
+| grid | 96 x 96 x 300, 35 m x 35 m x 5 m | same | yes |
+| time step | fixed 0.3 s | fixed 0.3 s (48000 steps) | yes |
+| surface | `BCbotm = 4` (MO, prescribed fluxes, u* diagnosed), z0 = z0h = 1.07e-5 m, wtsurf 1.2246e-2 K m/s, wqsurf 3.7258e-5 up | `isurf = 4`, z0mav = z0hav, same fluxes (rlv 2.53e6, rho 1.22) | settings yes; u* differs by 2.3 % from the first minute (finding 2) |
+| radiation | `iradiation = 2` (radpar longwave: rka 85, F0 70, F1 22), every step | `iradiation = 10` (radpar + rad_user), same values, every step | yes (same formula, both computed at the first RK substep) |
+| free-troposphere term | flux-divergence form at half levels, D = 3.75e-6, qt = 8 g/kg zi per column (case hook) | patched rad_user, identical | yes |
+| noise | thl +-0.1 K, qt +-2.5e-5, all 300 levels, no velocity noise | same (`krandumax = 0`) | amplitudes yes (generators differ) |
+| sponge | `igrw_damp = 2`, ksp = 225 (z 1127.5 m) | default `igrw_damp = 2`, same | yes |
+| Coriolis, geostrophic wind, subsidence | xlat 31.5; ug = (7, -5.5); wfls = -3.75e-6 z | same `lscale.inp` | yes |
+
+Fixed dt: DALES adaptive (diffusion-limited, peclet 0.15) hourly means 0.43, 0.40, 0.42, 0.42 s; uDALES + fix
+(`diffnr = 0.16`) 0.47-0.50 s, minimum 0.43 s. 0.3 s is below both and stable in all runs.
+
+### Results, fixed dt = 0.3 s, window 3-4 h
+
+| quantity | uDALES members | uDALES mean (spread) | DALES members | DALES mean (spread) | diff | ratio (min / max spread) |
+|---|---|---|---|---|---|---|
+| LWP [g/m2] | 14.6, 16.3, 16.6 | 15.8 (1.1) | 7.9, 9.9, 10.3 | 9.4 (1.3) | +6.4 | 6.0 / 5.1 |
+| cloud cover | 0.775, 0.839, 0.827 | 0.813 (0.034) | 0.613, 0.648, 0.641 | 0.634 (0.019) | +0.18 | 9.6 / 5.3 |
+| u* [m/s] | 0.2470, 0.2470, 0.2458 | 0.2466 (0.0007) | 0.2406, 0.2412, 0.2410 | 0.2409 (0.0003) | +0.0056 | 18 / 8 |
+| zi, max dthl/dz [m] | 874.2, 874.2, 875.0 | 874.4 (0.5) | 850, 850, 850 | 850 (0) | +24 | - / 51 |
+| zi_qt8 [m] | 858.0, 858.6, 859.7 | 858.8 (0.9) | 833.8, 833.8, 833.3 | 833.6 (0.3) | +25 | 85 / 29 |
+| we = dzi_qt8/dt + D zi, fit 1-4 h [mm/s] | 4.68, 4.81, 4.91 | 4.80 (0.11) | 2.59, 2.59, 2.52 | 2.57 (0.04) | +2.2 | 55 / 20 |
+
+| profile (z <= 1200 m) | max abs diff (z) | rms diff | rms spread U / D | rms diff / min rms spread |
+|---|---|---|---|---|
+| thl [K] | 9.5 (862 m) | 1.28 | 0.033 / 0.010 | 123 |
+| qt [g/kg] | 6.3 (862 m) | 0.89 | 0.025 / 0.010 | 89 |
+| ql [g/kg] | 0.12 (848 m) | 0.020 | 0.002 / 0.002 | 9 |
+| w'thl' resolved [K m/s] | 0.030 (855 m) | 0.004 | 0.0003 / 0.0012 | 13 |
+| w'qt' resolved [g/kg m/s] | 0.026 (855 m) | 0.009 | 0.0015 / 0.0019 | 6 |
+
+The maxima sit at the inversion and mostly measure its 25 m offset. Inside the boundary layer (3-4 h means, uDALES /
+DALES): thl 289.47 / 289.42 K at 100 m, 289.78 / 290.11 at 800 m; qt 9.24 / 9.54 g/kg at 100 m, 8.61 / 8.57 at 800 m;
+ql 0.102 / 0.072 g/kg at 800 m; resolved w'qt' at 400 m 0.038 / 0.028 g/kg m/s. uDALES is better mixed (thl rises
+0.29 K from 400 to 800 m against 0.67 K in DALES), i.e. DALES decouples more.
+
+Hourly LWP [g/m2], ensemble mean (spread):
+
+| run | 0-1 h | 1-2 h | 2-3 h | 3-4 h |
+|---|---|---|---|---|
+| uDALES + fix, dt 0.3 s | 27.4 (0.2) | 14.0 (0.4) | 15.3 (0.7) | 15.8 (1.1) |
+| DALES, dt 0.3 s | 30.1 (0.1) | 10.1 (0.3) | 9.7 (1.0) | 9.4 (1.3) |
+| uDALES + fix, adaptive, seed 43 | 27.9 | 13.5 | 14.5 | 14.2 |
+| DALES, adaptive, seed 43 | 30.2 | 9.6 | 10.0 | 8.7 |
+| uDALES c220463a (e12 halo bug), adaptive, seed 43 | 22.4 | 14.6 | 17.3 | 24.5 |
+| DALES standard numerics (iadv 5, cu 7, cv -5.5, anelastic ibas_prf 3), adaptive, seed 43 | 45.8 | 23.4 | 15.1 | 11.7 |
+
+Adaptive pair (secondary, seed 43): LWP 14.2 vs 8.7, cloud cover 0.79 vs 0.63, zi_qt8 857 vs 834 m, we 4.6 vs 2.6 mm/s,
+u* 0.247 vs 0.241: the same gap as at fixed dt. DALES with its standard numerics also ends with zi_qt8 837 m and we 3.0
+mm/s, so the low DALES entrainment is not a cd2 artefact.
+
+### The DALES RF01 reference
+
+The first DALES RF01 run (`refruns/d303`) was diagnosed: its constant `divmax = 2.44e-2` was the w noise at the
+surface level (`krandumax = 168` with the default `krandumin = 1`; divmax = rhobf(1) randu / dzf exactly), and DALES
+does have a sponge (`igrw_damp = 2` is the default). Neither causes its cloud collapse: with the noise moved off the
+surface (`t14/diag/kr2`), with the flux-form free-troposphere term (`t14/diag/ftnew`) and with the final inputs, DALES
+cd2 loses the cloud the same way (LWP about 12 g/m2 and cloud cover 0.87 at 1 h). DALES with its own standard numerics
+keeps more cloud for longer (31 g/m2 at 1 h, 12 at 4 h). The fixed DALES inputs are in
+`tools/python/examples/dales_cases/dales_inputs/rf01`.
+
+### Differences above the bar: hypotheses and next steps
+
+1. **Entrainment, zi, LWP, cloud cover** (uDALES entrains about 1.9 times faster, stays better mixed and keeps more
+   cloud). The divergence starts in the first 20 min (LWP at 15 min: 38.8 vs 47.2 g/m2, both from about 63), when the
+   initial e12 = 1 m/s decays. At 4 h the uDALES slab-mean e12 is 10-25 % and ekm 20-50 % higher in the boundary layer
+   (restarts, seed 43). BOMEX, which agrees, does not exercise the stratocumulus-top regime (saturated buoyancy at
+   the sharp 5 m inversion: `calthv` moist branch, `ql0h`), the MO surface with diagnosed u* (BOMEX prescribes u*),
+   radiation or the free-troposphere term. Next steps: (a) run both codes with prescribed u* (`BCbotm = 5` /
+   `isurf = 3`) to remove the MO difference; (b) write the e12 budget terms and the SGS buoyancy flux at the inversion
+   in both codes for the first 30 min; (c) compare uDALES `thlprad` with a DALES radiation statistics run (radstat);
+   (d) a shorter run on a smaller decomposition of uDALES (2 x 2) to rule out another halo problem (the e12 one was
+   found that way in BOMEX).
+2. **u* 2.3 % higher in uDALES**, already at t = 60 s (0.284 vs 0.278 m/s). Hypothesis: the MO surface formulation
+   differs (uDALES computes one u* from slab means; DALES isurf 4 iterates per column with local winds and averages).
+   Next step: as 1(a), and a single-column check of both MO solvers on the same profile.
+
+## Earlier results (superseded; e12 halo bug and older SGS)
+
 Run at commit e2b1a0a5 (Release, Intel/CX3), single node, PBS job 4640941 on cx3 (32 ranks), main loop 5704 s, walltime used 1 h 36 min (limit 3 h), no NaN. Run directory: `/rds/general/user/mvr/ephemeral/t2/303` (outside repo).
 Plots: `/rds/general/user/mvr/ephemeral/t2/plots303/timeseries.png`, `/rds/general/user/mvr/ephemeral/t2/plots303/profiles.png`, `summary.md`.
 

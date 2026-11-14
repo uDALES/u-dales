@@ -291,8 +291,8 @@ def main(argv=None) -> int:
             summary["profiles"][v] = {"label": lab, "unit": u, "max_abs_diff": float(np.abs(dlt[sel])[k]),
                                       "z_max_diff": float(z[sel][k]), "rms_diff": rms(dlt),
                                       "rms_spread_u": rms(su), "rms_spread_d": rms(sd_),
-                                      "ratio_rms": rms(dlt) / max(min(rms(su), rms(sd_)), 1e-30),
-                                      "ratio_rms_max": rms(dlt) / max(rms(su), rms(sd_), 1e-30),
+                                      "ratio_rms": ratio(rms(dlt), 0.0, rms(su), rms(sd_)),
+                                      "ratio_rms_max": ratio(rms(dlt), 0.0, max(rms(su), rms(sd_)), max(rms(su), rms(sd_))),
                                       "frac_levels_within": float(np.mean(ok[sel]))}
         summary[f"_p_{v}"] = (z, e)
 

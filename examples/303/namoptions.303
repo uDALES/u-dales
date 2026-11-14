@@ -7,9 +7,9 @@ ladaptive    = .true.       ! PROVISIONAL until Task 14 (README, "Time step")
 dtmax        = 20.          ! DALES default; never reached
 courant      = 0.5          ! as the DALES RF01 reference run; not limiting (diffusion limits the step)
 diffnr       = 0.16         ! = DALES peclet 0.15 x 1.065 (uDALES sums 3 terms); sets the step, about 0.5 s
-! Fixed time step (Task 14: DALES must run the same dt):
+! Fixed time step (the DALES close-match comparison, RESULTS.md; DALES runs the same dt):
 ! ladaptive  = .false.      ! then dt = dtmax; courant and diffnr are ignored; runtime must be a multiple of dtmax
-! dtmax      = 0.4          ! s; just below the adaptive step (about 0.5 s), PROVISIONAL
+! dtmax      = 0.3          ! s; below both codes' adaptive dt (DALES hourly means 0.39-0.43 s); 60 s output = 200 steps
 libm         = .false.
 lles         = .true.
 nprocx       = 8
