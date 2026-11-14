@@ -18,7 +18,9 @@ that they are easy to find when upgrading.
   declared its `ql` argument from `kb`, while `ql0` is allocated from `kb-1`, so the
   full-level saturation adjustment of level `k+1` was stored in `ql0(k)` (since v2.0).
   The cloud therefore sat one level too low with respect to `thl` and `qt`. The
-  half-level `ql0h`, and so the buoyancy term through `thv0h`, was not affected. Now
+  half-level `ql0h` (and so the buoyancy term through `thv0h`) was computed at the
+  right level, and changes only indirectly, through `presh`/`exnh` (about 1e-4
+  relative). Now
   fixed: `thermo` takes assumed-shape arguments with the actual lower bounds. Every
   run with `lmoist = .true.` and any saturated cell changes, through these routes:
   - `ql` itself in field dumps, restart files and the thermostat (`ql`, `cfracz`,
@@ -27,7 +29,9 @@ that they are easy to find when upgrading.
     `exnf`/`exnh` and `rhof`;
   - the moist `dthvdz` of `calthv` (SGS stability and the one-equation buoyancy source);
   - the cloud-water longwave radiation absorber (`iradiation = 2`).
-  Dry runs and moist runs that never saturate are unchanged.
+  Dry runs and moist runs that never saturate are unchanged. A warm start from a
+  restart file written before this fix carries the shifted `ql0` into the first
+  substep's radiation, which is a one-substep transient.
 - **Monin-Obukhov surface state is computed before the SGS model.** With
   `BCbotm = 4/5`, the Obukhov length, `u*`, the surface-layer gradients and the
   re-diagnosed `thls`/`qts`/`thvs` are now computed at the start of each RK substep
