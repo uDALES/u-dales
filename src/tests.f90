@@ -20,7 +20,7 @@ module tests
   implicit none
   save
   public :: tests_read_sparse_ijk, tests_2decomp_init_exit, tests_mpi_operators, tests_zgrid_metrics, tests_sgs_statistics, &
-            tests_sgs_oneeqn, tests_lstend, tests_thermo_levels
+            tests_sgs_oneeqn, tests_lstend, tests_thermo_levels, tests_mo_kernels
 
 contains
 
@@ -1242,6 +1242,111 @@ contains
     end function ql_ref
 
   end function tests_thermo_levels
+
+  !> Monin-Obukhov surface-layer kernels of modsurface (runmode TEST_MO_KERNELS), no fields needed:
+  !!  - psim, psih at fixed zeta against Businger-Dyer (unstable, with the Paulson integrals) and
+  !!    Beljaars-Holtslag 1991 (stable); reference values from the textbook expressions evaluated
+  !!    independently in double precision (Python math, exact pi);
+  !!  - phim, phih: Businger-Dyer, linear stable branch, cap at zeta >= 1;
+  !!  - mo_wind_gradient = u* phim(z1/L) / (kappa z1) * uc/|U| (DALES calc_surface_gradients), the
+  !!    formula of dudz_mo/dvdz_mo, and that its two components add up to u* phim/(kappa z1);
+  !!  - calc_obl_iter: for Ri_b of known L (rib_from_obl) the Newton iteration returns that L
+  !!    (to its 1e-4 stopping criterion), neutral Ri_b = 0 gives the 1e6 sentinel, and the sign of
+  !!    L follows the sign of Ri_b.
+  logical function tests_mo_kernels()
+    use modglobal,  only : runmode, fkar, grav
+    use modsurface, only : psim, psih, phim, phih, calc_obl_iter, mo_wind_gradient, rib_from_obl
+    implicit none
+
+    real, parameter :: ztab(6)  = (/ -2., -0.5, -0.01, 0.1, 1., 5. /)
+    real, parameter :: psim_ref(6) = (/ 1.4946911231395577, 0.7933591213265179, 0.038145920788543286, &
+                                        -0.4919411586308229, -4.282286443443776, -13.448066064354387 /)
+    real, parameter :: psih_ref(6) = (/ 2.431178931723096, 1.3862943611198904, 0.07558646787399062, &
+                                        -0.4935897548853774, -4.433943858003452, -16.468618728707632 /)
+    ! psim carries pi to 9 digits as in DALES: 2e-9 offset, which cancels in the differences used
+    real, parameter :: tol_psi = 1.e-7
+    real, parameter :: ltrue(6) = (/ -200., -20., -2., 2., 20., 200. /)
+    real, parameter :: z1 = 10., z0 = 1.e-3, z0h = 1.e-4, tskin = 300., ucomp = 5.
+    integer :: n
+    real :: e, dthv, thl, ustar, zeta, expect, lnum, rib
+    logical :: all_passed
+
+    if (myid == 0) then
+      write(*, '(A)') '================================================'
+      write(*, '(A, I8)') 'runmode = ', runmode
+      write(*, '(A)') 'tests_mo_kernels: MONIN-OBUKHOV SURFACE-LAYER KERNELS'
+      write(*, '(A)') '------------------------------------------------'
+    end if
+    all_passed = .true.
+
+    ! stability functions against the reference values
+    e = 0.
+    do n = 1, size(ztab)
+      e = max(e, abs(psim(ztab(n)) - psim_ref(n)), abs(psih(ztab(n)) - psih_ref(n)))
+    end do
+    if (myid == 0) write(*, '(A,ES12.4)') 'psim/psih worst deviation from reference', e
+    if (e > tol_psi) call report_fail('psim/psih deviate from Businger-Dyer / Beljaars-Holtslag')
+
+    ! gradient functions
+    e = max(abs(phim(-1.) - 17.**(-0.25)), abs(phih(-1.) - 17.**(-0.5)), abs(phim(0.) - 1.), abs(phih(0.) - 1.), &
+            abs(phim(0.5) - 3.5), abs(phih(0.5) - 3.5), abs(phim(1.) - 6.), abs(phih(2.) - 6.), abs(phim(7.) - 6.))
+    if (myid == 0) write(*, '(A,ES12.4)') 'phim/phih worst deviation from reference', e
+    if (e > 1.e-12) call report_fail('phim/phih deviate from the Businger-Dyer values')
+
+    ! dudz_mo / dvdz_mo formula: u* phim(z1/L)/(kappa z1) * uc/|U|
+    ustar = 0.3; zeta = -0.5
+    expect = ustar * 9.**(-0.25) / (fkar * z1) * (3. / 5.)
+    e = abs(mo_wind_gradient(ustar, zeta, z1, 3., 5.) - expect)
+    expect = ustar * 9.**(-0.25) / (fkar * z1)                    ! |(dudz, dvdz)| for uc = 3, vc = 4, |U| = 5
+    e = max(e, abs(hypot2(mo_wind_gradient(ustar, zeta, z1, 3., 5.), mo_wind_gradient(ustar, zeta, z1, 4., 5.)) - expect))
+    ! stable branch (phim = 1 + 5 zeta = 3.5 at zeta = 0.5), component against the mean wind
+    e = max(e, abs(mo_wind_gradient(ustar, 0.5, z1, -0.2, 0.5) - ustar * 3.5 / (fkar * z1) * (-0.2 / 0.5)))
+    if (myid == 0) write(*, '(A,ES12.4)') 'mo_wind_gradient worst deviation', e
+    if (e > 1.e-12) call report_fail('mo_wind_gradient is not u* phim / (kappa z1) * u/|U|')
+
+    ! Obukhov length iteration: round trip from the Ri_b of a known L (first guess as in the solver)
+    e = 0.
+    do n = 1, size(ltrue)
+      rib  = rib_from_obl(z1, ltrue(n), z0h, z0)
+      dthv = rib * ucomp**2 * tskin / (grav * z1)
+      lnum = calc_obl_iter(tskin + dthv, 0., tskin, 0., z1, z0, z0h, ucomp, 0., -0.1)
+      e = max(e, abs(lnum / ltrue(n) - 1.))
+    end do
+    if (myid == 0) write(*, '(A,ES12.4)') 'calc_obl_iter worst relative error of L', e
+    if (e > 2.e-3) call report_fail('calc_obl_iter does not recover L from its bulk Richardson number')
+    lnum = calc_obl_iter(tskin, 0., tskin, 0., z1, z0, z0h, ucomp, 0., -0.1)
+    if (lnum /= 1.e6) call report_fail('calc_obl_iter: neutral Ri_b = 0 must give L = 1e6')
+    thl = tskin + 1.
+    lnum = calc_obl_iter(thl, 0., tskin, 0., z1, z0, z0h, ucomp, 0., -0.1)
+    if (lnum <= 0.) call report_fail('calc_obl_iter: warm air over a cold surface must be stable (L > 0)')
+    lnum = calc_obl_iter(tskin - 1., 0., tskin, 0., z1, z0, z0h, ucomp, 0., -0.1)
+    if (lnum >= 0.) call report_fail('calc_obl_iter: cold air over a warm surface must be unstable (L < 0)')
+
+    if (all_passed .and. myid == 0) then
+      write(*, '(A)') '------------------------------------------------'
+      write(*, '(A)') 'ALL TESTS PASSED: tests_mo_kernels'
+      write(*, '(A)') '================================================'
+    else if ((.not. all_passed) .and. myid == 0) then
+      write(*, '(A)') '------------------------------------------------'
+      write(*, '(A)') 'TESTS FAILED: tests_mo_kernels'
+      write(*, '(A)') '================================================'
+    end if
+    tests_mo_kernels = all_passed
+
+  contains
+
+    subroutine report_fail(msg)
+      character(*), intent(in) :: msg
+      if (myid == 0) write(*, '(2A)') 'FAIL ', msg
+      all_passed = .false.
+    end subroutine report_fail
+
+    real function hypot2(a, b)
+      real, intent(in) :: a, b
+      hypot2 = sqrt(a*a + b*b)
+    end function hypot2
+
+  end function tests_mo_kernels
 
   !> Shared comparators. Report the largest absolute deviation and where it is.
   logical function compare_real_1d(label, got, exp, tol)

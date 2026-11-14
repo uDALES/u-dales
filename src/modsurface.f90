@@ -15,6 +15,7 @@ module modsurface
   private
   public :: initsurface_mo, exitsurface_mo, surface_mo_state, surface_mo, lmo_surface, &
             ustar_mo, obl_mo, dthldz_mo, dqtdz_mo, dudz_mo, dvdz_mo
+  public :: psim, psih, phim, phih, calc_obl_iter, rib_from_obl, mo_wind_gradient   ! pure kernels, tested by tests.f90:tests_mo_kernels
 
   real :: ustar_mo  = 0.      !< friction velocity [m/s]
   real :: obl_mo    = -0.1    !< Obukhov length [m] (also the iteration's first guess)
@@ -24,6 +25,20 @@ module modsurface
   !> Used only by the one-equation SGS TKE sources at kb (modsubgrid:sources).
   real, allocatable :: dudz_mo(:,:), dvdz_mo(:,:)
   real, parameter :: min_horv = 0.1   !< minimum wind speed [m/s] (DALES)
+  real, parameter :: ustar_min = 1.e-2   !< floor of the friction velocity [m/s] (DALES)
+  real, parameter :: dtskin_max = 10.    !< bound of |tskin - thl(kb)| [K] (DALES calc_surface_scalars)
+  real, parameter :: dqskin_max = 5.e-2  !< bound of |qskin - qt(kb)| [kg/kg] (DALES calc_surface_scalars)
+  real, parameter :: obl_inf = 1.e6      !< |L| of a neutral surface layer and its upper bound [m] (DALES)
+  ! Stability functions of DALES dev 075ac4e modsurface.f90. Unstable: Businger-Dyer with
+  ! (1 - gamma_bd zeta)^(1/4) (Businger et al. 1971; Dyer 1974; Paulson 1970 integrals). Stable:
+  ! Beljaars and Holtslag (1991, J. Appl. Meteorol. 30, 327) with a = 1, b = 2/3, c = 5, d = 0.35
+  ! for psim/psih, and the linear phi = 1 + beta_bd zeta capped at 6 (zeta >= 1) for phim/phih.
+  real, parameter :: gamma_bd = 16.      !< Businger-Dyer unstable coefficient [-]
+  real, parameter :: beta_bd  = 5.       !< Businger-Dyer stable slope of phi [-]
+  real, parameter :: bh_c = 5., bh_d = 0.35   !< Beljaars-Holtslag c, d [-]
+  real, parameter :: phi_max = 6.        !< cap of phim/phih for zeta >= 1 [-]
+  !> pi as written in DALES psim (9 digits, not modglobal pi); kept so that psim is unchanged to the bit
+  real, parameter :: pi_dales = 3.14159265
 
 contains
 
@@ -86,7 +101,7 @@ contains
     else
       ustar_mo = sqrt(cm) * horvav
     end if
-    ustar_mo = max(ustar_mo, 1.e-2)
+    ustar_mo = max(ustar_mo, ustar_min)
 
     ! surface-layer gradients (DALES calc_surface_gradients; fluxes upward-positive)
     scaling   = 1. / (fkar * z1)
@@ -104,8 +119,8 @@ contains
         upcu = 0.5 * (u0(i,j,kb) + u0(i+1,j,kb))
         vpcv = 0.5 * (v0(i,j,kb) + v0(i,j+1,kb))
         horv = max(sqrt(upcu**2 + vpcv**2), min_horv)
-        dudz_mo(i,j) = ustar_mo * phim(z1/obl_mo) * scaling * (upcu / horv)
-        dvdz_mo(i,j) = ustar_mo * phim(z1/obl_mo) * scaling * (vpcv / horv)
+        dudz_mo(i,j) = mo_wind_gradient(ustar_mo, z1/obl_mo, z1, upcu, horv)
+        dvdz_mo(i,j) = mo_wind_gradient(ustar_mo, z1/obl_mo, z1, vpcv, horv)
       end do
     end do
 
@@ -116,8 +131,8 @@ contains
         upcu = 0.5 * (u0(i,j,kb) + u0(i+1,j,kb))
         vpcv = 0.5 * (v0(i,j,kb) + v0(i,j+1,kb))
         horv = max(sqrt(upcu**2 + vpcv**2), min_horv)
-        loc(1) = loc(1) + min(max(wthl_up / (cs * horv), -10.), 10.) + thl0(i,j,kb)
-        loc(2) = loc(2) + min(max(wqt_up / (cs * horv), -5.e-2), 5.e-2) + qt0(i,j,kb)
+        loc(1) = loc(1) + min(max(wthl_up / (cs * horv), -dtskin_max), dtskin_max) + thl0(i,j,kb)
+        loc(2) = loc(2) + min(max(wqt_up / (cs * horv), -dqskin_max), dqskin_max) + qt0(i,j,kb)
       end do
     end do
     call MPI_ALLREDUCE(loc, glob, 2, MY_REAL, MPI_SUM, comm3d, mpierr)
@@ -162,6 +177,14 @@ contains
     end do
   end subroutine surface_mo
 
+  !> Surface-layer gradient of a horizontal wind component: u* phim(z1/L) / (kappa z1) * uc/|U|,
+  !> uc the component at the cell centre and horv = |U| floored at min_horv.
+  elemental real function mo_wind_gradient(ustar, zeta, z1, uc, horv)
+    use modglobal, only : fkar
+    real, intent(in) :: ustar, zeta, z1, uc, horv
+    mo_wind_gradient = ustar * phim(zeta) * (1. / (fkar * z1)) * (uc / horv)
+  end function mo_wind_gradient
+
   !> Port of DALES dev 075ac4e modsurface.f90:calc_obl_iter (Newton iteration on Rib).
   real function calc_obl_iter(thl, qt, tskin, qskin, z, z0m, z0h, u, v, Lin) result(L)
     use modglobal, only : grav, rv, rd
@@ -174,7 +197,7 @@ contains
     horv2 = max(u**2 + v**2, min_horv**2)
     rib   = grav / thvsl * z * (thv - thvsl) / horv2
     if (rib == 0.) then
-      L = 1.e6
+      L = obl_inf
       return
     end if
     iter = 0
@@ -197,7 +220,7 @@ contains
         if (rib > 0.) L =  0.01
         if (rib < 0.) L = -0.01
       end if
-      if (abs(L) > 1.e6) L = sign(1.e6, L)
+      if (abs(L) > obl_inf) L = sign(obl_inf, L)
     end do
   end function calc_obl_iter
 
@@ -207,15 +230,16 @@ contains
                          / (log(z/z0m) - psim(z/L) + psim(z0m/L))**2
   end function rib_from_obl
 
-  ! DALES dev 075ac4e modsurface.f90: psim, psih (Businger-Dyer / Beljaars-Holtslag), phim, phih
+  !> Integrated stability functions psim, psih and gradient functions phim, phih
+  !> (DALES dev 075ac4e modsurface.f90), constants as documented at their declaration.
   elemental real function psim(zeta)
     real, intent(in) :: zeta
     real :: x
     if (zeta <= 0.) then
-      x    = (1. - 16. * zeta) ** 0.25
-      psim = 3.14159265 / 2. - 2. * atan(x) + log((1. + x)**2 * (1. + x**2) / 8.)
+      x    = (1. - gamma_bd * zeta) ** 0.25
+      psim = pi_dales / 2. - 2. * atan(x) + log((1. + x)**2 * (1. + x**2) / 8.)
     else
-      psim = -2./3. * (zeta - 5./0.35) * exp(-0.35 * zeta) - zeta - (10./3.) / 0.35
+      psim = -2./3. * (zeta - bh_c/bh_d) * exp(-bh_d * zeta) - zeta - (10./3.) / bh_d
     end if
   end function psim
 
@@ -223,33 +247,33 @@ contains
     real, intent(in) :: zeta
     real :: x
     if (zeta <= 0.) then
-      x    = (1. - 16. * zeta) ** 0.25
+      x    = (1. - gamma_bd * zeta) ** 0.25
       psih = 2. * log((1. + x**2) / 2.)
     else
-      psih = -2./3. * (zeta - 5./0.35) * exp(-0.35 * zeta) - (1. + (2./3.) * zeta) ** 1.5 &
-             - (10./3.) / 0.35 + 1.
+      psih = -2./3. * (zeta - bh_c/bh_d) * exp(-bh_d * zeta) - (1. + (2./3.) * zeta) ** 1.5 &
+             - (10./3.) / bh_d + 1.
     end if
   end function psih
 
   elemental real function phim(zeta)
     real, intent(in) :: zeta
     if (zeta < 0.) then
-      phim = (1. - 16. * zeta) ** (-0.25)
+      phim = (1. - gamma_bd * zeta) ** (-0.25)
     else if (zeta < 1.) then
-      phim = 1. + 5. * zeta
+      phim = 1. + beta_bd * zeta
     else
-      phim = 6.
+      phim = phi_max
     end if
   end function phim
 
   elemental real function phih(zeta)
     real, intent(in) :: zeta
     if (zeta < 0.) then
-      phih = (1. - 16. * zeta) ** (-0.50)
+      phih = (1. - gamma_bd * zeta) ** (-0.50)
     else if (zeta < 1.) then
-      phih = 1. + 5. * zeta
+      phih = 1. + beta_bd * zeta
     else
-      phih = 6.
+      phih = phi_max
     end if
   end function phih
 

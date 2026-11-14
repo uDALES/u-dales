@@ -86,6 +86,7 @@ module modglobal
    integer, parameter :: TEST_SGS_ONEEQN = 1008
    integer, parameter :: TEST_LSTEND = 1009
    integer, parameter :: TEST_THERMO_LEVELS = 1010
+   integer, parameter :: TEST_MO_KERNELS = 1012 !< Monin-Obukhov surface-layer kernels (psim, psih, phim, phih, calc_obl_iter)
    integer, parameter :: RUN_INIT_DUMP = 1011 !< cold start, write the initial fielddump record and stop (tests)
    integer :: runmode = RUN_COLDSTART
 

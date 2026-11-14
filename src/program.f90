@@ -27,7 +27,7 @@ program uDALES
   use mpi
   use modmpi,            only : initmpi,exitmpi,starttimer,myid
   use modglobal,         only : initglobal,rk3step,timeleft
-  use modglobal,         only : runmode,RUN_COLDSTART,RUN_WARMSTART,RUN_DRIVER,RUN_STRATSTART,TEST_SPARSE_IJK,TEST_2DCOMP_INIT_EXIT,TEST_MPI_OPERATORS,TEST_ZGRID_METRICS,TEST_SGS_STATS,TEST_SGS_ONEEQN,TEST_LSTEND,TEST_THERMO_LEVELS,RUN_INIT_DUMP
+  use modglobal,         only : runmode,RUN_COLDSTART,RUN_WARMSTART,RUN_DRIVER,RUN_STRATSTART,TEST_SPARSE_IJK,TEST_2DCOMP_INIT_EXIT,TEST_MPI_OPERATORS,TEST_ZGRID_METRICS,TEST_SGS_STATS,TEST_SGS_ONEEQN,TEST_LSTEND,TEST_THERMO_LEVELS,TEST_MO_KERNELS,RUN_INIT_DUMP
   use modstartup,        only : readnamelists,init2decomp,checkinitvalues,readinitfiles,exitmodules
   use modfields,         only : initfields
   use modsave,           only : writerestartfiles
@@ -59,7 +59,7 @@ program uDALES
   use modradiation,    only : initradiation,radiation,exitradiation
   use modcases,        only : initcases,call_hooks_init,call_hooks_forcing,call_hooks_stats
   use modtimedep,      only : inittimedep,timedep
-  use tests,           only : tests_read_sparse_ijk,tests_2decomp_init_exit,tests_mpi_operators,tests_zgrid_metrics,tests_sgs_statistics,tests_sgs_oneeqn,tests_lstend,tests_thermo_levels
+  use tests,           only : tests_read_sparse_ijk,tests_2decomp_init_exit,tests_mpi_operators,tests_zgrid_metrics,tests_sgs_statistics,tests_sgs_oneeqn,tests_lstend,tests_thermo_levels,tests_mo_kernels
   implicit none
 
   real    :: stime
@@ -319,6 +319,8 @@ contains
         test_failed = .not. tests_lstend()
       case (TEST_THERMO_LEVELS)
         test_failed = .not. tests_thermo_levels()
+      case (TEST_MO_KERNELS)
+        test_failed = .not. tests_mo_kernels()
       case (TEST_2DCOMP_INIT_EXIT)
         call tests_2decomp_init_exit
       case default
