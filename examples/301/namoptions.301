@@ -3,17 +3,23 @@
 iexpnr       = 301
 runtime      = 21600.       ! 6 h (task spec; DALES case file has 28800 s)
 trestart     = 21600.
-dtmax        = 10.
-ladaptive    = .true.
-courant      = 0.5
+ladaptive    = .true.       ! adaptive step, matched to the DALES BOMEX run (README, "Time step")
+dtmax        = 20.          ! DALES default; never reached in this case
+courant      = 0.55         ! uDALES L1 Courant number, no Galilean shift: gives the DALES mean dt (README)
+diffnr       = 0.2          ! = DALES peclet 0.15 x 1.32 (uDALES sums 3 terms); not the limiting criterion here
+! Fixed time step (use for the DALES comparison, Task 14: DALES must run the same dt):
+! ladaptive  = .false.      ! then dt = dtmax; courant and diffnr are ignored; runtime must be a multiple of dtmax
+! dtmax      = 3.0          ! s; about the DALES mean dt (3.7 s over 6 h, 3.2 s in hours 3-6), Courant about 0.3 at u = 9 m/s
 libm         = .false.
 lles         = .true.
 nprocx       = 4
 nprocy       = 2
-lrandomize   = .true.       ! uniform noise on u,v,w; uDALES has no thl/qt noise (randthl, randqt unused)
+lrandomize   = .true.       ! DALES BOMEX noise: thl and qt only (DALES momentum noise is off)
 irandom      = 43           ! DALES namoptions
-randu        = 0.1
-krand        = 20           ! levels 1..20 (z < 800 m)
+randu        = 0.           ! DALES applies no u, v, w noise
+randthl      = 0.1          ! K, DALES namoptions randthl
+randqt       = 2.5e-5       ! kg/kg, DALES namoptions randqt
+krand        = 80           ! = ktot: all levels, as DALES (krand default = kmax)
 /
 
 &OUTPUT
@@ -28,7 +34,7 @@ jtot         = 64
 ktot         = 80
 xlen         = 6400.        ! DALES xsize, ysize
 ylen         = 6400.
-xlat         = 14.94        ! f = 0.376e-4 1/s (Siebesma et al. 2003); DALES file has xlat = 15
+xlat         = 15.          ! DALES
 /
 
 &PHYSICS
@@ -41,6 +47,7 @@ ltempeq      = .true.
 /
 
 &DYNAMICS
+lqlnr        = .true.       ! Newton-Raphson ql as DALES (DALES always uses it; its lqlnr is ignored)
 iadv_mom     = 2            ! DALES iadv_* = 2 (central differences)
 iadv_tke     = 2
 iadv_thl     = 2
@@ -79,4 +86,8 @@ timerad      = 0.
 &NAMTHERMOSTAT
 lthermostat  = .true.
 tthermostat  = 60.
+/
+
+&NAMCHECKSIM
+tcheck       = 60.          ! mean dt and Courant number to the log every 60 s
 /

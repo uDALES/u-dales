@@ -3,17 +3,20 @@
 iexpnr       = 302
 runtime      = 10800.       ! 3 h (DALES runtime)
 trestart     = 10800.
-dtmax        = 10.
 ladaptive    = .true.
-courant      = 0.5          ! DALES
+dtmax        = 20.          ! DALES default
+courant      = 0.5          ! DALES namoptions (L2 norm there, L1 sum here)
+diffnr       = 0.16         ! = DALES peclet 0.15 x 1.08 (uDALES sums 3 terms)
 libm         = .false.
 lles         = .true.
 nprocx       = 8
 nprocy       = 2
-lrandomize   = .true.       ! uniform noise on u,v,w; uDALES has no thl noise (DALES randthl = 0.1)
+lrandomize   = .true.       ! DALES noise: thl only (DALES momentum noise is off)
 irandom      = 43           ! DALES
-randu        = 0.1
-krand        = 140          ! levels 1..140 (z < 700 m, the initial smoke layer)
+randu        = 0.           ! DALES applies no u, v, w noise
+randthl      = 0.1          ! K, DALES randthl
+randqt       = 0.           ! DALES randqt = 2.5e-5 acts on an inert qt (lmoist = .false.)
+krand        = 250          ! = ktot: all levels, as DALES
 /
 
 &OUTPUT
@@ -40,6 +43,7 @@ ltempeq      = .true.
 /
 
 &DYNAMICS
+lqlnr        = .true.       ! as DALES (inert here, lmoist = .false.)
 iadv_mom     = 2            ! DALES
 iadv_tke     = 2
 iadv_thl     = 7            ! DALES 7 (kappa)
@@ -90,4 +94,8 @@ lthermostat  = .true.
 tthermostat  = 60.
 zi_sv_index  = 1            ! zi_sv: BL height from the smoke = 0.5 crossing
 zi_sv_thres  = 0.5
+/
+
+&NAMCHECKSIM
+tcheck       = 60.          ! mean dt and Courant number to the log every 60 s
 /

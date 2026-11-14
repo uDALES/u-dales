@@ -11,7 +11,7 @@ Full-size validation case for the scalar radiation absorber (`rad_absorber = 'sv
 |---|---|---|
 | grid | 64 x 64 x 250, dx = dy = 50 m, dz = 5 m (z up to 1250 m) | DALES `itot, jtot, kmax, xsize = ysize = 3200`; z from `prof.inp.001` |
 | duration | 10800 s (3 h) | DALES `runtime` |
-| time step | `ladaptive`, `courant = 0.5`, `dtmax = 10` | DALES `ladaptive, courant`; `dtmax` chosen here |
+| time step | `ladaptive`, `courant = 0.5`, `diffnr = 0.16`, `dtmax = 20` | DALES `ladaptive, courant` (explicit in the DALES smoke case; DALES measures it with the L2 norm, uDALES with the L1 sum); `diffnr` = DALES `peclet = 0.15` x 1.08 (uDALES sums three terms in `ekm dt (1/dz^2 + 1/dx^2 + 1/dy^2)`; dz = 5 m dominates); `dtmax` = DALES default. No DALES smoke run exists, so the step was not tuned; the 60 s smoke test reached dt = 0.36 s at the end of the start-up doubling |
 | `ps`, `thls` | 100000 Pa, 288 K | DALES |
 | moisture | `lmoist = .false.` | DALES |
 | surface | `BCbotm = 4` (MO, u* from MO), `z0 = z0h = 0.1` m, `wtsurf = wqsurf = 0` | DALES `isurf = 4`, `z0`, `wtsurf`, `wqsurf`; `ustin = 0.2` is unused with `BCbotm = 4`; `z0h` set equal to `z0` |
@@ -22,13 +22,15 @@ Full-size validation case for the scalar radiation absorber (`rad_absorber = 'sv
 | Coriolis, sponge | `lcoriol = .false.`, `igrw_damp = 0` | DALES `lcoriol = .false.`, `igrw_damp = 0` |
 | SGS | `loneeqn = .true.`, `ldelta = .false.` | as DALES (default) |
 | thermostat | `lthermostat`, `tthermostat = 60` s | task spec |
-| initial noise | `lrandomize`, `randu = 0.1` m/s on u, v, w, levels 1-140 (z < 700 m), `irandom = 43` | chosen here, see deviations |
+| initial noise | `lrandomize`, `randthl = 0.1` K, `randu = 0`, `randqt = 0`, `krand = 250` (all levels), `irandom = 43` | DALES `randthl`, `irandom`; DALES applies no u, v, w noise; DALES `randqt = 2.5e-5` acts on an inert qt (`lmoist = .false.`) and is not set |
+| `lqlnr` | `.true.` | as DALES (inert here, `lmoist = .false.`) |
+| `tcheck` | 60 s | mean dt to the log every minute |
 | decomposition | `nprocx = 8`, `nprocy = 2` (`ktot = 250` is divisible by 2 only) | |
 
 ## Deviations from DALES
 
-- No `thl` noise: DALES perturbs thl (`randthl = 0.1`); uDALES does not apply `randthl`. Uniform noise on
-  u, v, w is used instead.
+- Courant norm: uDALES limits the L1 sum `|u|/dx + |v|/dy + |w|/dz`, DALES the L2 norm; with `courant = 0.5` the
+  uDALES step is at most as long as the DALES one. No Galilean shift is involved (DALES `cu = cv = 0`).
 - `iadv_qt = 2` (see the table); no 5th-order scheme in uDALES; SGS details differ.
 - Radiation updated every step rather than every 600 s.
 - The `lscale.inp` of the case is all zero except the grid; `thlpcar = 0`, the cooling is the smoke radiation.

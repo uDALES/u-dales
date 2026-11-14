@@ -48,3 +48,18 @@ cooling (`tltendrad` is zero; reported as dalesteam/dales#348), while `examples/
 
 Smoke-test timings (60 s of simulated time, login node, release build; main-loop CPU time per simulated
 minute): see the Task 7 report.
+
+## Numerics settings of the cases (301-303)
+
+The converter prints DALES `courant`, `randthl`, `randqt`, `randu` and `xlat` for transcription, but most of
+them do not carry over unchanged. Every numerics setting and its reason is in the table of each case README
+(`examples/301`, `302`, `303`). In short:
+
+- Noise: DALES perturbs thl (`randthl`) and qt (`randqt`) at all levels and applies no u, v, w noise, so the
+  cases set `randu = 0`, `randthl`, `randqt` and `krand = ktot` explicitly (uDALES defaults: `randu = 0.01`, `randthl = randqt = 0`).
+- `xlat` is copied from the DALES case file (15 for BOMEX); `lqlnr = .true.` as DALES (which always iterates).
+- Time step: uDALES `courant` is an L1 sum, DALES's an L2 norm with default 1.0, and uDALES has no Galilean
+  shift (`cu`, `cv`); so `courant` is tuned until the mean dt matches a DALES run (301: 0.55; see `examples/301/README.md`),
+  and `diffnr` = DALES `peclet` (default 0.15) x (`min(dx, dy, dz)^2 (1/dx^2 + 1/dy^2 + 1/dz^2)`). Do not transcribe DALES's `courant`.
+- Fixed step for an identical-dt comparison: `ladaptive = .false.` with `dtmax` as the step (commented block in
+  `namoptions.301` and `namoptions.303`); DALES needs the same `dtmax` and `ladaptive = .false.`.

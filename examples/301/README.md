@@ -13,7 +13,7 @@ Outputs of interest: `thermostat_t.301.nc`, `thermostat_z.301.nc`.
 |---|---|---|
 | grid | 64 x 64 x 80, dx = dy = 100 m, dz = 40 m (z up to 3200 m) | DALES `itot, jtot, kmax, xsize, ysize`; z from `prof.inp.001` |
 | duration | 21600 s (6 h) | task spec; the DALES file has `runtime = 28800` |
-| time step | `ladaptive`, `courant = 0.5`, `dtmax = 10` | DALES `ladaptive`; `courant` is the DALES default; `dtmax` is an upper bound chosen here |
+| time step | `ladaptive`, `courant = 0.55`, `diffnr = 0.2`, `dtmax = 20` | DALES `ladaptive`; `courant` tuned so that the mean dt matches the DALES run (see "Time step"); `diffnr` = DALES `peclet = 0.15` x 1.32 (not limiting); `dtmax` = DALES default |
 | `ps` | 101500 Pa | DALES `ps` |
 | `thls` | 299.1 K | DALES `thls` (initial value; MO diagnoses it every step) |
 | `qts` | 1.7e-2 kg/kg | first guess equal to `qt` at the first level; MO diagnoses it every step |
@@ -22,37 +22,65 @@ Outputs of interest: `thermostat_t.301.nc`, `thermostat_z.301.nc`.
 | `BCbotm` | 5 (MO, u* = ustin) | DALES `isurf = 3` |
 | `ustin` | 0.28 m/s | DALES `ustin` |
 | `z0`, `z0h` | 2e-4 m | DALES `z0` sets both |
-| Coriolis | `lcoriol`, `xlat = 14.94` (f = 0.376e-4 1/s) | Siebesma et al. 2003 f; the DALES file has `xlat = 15` (f = 0.3775e-4) |
+| Coriolis | `lcoriol`, `xlat = 15` (f = 0.3775e-4 1/s) | DALES `xlat = 15` (Siebesma et al. 2003 give f = 0.376e-4; the case file is followed) |
 | forcing | `lscale.inp.301` | DALES `lscale.inp.001`: `ug, vg, wfls, dqtdtls`; `dthlrad` becomes `thlpcar` (-2.315e-5 K/s) |
 | radiation | `iradiation = 0`; the cooling is the `thlpcar` column | DALES (no interactive radiation in BOMEX) |
 | SGS | `loneeqn = .true.` (1.5-order TKE), `ldelta = .false.` | DALES `ldelta = .false.`; one-equation closure as DALES |
 | advection | `iadv_mom = iadv_tke = iadv_thl = iadv_qt = 2` | DALES `iadv_* = 2` |
 | sponge | `igrw_damp = 2`, `ksp` default (top quarter, `rnu0 = 2.75e-3`) | DALES default `igrw_damp = 2`; the `ksp` default is the same formula |
+| `lqlnr` | `.true.` | liquid water by Newton-Raphson as DALES (DALES ignores its own `lqlnr` and always iterates) |
 | surface | `libm = .false.`, `lbottom = .true.`, `nfcts = 0`, `BCbotT = BCbotq = 1` | flat bottom without buildings |
 | thermostat | `lthermostat`, `tthermostat = 60` s | task spec |
 | `timerad` | 0 | task spec (radiation every step; unused with `iradiation = 0`) |
-| initial noise | `lrandomize`, `randu = 0.1` m/s on u, v, w, levels 1-20 (z < 800 m), `irandom = 43` | chosen here, see deviations |
+| initial noise | `lrandomize`, `randthl = 0.1` K, `randqt = 2.5e-5` kg/kg, `randu = 0`, `krand = 80` (all levels), `irandom = 43` | DALES `randthl`, `randqt`, `irandom`; DALES BOMEX applies no u, v, w noise (its momentum noise is off) and perturbs all levels |
+| `tcheck` | 60 s | mean dt to the log every minute (used for the time-step comparison) |
 | decomposition | `nprocx = 4`, `nprocy = 2`; `jtot % nprocy = 0` and `ktot % nprocy = 0` | |
 
 `prof.inp.301` row 1 equals the DALES row 1 column for column (checked by the converter,
 which re-reads its output). The `lscale.inp.001` row at z = 3220 m (above the model top) is dropped.
+
+## Time step
+
+DALES BOMEX (dev 075ac4e, `courant` default 1.0, `peclet` 0.15, seed 43, 64 x 64 x 80, `cu = -8`) is limited by
+diffusion (5528 of its 5895 steps); its Courant number (L2) stays at about 0.6. uDALES without the Galilean shift
+is limited by the Courant number of the 9 m/s mean wind and, later, of the cloud updrafts; the diffusion number is
+never the limiting criterion for `diffnr >= 0.2`. Mean dt in s (step-weighted, so the average dt per step; uDALES from
+the 60 s `tcheck` means), 6 h runs on CX3 with `build/release`:
+
+| window | DALES | uDALES `courant` 0.55 (final) | 0.5 | 0.6 | 1.0 (`diffnr` 0.25) |
+|---|---|---|---|---|---|
+| 0-1 h | 5.59 | 5.54 | 5.03 | 6.05 | 10.2 |
+| 1-3 h | 3.82 | 4.81 | 4.32 | 5.27 | 9.5 |
+| 3-6 h | 3.21 | 3.07 | 2.88 | 3.35 | 5.45 |
+| 0-6 h | 3.66 | 3.81 | 3.52 | 4.17 | 6.98 |
+
+`courant = 0.55` matches the DALES mean within 5 % over 0-1 h, 3-6 h and 0-6 h; hours 1-3 are 26 % longer, because DALES's
+diffusion limit and uDALES's Courant limit do not evolve alike and one parameter pair cannot track both. `diffnr = 0.2`
+and 0.25 gave identical series; `diffnr = 0.1` made diffusion limit the step (4.6, 4.3, 2.8 s in the three windows with `courant = 1`).
+See the full report `.superpowers/sdd/2026-11-13-moist-thermo-port/task-13-report.md` for all runs.
+
+For a **fixed** step (needed for an identical-dt comparison with DALES, where `ladaptive = .false.` and `dtmax`
+is the step), uncomment the two commented lines in `&RUN` of `namoptions.301`: `ladaptive = .false.`, `dtmax = 3.0`;
+`courant` and `diffnr` are then ignored and `runtime` should be a multiple of `dtmax`. 3.0 s is about the DALES mean
+(3.7 s over 6 h, 3.2 s in hours 3-6); DALES needs `ladaptive = .false.` and `dtmax = 3.0`, too (`courant` and `peclet` unused).
 
 ## Deviations from DALES
 
 - MO surface: `BCbotm = 5` follows DALES `isurf = 3` (u* = ustin, prescribed fluxes), so the
   spec's earlier wall-function caveat does not apply to this case.
 - No Galilean shift: DALES runs with `cu = -8` (u is shifted by 8 m/s so that the domain-mean
-  wind is small). uDALES has no `cu`; `prof.inp` and `lscale.inp` carry the physical winds, so
-  the adaptive time step is shorter (u about 9 m/s with dx = 100 m gives dt about 5 s).
-- No `thl`/`qt` noise: DALES perturbs thl (0.1 K) and qt (2.5e-5 kg/kg); uDALES reads `randthl` and
-  `randqt` but does not apply them. The case is started with uniform noise on u, v, w instead.
+  wind is small). uDALES has no `cu`; `prof.inp` and `lscale.inp` carry the physical winds
+  (u about 9 m/s), so the uDALES Courant number is dominated by the advection of the mean wind
+  (see "Time step").
+- Courant norm: uDALES limits the L1 sum `|u|/dx + |v|/dy + |w|/dz`, DALES the L2 norm, and DALES's
+  default `courant` is 1.0 (not 0.5); `courant` is therefore a tuned value here, not a transcribed one.
 - Advection and SGS details differ from DALES in the places uDALES differs (no 5th-order scheme, SGS
   details); BOMEX uses second-order central differences in DALES too.
-- Duration 6 h instead of 8 h; `xlat` 14.94 instead of 15 (task spec).
+- Duration 6 h instead of 8 h (task spec).
 - Output: only the thermostat files (statistics, field dumps and cross sections are off).
 
 ## Concerns
 
-- No `thl`/`qt` noise, so spin-up differs from DALES; check the first hour.
+- The dt match is a 6 h-mean match (see "Time step"); hours 1-3 run about 25 % longer steps than DALES.
 - The `qts` and `thls` namelist values are first guesses only; the comparison should use the
   diagnosed `thls`, `qts`, `ustar` and `obl` in `thermostat_t`.

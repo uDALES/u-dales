@@ -32,8 +32,30 @@ Surface.pyx, `RadiationDyCOMS_RF01` in Radiation.pyx).
 | SGS, advection | `loneeqn = .true.`; `iadv_mom = iadv_tke = iadv_thl = iadv_qt = 2` | task spec; uDALES has only central differences for qt |
 | sponge | `igrw_damp = 2`, `ksp` default | DALES default; top quarter of the domain |
 | thermostat | `lthermostat`, `tthermostat = 60` s | task spec |
-| initial noise | `lrandomize`, `randu = 0.1` m/s on u, v, w, levels 1-168 (z < 840 m), `irandom = 43` | chosen here |
+| initial noise | `lrandomize`, `randthl = 0.1` K, `randqt = 2.5e-5` kg/kg, `randu = 0`, `krand = 300` (all levels), `irandom = 43` | DALES `cases/dycoms_rf02/namoptions.001` (`randthl`, `randqt`, `irandom`; all levels); DALES applies no u, v, w noise |
+| `lqlnr` | `.true.` | as DALES (always Newton-Raphson) |
+| time step | `ladaptive`, `courant = 0.5`, `diffnr = 0.16`, `dtmax = 20` | PROVISIONAL until Task 14, see "Time step" |
+| `tcheck` | 60 s | mean dt to the log every minute |
 | decomposition | `nprocx = 8`, `nprocy = 4` (`ktot = 300` and `jtot = 96` divisible by 4) | |
+
+## Time step
+
+PROVISIONAL: Task 14 rebuilds the DALES RF01 reference (the earlier one, `refruns/d303`, collapsed and is invalid) and
+fixes the step for both codes. Until then the adaptive step is matched to that earlier DALES run, whose step was
+limited by diffusion (`peclet = 0.15`, 32368 of 35236 steps), not by its Courant number (L2, 0.1-0.14 at `courant = 0.5`):
+
+| window | DALES (invalid run) | uDALES `diffnr = 0.16` | uDALES `diffnr = 0.25` |
+|---|---|---|---|
+| 0-10 min | 0.485 s | 0.468 s | 0.731 s |
+| 10-20 min | 0.523 s | 0.502 s | 0.738 s |
+| 20-23 min | 0.435 s | 0.437 s | (0.600 s, 20-30 min) |
+
+`diffnr = 0.16` is DALES `peclet = 0.15` times 1.065 (`min(dz, dx)^2 (1/dz^2 + 1/dx^2 + 1/dy^2)` for dz = 5 m, dx = 35 m); with
+it the step is within 5 % of DALES. A run with `courant = 1.0` gave the same series, so `courant` is not limiting. These
+numbers come from 30 min runs (1260-1800 s were reached), before the cloud develops; later in the run the step will
+differ. For a **fixed** step, uncomment the two commented lines in `&RUN` of `namoptions.303` (`ladaptive = .false.`,
+`dtmax = 0.4`): `courant` and `diffnr` are then ignored, and `runtime` must be a multiple of `dtmax`. 0.4 s is provisional;
+it is just below the adaptive step, and a 60 s run with it starts without NaN.
 
 ## RF01 z0 value
 
@@ -56,7 +78,7 @@ reach the boundary layer or the cloud. It is documented here as a controller rul
   oscillatory at the 840 m inversion. Stevens et al. 2005 note that many models lose the cloud for numerical
   reasons; a low LWP should be diagnosed (advection, SGS) before it is counted as a port bug.
 - The SGS closure (one-equation TKE) differs from the models of the intercomparison.
-- No `thl` noise (PyCLES: +-0.05 K below 200 m); uniform noise on u, v, w instead.
+- Noise follows DALES (thl 0.1 K and qt 2.5e-5 kg/kg at all levels, no u, v, w noise); PyCLES perturbs +-0.05 K below 200 m only.
 - Surface drag by an equivalent `z0` (see above); heat and moisture fluxes are fixed.
 - Constant latent heat `rlv = 2.53e6` J/kg (the DALES value) in the surface moisture flux; PyCLES uses a
   temperature-dependent L.
