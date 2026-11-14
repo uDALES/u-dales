@@ -1,6 +1,7 @@
 ! DALES dev 075ac4e DYCOMS-II RF01 in the uDALES-compatible configuration of examples/303 (Task 14):
 ! fixed dt, no Galilean shift, constant-density base state (ibas_prf = 5), cd2 everywhere,
-! patched moduser.f90 (flux-form free-troposphere term, = uDALES case_dycoms_rf01) and Tetens es.
+! patched moduser.f90 (flux-form free-troposphere term, = uDALES case_dycoms_rf01) and Tetens es (t14 patch),
+! radpar reachable with iradiation = 10 and fkar = 0.41 (t19 patch).
 ! Edit irandom per ensemble member; for the adaptive variant set ladaptive = .true. (courant 0.5 as uDALES 303).
 &RUN
 iexpnr     =  001
@@ -33,7 +34,8 @@ xtime      =  0.
 /
 
 &PHYSICS
-iradiation =  10         ! radpar longwave + rad_user (patched moduser: free-troposphere term)
+iradiation =  10         ! radpar longwave + rad_user (patched moduser: free-troposphere term); needs the t19 patch,
+                         ! otherwise DALES switches rad_longw off for iradiation = 10 and radpar never runs
 timerad    =  0
 rad_ls     = .false.
 rad_longw  = .true.

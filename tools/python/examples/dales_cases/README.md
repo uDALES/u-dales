@@ -90,6 +90,14 @@ The DALES build needs `dales_inputs/dales-075ac4e-t14.patch`, applied to a copy 
   `i = 2, j1` and does not reset zi per column.
 - `src/modthermodynamics.f90`: the liquid saturation-vapour-pressure table uses Tetens with the uDALES constants
   instead of Murphy-Koop (about 0.1 % in es), so both codes use the same es.
+Then apply `dales_inputs/dales-075ac4e-t19.patch` on top (Task 19):
+- `src/modradiation.f90`: DALES dev 075ac4e switches `rad_longw`, `rad_shortw` and `rad_smoke` off for
+  `iradiation = 10` (`irad_user`), so the `radpar` call in the `irad_user` branch is unreachable and only
+  `rad_user` runs. Without this hunk the RF01 reference has **no cloud-top longwave cooling** (F0 = 70, F1 = 22
+  W/m2), only the free-troposphere term. Every DALES RF01 reference before Task 19 (`refruns/d303`, `t14/d303`)
+  has this defect.
+- `src/modglobal.f90`: `fkar` = 0.41 (the uDALES value) instead of 0.4. The von Karman constant sets the MO drag
+  coefficient (u* about 2.5 % lower in DALES with 0.4 at the same wind) and the surface-layer gradients.
 Build as in the DALES README; with Intel 2021a on CX3, compile `modheterostats.f90` at `-O1` (ifort ICE).
 
 Do not set `krandumax > 0` with the default `krandumin = 1` in DALES: that perturbs w at k = 1 (the surface),
