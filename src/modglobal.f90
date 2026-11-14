@@ -284,14 +284,14 @@ module modglobal
    real, parameter :: rd = 287.04 !<    *gas constant for dry air.
    real, parameter :: rv = 461.5 !<    *gas constant for water vapor.
    real, parameter :: cp = 1004. !<    *specific heat at constant pressure (dry air).
-   real, parameter :: rlv = 2.26e6 !<    *latent heat for vaporisation.
+   real, parameter :: rlv = 2.53e6 !<    *latent heat for vaporisation [J/kg] (DALES dev 075ac4e value)
    real, parameter :: rlvi = 1/rlv !inverse
    real, parameter :: ep = rd/rv !<    0.622
    real, parameter :: ep2 = rv/rd - 1. !<    0.61
    !< real,parameter :: cv       = cp-rd            !<    716.96
    real, parameter :: rcp = rd/cp !<    0.286
    real, parameter :: cpr = cp/rd !<    3.50
-   real, parameter :: rlvocp = rlv/cp !<    2.49
+   real, parameter :: rlvocp = rlv/cp !<    2520 K
    real, parameter :: mair = 28.967 !< Molar mass of air
    real, parameter :: rhoa = 1.2 !density of air used in some calculations
 

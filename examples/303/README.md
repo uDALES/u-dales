@@ -24,7 +24,7 @@ Surface.pyx, `RadiationDyCOMS_RF01` in Radiation.pyx).
 | `ps` | 101780 Pa | PyCLES `RS.Pg = 1017.8 hPa` |
 | Coriolis | `lcoriol`, `xlat = 31.5` (f = 0.762e-4 1/s) | PyCLES `coriolis_param` |
 | `wtsurf` | -1.2246098e-2 K m/s | 15 W/m2 upward / (1.22 kg/m3 x 1004 J/kg/K); negative = upward (D1); rho from PyCLES, cp from uDALES |
-| `wqsurf` | -4.1708980e-5 kg/kg m/s | 115 W/m2 upward / (1.22 kg/m3 x 2.26e6 J/kg); uDALES `rlv`; PyCLES uses its own temperature-dependent L (about 2.5e6), which would give 3.8e-5 |
+| `wqsurf` | -3.7257824e-5 kg/kg m/s | 115 W/m2 upward / (1.22 kg/m3 x 2.53e6 J/kg); uDALES `rlv` (the DALES value); PyCLES uses its own temperature-dependent L (about 2.5e6), which would give 3.8e-5 |
 | surface | `BCbotm = 4`, `z0 = z0h = 1.069564e-5` m | `z0 = (dz/2) exp(-0.41 / sqrt(0.0011))`: neutral Cm = 0.0011 at the first level (PyCLES `cm = 0.0011`) |
 | `thls`, `qts` | 289 K, 9e-3 | first guesses; MO diagnoses both every step |
 | radiation | `iradiation = 2`, `rad_longw`, `rka = 85`, `dlwtop = 70`, `dlwbot = 22`, `lrad_dycoms`, `rad_dycoms_D = 3.75e-6`, `rad_dycoms_qtthres = 8e-3` | PyCLES `RadiationDyCOMS_RF01` (`kap = 85, f0 = 70, f1 = 22, divergence = 3.75e-6`); the 8 g/kg threshold is the uDALES default (DALES `rad_user`) |
@@ -58,7 +58,8 @@ reach the boundary layer or the cloud. It is documented here as a controller rul
 - The SGS closure (one-equation TKE) differs from the models of the intercomparison.
 - No `thl` noise (PyCLES: +-0.05 K below 200 m); uniform noise on u, v, w instead.
 - Surface drag by an equivalent `z0` (see above); heat and moisture fluxes are fixed.
-- Latent-heat constant 2.26e6 J/kg in the surface moisture flux.
+- Constant latent heat `rlv = 2.53e6` J/kg (the DALES value) in the surface moisture flux; PyCLES uses a
+  temperature-dependent L.
 
 ## Concerns
 

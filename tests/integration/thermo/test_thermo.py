@@ -114,7 +114,7 @@ class TestMO(_SolverTest):
 
 
 RV_RD = 461.5 / 287.04
-RLV, CP = 2.26e6, 1004.0   # check modglobal: rlv, cp
+RLV, CP = 2.53e6, 1004.0   # check modglobal: rlv, cp
 
 
 def dthvdz_surface(thl, qt, ql, exn, dthldz, dqtdz):

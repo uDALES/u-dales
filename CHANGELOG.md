@@ -36,6 +36,16 @@ that they are easy to find when upgrading.
   The first level keeps the downward-only treatment (as in DALES). Who is affected:
   runs with a non-zero `wfls` in `lscale.inp`; urban cases (`wfls = 0`) are unchanged
   bit for bit.
+- **Latent heat of vaporisation `rlv` is now 2.53e6 J/kg** (was 2.26e6), the DALES
+  dev 075ac4e value. It enters the saturation adjustment, `thv`, `dthvdz`, `th0av`
+  and the derived constants `rlvi` and `rlvocp`, and through them the latent heat
+  flux of green-roof facets in the energy balance (`modEB:updateGR`; the soil-water
+  budget uses `rlv*rlvi` and is unchanged) and the psychrometric constant and
+  moisture sources of the tree model (`vegetation`, `lmoist` and `ltempeq`). For
+  the same `thl` and `qt`, cloud liquid water is about 12-14 % lower than before.
+  Who is affected: runs with `lmoist = .true.` that form cloud, moist runs with
+  trees, and energy-balance runs with green roofs. Dry runs are unchanged. Case 303
+  (DYCOMS RF01) now prescribes `wqsurf = -3.72578241e-5` (115 W/m2 / (1.22 x 2.53e6)).
 - **One-equation SGS model (`loneeqn`) aligned with DALES.** Four changes to
   `modsubgrid.f90`, following DALES dev 075ac4e (#401). Who is affected: only runs with
   `loneeqn = .true.`; Vreman and Smagorinsky runs are unchanged (bit for bit).

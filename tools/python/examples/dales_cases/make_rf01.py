@@ -30,8 +30,8 @@ Choices that are not in the references:
    zero SGS TKE below 200 m.
  * Fluxes: uDALES prescribed fluxes are positive in -z (decision D1), so the upward
    RF01 fluxes are written with a negative sign.
- * Latent heat: the qt flux uses uDALES rlv = 2.26e6 J/kg (PyCLES divides by its own
-   temperature-dependent L, about 2.5e6, and by rho = 1.22).
+ * Latent heat: the qt flux uses uDALES rlv = 2.53e6 J/kg, the DALES value (PyCLES
+   divides by its own temperature-dependent L, about 2.5e6, and by rho = 1.22).
  * z0: the drag of RF01 is a constant Cm = 0.0011 (PyCLES u* = sqrt(Cm) U). With
    BCbotm = 4 uDALES computes Cm = kappa^2 / ln(z1/z0)^2 (neutral) at the first
    level z1 = dz/2, so z0 = z1 exp(-kappa / sqrt(Cm)), also used for z0h.
@@ -49,7 +49,7 @@ from convert_dales_case import write_table  # noqa: E402
 
 # Constants taken from uDALES modglobal (cp, rlv) and PyCLES (rho, kappa_vk is DALES fkar)
 CP = 1004.0       # J/kg/K, modglobal cp
-RLV = 2.26e6      # J/kg, modglobal rlv
+RLV = 2.53e6      # J/kg, modglobal rlv (= DALES dev 075ac4e)
 RHO = 1.22        # kg/m3, SurfaceDYCOMS_RF01 (qt_flux = fq / lv / 1.22)
 FKAR = 0.41       # von Karman constant, modglobal fkar
 SHF, LHF = 15.0, 115.0   # W/m2, upward
