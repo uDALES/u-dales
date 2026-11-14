@@ -433,5 +433,80 @@ class TestThermoLevels(_SolverTest):
         self.assertIn("ALL TESTS PASSED: tests_thermo_levels", out)
 
 
+class TestRandomPerturbation(_SolverTest):
+    """Initial perturbations (modstartup:randomize_field, #395): counter-based hash of
+    (irandom, field tag, iglob, jglob, k), so independent of the MPI decomposition, with
+    uniform statistics, no spectral peak and independent noise per field."""
+
+    AMPL = {"randu": 0.5, "randthl": 0.3, "randqt": 1.0e-4}
+    NAMES = ("u", "v", "w", "thl", "qt")
+
+    def _dump0(self, name, npx=1, npy=1, **amp):
+        rnd = dict(self.AMPL)
+        rnd.update(amp)
+        groups = {"RUN": {"runmode": "1011", "runtime": "0.5", "lrandomize": ".true.", "nprocx": str(npx),
+                          "nprocy": str(npy), "randu": str(rnd["randu"]),
+                          "randthl": str(rnd["randthl"]), "randqt": str(rnd["randqt"])},
+                  "DOMAIN": {"itot": "32", "jtot": "32", "xlen": "1120.", "ylen": "1120."},
+                  "OUTPUT": {"lfielddump": ".true.", "tfielddump": "10.",
+                             "fieldvars": "'u0,v0,w0,th,qt'"}}
+        d = tc.write_case(self.tmp / name, groups=groups)
+        self.run_ok(d, npx * npy)
+        # runmode 1011 writes the initial field as record 0 and stops
+        tiles = {}
+        for f in sorted(d.glob("fielddump.*.*.310.nc")):
+            ix, iy = int(f.name.split(".")[1]), int(f.name.split(".")[2])
+            with Dataset(f) as nc:
+                tiles[ix, iy] = {v: np.asarray(nc[v][0]) for v in self.NAMES}   # (z, y, x)
+        nx = 1 + max(k[0] for k in tiles)
+        ny = 1 + max(k[1] for k in tiles)
+        return {v: np.concatenate([np.concatenate([tiles[ix, iy][v] for ix in range(nx)], axis=2)
+                                   for iy in range(ny)], axis=1) for v in self.NAMES}
+
+    def test_decomposition_independent(self):
+        ser = self._dump0("rnd_ser")
+        par = self._dump0("rnd_par", 2, 2)
+        for v in self.NAMES:
+            with self.subTest(var=v):
+                np.testing.assert_array_equal(par[v], ser[v])
+
+    def test_statistics(self):
+        f = self._dump0("rnd_stat")
+        a = {"u": self.AMPL["randu"], "v": self.AMPL["randu"], "w": self.AMPL["randu"],
+             "thl": self.AMPL["randthl"], "qt": self.AMPL["randqt"]}
+        noise = {}
+        for v in self.NAMES:
+            x = f[v] - f[v].mean(axis=(1, 2), keepdims=True)    # remove the level mean (profile)
+            if v == "w":
+                x = x[1:]                                      # skip the w = 0 wall level
+            noise[v] = x / a[v]
+            with self.subTest(var=v):
+                self.assertAlmostEqual(float(noise[v].mean()), 0.0, delta=0.01)
+                self.assertAlmostEqual(float(noise[v].var()), 1.0 / 3.0, delta=0.01)
+                # spectrum: power at every (kx, ky) of each level, averaged over levels
+                p = (np.abs(np.fft.fft2(noise[v], axes=(1, 2))) ** 2).mean(axis=0)
+                p[0, 0] = 0.0
+                self.assertLess(p.max(), 3.0 * p[p > 0].mean())
+        for i, v1 in enumerate(self.NAMES):
+            for v2 in self.NAMES[i + 1:]:
+                n = min(noise[v1].shape[0], noise[v2].shape[0])
+                c = np.corrcoef(noise[v1][:n].ravel(), noise[v2][:n].ravel())[0, 1]
+                with self.subTest(pair=(v1, v2)):
+                    self.assertLess(abs(c), 0.02)
+
+    def test_thl_qt_noise_off_by_default(self):
+        f = self._dump0("rnd_off", randthl=0.0, randqt=0.0)
+        for v in ("thl", "qt"):
+            with self.subTest(var=v):
+                self.assertEqual(float(np.ptp(f[v], axis=(1, 2)).max()), 0.0)
+        self.assertGreater(float(np.ptp(f["u"], axis=(1, 2)).max()), 0.1)
+
+    def test_thl_qt_noise_present(self):
+        f = self._dump0("rnd_on")
+        self.assertGreater(float(np.ptp(f["thl"], axis=(1, 2)).min()), 0.1)
+        self.assertGreater(float(np.ptp(f["qt"], axis=(1, 2)).min()), 1.0e-4)
+        self.assertGreaterEqual(float(f["qt"].min()), 0.0)
+
+
 if __name__ == "__main__":
     unittest.main()

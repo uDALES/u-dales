@@ -27,7 +27,7 @@ program uDALES
   use mpi
   use modmpi,            only : initmpi,exitmpi,starttimer,myid
   use modglobal,         only : initglobal,rk3step,timeleft
-  use modglobal,         only : runmode,RUN_COLDSTART,RUN_WARMSTART,RUN_DRIVER,RUN_STRATSTART,TEST_SPARSE_IJK,TEST_2DCOMP_INIT_EXIT,TEST_MPI_OPERATORS,TEST_ZGRID_METRICS,TEST_SGS_STATS,TEST_SGS_ONEEQN,TEST_LSTEND,TEST_THERMO_LEVELS
+  use modglobal,         only : runmode,RUN_COLDSTART,RUN_WARMSTART,RUN_DRIVER,RUN_STRATSTART,TEST_SPARSE_IJK,TEST_2DCOMP_INIT_EXIT,TEST_MPI_OPERATORS,TEST_ZGRID_METRICS,TEST_SGS_STATS,TEST_SGS_ONEEQN,TEST_LSTEND,TEST_THERMO_LEVELS,RUN_INIT_DUMP
   use modstartup,        only : readnamelists,init2decomp,checkinitvalues,readinitfiles,exitmodules
   use modfields,         only : initfields
   use modsave,           only : writerestartfiles
@@ -134,6 +134,14 @@ program uDALES
   call init_heatpump
 
   !call fielddump
+
+  if (runmode == RUN_INIT_DUMP) then
+    ! Test hook: write the initial fields (rk3step == 0) to the fielddump and stop.
+    call fielddump
+    call exitfielddump
+    call exitmpi
+    stop 0
+  end if
 
   call print_time('After initialization')
 
@@ -285,7 +293,7 @@ contains
     test_failed = .false.
     invalid_runmode = .false.
     select case (runmode)
-      case (RUN_COLDSTART, RUN_WARMSTART, RUN_DRIVER, RUN_STRATSTART)
+      case (RUN_COLDSTART, RUN_WARMSTART, RUN_DRIVER, RUN_STRATSTART, RUN_INIT_DUMP)
         return
         ! Normal execution mode, do nothing special here
       case (TEST_SPARSE_IJK)

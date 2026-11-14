@@ -1252,15 +1252,28 @@ module modstartup
             if (lrandomize) then
               !! add random fluctuations
               krand = min(krand, ke)
+              ! Field tags: 1 = u, 2 = v, 3 = w, 4 = thl, 5 = qt. The m and 0 fields of
+              ! thl and qt get the same deviate (they are equal at start-up).
+              ! DALES dev 075ac4e src/modstartup.f90:randomize_new perturbs qt and thl, m and 0
+              ! (the DALES momentum noise is disabled there); uDALES perturbs u, v, w too.
               do k = kb, krand
-                call randomize_field(um, k, randu, irandom, ih, jh)
+                call randomize_field(um, k, randu, irandom, 1, ih, jh)
+                call randomize_field(vm, k, randu, irandom, 2, ih, jh)
+                call randomize_field(wm, k, randu, irandom, 3, ih, jh)
               end do
-              do k = kb, krand
-                call randomize_field(vm, k, randu, irandom, ih, jh)
-              end do
-              do k = kb, krand
-                call randomize_field(wm, k, randu, irandom, ih, jh)
-              end do
+              if (randthl > 0.) then
+                do k = kb, krand
+                  call randomize_field(thlm, k, randthl, irandom, 4, ih, jh)
+                  call randomize_field(thl0, k, randthl, irandom, 4, ih, jh)
+                end do
+              end if
+              if (randqt > 0.) then
+                ! as in DALES the amplitude is capped at qt, so that qt stays >= 0
+                do k = kb, krand
+                  call randomize_field(qtm, k, randqt, irandom, 5, ih, jh, ampl_max=qtm)
+                  call randomize_field(qt0, k, randqt, irandom, 5, ih, jh, ampl_max=qt0)
+                end do
+              end if
             end if
 
             !       do k=kb+1,ke-1
@@ -2539,35 +2552,67 @@ module modstartup
 
    end subroutine exitmodules
 
-   subroutine randomize_field(field, klev, ampl, ir, ihl, jhl)
+   !> Add a uniform random perturbation, amplitude ampl, to level klev of field.
+   !!
+   !! The deviate is a pure function of (ir, tag, iglob, jglob, klev), a counter-based
+   !! hash, so the result does not depend on the MPI decomposition, and different tags
+   !! (fields) get independent noise. It replaces a one-step LCG on a linear index, whose
+   !! output was a sawtooth plane wave (58 % of the variance at one wavenumber, #395).
+   !!
+   !! Hash: the splitmix64 finaliser (Steele, Lea & Flood 2014, OOPSLA; Vigna,
+   !! https://prng.di.unimi.it/splitmix64.c) applied after each key is added to the state,
+   !! with the golden-ratio increment 0x9E3779B97F4A7C15. Fortran has no unsigned integers,
+   !! so the 64-bit arithmetic is done on integer(int64), which wraps silently under
+   !! ifort/gfortran (the code is compiled without -ftrapv), and the logical shifts use
+   !! shiftr. The top 53 bits give a uniform real in [0,1).
+   !!
+   !! ampl_max, if present, caps the amplitude pointwise (used for qt >= 0).
+   subroutine randomize_field(field, klev, ampl, ir, tag, ihl, jhl, ampl_max)
 
       use decomp_2d, only: zstart
-      use modglobal, only: ib, ie, jb, je, kb, ke, kh, itot, jtot
-      integer(KIND=selected_int_kind(6)):: imm, ia, ic, ir
-      integer ihl, jhl
-      integer i, j, klev
-      integer iglob, jglob
-      integer(KIND=selected_int_kind(12)) :: linear_id, state
-      real ran, ampl
-      real field(ib - ihl:ie + ihl, jb - jhl:je + jhl, kb - kh:ke + kh)
-      parameter(imm=134456, ia=8121, ic=28411)
+      use modglobal, only: ib, ie, jb, je, kb, ke, kh
+      use iso_fortran_env, only: int64
+      integer, intent(in) :: klev, ir, tag, ihl, jhl
+      real, intent(in) :: ampl
+      real, intent(inout) :: field(ib - ihl:ie + ihl, jb - jhl:je + jhl, kb - kh:ke + kh)
+      real, intent(in), optional :: ampl_max(ib - ihl:ie + ihl, jb - jhl:je + jhl, kb - kh:ke + kh)
+      integer :: i, j, iglob, jglob
+      integer(int64) :: h
+      real(8) :: ran
+      real :: a
+
       do j = jb, je
          jglob = j + zstart(2) - 1
          do i = ib, ie
             iglob = i + zstart(1) - 1
-            ! Use the global cell index so the perturbation field is
-            ! identical regardless of the MPI decomposition.
-            linear_id = int(iglob, kind(linear_id)) &
-                        + int(itot, kind(linear_id)) * int(jglob - 1, kind(linear_id)) &
-                        + int(itot, kind(linear_id)) * int(jtot, kind(linear_id)) * int(klev - 1, kind(linear_id))
-            state = mod(int(ir, kind(state)) + linear_id, int(imm, kind(state)))
-            state = mod(state * int(ia, kind(state)) + int(ic, kind(state)), int(imm, kind(state)))
-            ran = real(state)/real(imm)
-            field(i, j, klev) = field(i, j, klev) + (ran - 0.5)*2.0*ampl
+            h = int(ir, int64)
+            h = mix64(h + int(tag, int64))
+            h = mix64(h + int(iglob, int64))
+            h = mix64(h + int(jglob, int64))
+            h = mix64(h + int(klev, int64))
+            ran = real(shiftr(h, 11), 8)*(0.5_8**53)    ! [0,1), exact in double
+            a = ampl
+            if (present(ampl_max)) a = min(ampl, ampl_max(i, j, klev))
+            field(i, j, klev) = field(i, j, klev) + real((ran - 0.5_8)*2.0_8*a)
          end do
       end do
 
-      return
+   contains
+
+      !> splitmix64 step: add the golden-ratio increment, then the finaliser.
+      pure function mix64(x) result(z)
+         integer(int64), intent(in) :: x
+         integer(int64) :: z
+         ! 0x9E3779B97F4A7C15, 0xBF58476D1CE4E5B9, 0x94D049BB133111EB as signed int64
+         integer(int64), parameter :: g = -7046029254386353131_int64
+         integer(int64), parameter :: m1 = -4658895280553007687_int64
+         integer(int64), parameter :: m2 = -7723592293110705685_int64
+         z = x + g
+         z = ieor(z, shiftr(z, 30))*m1
+         z = ieor(z, shiftr(z, 27))*m2
+         z = ieor(z, shiftr(z, 31))
+      end function mix64
+
    end subroutine randomize_field
 
 end module modstartup

@@ -13,6 +13,21 @@ that they are easy to find when upgrading.
 
 ### Breaking changes
 
+- **Initial perturbations use a decomposition-independent hash, and thl/qt noise is
+  available** ([issue #395](https://github.com/uDALES/u-dales/issues/395)).
+  `modstartup:randomize_field` added one step of a linear congruential generator, seeded
+  with the cell's linear index, so the noise was a sawtooth plane wave (58 % of its
+  variance at a single wavenumber), and u, v and w received the same number at every cell.
+  It is replaced by a splitmix64-style counter-based hash of
+  `(irandom, field, iglob, jglob, k)`: uniform, white, independent between fields, and still
+  independent of the MPI decomposition. `randthl` and `randqt` (previously ignored,
+  default 0 and still 0) now perturb `thl` and `qt` (the m and 0 fields alike, up to `krand`,
+  qt capped at its local value so that it stays non-negative). Affected: every case with
+  `lrandomize = .true.` (the default) gets different initial velocity noise of the same
+  amplitude, so results are no longer bit-identical to earlier versions (statistically
+  equivalent). Cases with `lrandomize = .false.` are unchanged. New test runmode 1011 writes
+  the initial fielddump record and stops.
+
 - **Cloud liquid water `ql0` is now stored at the right level**
   ([issue #403](https://github.com/uDALES/u-dales/issues/403)). `modthermodynamics:thermo`
   declared its `ql` argument from `kb`, while `ql0` is allocated from `kb-1`, so the
