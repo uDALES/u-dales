@@ -120,6 +120,7 @@ nav:
     - Overview: udales-development.md
     - Code architecture: udales-architecture.md
     - Extending uDALES: udales-extending.md
+    - Case hooks: udales-case-hooks.md
     - Testing and CI: udales-testing.md
     - Development notes: udales-development-notes.md
     - How to contribute: udales-contributing.md

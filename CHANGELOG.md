@@ -169,6 +169,18 @@ that they are easy to find when upgrading.
 
 ### Added
 
+- **Case hooks** (`src/modcases.f90`, `&NAMCASES case_hooks`): case-specific physics
+  lives in `src/cases/` and is switched on by name at run time instead of by switches in
+  the core modules; see `docs/udales-case-hooks.md`. Hook points: init, radiation,
+  forcing, stats; without hooks the results are bit-identical. First hook:
+  `dycoms_rf01` (`&NAMCASE_DYCOMS D, qt_thres`), the DYCOMS-II RF01 free-troposphere
+  radiation term, now computed as the divergence of the analytic flux between cell
+  faces (finite at the inversion, conserves the column integral). The generic radiation
+  absorber `rad_absorber = 'ql' | 'sv'` (`rad_absorber_sv`) and the thermostat
+  diagnostic `zi_sv` (`zi_sv_index`, `zi_sv_thres`; written only when set) replace the
+  smoke switches. The removed `lrad_dycoms`, `rad_dycoms_D`, `rad_dycoms_qtthres`,
+  `rad_smoke`, `isvsmoke` and the `zi_smoke` output were never released.
+
 - In-solver test `runmode` 1008 (`tests_sgs_oneeqn`, run from
   `tests/integration/thermo/test_thermo.py:TestSGSOneEqn`) checking the
   one-equation SGS closure (`Kh/Km`, stable length scale) and its TKE sources.

@@ -35,9 +35,12 @@ Run: `python tests/integration/thermo/test_thermo.py -v [TestClass]`.
   the RF01 profiles. The record's `ql` is also recomputed from the same record's
   `thl`, `qt` and `exnf` with the uDALES adjustment (checks `rlv`, the
   thermostat timing and that `ql0(k)` belongs to level k, #403).
-- `TestRadiation`: `thlprad` for liquid, smoke and the DYCOMS large-scale term
-  against the closed-form longwave expressions, and the balance of the
-  free-troposphere radiative cooling against subsidence warming.
+- `TestRadiation`: `thlprad` for liquid and smoke (`rad_absorber = 'sv'`, also bit-identical to the
+  pre-Task-16 `rad_smoke` reference `smoke_pre_task16.txt`), `zi_sv`, and the DYCOMS free-troposphere
+  term of the `dycoms_rf01` case hook (flux form vs pointwise form, column integral, subsidence balance),
+  against the closed-form longwave expressions
+- `TestCaseHooks`: the `&NAMCASES` registry (unknown names abort, `case_hooks = ''` is a no-op) and the
+  aborts for required parameters that are not set
 - `TestDecomposition`: radiation, MO surface and moist SGS in a randomised
   short run (`runtime` 2.5 s, `dtmax` 1 s, about 3 steps) on 1, 2 (x) and 4 (2 x 2) ranks. Reference: the serial run.
 - `TestSGSOneEqn`: the one-equation SGS model (Task 10) through the in-solver

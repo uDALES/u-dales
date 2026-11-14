@@ -190,15 +190,29 @@ Parametrised longwave radiation (Stevens et al. 2005; DALES `radpar`). Off by de
 | timerad | 0. | `REAL` >= 0 | Update interval of the radiative tendency; 0 updates every time step. The adaptive time step is not limited to land on the radiation time, so the update may overshoot by up to one step. | [s] |
 | rad_longw | .true. | .true. or .false. | Longwave radiation on. | - |
 | rad_shortw | .false. | .false. | Shortwave radiation is not supported; `.true.` aborts. | - |
-| rad_smoke | .false. | .true. or .false. | Use scalar `isvsmoke` as the absorber instead of cloud liquid water `ql`. The `thermostat` output `zi_smoke` uses scalar 1 with threshold 0.5 whenever `nsv > 0` and `rad_smoke = .false.`. | - |
-| isvsmoke | 1 | 1 to `nsv` | Index of the smoke scalar (if `rad_smoke`). | - |
+| rad_absorber | 'ql' | 'ql' or 'sv' | Absorber of the longwave scheme: cloud liquid water `ql` (requires `lmoist`), or scalar `rad_absorber_sv` (e.g. smoke). Both use `rka`, `dlwtop` and `dlwbot`. | - |
+| rad_absorber_sv | 0 (unset) | 1 to `nsv` | Index of the absorbing scalar. Required with `rad_absorber = 'sv'`; the run aborts if it is not set. | - |
 | rka | 130. | `REAL` > 0 | Extinction coefficient kappa. | [m2/kg] |
 | dlwtop | 74. | `REAL` | Downward longwave flux at the top, F0. | [W/m2] |
 | dlwbot | 0. | `REAL` | Upward longwave flux at the bottom, F1. | [W/m2] |
-| lrad_dycoms | .false. | .true. or .false. | Add the DYCOMS free-troposphere cooling term of Stevens et al. (2005), with the local inversion height from the `rad_dycoms_qtthres` crossing of `qt`. Requires `lmoist`. | - |
-| rad_dycoms_D | 3.75e-6 | `REAL` | Large-scale divergence in the free-troposphere term. | [1/s] |
-| rad_dycoms_qtthres | 8.e-3 | `REAL` | `qt` value defining the local inversion height. | [kg/kg] |
 | rad_ls | .false. | .true. or .false. | DALES compatibility only: ignored with a warning; the `thlpcar` column of `lscale.inp` is always applied. | - |
+
+## Namelist NAMCASES
+
+Case hooks: case-specific physics kept out of the core modules, in `src/cases/` (see [Adding case-specific physics with hooks](udales-case-hooks.md)). Off by default.
+
+| Name | Default | Possible values | Description | Unit |
+| ---- | ------- | --------------- | ----------- | ---- |
+| case_hooks | '' | comma-separated list of hook names | Hooks to switch on. Valid names: `dycoms_rf01`. An unknown or repeated name aborts. | - |
+
+### Namelist NAMCASE_DYCOMS
+
+Parameters of the `dycoms_rf01` hook: the free-troposphere term of the DYCOMS-II RF01 radiation (Stevens et al. 2005), `F(z) = rho_i cp D alpha_z [(z-zi)^(4/3)/4 + zi (z-zi)^(1/3)]` above the local inversion height `zi`, added to the radiative tendency as the divergence of `F` between cell faces. `zi` is the highest crossing of `qt = qt_thres` in each column. The hook requires `iradiation = 2` and `lmoist`; both parameters must be set, or the run aborts.
+
+| Name | Default | Possible values | Description | Unit |
+| ---- | ------- | --------------- | ----------- | ---- |
+| D | 0. (unset) | `REAL` > 0 | Large-scale divergence (RF01: 3.75e-6). | [1/s] |
+| qt_thres | 0. (unset) | `REAL` > 0 | `qt` value defining the local inversion height (RF01: 8e-3). | [kg/kg] |
 
 ## Namelist NAMTHERMOSTAT
 
@@ -208,6 +222,8 @@ Time-series and profile diagnostics for boundary-layer cases (BOMEX, smoke, DYCO
 | ---- | ------- | --------------- | ----------- | ---- |
 | lthermostat | .false. | .true. or .false. | Write `thermostat_t.<expnr>.nc` and `thermostat_z.<expnr>.nc`. | - |
 | tthermostat | 60. | `REAL` > 0 | Output interval. | [s] |
+| zi_sv_index | 0 (off) | 0 to `nsv` | Scalar whose highest downward crossing of `zi_sv_thres` is written as `zi_sv`. 0 writes no `zi_sv`. | - |
+| zi_sv_thres | 0. (unset) | `REAL` > 0 | Threshold of the `zi_sv` diagnostic. Required with `zi_sv_index > 0`; the run aborts if it is not set. | scalar unit |
 
 Both files are written by rank 0 in single precision, every `tthermostat`. Averages are over fluid cells only. Fluxes are resolved fluxes only (no SGS contribution).
 
@@ -219,7 +235,7 @@ Both files are written by rank 0 in single precision, every `tthermostat`. Avera
 | cfrac | Cloud cover: fraction of columns with `ql > 0` anywhere | - |
 | zi | Boundary-layer height: mean over columns of the half level of maximum `dthl/dz` | m |
 | zi_qt8 | Boundary-layer height: highest downward crossing of `qt = 8 g/kg` (0 if none; needs `lmoist`) | m |
-| zi_smoke | Boundary-layer height: highest downward crossing of smoke = 0.5 (scalar `isvsmoke` with `rad_smoke`, otherwise scalar 1; needs `nsv > 0`) | m |
+| zi_sv | Boundary-layer height: highest downward crossing of `zi_sv_thres` by scalar `zi_sv_index` (0 if none). Written only with `zi_sv_index > 0` | m |
 | wmax | Maximum vertical velocity | m/s |
 | qlmax | Maximum liquid water | kg/kg |
 | ustar | Friction velocity | m/s |

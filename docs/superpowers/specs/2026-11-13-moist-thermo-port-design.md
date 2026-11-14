@@ -137,6 +137,12 @@ Namelist `&NAMRADIATION` (same names as DALES):
 The `lrad_dycoms` namelist switch replaces DALES's `iradiation = 10` +
 case `moduser` (uDALES has no `moduser`).
 
+*Superseded (Task 16, deviations (d) and (e)):* `rad_smoke`/`isvsmoke` became
+`rad_absorber = 'ql' | 'sv'` + `rad_absorber_sv`; `lrad_dycoms`, `rad_dycoms_D`
+and `rad_dycoms_qtthres` became the case hook `dycoms_rf01` (`&NAMCASES`,
+`&NAMCASE_DYCOMS` `D`, `qt_thres`) in `src/cases/case_dycoms_rf01.f90`, with the
+free-troposphere term in flux form.
+
 Algorithm (`radpar`, per column, per DALES):
 
 - `lwpt(k) = Σ_{k'≥k} ρ a dz`, `lwpb(k) = Σ_{k'<k} ρ a dz`, with `a` = `ql0` or smoke
@@ -256,3 +262,5 @@ independent NumPy reference calculations:
 - (c) The decomposition test uses `rtol` 1e-5 after 3 turbulent steps (`runtime` 2.5, `dtmax` 1, with an absolute floor of 1e-6 of the maximum; 1e-4 of the maximum for `wthl`/`wqt`), not round-off: MPI reduction-order round-off is amplified by turbulent spin-up, and the resolved fluxes are cancellation-dominated (controller rulings, progress.md).
 - D1: `wqsurf` was flipped to downward-positive in its own commit, as decided above; the long-term convention is issue #393.
 - DYCOMS uses a cooling term (`thlprad -= D/3 [...]`), unlike DALES, which adds it with a plus sign (reported upstream as dalesteam/dales#347); see the radiation component above.
+- (d) Task 16 (user decision): no case-specific switches in the core modules. The absorber is the generic `rad_absorber = 'ql' | 'sv'` with `rad_absorber_sv` (replacing `rad_smoke`, `isvsmoke`); the thermostat `zi_smoke` (scalar 1, threshold 0.5, always written with `nsv > 0`) became `zi_sv`, written only with `&NAMTHERMOSTAT` `zi_sv_index > 0` and `zi_sv_thres`. The DYCOMS free-troposphere term moved out of `modradiation` into the runtime case hook `dycoms_rf01` (`src/modcases.f90` registry, `src/cases/case_dycoms_rf01.f90`, `&NAMCASES case_hooks`, `&NAMCASE_DYCOMS D, qt_thres`). Parameters that are not obviously nonzero in urban applications (`rad_absorber_sv`, `zi_sv_index`, `zi_sv_thres`, `D`, `qt_thres`) default to 0; enabling the feature without them aborts. Without hooks the output is bit-identical to before, and `rad_absorber = 'sv'` is bit-identical to the old `rad_smoke` path (FFTW_ESTIMATE Debug builds).
+- (e) Task 16 (controller ruling): the free-troposphere term is the divergence of the analytic flux between cell faces, `thlprad(k) -= (G(zh(k+1)) - G(zh(k)))/dzf(k)` with `G = F/(rho_i cp) = D [(z-zi)^{4/3}/4 + zi (z-zi)^{1/3}]` above `zi` and 0 below, instead of the pointwise derivative `-(D/3)[(z-zi)^{1/3} + zi (z-zi)^{-2/3}]`. The pointwise form is singular at `z -> zi+` (a likely cause of the DALES RF01 abort "T < 150 K"); the flux form is finite and conserves the column integral exactly. It is not bit-identical to the old code. The prefactor stays that of DALES and of the old code (`rho_i/rho ~ 1`, no `1/exnf`): dividing `F` by `rhof cp exnf` instead would change the term by `rho_i/(rhof exnf) - 1`, about 3 to 6 % in the RF01 free troposphere, i.e. change the physics rather than the discretisation. The flux form is the cell mean of the pointwise form, so the two differ by `(dz^2/24)(10/9)/(z-zi)^2` relative: 5e-3 at `z - zi = 3 dz`, below 1e-3 from `7 dz` (20 m grid). The tier-1 tests check that bound for `z - zi > 3 dz`, < 1e-3 for `z - zi > 7 dz`, and that the column integral of the term equals `-G(top)` (`G(zi) = 0`) to float32 round-off. The DALES reference build (Task 14) uses the same form.
