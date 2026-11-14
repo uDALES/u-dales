@@ -33,12 +33,8 @@ Run: `python tests/integration/thermo/test_thermo.py -v [TestClass]`.
 - `TestThermostat`: cloudy-column diagnostics (`ql`, `lwp_bar`) and a dry
   column without moist diagnostics. Reference: Python saturation adjustment of
   the RF01 profiles. The record's `ql` is also recomputed from the same record's
-  `thl`, `qt` and `exnf` with the uDALES adjustment (checks `rlv` and the
-  thermostat timing). A known pre-existing bug in `modthermodynamics:thermo`
-  (the `ql` dummy is declared `kb:ke+kh`, but `ql0` is allocated `kb-kh:ke+kh`)
-  stores the `ql` of level k+1 in `ql0(k)`. One test checks the relation with
-  that offset; the exact same-level check is marked `expectedFailure` until the
-  bug is fixed.
+  `thl`, `qt` and `exnf` with the uDALES adjustment (checks `rlv`, the
+  thermostat timing and that `ql0(k)` belongs to level k, #403).
 - `TestRadiation`: `thlprad` for liquid, smoke and the DYCOMS large-scale term
   against the closed-form longwave expressions, and the balance of the
   free-troposphere radiative cooling against subsidence warming.
@@ -53,6 +49,9 @@ Run: `python tests/integration/thermo/test_thermo.py -v [TestClass]`.
   it, and a synthetic fully solid level (`thvf = -999`), which must get the
   neutral length scale and no buoyancy source. Reference: the closed-form
   expressions, constants recomputed independently.
+- `TestThermoLevels`: in-solver `runmode = 1010` (`tests.f90:tests_thermo_levels`):
+  after `thermodynamics`, `ql0(k)` and `ql0h(k)` are the saturation adjustment of
+  `thl0`/`qt0` and `thl0h`/`qt0h` at the same level, cell by cell (#403).
 - `TestLstend`: the large-scale subsidence through the in-solver `runmode = 1009`
   (`tests.f90:tests_lstend`), serial. `thl`, `qt`, `sv`, `u` and `v` vary in x,
   `whls` changes sign with height and `lmomsubs` is on. Every cell is compared with

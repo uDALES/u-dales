@@ -20,7 +20,7 @@ module tests
   implicit none
   save
   public :: tests_read_sparse_ijk, tests_2decomp_init_exit, tests_mpi_operators, tests_zgrid_metrics, tests_sgs_statistics, &
-            tests_sgs_oneeqn, tests_lstend
+            tests_sgs_oneeqn, tests_lstend, tests_thermo_levels
 
 contains
 
@@ -1112,6 +1112,136 @@ contains
     tests_lstend = all_passed
 
   end function tests_lstend
+
+  !> Saturation adjustment at full and half levels (#403). thermodynamics is called on a
+  !! saturated state that varies in x and z; then ql0(k) must be the one-step adjustment
+  !! of thl0(k), qt0(k) at the pressure that thermo saw (presf/exnf before the call), and
+  !! ql0h(k) that of thl0h(k), qt0h(k) at presh/exnh (thermo runs after diagfld and
+  !! calc_halflev for the half levels). Before #403 ql0(k) held the ql of level k+1.
+  !! The namelist must set lmoist = .true. and lqlnr = .false. (the default).
+  logical function tests_thermo_levels()
+    use modglobal,  only : ib, ie, jb, je, kb, ke, kh, runmode, lmoist, timee, itot, pi, &
+                           es0, at, bt, rd, rv, rlv, cp, tmelt
+    use modfields,  only : initfields, thl0, qt0, ql0, thl0h, qt0h, ql0h, presf, presh, exnf, exnh
+    use modthermodynamics, only : initthermodynamics, thermodynamics, lqlnr
+    use modmpi,     only : mpi_max, mpi_min
+    use modboundary, only : initboundary
+    use modibm,     only : initibm, createmasks
+    use initfac,    only : readfacetfiles
+    use decomp_2d,  only : zstart
+
+    implicit none
+
+    real, parameter :: tol = 1.e-12
+    integer :: i, j, k, gi, nsat_f, nsat_h
+    real :: s, worst_f, worst_h, qlmax, loc(4), glob(4)
+    real, allocatable :: pf(:), ef(:)
+    logical :: all_passed
+
+    if (myid == 0) then
+      write(*, '(A)') '================================================'
+      write(*, '(A, I8)') 'runmode = ', runmode
+      write(*, '(A)') 'tests_thermo_levels: SATURATION ADJUSTMENT LEVELS'
+      write(*, '(A)') '------------------------------------------------'
+    end if
+
+    call initfields
+    call initboundary
+    call initthermodynamics
+    call readfacetfiles
+    call initibm
+    call createmasks
+
+    all_passed = .true.
+    if ((.not. lmoist) .or. lqlnr) then
+      if (myid == 0) write(*,'(A)') 'FAIL namelist must set lmoist = .true. and lqlnr = .false.'
+      tests_thermo_levels = .false.
+      return
+    end if
+
+    ! saturated mixed layer with a lapse in thl and a dip in qt; varies in x
+    do k = lbound(thl0,3), ubound(thl0,3)
+      do j = lbound(thl0,2), ubound(thl0,2)
+        do i = lbound(thl0,1), ubound(thl0,1)
+          gi = zstart(1) + i - 1
+          s = sin(2.*pi*real(gi)/real(itot))
+          thl0(i,j,k) = 287. + 0.004*real(k) + 0.05*s
+          qt0(i,j,k)  = 1.2e-2 - 1.e-5*real(k) + 2.e-4*s
+        end do
+      end do
+    end do
+
+    timee = 0.
+    call thermodynamics            ! sets presf/exnf (diagfld) for the next call
+    timee = 1.                     ! no extra diagfld before thermo
+    allocate(pf(kb:ke+kh), ef(kb:ke+kh))
+    pf = presf; ef = exnf
+    call thermodynamics
+
+    worst_f = 0.; worst_h = 0.; nsat_f = 0; nsat_h = 0; qlmax = 0.
+    do k = kb, ke
+      do j = jb, je
+        do i = ib, ie
+          s = ql_ref(thl0(i,j,k), qt0(i,j,k), pf(k), ef(k))
+          if (s > 0.) nsat_f = nsat_f + 1
+          qlmax = max(qlmax, s)
+          worst_f = max(worst_f, abs(ql0(i,j,k) - s))
+          if (k > kb) then
+            s = ql_ref(thl0h(i,j,k), qt0h(i,j,k), presh(k), exnh(k))
+            if (s > 0.) nsat_h = nsat_h + 1
+            worst_h = max(worst_h, abs(ql0h(i,j,k) - s))
+          end if
+        end do
+      end do
+    end do
+    loc = (/worst_f, worst_h, qlmax, real(min(nsat_f, nsat_h))/)
+    call MPI_ALLREDUCE(loc(1:3), glob(1:3), 3, MY_REAL, MPI_MAX, comm3d, mpierr)
+    call MPI_ALLREDUCE(loc(4), glob(4), 1, MY_REAL, MPI_MIN, comm3d, mpierr)
+    worst_f = glob(1) / max(glob(3), tiny(1.)); worst_h = glob(2) / max(glob(3), tiny(1.))
+    deallocate(pf, ef)
+
+    if (myid == 0) write(*,'(A,ES12.4,1X,A,ES12.4,1X,A,ES12.4,1X,A,1X,I0)') &
+         'ql0 full-level worst', worst_f, 'ql0h half-level worst', worst_h, 'max ql', glob(3), &
+         'min saturated cells', nint(glob(4))
+    if (worst_f > tol) then
+      if (myid == 0) write(*,'(A,ES12.4)') 'FAIL ql0 does not match thl0/qt0 at the same level', worst_f
+      all_passed = .false.
+    end if
+    if (worst_h > tol) then
+      if (myid == 0) write(*,'(A,ES12.4)') 'FAIL ql0h does not match thl0h/qt0h at the same level', worst_h
+      all_passed = .false.
+    end if
+    if (glob(4) < 1. .or. glob(3) < 1.e-4) then
+      if (myid == 0) write(*,'(A)') 'FAIL thermo levels test is vacuous (state not saturated)'
+      all_passed = .false.
+    end if
+
+    if (all_passed .and. myid == 0) then
+      write(*, '(A)') '------------------------------------------------'
+      write(*, '(A)') 'ALL TESTS PASSED: tests_thermo_levels'
+      write(*, '(A)') '================================================'
+    else if ((.not. all_passed) .and. myid == 0) then
+      write(*, '(A)') '------------------------------------------------'
+      write(*, '(A)') 'TESTS FAILED: tests_thermo_levels'
+      write(*, '(A)') '================================================'
+    end if
+    tests_thermo_levels = all_passed
+
+  contains
+
+    !> uDALES modthermodynamics:thermo, one linearised step (lqlnr = .false.)
+    real function ql_ref(thl, qt, p, exn)
+      real, intent(in) :: thl, qt, p, exn
+      real :: tl, es, qsl, b1, qs
+      tl  = max(thl*exn, 100.)
+      es  = es0*exp(at*(tl-tmelt)/(tl-bt))
+      qsl = rd/rv*es/(p-(1-rd/rv)*es)
+      b1  = rlv**2/(tl**2*cp*rv)
+      qs  = qsl*(1.+b1*qt)/(1.+b1*qsl)
+      ql_ref = max(qt-qs, 0.)
+    end function ql_ref
+
+  end function tests_thermo_levels
 
   !> Shared comparators. Report the largest absolute deviation and where it is.
   logical function compare_real_1d(label, got, exp, tol)

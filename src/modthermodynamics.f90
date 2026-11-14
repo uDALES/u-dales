@@ -63,7 +63,7 @@ contains
     integer :: k
     if (timee==0) call diagfld
     if (lmoist) then
-       call thermo(thl0,qt0,ql0,presf,exnf)
+       call thermo(thl0,qt0,ql0(:,:,kb:),presf,exnf)   ! ql dummy starts at kb (#403)
     end if
 
     call diagfld
@@ -465,9 +465,12 @@ contains
 
     integer i, j, k
     real tl, es, qs, qsl, b1
-    !  real, intent(in)  :: qt(ib-ih:ie+ih,jb-jh:je+jh,kb:ke+kh),thl(ib-ih:ie+ih,jb-jh:je+jh,kb:ke+kh),exner(kb:ke+kh),pressure(kb:ke+kh)
-    real, intent(in)  :: qt(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh),thl(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh),exner(kb:ke+kh),pressure(kb:ke+kh)
-    real, intent(out) :: ql(ib-ih:ie+ih,jb-jh:je+jh,kb:ke+kh)
+    ! Assumed-shape dummies with the lower bounds of the actual arguments (#403). thl and
+    ! qt are alloc_z fields (kb-kh); ql starts at kb: ql0h is allocated kb:ke+kh and the
+    ! full-level caller passes ql0(:,:,kb:). The former explicit-shape ql(..,kb:ke+kh)
+    ! received ql0 (kb-kh:ke+kh) by sequence association, so ql0(k) held the ql of k+1.
+    real, intent(in)  :: qt(ib-ih:,jb-jh:,kb-kh:), thl(ib-ih:,jb-jh:,kb-kh:), exner(kb:), pressure(kb:)
+    real, intent(out) :: ql(ib-ih:,jb-jh:,kb:)
     real :: Tnr,qsatur,Tnr_old
     integer :: niter,nitert
     if (lqlnr) then

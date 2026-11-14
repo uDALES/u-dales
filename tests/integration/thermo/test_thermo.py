@@ -245,26 +245,16 @@ class TestThermostat(_SolverTest):
             type(self)._qlrec = (ql, ql_udales(thl_r, qt_r, exn_r))
         return self._qlrec
 
-    def test_record_ql_consistent_with_rlv_known_offset(self):
-        # Checks rlv (a wrong rlv changes ql by ~12 %) and that the record's ql belongs to the
-        # same state as its thl/qt (thermostat after thermodynamics), allowing for the known
-        # one-level offset below: record ql(k) is the ql of level k+1.
-        ql, ref = self._ql_record()
-        sat = ref[1:] > 0.1 * ref.max()
-        self.assertGreater(int(sat.sum()), 5)
-        dev = np.abs(ql[:-1][sat] - ref[1:][sat]) / ref[1:][sat]
-        print(f"\n[ql] {int(sat.sum())} saturated levels, record ql(k) vs recomputed ql(k+1): "
-              f"max rel dev {dev.max():.3e}")
-        np.testing.assert_allclose(ql[:-1][sat], ref[1:][sat], rtol=1e-4)
-
-    # KNOWN BUG (pre-existing, on master since v2.0): modthermodynamics:thermo declares
-    # ql(..., kb:ke+kh) but ql0 is allocated kb-kh:ke+kh (alloc_z), so the full-level call
-    # stores the ql of level k+1 in ql0(k). When thermo is fixed, remove the decorator and
-    # the previous test.
-    @unittest.expectedFailure
     def test_record_ql_matches_record_thl_qt(self):
+        # Checks rlv (a wrong rlv changes ql by ~12 %), that ql0(k) belongs to level k (#403:
+        # it used to hold the ql of level k+1) and that the record's ql belongs to the same
+        # state as its thl/qt (thermostat after thermodynamics).
         ql, ref = self._ql_record()
         sat = ref > 0.1 * ref.max()
+        self.assertGreater(int(sat.sum()), 5)
+        dev = np.abs(ql[sat] - ref[sat]) / ref[sat]
+        print(f"\n[ql] {int(sat.sum())} saturated levels, record ql vs recomputed ql: "
+              f"max rel dev {dev.max():.3e}")
         np.testing.assert_allclose(ql[sat], ref[sat], rtol=1e-4)
 
 
@@ -428,6 +418,19 @@ class TestLstend(_SolverTest):
         out = res.stdout + res.stderr
         print("\n" + "\n".join(l for l in out.splitlines() if "lstend levels" in l or "FAIL" in l))
         self.assertIn("ALL TESTS PASSED: tests_lstend", out)
+
+
+class TestThermoLevels(_SolverTest):
+    """In-solver test (runmode 1010, tests.f90:tests_thermo_levels): after thermodynamics,
+    ql0(k) is the saturation adjustment of thl0(k), qt0(k) and ql0h(k) that of thl0h(k),
+    qt0h(k), cell by cell (#403)."""
+
+    def test_full_and_half_level_ql(self):
+        d = tc.write_case(self.tmp / "thermolev", groups={"RUN": {"runmode": "1010"}})
+        res = self.run_ok(d)
+        out = res.stdout + res.stderr
+        print("\n" + "\n".join(l for l in out.splitlines() if "worst" in l or "FAIL" in l))
+        self.assertIn("ALL TESTS PASSED: tests_thermo_levels", out)
 
 
 if __name__ == "__main__":

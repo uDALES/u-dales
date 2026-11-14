@@ -13,6 +13,21 @@ that they are easy to find when upgrading.
 
 ### Breaking changes
 
+- **Cloud liquid water `ql0` is now stored at the right level**
+  ([issue #403](https://github.com/uDALES/u-dales/issues/403)). `modthermodynamics:thermo`
+  declared its `ql` argument from `kb`, while `ql0` is allocated from `kb-1`, so the
+  full-level saturation adjustment of level `k+1` was stored in `ql0(k)` (since v2.0).
+  The cloud therefore sat one level too low with respect to `thl` and `qt`. The
+  half-level `ql0h`, and so the buoyancy term through `thv0h`, was not affected. Now
+  fixed: `thermo` takes assumed-shape arguments with the actual lower bounds. Every
+  run with `lmoist = .true.` and any saturated cell changes, through these routes:
+  - `ql` itself in field dumps, restart files and the thermostat (`ql`, `cfracz`,
+    `lwp_bar`, `cfrac`, `qlmax`);
+  - the slab means `ql0av`, hence `th0av`, `thvf`, `thvh(kb)`, `presf`/`presh`,
+    `exnf`/`exnh` and `rhof`;
+  - the moist `dthvdz` of `calthv` (SGS stability and the one-equation buoyancy source);
+  - the cloud-water longwave radiation absorber (`iradiation = 2`).
+  Dry runs and moist runs that never saturate are unchanged.
 - **Monin-Obukhov surface state is computed before the SGS model.** With
   `BCbotm = 4/5`, the Obukhov length, `u*`, the surface-layer gradients and the
   re-diagnosed `thls`/`qts`/`thvs` are now computed at the start of each RK substep
