@@ -726,7 +726,7 @@ module modstartup
                               lydump,lytdump,luoutflowr,lvoutflowr,&
                               lhdriver,lqdriver,lsdriver,ltrees,lEB,itree_mode,&
                               TREE_MODE_DRAG_ONLY,TREE_MODE_SVEG,TREE_MODE_LEGACY_SEB
-      use modmpi,      only : myid, comm3d, mpierr, nprocx, nprocy
+      use modmpi,      only : myid, comm3d, mpierr, nprocx, nprocy, abort_all_ranks
       use modglobal,   only : idriver
       implicit none
 
@@ -779,14 +779,16 @@ module modstartup
       ! #375: thls/qts default to the sentinel -1; a negative thvs flips the sign
       ! of SGS buoyancy production and of the hydrostatic base state.
       if ((ltempeq .or. lbuoyancy) .and. (thls < 0.)) then
-         write(0, *) 'ERROR: thls not set (sentinel -1) but ltempeq or lbuoyancy is on.'
-         write(0, *) '       Set thls in &BC to the surface liquid water potential temperature [K].'
-         stop 1
+         if (myid == 0) then
+            write(0, *) 'ERROR: thls not set (sentinel -1) but ltempeq or lbuoyancy is on.'
+            write(0, *) '       Set thls in &BC to the surface liquid water potential temperature [K].'
+         end if
+         call abort_all_ranks(1)
       end if
       if (qts < 0.) then
          if (lmoist) then
-            write(0, *) 'ERROR: qts not set (sentinel -1) but lmoist is on. Set qts in &BC [kg/kg].'
-            stop 1
+            if (myid == 0) write(0, *) 'ERROR: qts not set (sentinel -1) but lmoist is on. Set qts in &BC [kg/kg].'
+            call abort_all_ranks(1)
          else
             qts = 0.   ! dry run: surface humidity is irrelevant but enters thvs
             thvs = thls*(1.+(rv/rd - 1.)*qts)
@@ -794,20 +796,20 @@ module modstartup
       end if
       if ((BCbotm == BCbotm_mo) .or. (BCbotm == BCbotm_mo_ustar)) then
          if (.not. lbottom) then
-            write(0, *) 'ERROR: BCbotm = 4/5 (Monin-Obukhov) requires lbottom = .true.'
-            stop 1
+            if (myid == 0) write(0, *) 'ERROR: BCbotm = 4/5 (Monin-Obukhov) requires lbottom = .true.'
+            call abort_all_ranks(1)
          end if
          if ((.not. ltempeq) .or. BCbotT /= BCbotT_flux .or. (z0 <= 0.) .or. (z0h <= 0.)) then
-            write(0, *) 'ERROR: BCbotm = 4/5 requires ltempeq, BCbotT = 1 and z0, z0h > 0'
-            stop 1
+            if (myid == 0) write(0, *) 'ERROR: BCbotm = 4/5 requires ltempeq, BCbotT = 1 and z0, z0h > 0'
+            call abort_all_ranks(1)
          end if
          if (wtsurf == -1. .or. (lmoist .and. wqsurf == -1.)) then
-            write(0, *) 'ERROR: BCbotm = 4/5: wtsurf (and wqsurf if lmoist) still at sentinel -1'
-            stop 1
+            if (myid == 0) write(0, *) 'ERROR: BCbotm = 4/5: wtsurf (and wqsurf if lmoist) still at sentinel -1'
+            call abort_all_ranks(1)
          end if
          if ((BCbotm == BCbotm_mo_ustar) .and. (ustin <= 0.)) then
-            write(0, *) 'ERROR: BCbotm = 5 requires ustin > 0'
-            stop 1
+            if (myid == 0) write(0, *) 'ERROR: BCbotm = 5 requires ustin > 0'
+            call abort_all_ranks(1)
          end if
       end if
       if (xlen < 0) then
@@ -1270,8 +1272,8 @@ module modstartup
               if (randqt > 0.) then
                 ! as in DALES the amplitude is capped at qt, so that qt stays >= 0
                 do k = kb, krand
-                  call randomize_field(qtm, k, randqt, irandom, 5, ih, jh, ampl_max=qtm)
-                  call randomize_field(qt0, k, randqt, irandom, 5, ih, jh, ampl_max=qt0)
+                  call randomize_field(qtm, k, randqt, irandom, 5, ih, jh, cap_by_field=.true.)
+                  call randomize_field(qt0, k, randqt, irandom, 5, ih, jh, cap_by_field=.true.)
                 end do
               end if
             end if
@@ -1574,18 +1576,6 @@ module modstartup
               call drivergen
 
             end if
-
-            !---------------------------------------------------------------
-            !  1.2 randomize fields
-            !---------------------------------------------------------------
-            !     if (iinletgen /= 2 .and. iinletgen /= 1) then
-            !       write(6,*) 'randomizing temperature!'
-            !       krand  = min(krand,ke)
-            !        do k = kb,ke !edited tg3315 krand --> ke
-            !          call randomize_field(thlm,k,randthl,irandom,ih,jh)
-            !          call randomize_field(thl0,k,randthl,irandom,ih,jh)
-            !        end do
-            !       end if
 
             if (nsv>0) then !tg3315 set these variables here for now and repeat for warmstart
 
@@ -2566,8 +2556,10 @@ module modstartup
    !! ifort/gfortran (the code is compiled without -ftrapv), and the logical shifts use
    !! shiftr. The top 53 bits give a uniform real in [0,1).
    !!
-   !! ampl_max, if present, caps the amplitude pointwise (used for qt >= 0).
-   subroutine randomize_field(field, klev, ampl, ir, tag, ihl, jhl, ampl_max)
+   !! cap_by_field = .true. caps the amplitude pointwise at the value of field itself, taken
+   !! before the perturbation is added (used for qt >= 0). The cap is not a second dummy
+   !! argument, which would alias the inout field.
+   subroutine randomize_field(field, klev, ampl, ir, tag, ihl, jhl, cap_by_field)
 
       use decomp_2d, only: zstart
       use modglobal, only: ib, ie, jb, je, kb, ke, kh
@@ -2575,7 +2567,7 @@ module modstartup
       integer, intent(in) :: klev, ir, tag, ihl, jhl
       real, intent(in) :: ampl
       real, intent(inout) :: field(ib - ihl:ie + ihl, jb - jhl:je + jhl, kb - kh:ke + kh)
-      real, intent(in), optional :: ampl_max(ib - ihl:ie + ihl, jb - jhl:je + jhl, kb - kh:ke + kh)
+      logical, intent(in), optional :: cap_by_field
       integer :: i, j, iglob, jglob
       integer(int64) :: h
       real(8) :: ran
@@ -2592,7 +2584,9 @@ module modstartup
             h = mix64(h + int(klev, int64))
             ran = real(shiftr(h, 11), 8)*(0.5_8**53)    ! [0,1), exact in double
             a = ampl
-            if (present(ampl_max)) a = min(ampl, ampl_max(i, j, klev))
+            if (present(cap_by_field)) then
+               if (cap_by_field) a = min(ampl, field(i, j, klev))
+            end if
             field(i, j, klev) = field(i, j, klev) + real((ran - 0.5_8)*2.0_8*a)
          end do
       end do
