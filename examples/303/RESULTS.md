@@ -1,6 +1,66 @@
 # Tier-2 validation results: 303 DYCOMS-II RF01
 
-## Close-match validation against DALES dev (Task 14, 2026-11-14)
+## Close-match validation against DALES dev (Task 19, 2026-11-14): corrected DALES reference
+
+**Verdict: very close.** With identical cd2 numerics and a fixed dt of 0.3 s, uDALES and DALES agree within the
+seed-to-seed spread for LWP, cloud cover, u*, zi_qt8 and the entrainment rate, and for all five profiles the rms
+difference is below the smaller rms spread (0.18-0.65). The one item above the strict bar is zi from the maximum
+dthl/dz (0.8 m, a sixth of the 5 m grid spacing; DALES members 875.8, 875.8, 874.2 m against 874.2, 874.2, 875.0;
+ratio 1.7 with the smaller spread, 0.9 with the larger).
+
+The Task 14 mismatch below (uDALES entraining twice as fast) was a **defect in the DALES reference**, not in
+uDALES: DALES dev 075ac4e `modradiation.f90:initradiation` sets `rad_longw = rad_shortw = rad_smoke = .false.`
+for `iradiation = 10`, so the `radpar` call in its `irad_user` branch never runs. The Task 14 DALES runs had
+therefore no cloud-top longwave cooling (F0 = 70, F1 = 22 W/m2), only the free-troposphere term of `rad_user`.
+Found with a horizontally homogeneous single-column run of both codes (all noise off, so advection and pressure
+vanish): every process tendency agreed to 3-4 digits except radiation, which was exactly zero in the DALES cloud.
+The fix is the one-line hunk in `tools/python/examples/dales_cases/dales_inputs/dales-075ac4e-t19.patch`.
+
+The 2.3 % u* gap of Task 14 was the von Karman constant (DALES 0.4, uDALES 0.41): the MO drag coefficient scales
+with kappa^2. **The runs reported here used kappa = 0.41 in both codes** (DALES built with `fkar = 0.41` in
+`modglobal.f90`). From the change of the uDALES default `fkar` to 0.40 (the DALES and PALM value) onward, both
+codes use 0.40 and DALES needs no `fkar` edit.
+
+Runs: uDALES `/rds/general/user/mvr/ephemeral/t14/x303/f4{3,4,5}` (binary code-equivalent to 674395fe, 8 x 4 ranks;
+the same runs as Task 14). DALES `/rds/general/user/mvr/ephemeral/t19/f303/dfix_4{3,4,5}` (dev 075ac4e + the t14
+and t19 patches, `fkar = 0.41`, inputs `dales_inputs/rf01`, 8 x 4 ranks), seeds 43, 44, 45; window 3-4 h;
+`compare_dales.py 303 ...`, output `/rds/general/user/mvr/ephemeral/t19/an/303fixed_t19`. Settings as in the
+Task 14 table below, with radiation now matched (radpar longwave every step in both codes) and kappa matched.
+
+| quantity | uDALES members | uDALES mean (spread) | DALES members | DALES mean (spread) | diff | ratio (min / max spread) |
+|---|---|---|---|---|---|---|
+| LWP [g/m2] | 14.6, 16.3, 16.6 | 15.8 (1.1) | 16.5, 17.1, 14.9 | 16.2 (1.2) | -0.35 | 0.33 / 0.30 |
+| cloud cover | 0.775, 0.839, 0.827 | 0.813 (0.034) | 0.841, 0.801, 0.804 | 0.815 (0.023) | -0.002 | 0.09 / 0.06 |
+| u* [m/s] | 0.2470, 0.2470, 0.2458 | 0.2466 (0.0007) | 0.2464, 0.2466, 0.2469 | 0.2466 (0.0002) | -0.0001 | 0.29 / 0.09 |
+| zi, max dthl/dz [m] | 874.2, 874.2, 875.0 | 874.4 (0.5) | 875.8, 875.8, 874.2 | 875.3 (1.0) | -0.8 | 1.73 / 0.87 |
+| zi_qt8 [m] | 858.0, 858.6, 859.7 | 858.8 (0.9) | 859.3, 858.7, 858.5 | 858.8 (0.4) | -0.05 | 0.10 / 0.05 |
+| we = dzi_qt8/dt + D zi, fit 1-4 h [mm/s] | 4.68, 4.81, 4.91 | 4.80 (0.11) | 4.87, 4.82, 4.75 | 4.81 (0.06) | -0.01 | 0.24 / 0.13 |
+
+| profile (z <= 1200 m) | max abs diff (z) | rms diff | rms spread U / D | rms diff / min rms spread | levels with diff < both spreads |
+|---|---|---|---|---|---|
+| thl [K] | 0.083 (872 m) | 0.0095 | 0.033 / 0.016 | 0.59 | 42 % |
+| qt [g/kg] | 0.048 (878 m) | 0.0082 | 0.025 / 0.016 | 0.52 | 72 % |
+| ql [g/kg] | 0.0021 (778 m) | 0.0007 | 0.0022 / 0.0023 | 0.31 | 36 % |
+| w'thl' resolved [K m/s] | 0.0005 (760 m) | 0.0002 | 0.0003 / 0.0004 | 0.65 | 62 % |
+| w'qt' resolved [g/kg m/s] | 0.0006 (15 m) | 0.0002 | 0.0015 / 0.0012 | 0.18 | 86 % |
+
+Hourly LWP [g/m2], ensemble mean (spread): uDALES 27.4 (0.2), 14.0 (0.4), 15.3 (0.7), 15.8 (1.1); DALES 26.9 (0.1),
+14.7 (0.2), 15.2 (0.6), 16.2 (1.2).
+
+Early times (20-40 min, `t19/an/303s_fix`; the members barely differ yet, so the spreads are tiny): LWP 17.0 vs 15.8
+g/m2, we 9.6 vs 10.0 mm/s, zi_qt8 845.2 vs 845.9 m, u* 0.2716 vs 0.2717 m/s. With the old reference the same
+window gave LWP 17.0 vs 22.0 and we 9.6 vs 5.9. A DALES run with the radiation hunk but kappa = 0.4 (seed 43,
+`t19/an/303s_rad`) gives the same entrainment and LWP as the full fix and the old 2 % u* deficit, so the radiation
+defect explains the entrainment/LWP gap and kappa the u* gap.
+
+## Close-match validation against DALES dev (Task 14, 2026-11-14): superseded, DALES reference without cloud-top cooling
+
+The DALES runs of this section (`t14/d303/*`) were made with `iradiation = 10` without the t19 patch, so DALES had
+no radpar longwave cooling (see the Task 19 section above), and with kappa = 0.4. The uDALES runs are the ones used
+above. Kept for the record.
+
+### Task 14 text (as written then)
+
 
 **Verdict: not close.** With identical cd2 numerics and a fixed dt of 0.3 s, both codes lose most of the cloud in
 the first hour (LWP 60 to 10-15 g/m2), so the earlier "no collapse" of uDALES (below) does not survive the SGS

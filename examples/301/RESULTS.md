@@ -34,6 +34,7 @@ DALES dev 075ac4e with `tools/python/examples/dales_cases/dales_inputs/dales-075
 | saturation vapour pressure | Tetens (es0 610.78, at 17.27, bt 35.86) | Tetens, same constants (patched `esatltab`, 0.2 K table, linear interpolation) | yes (table error < 1e-4 relative) |
 | saturation adjustment | exact (Newton-Raphson, `lqlnr`) | two-step linearised (DALES icethermo) | no; within 0.2 % of exact (numerics-audit-sgs) |
 | SGS | 1.5-order TKE, `ldelta = .false.`, cf 2.5, cn 0.76, Rigc 0.25, Prandtl 1/3 (Kh/Km = 1 + 2 l/Delta), no factor 2 in dissipation, MO TKE sources at kb, grav/thvf | same model and constants (DALES log), `sgs_surface_fix = .false.` | yes |
+| von Karman constant | `fkar = 0.41` | `fkar = 0.4` (built in) | no (found in Task 19); with u* prescribed it enters only the MO surface-layer gradients (k = 1 TKE sources, dthvdz(1)); not rerun. From the uDALES default change to 0.40 onward both use 0.40 |
 | SGS floors | numol added to ekm/ekh; e12min 5e-5 | ekmin 1e-6; e12min 5e-5 | no; negligible (1e-5 m2/s) |
 | surface | `BCbotm = 5` (MO, u* = 0.28), wtsurf 8e-3 K m/s, wqsurf 5.2e-5 up, z0 = z0h = 2e-4 | `isurf = 3`, same values | yes |
 | large-scale forcing | ug, vg, wfls, dqtdtls, thlpcar (-2 K/day) from DALES `lscale.inp.001` | same file | yes |
