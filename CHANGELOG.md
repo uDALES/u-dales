@@ -15,8 +15,8 @@ that they are easy to find when upgrading.
 
 - **The von Karman constant default `fkar` is 0.40 instead of 0.41.** It is now the value used by DALES
   (`fkar = 0.4`), PALM (`kappa = 0.4`) and WRF; the 2.3 % u* gap between uDALES and DALES in the RF01 comparison
-  was entirely this constant. `fkar` remains a `&WALLS` input. Also, the inlet-generator boundary-layer-thickness
-  relations in `modinlet` used a hard-coded 0.41 and now use `fkar`. Affected: every run that does not set `fkar`,
+  was entirely this constant. `fkar` remains a `&WALLS` input. The inlet generator (`modinlet`) keeps its own
+  0.41, which is calibrated together with its Coles wake constants. Affected: every run that does not set `fkar`,
   through the wall functions (`modwallfunctions`, `modibm`) and the Monin-Obukhov surface (`modsurface`,
   `BCbotm = 4, 5`); for the same roughness length the wall stresses fall by about 5 % (kappa^2 is 0.160 instead of
   0.168). To keep the old behaviour set `fkar = 0.41` in `&WALLS`. Example 303 and the DALES RF01 inputs use the

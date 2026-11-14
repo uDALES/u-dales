@@ -200,7 +200,7 @@ contains
   end subroutine initinlet
 
   subroutine inletgen
-    use modglobal,   only : ib,ie,jb,je,jtot,kb,ke,zf,zh,dzf,timee,btime,rk3step,dt,numol,iinletgen,inletav,Uinf,lwallfunc,linletRA,totinletav,lstoreplane,nstore,prandtlmoli,numol,grav,lbuoyancy,lfixinlet,luvolflowr,lfixutauin,fkar
+    use modglobal,   only : ib,ie,jb,je,jtot,kb,ke,zf,zh,dzf,timee,btime,rk3step,dt,numol,iinletgen,inletav,Uinf,lwallfunc,linletRA,totinletav,lstoreplane,nstore,prandtlmoli,numol,grav,lbuoyancy,lfixinlet,luvolflowr,lfixutauin
     use modfields,   only : u0,v0,w0,thl0
     use modsurfdata, only : thls,thl_top
     use modsave,     only : writerestartfiles
@@ -370,10 +370,10 @@ contains
    ! compute momentum thickness at inlet and recycle plane
 
    if(lbuoyancy) then
-     lmor = (thls* utaur**2 )/ (fkar * grav * ttaur)      ! L = -T0*utau^3 / kappa*g*<w'T'> =
+     lmor = (thls* utaur**2 )/ (0.41 * grav * ttaur)      ! L = -T0*utau^3 / kappa*g*<w'T'> =
 !     write(6,*) 'Initial dr,myid, utaur, ttaur, Lmor =', dr,myid,utaur,ttaur,lmor
 !     lmor = 0.3;
-     lmoi = (thls* utaui**2 )/ (fkar * grav * ttaui)      ! L = -T0*utau^3 / kappa*g*<w'T'> =
+     lmoi = (thls* utaui**2 )/ (0.41 * grav * ttaui)      ! L = -T0*utau^3 / kappa*g*<w'T'> =
 !     lmoi = 0.3;
 !     write(6,*) 'Initial di_test,myid, utaui, ttaui, Lmoi =', di_test,myid,utaui,ttaui,lmoi
      dr_old = dr
@@ -1485,7 +1485,7 @@ contains
 
   subroutine momentumthickness(output,ustar,blth)
 
-    use modglobal, only : pi,Uinf,fkar
+    use modglobal, only : pi,Uinf
 !    use modinletdata, only : ubulk
  !   use modmpi, only    : myid
     implicit none
@@ -1494,16 +1494,17 @@ contains
     real, intent(in)                   :: blth       ! boundary layer thickness
     real, intent(out)                  :: output     ! momentum thickness
     real :: C     = 0.5       ! Coles parameter
+    real :: kappa = 0.41      ! Von k�r�n constant
     real :: lam               ! = Uinf/ustar
 
     lam = Uinf / ustar
-    output = ((1. + C)/(fkar*lam) - (1./(( fkar**2)*(lam**2)))*(2. + 2.*C*(1.852/pi +1.) + (3./2.)*(C**2)))* blth
+    output = ((1. + C)/(kappa*lam) - (1./(( kappa**2)*(lam**2)))*(2. + 2.*C*(1.852/pi +1.) + (3./2.)*(C**2)))* blth
 
   end subroutine momentumthickness
 
   subroutine momentumthicknessmo(output,ustar,blth,lmo)
 
-    use modglobal, only : pi,Uinf,fkar
+    use modglobal, only : pi,Uinf
 !    use modinletdata, only : ubulk
  !   use modmpi, only    : myid
     implicit none
@@ -1513,11 +1514,12 @@ contains
     real, intent(in)                   :: blth       ! boundary layer thickness
     real, intent(out)                  :: output     ! momentum thickness
     real :: C     = 0.5       ! Coles parameter
+    real :: kappa = 0.41      ! Von k�r�n constant
     real :: cmo   = 0.702     ! constant in MO theory (0.135*5.2)
     real :: lam               ! = Uinf/ustar
 
     lam = Uinf / ustar
-    output = (1. + C + 0.5*cmo*blth/lmo)/(fkar*lam) - (1./(( fkar**2)*(lam**2)))*(2. + 2.*C*(1.852/pi +1.) + (3./2.)*(C**2) + (blth-0.25)*2.*cmo/lmo + (1. + 4./pi)*blth*C*cmo/lmo + (1./6.)*((cmo/lmo)**2)*(blth**2) )* blth
+    output = (1. + C + 0.5*cmo*blth/lmo)/(kappa*lam) - (1./(( kappa**2)*(lam**2)))*(2. + 2.*C*(1.852/pi +1.) + (3./2.)*(C**2) + (blth-0.25)*2.*cmo/lmo + (1. + 4./pi)*blth*C*cmo/lmo + (1./6.)*((cmo/lmo)**2)*(blth**2) )* blth
 
   end subroutine momentumthicknessmo
 
@@ -1600,7 +1602,7 @@ contains
 
   subroutine dispthickness(output)
 ! output is an array of length (ib:ie)) containing displacement thickness values
-    use modglobal, only : ib,ie,kb,dzf,xf,Uinf,numol,fkar
+    use modglobal, only : ib,ie,kb,dzf,xf,Uinf,numol
     implicit none
 
        real, dimension(ib:ie),       intent(out) :: output  !< dispacement thickness
@@ -1611,6 +1613,7 @@ contains
        real    :: ustar,blth
        real    :: B     = 5.0       ! Wake parameter
        real    :: C     = 0.5       ! Coles parameter
+       real    :: kappa = 0.41      ! Von k�r�n constant
        real    :: lam               ! = Uinf/ustar
        integer :: i
 
@@ -1618,8 +1621,8 @@ contains
        do i=ib,ie
          ustar     =  sqrt(abs(2*numol* Utav(i,kb)/dzf(kb)))              ! average streamwise friction
          lam       = Uinf / ustar
-         blth      = (lam*numol/Uinf) * exp( fkar * (lam - B) - 2.*C)      ! See App. Lund et al.
-         output(i) = ((1. + C) / (fkar*lam) ) * blth
+         blth      = (lam*numol/Uinf) * exp( kappa * (lam - B) - 2.*C)      ! See App. Lund et al.
+         output(i) = ((1. + C) / (kappa*lam) ) * blth
        end do
        dispm  = sum(output(ib:ie))/(ie-ib+1)      ! mean(displacement)
        disp2m = sum(output(ib:ie)**2.)/(ie-ib+1)   ! mean(displacement^2)
@@ -1632,7 +1635,7 @@ contains
 
   subroutine dispthicknessmo(output)
 ! output is an array of length (ib:ie)) containing displacement thickness values
-    use modglobal, only : ib,ie,kb,dzf,xf,Uinf,numol,grav,prandtlmoli,fkar
+    use modglobal, only : ib,ie,kb,dzf,xf,Uinf,numol,grav,prandtlmoli
     use modsurfdata, only : thls
     implicit none
 
@@ -1644,6 +1647,7 @@ contains
        real    :: ustar,tstar,blth
        real    :: B     = 5.0       ! Wake parameter
        real    :: C     = 0.5       ! Coles parameter
+       real    :: kappa = 0.41      ! Von k�rm�n constant
        real    :: cmo   = 0.702     ! constant in MO theory (0.135*5.2)
        real    :: lam               ! = Uinf/ustar
        real    :: func,dfunc,utaunu,lmo
@@ -1653,7 +1657,7 @@ contains
        do i=ib,ie
          ustar     = sqrt(abs(2.*numol* Utav(i,kb)/dzf(kb)))              ! average streamwise friction at x-location
          tstar     = numol*prandtlmoli* 2.*(Ttav(i,kb)-thls)/(dzf(kb)*ustar)    ! average shear temp. at x-location
-         lmo       = (thls*ustar**2)/(fkar*grav*tstar)                  ! obukhov length at this x-location
+         lmo       = (thls*ustar**2)/(kappa*grav*tstar)                  ! obukhov length at this x-location
          if ((lmo >= 10000.) .or. (lmo <= 0.01)) then
            lmo = 1000.
          end if
@@ -1662,15 +1666,15 @@ contains
          lam       = Uinf / ustar
          do n=1,10   ! Newton Raphson method to find BL height
 !           write(6,*) 'blth,ustar,tstar,Lmo =',blth,ustar,tstar,lmo
-           func   = log(blth) + (cmo*blth/lmo) + log(utaunu) - fkar*(lam-B) +2.*C
-!           func   = log(blth) + log(utaunu) - fkar*(lam-B) +2.*C
+           func   = log(blth) + (cmo*blth/lmo) + log(utaunu) - kappa*(lam-B) +2.*C
+!           func   = log(blth) + log(utaunu) - kappa*(lam-B) +2.*C
            dfunc  = 1./blth + cmo/lmo
            blth   = blth - (func / dfunc)
            if (blth <= 0.) then
              blth = di
            end if
          end do
-         output(i) = ((1. + C + 0.5*cmo*blth/lmo) / (fkar*lam) ) * blth
+         output(i) = ((1. + C + 0.5*cmo*blth/lmo) / (kappa*lam) ) * blth
        end do
        dispm  = sum(output(ib:ie))/(ie-ib+1)      ! mean(displacement)
        disp2m = sum(output(ib:ie)**2.)/(ie-ib+1)   ! mean(displacement^2)
@@ -1750,7 +1754,7 @@ contains
 
   subroutine blthickness(output,ustar)
 
-    use modglobal, only : numol,Uinf,fkar
+    use modglobal, only : numol,Uinf
     implicit none
 
        real, intent(in)                   :: ustar      ! friction velocity
@@ -1761,17 +1765,18 @@ contains
 !       integer :: k
        real :: B     = 5.0       ! Wake parameter
        real :: C     = 0.5       ! Coles parameter
+       real :: kappa = 0.41      ! Von k�r�n constant
        real :: lam               ! = Uinf/ustar
 
        lam = Uinf / ustar
-       output = (lam*numol/Uinf) * exp( fkar * (lam - B) - 2.*C)      ! See App. Lund et al.
+       output = (lam*numol/Uinf) * exp( kappa * (lam - B) - 2.*C)      ! See App. Lund et al.
 
    end subroutine blthickness
 
   subroutine blthicknessmo(output,ustar,lmo)
 ! This routine compute the BL thicknes for a buoyancy affected boundary layer:
 ! Newton-Raphson method is used
-    use modglobal, only : numol,Uinf,fkar
+    use modglobal, only : numol,Uinf
     implicit none
 
        real, intent(in)                   :: ustar      ! friction velocity
@@ -1783,6 +1788,7 @@ contains
 !       integer :: k
        real :: B     = 5.0       ! Wake parameter
        real :: C     = 0.5       ! Coles parameter
+       real :: kappa = 0.41      ! Von k�r�n constant
        real :: cmo   = 0.702     ! Constant in MO theory (0.135*5.2)
        real :: lam               ! = Uinf/ustar
        real :: func,dfunc,utaunu
@@ -1792,8 +1798,8 @@ contains
        lam = Uinf / ustar
 !       write(6,*) 'Initial delta, Lmo =', output,lmo
        do n=1,10
-         func   = log(output) + (cmo*output/lmo) + log(utaunu) - fkar*(lam-B) +2.*C
-!         func   = log(output) + log(utaunu) - fkar*(lam-B) +2.*C
+         func   = log(output) + (cmo*output/lmo) + log(utaunu) - kappa*(lam-B) +2.*C
+!         func   = log(output) + log(utaunu) - kappa*(lam-B) +2.*C
          dfunc  = 1./output + cmo/lmo
          output = output - (func / dfunc)
          if (output <= 0.) then
