@@ -18,10 +18,16 @@ that they are easy to find when upgrading.
   re-diagnosed `thls`/`qts`/`thvs` are now computed at the start of each RK substep
   (`modsurface:surface_mo_state`, called before `advection`/`subgrid`), as in DALES
   dev 075ac4e (`surface` before `advection` and `subgrid`). Before, they were computed
-  in `bottom`, after `subgrid`, so the one-equation SGS sources at `kb` and
-  `dthvdz(kb)` used the gradients of the previous substep. `bottom` still applies
-  the stress. Who is affected: only runs with `BCbotm = 4/5`; all other runs are
-  unchanged bit for bit.
+  in `bottom`, after `subgrid`, so the one-equation SGS TKE sources at `kb` used the
+  surface-layer shear `dudz`/`dvdz` of the previous substep (and zero on the first
+  substep). `dthvdz(kb)` keeps its timing: `calthv` sets it at the end of the
+  previous substep, as in DALES. `bottom` still applies the stress. On a cold start
+  the MO state is now also computed during startup, before a second
+  `thermodynamics` call, so the first substep already has the MO `dthvdz(kb)`
+  (DALES `readinitfiles` does the same). Who is affected: runs with `BCbotm = 4/5`;
+  with `loneeqn = .true.` every substep changes; with Vreman or Smagorinsky the
+  change comes only from the cold-start initial state (the time-loop reorder alone
+  was verified bit-identical for them). All other runs are unchanged bit for bit.
 - **Thermostat diagnostics are sampled after `thermodynamics`.** `thermostat` now
   runs at the end of the time step, after `boundary` and `thermodynamics`, so `ql`,
   `rhof`, `exnf` and the slab means it writes belong to the same state as `thl`,

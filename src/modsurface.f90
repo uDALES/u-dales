@@ -49,9 +49,11 @@ contains
 
   !> MO surface state: obl_mo, ustar_mo, the surface-layer gradients and the
   !> tskin/qskin re-diagnosis into thls/qts/thvs. DALES dev 075ac4e program.f90 calls
-  !> surface (L232) before advection and subgrid (L237-238), so the SGS kb sources and
-  !> dthvdz(kb) see the gradients of the current substep. Called from the time loop
-  !> before subgrid when lmo_surface().
+  !> surface (L232) before advection and subgrid (L237-238), so the one-equation SGS kb
+  !> sources see dudz_mo/dvdz_mo of the current substep. dthvdz(kb) is set by calthv in
+  !> thermodynamics at the end of the substep, so subgrid reads the previous substep's
+  !> value, as in DALES. Called from the time loop before advection when lmo_surface(),
+  !> and once during a cold start (modstartup:readinitfiles), as DALES readinitfiles.
   subroutine surface_mo_state
     use modglobal,  only : ib, ie, jb, je, kb, itot, jtot, zf, fkar, rv, rd, lmoist, &
                            BCbotm, BCbotm_mo_ustar

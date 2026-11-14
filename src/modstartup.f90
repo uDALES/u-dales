@@ -999,6 +999,7 @@ module modstartup
       use modboundary, only:boundary, tqaver, halos
       use modmpi, only:slabsum, myid, comm3d, mpierr, my_real, avexy_ibm
       use modthermodynamics, only:thermodynamics, calc_halflev
+      use modsurface,        only:lmo_surface, surface_mo_state
       use modinletdata, only:Uinl, Urec, Wrec, u0inletbc, v0inletbc, w0inletbc, ubulk, vbulk, irecy, Utav, Ttav, &
          uminletbc, vminletbc, wminletbc, u0inletbcold, v0inletbcold, w0inletbcold, &
          storeu0inletbc, storev0inletbc, storew0inletbc, nstepread, nfile, Tinl, &
@@ -1641,6 +1642,13 @@ module modstartup
          ! call boundary ! tg3315 17.10.17 having this in startup was causing issues for running with lmoist ! turned of when pot. temp = temp.
          ! SO: can't do this yet because uses u0 and it does not include halo cells
          call thermodynamics ! turned off when pot. temp = temp.
+         ! DALES dev 075ac4e modstartup.f90:readinitfiles (L888-897) calls thermodynamics,
+         ! surface, boundary, thermodynamics, so the first subgrid call already sees the MO
+         ! dthvdz(kb) and the re-diagnosed thls/qts/thvs. Do the same with the MO surface.
+         if (lmo_surface()) then
+            call surface_mo_state
+            call thermodynamics
+         end if
          !
          !    call boundary
          !    call thermodynamics ! turned off when pot. temp = temp.
