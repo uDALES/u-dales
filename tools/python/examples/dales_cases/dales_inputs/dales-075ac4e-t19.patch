@@ -9,14 +9,3 @@
        rad_shortw = .false.
        rad_longw  = .false.
        rad_smoke  = .false.
---- a/src/modglobal.f90
-+++ b/src/modglobal.f90
-@@ -98,7 +98,7 @@
-       real,parameter :: bt       = 35.86            !<    * using Tetens Formula.
-       real(field_r),parameter :: ekmin    = 1.e-6            !<    *minimum value for k-coefficient.
-       real(field_r),parameter :: e12min   = 5.e-5            !<    *minimum value for TKE.
--      real,parameter :: fkar     = 0.4              !<    *Von Karman constant
-+      real,parameter :: fkar     = 0.41             !<    *Von Karman constant (t19 patch: uDALES value)
-       real(field_r),parameter :: eps1     = 1.e-10           !<    *very small number*
-       real,parameter :: epscloud = 1.e-5            !<    *limit for cloud calculation 0.01 g/kg
-       real,parameter :: boltz    = 5.67e-8          !<    *Stefan-Boltzmann constant

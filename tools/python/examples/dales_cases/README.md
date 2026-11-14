@@ -96,8 +96,10 @@ Then apply `dales_inputs/dales-075ac4e-t19.patch` on top (Task 19):
   `rad_user` runs. Without this hunk the RF01 reference has **no cloud-top longwave cooling** (F0 = 70, F1 = 22
   W/m2), only the free-troposphere term. Every DALES RF01 reference before Task 19 (`refruns/d303`, `t14/d303`)
   has this defect.
-- `src/modglobal.f90`: `fkar` = 0.41 (the uDALES value) instead of 0.4. The von Karman constant sets the MO drag
-  coefficient (u* about 2.5 % lower in DALES with 0.4 at the same wind) and the surface-layer gradients.
+- von Karman constant: DALES uses `fkar = 0.4`; uDALES used 0.41 until the thermo branch changed its default to
+  0.40 (as DALES and PALM). The Task 19 comparison runs used a DALES build with `fkar = 0.41` in `modglobal.f90`
+  (a one-line edit, not part of this patch) so that both codes used 0.41; with 0.4 vs 0.41, DALES u* is about
+  2.5 % lower at the same wind. With uDALES at 0.40 no patch is needed.
 Build as in the DALES README; with Intel 2021a on CX3, compile `modheterostats.f90` at `-O1` (ifort ICE).
 
 Do not set `krandumax > 0` with the default `krandumin = 1` in DALES: that perturbs w at k = 1 (the surface),
