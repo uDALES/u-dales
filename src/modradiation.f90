@@ -10,7 +10,7 @@ module modradiation
 contains
 
   subroutine initradiation
-    use modglobal, only : ifnamopt, fname_options, ib, ie, jb, je, kb, ke, nsv, lmoist, ltempeq
+    use modglobal, only : ifnamopt, fname_options, ib, ie, jb, je, kb, ke
     use modmpi,    only : myid, comm3d, mpierr, my_real, mpi_logical, mpi_integer, mpi_character
     implicit none
     integer :: ierr
@@ -38,42 +38,63 @@ contains
     call MPI_BCAST(dlwtop,      1, MY_REAL,     0, comm3d, mpierr)
     call MPI_BCAST(dlwbot,      1, MY_REAL,     0, comm3d, mpierr)
 
+    rad_absorber = adjustl(rad_absorber)
+
     allocate(thlprad(ib:ie,jb:je,kb:ke)); thlprad = 0.
     allocate(lwd(ib:ie,jb:je,kb:ke+1));   lwd = 0.
     allocate(lwu(ib:ie,jb:je,kb:ke+1));   lwu = 0.
-    if (iradiation == irad_none) return
+    if (iradiation == irad_none) then
+      if (myid == 0 .and. (rka /= 0. .or. dlwtop /= 0. .or. dlwbot /= 0. .or. rad_absorber_sv /= 0 &
+                           .or. trim(rad_absorber) /= 'ql')) &
+        write(0, '(a)') 'WARNING: &NAMRADIATION settings ignored: iradiation = 0'
+      return
+    end if
+    call check_radiation_options
+  end subroutine initradiation
+
+  !> Configuration checks for iradiation /= 0 (all ranks; rank 0 reports).
+  subroutine check_radiation_options
+    use modglobal, only : nsv, lmoist, ltempeq
+    use modmpi,    only : myid
+    implicit none
+    character(160) :: msg
 
     if (iradiation /= irad_par) then
-      write(0, *) 'ERROR: iradiation must be 0 (none) or 2 (parametrised); got ', iradiation
-      stop 1
+      write(msg, '(a,i0)') 'iradiation must be 0 (none) or 2 (parametrised); got ', iradiation
+      call fail(msg)
     end if
-    if (rad_shortw) then
-      write(0, *) 'ERROR: rad_shortw is not supported in uDALES'
-      stop 1
+    if (rad_shortw) call fail('rad_shortw is not supported in uDALES')
+    if (.not. ltempeq) call fail('iradiation = 2 requires ltempeq = .true.')
+    if (rka <= 0. .or. (dlwtop <= 0. .and. dlwbot <= 0.)) then
+      write(msg, '(a,3es12.4)') '&NAMRADIATION: iradiation = 2 requires rka > 0 and dlwtop > 0 or dlwbot > 0'// &
+                                ' (no defaults); got rka, dlwtop, dlwbot =', rka, dlwtop, dlwbot
+      call fail(msg)
     end if
-    if (.not. ltempeq) then
-      write(0, *) 'ERROR: iradiation = 2 requires ltempeq = .true.'
-      stop 1
-    end if
-    select case (rad_absorber)
+    select case (trim(rad_absorber))
     case ('ql')
-      if (.not. lmoist) then
-        write(0, *) "ERROR: rad_absorber = 'ql' (liquid water) requires lmoist = .true."
-        stop 1
-      end if
+      if (.not. lmoist) call fail("rad_absorber = 'ql' (liquid water) requires lmoist = .true.")
+      if (rad_absorber_sv /= 0) call fail("rad_absorber_sv is set but rad_absorber = 'ql'; set rad_absorber = 'sv'")
     case ('sv')
       if (rad_absorber_sv < 1 .or. rad_absorber_sv > nsv) then
-        write(0, *) "ERROR: rad_absorber = 'sv' requires 1 <= rad_absorber_sv <= nsv; got ", rad_absorber_sv
-        stop 1
+        write(msg, '(a,i0)') "rad_absorber = 'sv' requires 1 <= rad_absorber_sv <= nsv; got ", rad_absorber_sv
+        call fail(msg)
       end if
     case default
-      write(0, *) "ERROR: rad_absorber must be 'ql' or 'sv'; got '", rad_absorber, "'"
-      stop 1
+      call fail("rad_absorber must be 'ql' or 'sv'; got '" // trim(rad_absorber) // "'")
     end select
     if (rad_ls .and. myid == 0) then
       write(0, *) 'WARNING: rad_ls ignored; the thlpcar column of lscale.inp is always applied in forces'
     end if
-  end subroutine initradiation
+  end subroutine check_radiation_options
+
+  !> Abort on all ranks with one message from rank 0.
+  subroutine fail(msg)
+    use modmpi, only : myid, abort_all_ranks
+    implicit none
+    character(*), intent(in) :: msg
+    if (myid == 0) write(0, '(2a)') 'ERROR: ', trim(msg)
+    call abort_all_ranks(1)
+  end subroutine fail
 
   !> Recompute thlprad at the first RK substep when due (generic radpar, then the
   !> case hooks); add it to thlp every substep.
@@ -102,7 +123,7 @@ contains
 
     do j = jb, je
       do i = ib, ie
-        if (rad_absorber == 'sv') then
+        if (trim(rad_absorber) == 'sv') then
           absorber = sv0(i,j,kb:ke,rad_absorber_sv) * IIc(i,j,kb:ke)
         else
           absorber = ql0(i,j,kb:ke) * IIc(i,j,kb:ke)

@@ -9,10 +9,10 @@ module modraddata
   logical :: rad_longw  = .true.          !< longwave on
   logical :: rad_shortw = .false.         !< not supported: aborts
   logical :: rad_ls     = .false.         !< DALES compatibility only (thlpcar is applied in forces)
-  character(2) :: rad_absorber = 'ql'     !< absorber: 'ql' (liquid water) or 'sv' (scalar rad_absorber_sv)
+  character(16) :: rad_absorber = 'ql'    !< absorber: 'ql' (liquid water) or 'sv' (scalar rad_absorber_sv)
   integer :: rad_absorber_sv = 0          !< scalar index of the absorber if rad_absorber = 'sv'; required
-  real    :: rka        = 130.            !< extinction coefficient kappa [m2/kg]
-  real    :: dlwtop     = 74.             !< F0 [W/m2]
+  real    :: rka        = 0.              !< extinction coefficient kappa [m2/kg]; required (> 0)
+  real    :: dlwtop     = 0.              !< F0 [W/m2]; dlwtop or dlwbot required (> 0)
   real    :: dlwbot     = 0.              !< F1 [W/m2]
   real    :: tnextrad = 0.
   real, allocatable :: thlprad(:,:,:)     !< radiative thl tendency [K/s] (ib:ie,jb:je,kb:ke)

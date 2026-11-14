@@ -34,11 +34,11 @@ Averaging windows
   of zi over FIT_WINDOWS (--fit0/--fit1).
 
 Variable names
-  uDALES thermostat_t: time, lwp_bar, cfrac, zi, zi_qt8, zi_sv, ustar, ...
+  uDALES thermostat_t: time, lwp_bar, cfrac, zi, zi_qt, zi_sv, ustar, ...
   uDALES thermostat_z: time, thl, qt, ql (zt); wthl, wqt (zm)
   DALES tmser.001.nc:  time, lwp_bar, cfrac, zi, ustar, we, ...
   DALES profiles.001.nc: time, zt, zm, thl, qt, ql (zt); wtlr (resolved w'thl'), wqtr (zm)
-Definitions of zi differ: uDALES zi is the height of the maximum dthl/dz (zi_qt8 and
+Definitions of zi differ: uDALES zi is the height of the maximum dthl/dz (zi_qt and
 zi_sv are threshold heights); DALES tmser zi is its own diagnostic, so compare
 trends rather than absolute values.
 """
@@ -65,7 +65,7 @@ CASE_NAMES = {"301": "BOMEX", "302": "smoke", "303": "DYCOMS-II RF01"}
 PUBLISHED: dict[tuple[str, str], tuple[float, float, float, float, str]] = {}
 WINDOWS = {"301": (3.0, 6.0), "302": (2.0, 3.0), "303": (3.0, 4.0)}      # hours
 FIT_WINDOWS = {"302": (1.0, 3.0), "303": (1.0, 4.0)}                      # hours
-ZI_VAR = {"302": ("zi_sv", 0.0), "303": ("zi_qt8", 3.75e-6)}           # (variable, D [1/s])
+ZI_VAR = {"302": ("zi_sv", 0.0), "303": ("zi_qt", 3.75e-6)}           # (variable, D [1/s])
 TS_VARS = [("lwp_bar", "LWP [g/m$^2$]", 1e3), ("cfrac", "cloud cover [-]", 1.0),
            ("zi", "zi [m]", 1.0), ("ustar", "u* [m/s]", 1.0)]
 PROF_VARS = [("thl", "thl", "zt", 1.0, "K"), ("qt", "qt", "zt", 1e3, "g/kg"),

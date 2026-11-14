@@ -11,9 +11,10 @@ module modthermostat
   real    :: tthermostat = 60.    !< output interval [s]
   real    :: tnext = 0.
   integer :: ncidt, ncidz, nrect = 0, nrecz = 0
+  real    :: zi_qt_thres = 0.      !< zi_qt: qt threshold [kg/kg]; 0 = off
   integer :: zi_sv_index = 0       !< scalar for the zi_sv diagnostic; 0 = off
   real    :: zi_sv_thres = 0.      !< zi_sv: threshold of scalar zi_sv_index; required (> 0) if on
-  integer, parameter :: nvtmax = 13, nvz = 11, ivt_zi_sv = 5
+  integer, parameter :: nvtmax = 13, nvz = 11, ivt_zi_qt = 4, ivt_zi_sv = 5
   integer :: nvt = 0               !< number of time series written
   integer :: ivt(nvtmax)           !< indices into vt/nct of the time series written
   character(80) :: fnamet = 'thermostat_t.xxx.nc', fnamez = 'thermostat_z.xxx.nc'
@@ -22,12 +23,12 @@ module modthermostat
 contains
 
   subroutine initthermostat
-    use modglobal, only : ifnamopt, fname_options, cexpnr, kb, ke, timee, nsv
+    use modglobal, only : ifnamopt, fname_options, cexpnr, kb, ke, timee
     use modmpi,    only : myid, comm3d, mpierr, my_real, mpi_logical, mpi_integer
     use modstat_nc, only : ncinfo, open_nc, define_nc, writestat_dims_nc
     implicit none
     integer :: ierr, n
-    namelist/NAMTHERMOSTAT/ lthermostat, tthermostat, zi_sv_index, zi_sv_thres
+    namelist/NAMTHERMOSTAT/ lthermostat, tthermostat, zi_qt_thres, zi_sv_index, zi_sv_thres
 
     if (myid == 0) then
       open(ifnamopt, file=fname_options, status='old', iostat=ierr)
@@ -41,14 +42,11 @@ contains
     end if
     call MPI_BCAST(lthermostat, 1, MPI_LOGICAL, 0, comm3d, mpierr)
     call MPI_BCAST(tthermostat, 1, MY_REAL,     0, comm3d, mpierr)
+    call MPI_BCAST(zi_qt_thres, 1, MY_REAL,     0, comm3d, mpierr)
     call MPI_BCAST(zi_sv_index, 1, MPI_INTEGER, 0, comm3d, mpierr)
     call MPI_BCAST(zi_sv_thres, 1, MY_REAL,     0, comm3d, mpierr)
+    call check_thermostat_options
     if (.not. lthermostat) return
-    if (zi_sv_index /= 0 .and. (zi_sv_index < 1 .or. zi_sv_index > nsv .or. zi_sv_thres <= 0.)) then
-      write(0, *) 'ERROR: zi_sv_index > 0 requires zi_sv_index <= nsv and zi_sv_thres > 0; got ', &
-                  zi_sv_index, zi_sv_thres
-      stop 1
-    end if
 
     tnext = timee + tthermostat      ! timee is set by readinitfiles (restart time) before this
     fnamet(14:16) = cexpnr
@@ -58,7 +56,7 @@ contains
     call ncinfo(nct( 1,:), 'lwp_bar',  'Liquid water path',             'kg/m^2', 'time')
     call ncinfo(nct( 2,:), 'cfrac',    'Cloud cover',                   '-',      'time')
     call ncinfo(nct( 3,:), 'zi',       'BL height (max dthl/dz)',       'm',      'time')
-    call ncinfo(nct( 4,:), 'zi_qt8',   'BL height (qt = 8 g/kg)',       'm',      'time')
+    call ncinfo(nct( 4,:), 'zi_qt',    'BL height (qt = zi_qt_thres)',  'm',      'time')
     call ncinfo(nct( 5,:), 'zi_sv',    'BL height (scalar zi_sv_index = zi_sv_thres)', 'm', 'time')
     call ncinfo(nct( 6,:), 'wmax',     'Maximum vertical velocity',     'm/s',    'time')
     call ncinfo(nct( 7,:), 'qlmax',    'Maximum liquid water',          'kg/kg',  'time')
@@ -70,6 +68,7 @@ contains
     call ncinfo(nct(13,:), 'v1',       'Slab-mean v at first level',    'm/s',    'time')
     nvt = 0
     do n = 1, nvtmax
+      if (n == ivt_zi_qt .and. zi_qt_thres == 0.) cycle   ! zi_qt only when configured
       if (n == ivt_zi_sv .and. zi_sv_index == 0) cycle    ! zi_sv only when configured
       nvt = nvt + 1
       ivt(nvt) = n
@@ -99,8 +98,7 @@ contains
   end subroutine initthermostat
 
   subroutine thermostat
-    use modglobal,  only : ib, ie, jb, je, kb, ke, timee, rk3step, zf, zh, dzf, dzh, &
-                           lmoist
+    use modglobal,  only : ib, ie, jb, je, kb, ke, timee, rk3step, zf, zh, dzf, dzh
     use modfields,  only : thl0, qt0, ql0, w0, sv0, rhof, exnf, IIc, IIcs, IIw, IIws, u0av, v0av
     use modsurfdata, only : thls, qts
     use modraddata, only : thlprad, lwu, lwd, iradiation, irad_none
@@ -140,7 +138,7 @@ contains
           end if
         end do
         loc(3) = loc(3) + zh(kmx)
-        if (lmoist) loc(4) = loc(4) + crossing(qt0(i,j,kb:ke), IIc(i,j,kb:ke), 8.e-3)
+        if (zi_qt_thres > 0.) loc(4) = loc(4) + crossing(qt0(i,j,kb:ke), IIc(i,j,kb:ke), zi_qt_thres)
         if (zi_sv_index > 0) loc(5) = loc(5) + crossing(sv0(i,j,kb:ke,zi_sv_index), IIc(i,j,kb:ke), zi_sv_thres)
       end do
     end do
@@ -217,6 +215,28 @@ contains
     end function crossing
 
   end subroutine thermostat
+
+  !> Abort on settings that cannot be meaningful; warn (rank 0) on settings that are inactive.
+  subroutine check_thermostat_options
+    use modglobal, only : nsv, lmoist
+    use modmpi,    only : myid, abort_all_ranks
+    implicit none
+    if (zi_qt_thres < 0. .or. (zi_qt_thres > 0. .and. .not. lmoist)) then
+      if (myid == 0) write(0, '(a,es12.4)') 'ERROR: &NAMTHERMOSTAT zi_qt_thres must be >= 0, and > 0 requires lmoist; got ', &
+                                 zi_qt_thres
+      call abort_all_ranks(1)
+    end if
+    if (zi_sv_index < 0 .or. zi_sv_index > nsv .or. (zi_sv_index > 0 .and. zi_sv_thres <= 0.)) then
+      if (myid == 0) write(0, '(2a,i0,es12.4)') 'ERROR: &NAMTHERMOSTAT zi_sv_index > 0 requires zi_sv_index <= nsv ', &
+                                 'and zi_sv_thres > 0; got ', zi_sv_index, zi_sv_thres
+      call abort_all_ranks(1)
+    end if
+    if (myid /= 0) return
+    if (zi_sv_index == 0 .and. zi_sv_thres /= 0.) &
+      write(0, '(a)') 'WARNING: &NAMTHERMOSTAT zi_sv_thres ignored: zi_sv_index = 0'
+    if (.not. lthermostat .and. (zi_qt_thres /= 0. .or. zi_sv_index /= 0)) &
+      write(0, '(a)') 'WARNING: &NAMTHERMOSTAT zi_qt_thres/zi_sv_index ignored: lthermostat = .false.'
+  end subroutine check_thermostat_options
 
   subroutine exitthermostat
     use modmpi, only : myid

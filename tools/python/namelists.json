@@ -134,8 +134,8 @@
       "case_hooks"
     ],
     "NAMCASE_DYCOMS": [
-      "d",
-      "qt_thres"
+      "dycoms_d",
+      "dycoms_qt_thres"
     ],
     "NAMCHECKSIM": [
       "tcheck"
@@ -184,6 +184,7 @@
     "NAMTHERMOSTAT": [
       "lthermostat",
       "tthermostat",
+      "zi_qt_thres",
       "zi_sv_index",
       "zi_sv_thres"
     ],
@@ -362,7 +363,6 @@
     "cn": "NAMSUBGRID",
     "courant": "RUN",
     "cs": "NAMSUBGRID",
-    "d": "NAMCASE_DYCOMS",
     "dec": "TREES",
     "di": "INLET",
     "diffnr": "RUN",
@@ -379,6 +379,8 @@
     "dti": "INLET",
     "dtin": "INFO",
     "dtmax": "RUN",
+    "dycoms_d": "NAMCASE_DYCOMS",
+    "dycoms_qt_thres": "NAMCASE_DYCOMS",
     "epu": "PURIFS",
     "fieldvars": "OUTPUT",
     "fkar": "WALLS",
@@ -530,7 +532,6 @@
     "qh_dot_hp": "HEATPUMP",
     "qpu": "PURIFS",
     "qstar": "TREES",
-    "qt_thres": "NAMCASE_DYCOMS",
     "qt_top": "BC",
     "qts": "BC",
     "r_s": "TREES",
@@ -588,6 +589,7 @@
     "ylen": "DOMAIN",
     "z0": "BC",
     "z0h": "BC",
+    "zi_qt_thres": "NAMTHERMOSTAT",
     "zi_sv_index": "NAMTHERMOSTAT",
     "zi_sv_thres": "NAMTHERMOSTAT"
   }

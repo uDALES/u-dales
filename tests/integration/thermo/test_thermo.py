@@ -198,7 +198,7 @@ class TestThermostat(_SolverTest):
         qt = qt - np.where(zf <= 840.0, 1.0e-7 * zf / 20.0, 0.0)
         d = tc.write_case(self.tmp / "stat", thl=thl, qt=qt, groups={
             "RUN": {"runtime": "2.5"},
-            "NAMTHERMOSTAT": {"lthermostat": ".true.", "tthermostat": "1."}})
+            "NAMTHERMOSTAT": {"lthermostat": ".true.", "tthermostat": "1.", "zi_qt_thres": "8.e-3"}})
         self.run_ok(d)
         with Dataset(d / "thermostat_t.310.nc") as t, Dataset(d / "thermostat_z.310.nc") as z:
             self.assertGreaterEqual(len(t["time"]), 2)
@@ -209,7 +209,7 @@ class TestThermostat(_SolverTest):
             self.assertAlmostEqual(float(t["lwp_bar"][-1]), lwp_np, delta=1e-6 * max(lwp_np, 1e-12))
             self.assertGreater(lwp_np, 0.0)             # RF01 mixed layer is saturated aloft
             self.assertEqual(float(t["cfrac"][-1]), 1.0)
-            self.assertAlmostEqual(float(t["zi_qt8"][-1]), 840.0, delta=20.0)
+            self.assertAlmostEqual(float(t["zi_qt"][-1]), 840.0, delta=20.0)
             self.assertAlmostEqual(float(t["zi"][-1]), 840.0, delta=20.0)
             # placeholder until the radiation task (Task 5) fills them
             for name in ("thlprad", "lwu", "lwd"):
@@ -223,7 +223,7 @@ class TestThermostat(_SolverTest):
         self.run_ok(d)
         with Dataset(d / "thermostat_t.310.nc") as t:
             self.assertGreaterEqual(len(t["time"]), 1)
-            self.assertEqual(float(t["zi_qt8"][-1]), 0.0)
+            self.assertNotIn("zi_qt", t.variables)      # zi_qt_thres not set
             self.assertEqual(float(t["lwp_bar"][-1]), 0.0)
 
     def _ql_record(self):
@@ -335,12 +335,12 @@ class TestRadiation(_SolverTest):
         d, _ = self._smoke_run("zi_sv_off")
         with Dataset(d / "thermostat_t.310.nc") as t:
             self.assertNotIn("zi_sv", t.variables)
-            self.assertIn("zi_qt8", t.variables)
+            self.assertNotIn("zi_qt", t.variables)
 
     # --- DYCOMS free-troposphere term (case hook dycoms_rf01)
     D = 3.75e-6
     DYCOMS = {"NAMCASES": {"case_hooks": "'dycoms_rf01'"},
-              "NAMCASE_DYCOMS": {"D": str(D), "qt_thres": "8.e-3"}}
+              "NAMCASE_DYCOMS": {"dycoms_D": str(D), "dycoms_qt_thres": "8.e-3"}}
 
     @staticmethod
     def _ft_flux(z, zi, D):
@@ -435,7 +435,7 @@ class TestCaseHooks(_SolverTest):
     def test_dycoms_without_parameters_aborts(self):
         self._abort("hook_noparams", {"NAMRADIATION": self.RAD,
                                       "NAMCASES": {"case_hooks": "'dycoms_rf01'"}},
-                    "requires D > 0 and qt_thres > 0")
+                    "requires dycoms_D > 0 and dycoms_qt_thres > 0")
 
     def test_dycoms_without_radiation_aborts(self):
         self._abort("hook_norad", dict(TestRadiation.DYCOMS), "requires iradiation = 2")
@@ -444,6 +444,52 @@ class TestCaseHooks(_SolverTest):
         self._abort("abs_noidx", {"NAMRADIATION": dict(self.RAD, rad_absorber="'sv'"),
                                   "SCALARS": {"nsv": "1"}},
                     "requires 1 <= rad_absorber_sv <= nsv", sv=np.ones((64, 1)))
+
+    def test_dycoms_moist_to_top_column_is_skipped(self):
+        # qt above the threshold up to the top level: no inversion inside the domain, so
+        # no extrapolation; the column gets no FT term and init warns.
+        zf = (np.arange(64) + 0.5) * 20.0
+        d = tc.write_case(self.tmp / "hook_moisttop", thl=tc.rf01_profiles(zf)[0], qt=np.full(64, 9.0e-3),
+                          groups=dict(TestRadiation.DYCOMS, NAMRADIATION=self.RAD,
+                                      NAMTHERMOSTAT={"lthermostat": ".true.", "tthermostat": "0.5"}))
+        res = self.run_ok(d)
+        self.assertIn("the free-troposphere term is off", res.stdout + res.stderr)
+
+    def test_duplicate_hook_aborts(self):
+        groups = dict(TestRadiation.DYCOMS, NAMRADIATION=self.RAD)
+        groups["NAMCASES"] = {"case_hooks": "'dycoms_rf01, dycoms_rf01'"}
+        self._abort("hook_dup", groups,
+                    "case hook listed twice in case_hooks: dycoms_rf01")
+
+    def test_radiation_without_optics_aborts(self):
+        self._abort("rad_noopt", {"NAMRADIATION": {"iradiation": "2"}},
+                    "&NAMRADIATION: iradiation = 2 requires rka > 0 and dlwtop > 0 or dlwbot > 0")
+
+    def test_invalid_absorber_aborts(self):
+        # strict on the whole value: 'qlx' must not be read as 'ql'
+        self._abort("abs_bad", {"NAMRADIATION": dict(self.RAD, rad_absorber="'qlx'")},
+                    "rad_absorber must be 'ql' or 'sv'; got 'qlx'")
+
+    def test_sv_absorber_index_above_nsv_aborts(self):
+        self._abort("abs_big", {"NAMRADIATION": dict(self.RAD, rad_absorber="'sv'", rad_absorber_sv="2"),
+                                "SCALARS": {"nsv": "1"}},
+                    "requires 1 <= rad_absorber_sv <= nsv; got 2", sv=np.ones((64, 1)))
+
+    def test_sv_index_with_ql_absorber_aborts(self):
+        self._abort("abs_qlidx", {"NAMRADIATION": dict(self.RAD, rad_absorber_sv="1"),
+                                  "SCALARS": {"nsv": "1"}},
+                    "rad_absorber_sv is set but rad_absorber = 'ql'", sv=np.ones((64, 1)))
+
+    def test_zi_sv_index_above_nsv_aborts(self):
+        self._abort("zisv_big", {"SCALARS": {"nsv": "1"},
+                                 "NAMTHERMOSTAT": {"lthermostat": ".true.", "zi_sv_index": "2",
+                                                   "zi_sv_thres": "0.5"}},
+                    "zi_sv_index > 0 requires", sv=np.ones((64, 1)))
+
+    def test_zi_qt_without_moisture_aborts(self):
+        self._abort("ziqt_dry", {"PHYSICS": {"lmoist": ".false."}, "BC": {"qts": "-1."},
+                                 "NAMTHERMOSTAT": {"lthermostat": ".true.", "zi_qt_thres": "8.e-3"}},
+                    "zi_qt_thres must be >= 0, and > 0 requires lmoist")
 
     def test_zi_sv_without_threshold_aborts(self):
         self._abort("zisv_nothres", {"SCALARS": {"nsv": "1"},

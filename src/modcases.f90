@@ -4,15 +4,19 @@
 !>
 !! The namelist &NAMCASES lists the hooks to switch on, `case_hooks = 'a,b'`.
 !! Each name maps (select case in register_case) to a register_<name> routine
-!! that stores the case's procedures in a hook set. The core modules call the
-!! call_hooks_* routines at fixed points; without hooks they do nothing.
+!! that reads and checks the case's namelist and stores the case's procedures
+!! in a hook set. The core modules call the call_hooks_* routines at fixed
+!! points; without hooks they do nothing. Hooks run in case_hooks order.
 !!
 !! Hook points:
-!! - init      once after startup, cold and warm start (namelists of the case, checks)
-!! - radiation in modradiation:radiation, after the generic radpar tendency and
-!!             before thlprad is added to thlp; may add to thlprad
-!! - forcing   in the time loop after lstend; may add to the tendencies
-!! - stats     in the time loop after thermostat; for case-specific diagnostics
+!! - init      once after startup (after readinitfiles: cold and warm start);
+!!             checks that need the initial fields
+!! - radiation in modradiation:radiation at each radiation update (rk3step 1,
+!!             every timerad), after the generic radpar tendency and before
+!!             thlprad is added to thlp; may add to thlprad (held until the next update)
+!! - forcing   in the time loop after lstend, every RK substep; may add to the tendencies
+!! - stats     in the time loop after thermostat, every RK substep; a stats hook
+!!             gates itself on rk3step == 3 and its own output time
 !!
 !! See docs/udales-case-hooks.md for how to add a case.
 !
@@ -84,6 +88,18 @@ contains
     call register_list(case_hooks)
   end subroutine initcases
 
+  !> Abort on all ranks with one message (two lines) from rank 0.
+  subroutine fail(msg1, msg2)
+    use modmpi, only : myid, abort_all_ranks
+    implicit none
+    character(*), intent(in) :: msg1, msg2
+    if (myid == 0) then
+      write(0, '(2a)') 'ERROR: ', msg1
+      if (len(msg2) > 0) write(0, '(a)') msg2
+    end if
+    call abort_all_ranks(1)
+  end subroutine fail
+
   !> Split a comma-separated list and register each non-empty name.
   subroutine register_list(list)
     implicit none
@@ -110,32 +126,25 @@ contains
     integer :: n
 
     do n = 1, nhooks
-      if (trim(hooks(n)%name) == name) then
-        write(0, *) 'ERROR: case hook listed twice in case_hooks: ', name
-        stop 1
-      end if
+      if (trim(hooks(n)%name) == name) call fail('case hook listed twice in case_hooks: ' // name, '')
     end do
-    if (nhooks == max_hooks) then
-      write(0, *) 'ERROR: more than ', max_hooks, ' case hooks in case_hooks'
-      stop 1
-    end if
+    if (nhooks == max_hooks) call fail('too many case hooks in case_hooks', '')
     nhooks = nhooks + 1
     hooks(nhooks)%name = name
     select case (name)
     case ('dycoms_rf01')
       call register_dycoms_rf01(hooks(nhooks))
     case default
-      write(0, *) 'ERROR: unknown case hook in case_hooks: ', name
-      write(0, *) 'Valid case hooks: ', valid_names
-      stop 1
+      call fail('unknown case hook in case_hooks: ' // name, 'Valid case hooks: ' // valid_names)
     end select
   end subroutine register_case
 
   !> DYCOMS-II RF01 free-troposphere radiative term (src/cases/case_dycoms_rf01.f90).
   subroutine register_dycoms_rf01(h)
-    use case_dycoms_rf01, only : dycoms_rf01_init, dycoms_rf01_radiation
+    use case_dycoms_rf01, only : dycoms_rf01_config, dycoms_rf01_init, dycoms_rf01_radiation
     implicit none
     type(hook_set), intent(inout) :: h
+    call dycoms_rf01_config          ! read and check &NAMCASE_DYCOMS now, before the rest of startup
     h%init      => dycoms_rf01_init
     h%radiation => dycoms_rf01_radiation
   end subroutine register_dycoms_rf01

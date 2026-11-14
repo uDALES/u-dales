@@ -1,7 +1,8 @@
 !> \file case_dycoms_rf01.f90
 !! DYCOMS-II RF01 case hook: the free-troposphere term of the Stevens et al.
 !! (2005) radiation, added to the generic radpar tendency. Switched on with
-!! `case_hooks = 'dycoms_rf01'` in &NAMCASES; parameters in &NAMCASE_DYCOMS.
+!! `case_hooks = 'dycoms_rf01'` in &NAMCASES; parameters dycoms_D and
+!! dycoms_qt_thres in &NAMCASE_DYCOMS.
 !>
 !! Ported from the rad_user of DALES dev 075ac4e cases/dycoms_rf02/moduser.f90,
 !! with the changes listed at dycoms_rf01_radiation.
@@ -26,22 +27,23 @@
 module case_dycoms_rf01
   implicit none
   private
-  public :: dycoms_rf01_init, dycoms_rf01_radiation
+  public :: dycoms_rf01_config, dycoms_rf01_init, dycoms_rf01_radiation
   save
 
-  real :: D        = 0.   !< large-scale divergence [1/s] (RF01: 3.75e-6)
-  real :: qt_thres = 0.   !< qt defining the local inversion height [kg/kg] (RF01: 8e-3)
+  ! Case-prefixed names: tools/python/namelists.json maps variable names to groups globally.
+  real :: dycoms_D        = 0.   !< large-scale divergence [1/s] (RF01: 3.75e-6); required
+  real :: dycoms_qt_thres = 0.   !< qt defining the local inversion height [kg/kg] (RF01: 8e-3); required
 
 contains
 
-  !> Read &NAMCASE_DYCOMS and check that the case can run.
-  subroutine dycoms_rf01_init
+  !> Read &NAMCASE_DYCOMS and check that the case can run (at registration, all ranks).
+  subroutine dycoms_rf01_config
     use modglobal,  only : ifnamopt, fname_options, lmoist
     use modraddata, only : iradiation, irad_par
     use modmpi,     only : myid, comm3d, mpierr, my_real
     implicit none
     integer :: ierr
-    namelist/NAMCASE_DYCOMS/ D, qt_thres
+    namelist/NAMCASE_DYCOMS/ dycoms_D, dycoms_qt_thres
 
     if (myid == 0) then
       open(ifnamopt, file=fname_options, status='old', iostat=ierr)
@@ -53,26 +55,46 @@ contains
       end if
       close(ifnamopt)
     end if
-    call MPI_BCAST(D,        1, MY_REAL, 0, comm3d, mpierr)
-    call MPI_BCAST(qt_thres, 1, MY_REAL, 0, comm3d, mpierr)
+    call MPI_BCAST(dycoms_D,        1, MY_REAL, 0, comm3d, mpierr)
+    call MPI_BCAST(dycoms_qt_thres, 1, MY_REAL, 0, comm3d, mpierr)
 
-    if (D <= 0. .or. qt_thres <= 0.) then
-      write(0, *) 'ERROR: case hook dycoms_rf01 requires D > 0 and qt_thres > 0 in &NAMCASE_DYCOMS'
-      stop 1
-    end if
-    if (.not. lmoist) then
-      write(0, *) 'ERROR: case hook dycoms_rf01 requires lmoist = .true.'
-      stop 1
-    end if
-    if (iradiation /= irad_par) then
-      write(0, *) 'ERROR: case hook dycoms_rf01 requires iradiation = 2'
-      stop 1
-    end if
+    if (dycoms_D <= 0. .or. dycoms_qt_thres <= 0.) &
+      call fail('case hook dycoms_rf01 requires dycoms_D > 0 and dycoms_qt_thres > 0 in &NAMCASE_DYCOMS')
+    if (.not. lmoist) call fail('case hook dycoms_rf01 requires lmoist = .true.')
+    if (iradiation /= irad_par) call fail('case hook dycoms_rf01 requires iradiation = 2')
+  end subroutine dycoms_rf01_config
+
+  !> Warn (rank 0) if no column of the initial state has an inversion, i.e. the term is off.
+  subroutine dycoms_rf01_init
+    use modglobal, only : ib, ie, jb, je, kb, ke
+    use modfields, only : qt0
+    use modmpi,    only : myid, comm3d, mpierr, mpi_integer, mpi_max
+    implicit none
+    integer :: i, j, nloc, nglob
+
+    nloc = 0
+    do j = jb, je
+      do i = ib, ie
+        if (local_zi(qt0(i,j,kb:ke)) > 0.) nloc = 1
+      end do
+    end do
+    call MPI_ALLREDUCE(nloc, nglob, 1, MPI_INTEGER, MPI_MAX, comm3d, mpierr)
+    if (myid == 0 .and. nglob == 0) write(0, '(2a)') 'WARNING: case hook dycoms_rf01: no column of the ', &
+      'initial qt crosses dycoms_qt_thres below the top level; the free-troposphere term is off'
   end subroutine dycoms_rf01_init
+
+  !> Abort on all ranks with one message from rank 0.
+  subroutine fail(msg)
+    use modmpi, only : myid, abort_all_ranks
+    implicit none
+    character(*), intent(in) :: msg
+    if (myid == 0) write(0, '(2a)') 'ERROR: ', msg
+    call abort_all_ranks(1)
+  end subroutine fail
 
   !> Add the free-troposphere term to thlprad, column by column.
   !!
-  !! Flux form: F(z) = rho_i cp D alpha_z [(z-zi)^(4/3)/4 + zi (z-zi)^(1/3)] for
+  !! Flux form (D = dycoms_D): F(z) = rho_i cp D alpha_z [(z-zi)^(4/3)/4 + zi (z-zi)^(1/3)] for
   !! z > zi, 0 below, and thlprad(k) -= (F(zh(k+1)) - F(zh(k))) / (rho_i cp dzf(k)),
   !! i.e. the divergence of the analytic flux between the cell faces. The pointwise
   !! derivative used before, -(D/3)[(z-zi)^(1/3) + zi (z-zi)^(-2/3)], is singular
@@ -109,7 +131,11 @@ contains
     end do
   end subroutine dycoms_rf01_radiation
 
-  !> Local inversion height: highest crossing of qt_thres, linear between levels; -1 if none.
+  !> Local inversion height: highest downward crossing of dycoms_qt_thres, linear
+  !> between levels; -1 if none. A column with qt > dycoms_qt_thres at the top
+  !> level ke has no inversion inside the domain and is skipped (-1): no
+  !> extrapolation above ke. Otherwise qt(k+1) <= dycoms_qt_thres < qt(k), so the
+  !> interpolation never divides by zero.
   real function local_zi(qt)
     use modglobal, only : kb, ke, zf
     implicit none
@@ -117,9 +143,10 @@ contains
     integer :: k
 
     local_zi = -1.
+    if (qt(ke) > dycoms_qt_thres) return
     do k = ke - 1, kb, -1
-      if (qt(k) > qt_thres) then
-        local_zi = zf(k) + (qt_thres - qt(k)) * (zf(k+1) - zf(k)) / (qt(k+1) - qt(k))
+      if (qt(k) > dycoms_qt_thres) then
+        local_zi = zf(k) + (dycoms_qt_thres - qt(k)) * (zf(k+1) - zf(k)) / (qt(k+1) - qt(k))
         return
       end if
     end do
@@ -133,7 +160,7 @@ contains
     if (z <= zi) then
       ft_flux = 0.
     else
-      ft_flux = D * ((z - zi)**(4./3.) / 4. + zi * (z - zi)**(1./3.))
+      ft_flux = dycoms_D * ((z - zi)**(4./3.) / 4. + zi * (z - zi)**(1./3.))
     end if
   end function ft_flux
 

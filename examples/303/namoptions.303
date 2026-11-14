@@ -84,11 +84,12 @@ case_hooks   = 'dycoms_rf01'   ! free-troposphere radiation term (src/cases/case
 /
 
 &NAMCASE_DYCOMS
-D            = 3.75e-6      ! large-scale divergence [1/s]
-qt_thres     = 8.0e-3       ! qt defining the local inversion height [kg/kg]
+dycoms_D        = 3.75e-6   ! large-scale divergence [1/s]
+dycoms_qt_thres = 8.0e-3    ! qt defining the local inversion height [kg/kg]
 /
 
 &NAMTHERMOSTAT
 lthermostat  = .true.
 tthermostat  = 60.
+zi_qt_thres  = 8.e-3        ! zi_qt: BL height from the qt = 8 g/kg crossing
 /
