@@ -478,6 +478,7 @@ contains
        !mc      first guess is Tnr=tl
        !mc
        nitert = 0
+       niter  = 0   ! was read uninitialised (#400); diagnostic counter only
        do k=kb,ke+kh
           do j=jb,je
              do i=ib,ie

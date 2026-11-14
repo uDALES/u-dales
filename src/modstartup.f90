@@ -712,7 +712,7 @@ module modstartup
 
       use modsurfdata, only : ps, thls, qts, thvs, z0, z0h, wtsurf, wqsurf, ustin
       use modibm,      only : lbottom
-      use modglobal,   only : BCbotm_mo, BCbotm_mo_ustar, BCbotT, BCbotT_flux, itot,ktot,jtot,ylen,xlen,dtmax,runtime, &
+      use modglobal,   only : BCbotm_mo, BCbotm_mo_ustar, BCbotT, BCbotT_flux, BCbotq, BCbotq_flux, itot,ktot,jtot,ylen,xlen,dtmax,runtime, &
                               startfile,lwarmstart,lstratstart,lmoist, lbuoyancy, nsv, rv, rd, &
                               BCxm, BCxT, BCxq, BCxs, BCym, BCyT, BCyq, BCtopm, BCbotm, &
                               BCbotm_wfneutral, BCtopm_pressure, &
@@ -801,6 +801,10 @@ module modstartup
          end if
          if ((.not. ltempeq) .or. BCbotT /= BCbotT_flux .or. (z0 <= 0.) .or. (z0h <= 0.)) then
             if (myid == 0) write(0, *) 'ERROR: BCbotm = 4/5 requires ltempeq, BCbotT = 1 and z0, z0h > 0'
+            call abort_all_ranks(1)
+         end if
+         if (lmoist .and. BCbotq /= BCbotq_flux) then
+            if (myid == 0) write(0, *) 'ERROR: BCbotm = 4/5 with lmoist requires BCbotq = 1 (prescribed wqsurf)'
             call abort_all_ranks(1)
          end if
          if (wtsurf == -1. .or. (lmoist .and. wqsurf == -1.)) then

@@ -107,6 +107,15 @@ class TestMO(_SolverTest):
         cm = tc.FKAR ** 2 / (np.log(z1 / 2e-4) - tc.psim(z1 / L) + tc.psim(2e-4 / L)) ** 2
         self.assertAlmostEqual(ustar, np.sqrt(cm) * np.hypot(u1, v1), delta=0.02 * ustar)
 
+    def test_mo_with_moisture_requires_flux_bcbotq(self):
+        d = tc.write_case(self.tmp / "mo_bcbotq", u=7.0, v=-5.5, groups={
+            "RUN": {"runtime": "1."},
+            "BC": {"BCbotm": "4", "BCbotq": "2", "wtsurf": "-0.05", "wqsurf": "-5.0e-5",
+                   "z0": "2.e-4", "z0h": "2.e-4", "thls": "289.0", "qts": "9.0e-3"}})
+        res = tc.run(d)
+        self.assertNotEqual(res.returncode, 0)
+        self.assertIn("BCbotq", res.stdout + res.stderr)
+
     def test_prescribed_ustar(self):
         d = self._mo_case("mo5", 5, {"ustin": "0.28"})
         with Dataset(d / "thermostat_t.310.nc") as t:
@@ -614,8 +623,8 @@ class TestSGSHaloExchange(_SolverTest):
                 diff = np.abs(out[v] - ref[v]).max()
                 print(f"\n[sgshalo] {npx}x{npy}:{v} max abs diff={diff:.3e}")
                 with self.subTest(split=(npx, npy), var=v):
-                    # bit-identical with the fix; a missing e12 halo exchange gives ~1e-5 differences (floor: 1e-6 of max)
-                    np.testing.assert_allclose(out[v], ref[v], rtol=1e-5, atol=1e-6 * max(np.abs(ref[v]).max(), 1e-30))
+                    # bit-identical with the fix; a missing e12 halo exchange gives ~1e-5 differences
+                    np.testing.assert_array_equal(out[v], ref[v])
 
 
 class TestSGSOneEqn(_SolverTest):

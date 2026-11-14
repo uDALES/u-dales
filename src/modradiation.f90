@@ -45,15 +45,17 @@ contains
 
     rad_absorber = adjustl(rad_absorber)
 
-    allocate(thlprad(ib:ie,jb:je,kb:ke)); thlprad = 0.
-    allocate(lwd(ib:ie,jb:je,kb:ke+1));   lwd = 0.
-    allocate(lwu(ib:ie,jb:je,kb:ke+1));   lwu = 0.
     if (iradiation == irad_none) then
       if (myid == 0 .and. (rka /= 0. .or. dlwtop /= 0. .or. dlwbot /= 0. .or. rad_absorber_sv /= 0 &
                            .or. trim(rad_absorber) /= 'ql')) &
         write(0, '(a)') 'WARNING: &NAMRADIATION settings ignored: iradiation = 0'
       return
     end if
+    ! allocated only when the scheme is on: with iradiation = 0 nothing reads these arrays
+    ! (radiation and thermostat are guarded by iradiation; exitradiation tests allocated)
+    allocate(thlprad(ib:ie,jb:je,kb:ke)); thlprad = 0.
+    allocate(lwd(ib:ie,jb:je,kb:ke+1));   lwd = 0.
+    allocate(lwu(ib:ie,jb:je,kb:ke+1));   lwu = 0.
     call check_radiation_options
   end subroutine initradiation
 
