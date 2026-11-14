@@ -43,7 +43,9 @@ Surface.pyx, `RadiationDyCOMS_RF01` in Radiation.pyx).
 The adaptive settings were matched (Task 13) to the earlier, invalid DALES run `refruns/d303` and to uDALES with the
 e12 halo bug (#405, fixed in 674395fe). With the fix and the rebuilt DALES reference (Task 14, RESULTS.md) the uDALES
 step is 0.47-0.50 s against DALES 0.40-0.43 s (hourly means), so the adaptive pair is no longer matched; the
-close-match comparison uses the fixed step below. The earlier DALES run was limited by diffusion (`peclet = 0.15`, 32368 of 35236 steps), not by its Courant number (L2, 0.1-0.14 at `courant = 0.5`):
+close-match comparison uses the fixed step below. All DALES steps quoted here come from DALES runs without
+cloud-top longwave cooling (before the Task 19 fix, RESULTS.md) and have not been re-measured against the
+corrected DALES; the adaptive pair is secondary. The earlier DALES run was limited by diffusion (`peclet = 0.15`, 32368 of 35236 steps), not by its Courant number (L2, 0.1-0.14 at `courant = 0.5`):
 
 | window | DALES (invalid run) | uDALES `diffnr = 0.16` | uDALES `diffnr = 0.25` |
 |---|---|---|---|

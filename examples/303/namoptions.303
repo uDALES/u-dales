@@ -6,7 +6,7 @@ trestart     = 14400.
 ladaptive    = .true.       ! adaptive is the default; the DALES comparison uses the fixed-dt block below (RESULTS.md)
 dtmax        = 20.          ! DALES default; never reached
 courant      = 0.5          ! as the DALES RF01 reference run; not limiting (diffusion limits the step)
-diffnr       = 0.16         ! = DALES peclet 0.15 x 1.065 (uDALES sums 3 terms); with #405 fixed the step is 0.47-0.50 s vs DALES 0.40-0.43 s (RESULTS.md)
+diffnr       = 0.16         ! = DALES peclet 0.15 x 1.065 (uDALES sums 3 terms); with #405 fixed the step is 0.47-0.50 s vs DALES 0.40-0.43 s (pre-Task 19 DALES, not re-measured; README)
 ! Fixed time step (the DALES close-match comparison, RESULTS.md; DALES runs the same dt):
 ! ladaptive  = .false.      ! then dt = dtmax; courant and diffnr are ignored; runtime must be a multiple of dtmax
 ! dtmax      = 0.3          ! s; below both codes' adaptive dt (DALES hourly means 0.39-0.43 s); 60 s output = 200 steps

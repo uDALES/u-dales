@@ -98,8 +98,12 @@ Then apply `dales_inputs/dales-075ac4e-t19.patch` on top (Task 19):
   has this defect.
 - von Karman constant: DALES uses `fkar = 0.4`; uDALES used 0.41 until the thermo branch changed its default to
   0.40 (as DALES and PALM). The Task 19 comparison runs used a DALES build with `fkar = 0.41` in `modglobal.f90`
-  (a one-line edit, not part of this patch) so that both codes used 0.41; with 0.4 vs 0.41, DALES u* is about
-  2.5 % lower at the same wind. With uDALES at 0.40 no patch is needed.
+  (a one-line edit, not part of this patch) so that both codes used 0.41. The edit, `src/modglobal.f90` line 101 of
+  DALES dev 075ac4e:
+  `      real,parameter :: fkar     = 0.4              !<    *Von Karman constant` became
+  `      real,parameter :: fkar     = 0.41             !<    *Von Karman constant (t19 patch: uDALES value)`.
+  With 0.4 vs 0.41, DALES u* is about 2.5 % lower at the same wind. With uDALES at 0.40 no edit is needed.
+- No DALES upstream issue has been filed for the `iradiation = 10` reset, so this patch is still the only fix.
 Build as in the DALES README; with Intel 2021a on CX3, compile `modheterostats.f90` at `-O1` (ifort ICE).
 
 Do not set `krandumax > 0` with the default `krandumin = 1` in DALES: that perturbs w at k = 1 (the surface),

@@ -4,7 +4,9 @@
 
 **Verdict: very close.** With identical cd2 numerics and a fixed dt of 0.3 s, uDALES and DALES agree within the
 seed-to-seed spread for LWP, cloud cover, u*, zi_qt8 and the entrainment rate, and for all five profiles the rms
-difference is below the smaller rms spread (0.18-0.65). The one item above the strict bar is zi from the maximum
+difference is below the smaller rms spread (0.18-0.65). Level by level the bar is stricter: the fraction of levels
+with |diff| below both spreads is 42 % (thl), 72 % (qt), 36 % (ql), 62 % (w'thl'), 86 % (w'qt'). At 20-40 min the
+LWP and entrainment differences are about 7 times the (then very small) spread; see "Early times". The one item above the strict bar is zi from the maximum
 dthl/dz (0.8 m, a sixth of the 5 m grid spacing; DALES members 875.8, 875.8, 874.2 m against 874.2, 874.2, 875.0;
 ratio 1.7 with the smaller spread, 0.9 with the larger).
 
@@ -52,7 +54,8 @@ Hourly LWP [g/m2], ensemble mean (spread): uDALES 27.4 (0.2), 14.0 (0.4), 15.3 (
 14.7 (0.2), 15.2 (0.6), 16.2 (1.2).
 
 Early times (20-40 min, `t19/an/303s_fix`; the members barely differ yet, so the spreads are tiny): LWP 17.0 vs 15.8
-g/m2, we 9.6 vs 10.0 mm/s, zi_qt8 845.2 vs 845.9 m, u* 0.2716 vs 0.2717 m/s. With the old reference the same
+g/m2 (+7 %, ratio 7.1 with the smaller spread), we 9.6 vs 10.0 mm/s (-4 %, ratio 7.5), so above the bar at that
+time (it closes by 1 h, hourly LWP above); zi_qt8 845.2 vs 845.9 m, u* 0.2716 vs 0.2717 m/s. With the old reference the same
 window gave LWP 17.0 vs 22.0 and we 9.6 vs 5.9. A DALES run with the radiation hunk but kappa = 0.4 (seed 43,
 `t19/an/303s_rad`) gives the same entrainment and LWP as the full fix and the old 2 % u* deficit, so the radiation
 defect explains the entrainment/LWP gap and kappa the u* gap.
@@ -66,11 +69,14 @@ above. Kept for the record.
 ### Task 14 text (as written then)
 
 
-**Verdict: not close.** With identical cd2 numerics and a fixed dt of 0.3 s, both codes lose most of the cloud in
-the first hour (LWP 60 to 10-15 g/m2), so the earlier "no collapse" of uDALES (below) does not survive the SGS
-alignment. But uDALES keeps more cloud and entrains faster than DALES, far outside the seed spread: LWP 15.8 vs
-9.4 g/m2, cloud cover 0.81 vs 0.63, zi_qt8 859 vs 834 m, we 4.8 vs 2.6 mm/s, u* +2.3 %. Not diagnosed yet; hypotheses
-and next steps below. All uDALES numbers here include the e12 halo fix (issue #405, commit 674395fe; the Task 14
+**Caveat (Task 19):** every DALES run in this section, including the "standard numerics" run, had no cloud-top
+longwave cooling. Conclusions drawn here about DALES behaviour, cloud loss and the role of cd2 do not hold. With the
+corrected reference both codes keep LWP of about 16 g/m2 at 3-4 h with cd2 (Task 19 section above).
+
+**Verdict (then): not close.** With identical cd2 numerics and a fixed dt of 0.3 s, LWP falls from 60 to 10-15 g/m2
+in the first hour in both runs. But uDALES keeps more cloud and entrains faster than DALES, far outside the seed spread: LWP 15.8 vs
+9.4 g/m2, cloud cover 0.81 vs 0.63, zi_qt8 859 vs 834 m, we 4.8 vs 2.6 mm/s, u* +2.3 %. Diagnosed in Task 19 (see
+"Resolution" below). All uDALES numbers here include the e12 halo fix (issue #405, commit 674395fe; the Task 14
 binary `u-dales.c220463a+e12halo` is code-equivalent to 674395fe, see `examples/301/RESULTS.md`); c220463a has the bug
 (adaptive run shown for reference).
 
@@ -133,34 +139,26 @@ Hourly LWP [g/m2], ensemble mean (spread):
 | DALES standard numerics (iadv 5, cu 7, cv -5.5, anelastic ibas_prf 3), adaptive, seed 43 | 45.8 | 23.4 | 15.1 | 11.7 |
 
 Adaptive pair (secondary, seed 43): LWP 14.2 vs 8.7, cloud cover 0.79 vs 0.63, zi_qt8 857 vs 834 m, we 4.6 vs 2.6 mm/s,
-u* 0.247 vs 0.241: the same gap as at fixed dt. DALES with its standard numerics also ends with zi_qt8 837 m and we 3.0
-mm/s, so the low DALES entrainment is not a cd2 artefact.
+u* 0.247 vs 0.241: the same gap as at fixed dt. The DALES standard-numerics run (iadv 5, `t14/d303/std43`) used the
+same `iradiation = 10` inputs, so it also had no cloud-top cooling; the cd2 vs iadv 5 comparison has to be redone
+with the corrected DALES (a Task 15 / advection-PR item).
 
 ### The DALES RF01 reference
 
-The first DALES RF01 run (`refruns/d303`) was diagnosed: its constant `divmax = 2.44e-2` was the w noise at the
-surface level (`krandumax = 168` with the default `krandumin = 1`; divmax = rhobf(1) randu / dzf exactly), and DALES
-does have a sponge (`igrw_damp = 2` is the default). Neither causes its cloud collapse: with the noise moved off the
-surface (`t14/diag/kr2`), with the flux-form free-troposphere term (`t14/diag/ftnew`) and with the final inputs, DALES
-cd2 loses the cloud the same way (LWP about 12 g/m2 and cloud cover 0.87 at 1 h). DALES with its own standard numerics
-keeps more cloud for longer (31 g/m2 at 1 h, 12 at 4 h). The fixed DALES inputs are in
-`tools/python/examples/dales_cases/dales_inputs/rf01`.
+The first DALES RF01 run (`refruns/d303`) had a constant `divmax = 2.44e-2`: w noise at the surface level
+(`krandumax = 168` with the default `krandumin = 1`; divmax = rhobf(1) randu / dzf exactly). DALES also has a
+sponge (`igrw_damp = 2` is the default). Task 14 removed the surface noise and set the sponge explicitly. Its
+conclusion that "DALES cd2 loses the cloud" in every variant (`t14/diag/kr2`, `t14/diag/ftnew`, `t14/d303/*`) came
+from runs without cloud-top longwave cooling and is withdrawn. The fixed DALES inputs are in
+`tools/python/examples/dales_cases/dales_inputs/rf01` and need both DALES patches (t14 and t19).
 
-### Differences above the bar: hypotheses and next steps
+### Resolution (Task 19)
 
-1. **Entrainment, zi, LWP, cloud cover** (uDALES entrains about 1.9 times faster, stays better mixed and keeps more
-   cloud). The divergence starts in the first 20 min (LWP at 15 min: 38.8 vs 47.2 g/m2, both from about 63), when the
-   initial e12 = 1 m/s decays. At 4 h the uDALES slab-mean e12 is 10-25 % and ekm 20-50 % higher in the boundary layer
-   (restarts, seed 43). BOMEX, which agrees, does not exercise the stratocumulus-top regime (saturated buoyancy at
-   the sharp 5 m inversion: `calthv` moist branch, `ql0h`), the MO surface with diagnosed u* (BOMEX prescribes u*),
-   radiation or the free-troposphere term. Next steps: (a) run both codes with prescribed u* (`BCbotm = 5` /
-   `isurf = 3`) to remove the MO difference; (b) write the e12 budget terms and the SGS buoyancy flux at the inversion
-   in both codes for the first 30 min; (c) compare uDALES `thlprad` with a DALES radiation statistics run (radstat);
-   (d) a shorter run on a smaller decomposition of uDALES (2 x 2) to rule out another halo problem (the e12 one was
-   found that way in BOMEX).
-2. **u* 2.3 % higher in uDALES**, already at t = 60 s (0.284 vs 0.278 m/s). Hypothesis: the MO surface formulation
-   differs (uDALES computes one u* from slab means; DALES isurf 4 iterates per column with local winds and averages).
-   Next step: as 1(a), and a single-column check of both MO solvers on the same profile.
+The Task 14 hypotheses (SGS at the inversion, MO surface, radiation, decomposition) were settled by one
+homogeneous single-column comparison: the DALES radpar tendency was exactly zero (`iradiation = 10` resets
+`rad_longw` in DALES dev 075ac4e), and kappa (0.4 vs 0.41) explained the u* gap. A 2 x 2 vs 8 x 4 uDALES check showed
+no decomposition dependence. The "better mixed / DALES decouples more" difference was the missing DALES cloud-top
+cooling. See the Task 19 section at the top and `.superpowers/sdd/2026-11-13-moist-thermo-port/task-19-report.md`.
 
 ## Earlier results (superseded; e12 halo bug and older SGS)
 
