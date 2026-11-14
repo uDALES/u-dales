@@ -8,7 +8,8 @@ Python/3.9.6-GCCcore-11.2.0; source ~/udales/.venv/bin/activate` (numpy, matplot
 |---|---|
 | `convert_dales_case.py <dales_case_dir> <expnr> <out_dir>` | converts DALES `prof.inp.001`, `lscale.inp.001` (8 columns to the 10-column uDALES layout, `pgx = pgy = 0`, `dthlrad` to `thlpcar`) and `scalar.inp.001`; prints the namoptions values to transcribe, with `wtsurf`/`wqsurf` negated (decision D1: uDALES fluxes are positive downward) and `isurf 3/4` mapped to `BCbotm 5/4`; re-reads its output and checks row 1 and all rows against the input |
 | `make_rf01.py <out_dir> [--dz 5 --ktot 300 --itot 96 --dx 35]` | writes the RF01 `prof.inp.303`/`lscale.inp.303` and prints the surface values (`z0`, `wtsurf`, `wqsurf`) |
-| `compare_dales.py <case> <udales_run_dir> <dales_results_dir\|none> <out_dir>` | time series, profiles, `summary.md` |
+| `compare_dales.py <case> <out_dir> --udales U1 [U2 ...] [--dales D1 ...]` | seed ensembles of both codes: per-run window means, ensemble means, spreads and the ratio \|mean diff\| / spread for LWP, cloud cover, zi, u* and the thl/qt/ql/w'thl'/w'qt' profiles; `timeseries.png`, `profiles.png`, `summary.md`, `summary.json`. The one-pair form `compare_dales.py <case> <udales_run_dir> <dales_dir\|none> <out_dir>` still works |
+| `make_dales_baseprof.py <prof.inp.001> <ps> <thls> <qts> <baseprof.inp.001>` | constant-density DALES `baseprof.inp` (`ibas_prf = 5`) with `pb` from the uDALES hydrostatic integral, for Boussinesq-equivalent DALES runs |
 
 Case inputs were produced with
 `convert_dales_case.py $SCRATCH/dales/cases/bomex 301 examples/301`, the same for `smoke`/302, and
@@ -28,8 +29,14 @@ not re-checked. Override with `--t0/--t1/--fit0/--fit1`.
 ## DALES versus uDALES variables
 
 DALES `tmser.001.nc`: `lwp_bar` [kg/m2], `cfrac`, `zi`, `ustar`, `we`. DALES `profiles.001.nc`: `thl`, `qt`,
-`ql`, `wtlr`/`wqtr` (resolved fluxes). uDALES `thermostat_t`/`thermostat_z`: see `NAMTHERMOSTAT`. The
-definitions of `zi` differ (uDALES: height of the maximum `dthl/dz`), so compare trends.
+`ql`, `wthlr`/`wqtr` (resolved fluxes). uDALES `thermostat_t`/`thermostat_z`: see `NAMTHERMOSTAT`.
+The `zi` diagnostics of the two codes differ (DALES tmser: thv gradient on a 4-column composite by default;
+uDALES thermostat: column-wise max `dthl/dz`), so `compare_dales.py` recomputes zi for both codes from the
+block-mean profiles with one definition: the half level of the maximum `dthl/dz`, and for 303 also `zi_qt8`,
+the highest crossing of qt = 8 g/kg. DALES profiles are block means over `timeav` (600 s) labelled at the
+block end; the tool averages the 60 s uDALES snapshots into the same blocks and uses the blocks that lie
+inside the window (a 3-6 h window starts with the block 3h00-3h10 in both codes; the earlier version also
+took the DALES block 2h50-3h00, and read the resolved w'thl' under a name DALES does not write, `wtlr`).
 The uDALES `thermostat_z` fluxes `wthl`, `wqt` are resolved fluxes only.
 
 ## Running the cases
@@ -63,3 +70,29 @@ them do not carry over unchanged. Every numerics setting and its reason is in th
   and `diffnr` = DALES `peclet` (default 0.15) x (`min(dx, dy, dz)^2 (1/dx^2 + 1/dy^2 + 1/dz^2)`). Do not transcribe DALES's `courant`.
 - Fixed step for an identical-dt comparison: `ladaptive = .false.` with `dtmax` as the step (commented block in
   `namoptions.301` and `namoptions.303`); DALES needs the same `dtmax` and `ladaptive = .false.`.
+
+## DALES inputs for the close-match comparison (`dales_inputs/`)
+
+DALES dev 075ac4e input files that run BOMEX and RF01 with the numerics of `examples/301` and `examples/303`
+(settings table in each case's `RESULTS.md`): `dales_inputs/bomex` and `dales_inputs/rf01` hold `namoptions.001`,
+`prof.inp.001`, `lscale.inp.001` and `baseprof.inp.001`. They set a fixed time step (`ladaptive = .false.`,
+`dtmax` = 2.0 s and 0.3 s, the same as the fixed-dt blocks of the uDALES namoptions), no Galilean shift
+(`cu = cv = 0`), `ibas_prf = 5` with a constant-density base profile (rhobf = 1, `pb` from the uDALES hydrostatic
+integral, written by `make_dales_baseprof.py`), cd2 advection for every variable, thl/qt noise only
+(`krandumax = 0`) and, for RF01, `wqsurf` with rlv = 2.53e6. Only `irandom` changes between ensemble members.
+For an adaptive run set `ladaptive = .true.` and `dtmax = 20.` (the fixed `dtmax` otherwise caps the step).
+
+The DALES build needs `dales_inputs/dales-075ac4e-t14.patch`, applied to a copy of the DALES tree after copying
+`cases/dycoms_rf02/moduser.f90` to `src/moduser.f90`:
+- `src/moduser.f90` `rad_user`: the RF01 free-troposphere term in the flux-divergence form at half levels with zi
+  reset per column, identical to uDALES `src/cases/case_dycoms_rf01.f90`. The dycoms_rf02 version uses the
+  pointwise `(z - zi)^(-2/3)` form (singular next to zi), has the sign error of dalesteam/dales#347, loops
+  `i = 2, j1` and does not reset zi per column.
+- `src/modthermodynamics.f90`: the liquid saturation-vapour-pressure table uses Tetens with the uDALES constants
+  instead of Murphy-Koop (about 0.1 % in es), so both codes use the same es.
+Build as in the DALES README; with Intel 2021a on CX3, compile `modheterostats.f90` at `-O1` (ifort ICE).
+
+Do not set `krandumax > 0` with the default `krandumin = 1` in DALES: that perturbs w at k = 1 (the surface),
+which DALES never resets, so a fixed random vertical velocity (|w| up to `randu`) stays at the ground for the
+whole run and `divmax` = rhobf randu / dzf is constant in the log. The first DALES RF01 reference
+(`refruns/d303`) did this.
