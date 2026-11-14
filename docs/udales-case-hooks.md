@@ -16,14 +16,16 @@ The core modules call the registered hooks at fixed points. Without `&NAMCASES`,
 
 - `initcases` reads `&NAMCASES` and splits `case_hooks` at commas. For each name, `register_case` calls the matching `register_<name>` routine (a `select case`). An unknown name aborts and lists the valid names; a name listed twice aborts.
 - A `register_<name>` routine fills one `hook_set`, a derived type with one procedure pointer per hook point. Fortran has no arrays of procedure pointers, so the registry keeps an array of these derived types instead.
-- The core code calls `call_hooks_<point>`, which runs the hook of every registered case that set that point.
+- The `register_<name>` routine also reads and checks the case's namelist (through a `<name>_config` routine of the case module), so a misconfigured case aborts at startup, before the facet and initial-field setup.
+- The core code calls `call_hooks_<point>`, which runs the hook of every registered case that set that point, in `case_hooks` order.
+- Errors are reported once, from rank 0, and every rank then stops through `modmpi:abort_all_ranks`.
 
-| Hook point | Called from | Typical use |
-| ---------- | ----------- | ----------- |
-| `init` | `program.f90`, once after startup (after `readinitfiles`, so for cold and warm starts) | read the case namelist, check the configuration |
-| `radiation` | `modradiation:radiation`, after the generic `radpar` tendency is computed and before `thlprad` is added to `thlp` (only with `iradiation /= 0`, at the radiation update) | add to `thlprad` |
-| `forcing` | the time loop, after `lstend` | add to the tendencies (`up`, `thlp`, ...) |
-| `stats` | the time loop, after `thermostat` | write case-specific diagnostics |
+| Hook point | Called from | When | Typical use |
+| ---------- | ----------- | ---- | ----------- |
+| `init` | `program.f90`, after `readinitfiles` (cold and warm starts) | once | checks that need the initial fields |
+| `radiation` | `modradiation:radiation`, after the generic `radpar` tendency is computed and before `thlprad` is added to `thlp` (only with `iradiation /= 0`) | at each radiation update (`rk3step == 1`, every `timerad`); the contribution is held in `thlprad` until the next update | add to `thlprad` |
+| `forcing` | the time loop, after `lstend` | every Runge-Kutta substep | add to the tendencies (`up`, `thlp`, ...) |
+| `stats` | the time loop, after `thermostat` | every Runge-Kutta substep: the hook must gate itself on `rk3step == 3` and its own output time, as `thermostat` does | write case-specific diagnostics |
 
 Hooks take no arguments: they use the model state through `use` statements, like any other module.
 
@@ -37,16 +39,19 @@ Hooks take no arguments: they use the model state through `use` statements, like
     module case_dycoms_rf01
       implicit none
       private
-      public :: dycoms_rf01_init, dycoms_rf01_radiation
-      real :: D        = 0.   !< required: no nonzero defaults
-      real :: qt_thres = 0.
+      public :: dycoms_rf01_config, dycoms_rf01_init, dycoms_rf01_radiation
+      real :: dycoms_D        = 0.   !< required: no nonzero defaults
+      real :: dycoms_qt_thres = 0.
     contains
-      subroutine dycoms_rf01_init        ! reads &NAMCASE_DYCOMS, aborts if D or qt_thres unset
-      subroutine dycoms_rf01_radiation   ! thlprad(i,j,k) -= IIc * (F(zh(k+1)) - F(zh(k))) / dzf(k)
+      subroutine dycoms_rf01_config      ! reads &NAMCASE_DYCOMS, aborts if a parameter is unset
+      subroutine dycoms_rf01_init        ! warns if no column of the initial qt has an inversion
+      subroutine dycoms_rf01_radiation   ! thlprad(i,j,k) -= IIc * (G(zh(k+1)) - G(zh(k))) / dzf(k)
     end module
     ```
 
-    The case has its own namelist, `&NAMCASE_DYCOMS`, read from the same `namoptions` file in the `init` hook (rank 0 reads, then `MPI_BCAST`), with the usual error handling. Parameters that are not obviously nonzero default to 0 and the `init` hook aborts with a clear message when they are not set; the case's `namoptions` sets them explicitly.
+    Here `G = F / (rho_i cp) = dycoms_D [(z-zi)^(4/3)/4 + zi (z-zi)^(1/3)]`: the flux is normalised by `rho_i cp` as in DALES, not by the local `rhof cp exnf`.
+
+    The case has its own namelist, `&NAMCASE_DYCOMS`, read from the same `namoptions` file at registration (rank 0 reads, then `MPI_BCAST`), with the usual error handling. Parameters that are not obviously nonzero default to 0, and the run aborts with a clear message when they are not set; the case's `namoptions` sets them explicitly. **Case namelist variables carry the case prefix** (`dycoms_D`, not `D`): `tools/python/namelists.json` maps variable names to namelist groups globally, so a generic name would capture the same name in every other group.
 
 2. **Register it** in `src/modcases.f90`: add the name to `valid_names`, a branch to the `select case` in `register_case`, and a `register_<name>` routine that sets the pointers of the hook points the case uses:
 
@@ -55,8 +60,9 @@ Hooks take no arguments: they use the model state through `use` statements, like
       call register_dycoms_rf01(hooks(nhooks))
     ...
     subroutine register_dycoms_rf01(h)
-      use case_dycoms_rf01, only : dycoms_rf01_init, dycoms_rf01_radiation
+      use case_dycoms_rf01, only : dycoms_rf01_config, dycoms_rf01_init, dycoms_rf01_radiation
       type(hook_set), intent(inout) :: h
+      call dycoms_rf01_config
       h%init      => dycoms_rf01_init
       h%radiation => dycoms_rf01_radiation
     end subroutine
@@ -74,8 +80,8 @@ Hooks take no arguments: they use the model state through `use` statements, like
     /
 
     &NAMCASE_DYCOMS
-    D            = 3.75e-6
-    qt_thres     = 8.0e-3
+    dycoms_D        = 3.75e-6
+    dycoms_qt_thres = 8.0e-3
     /
     ```
 

@@ -4,7 +4,7 @@ This page is a tour of the uDALES source code for developers who are about to mo
 
 ## Repository layout
 
-- `src/` — the Fortran MPI solver (one flat directory of `mod*.f90` files plus `program.f90`).
+- `src/` — the Fortran MPI solver (`mod*.f90` files plus `program.f90`, and case-specific hook modules in `src/cases/`).
 - `tools/python/` — the current Python tooling: `udbase` (postprocessing), `udprep` (preprocessing), `udgeom` (geometry), plus tests and example notebooks.
 - `tools/matlab/` — legacy MATLAB postprocessing and geometry helpers.
 - `tools/IBM/` — immersed-boundary preprocessing utilities.
@@ -51,6 +51,7 @@ Everything in `src/` compiles into a single executable whose entry point is `pro
 - `modscalsource.f90` — point/line/planar scalar sources.
 - `modpurifiers.f90`, `heatpump.f90` — air purifiers and heat-pump exhaust.
 - `modsurfdata.f90` — surface-model variables.
+- `modcases.f90` and `cases/case_*.f90` — runtime case hooks (`&NAMCASES`): case-specific physics, registered by name and called from fixed points in the core code (see [Case hooks](udales-case-hooks.md)).
 
 ### Boundaries and immersed boundary method (IBM)
 

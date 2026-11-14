@@ -173,13 +173,16 @@ that they are easy to find when upgrading.
   lives in `src/cases/` and is switched on by name at run time instead of by switches in
   the core modules; see `docs/udales-case-hooks.md`. Hook points: init, radiation,
   forcing, stats; without hooks the results are bit-identical. First hook:
-  `dycoms_rf01` (`&NAMCASE_DYCOMS D, qt_thres`), the DYCOMS-II RF01 free-troposphere
+  `dycoms_rf01` (`&NAMCASE_DYCOMS dycoms_D, dycoms_qt_thres`), the DYCOMS-II RF01 free-troposphere
   radiation term, now computed as the divergence of the analytic flux between cell
   faces (finite at the inversion, conserves the column integral). The generic radiation
   absorber `rad_absorber = 'ql' | 'sv'` (`rad_absorber_sv`) and the thermostat
-  diagnostic `zi_sv` (`zi_sv_index`, `zi_sv_thres`; written only when set) replace the
-  smoke switches. The removed `lrad_dycoms`, `rad_dycoms_D`, `rad_dycoms_qtthres`,
-  `rad_smoke`, `isvsmoke` and the `zi_smoke` output were never released.
+  diagnostics `zi_sv` (`zi_sv_index`, `zi_sv_thres`) and `zi_qt` (`zi_qt_thres`), each
+  written only when set, replace the smoke switches and the hard-coded `zi_qt8`. The
+  radiation optics `rka` and `dlwtop` have no defaults (0) and `iradiation = 2` aborts
+  without them. The removed `lrad_dycoms`, `rad_dycoms_D`, `rad_dycoms_qtthres`,
+  `rad_smoke`, `isvsmoke`, the `zi_smoke`/`zi_qt8` outputs and the former
+  `rka = 130`/`dlwtop = 74` defaults were never released.
 
 - In-solver test `runmode` 1008 (`tests_sgs_oneeqn`, run from
   `tests/integration/thermo/test_thermo.py:TestSGSOneEqn`) checking the

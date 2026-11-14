@@ -47,6 +47,7 @@ Key Fortran files under `src/`:
 - `modibm*.f90`, `initfac.f90`: immersed boundary method
 - `vegetation.f90`, `modEB.f90`, `heatpump.f90`, `modchem.f90`, `modpurifiers.f90`: branch/domain-specific physics
 - `tests.f90`: in-solver test routines triggered by runmode
+- `modcases.f90`, `cases/case_*.f90`: runtime case hooks (`&NAMCASES`); case-specific physics lives in `src/cases/`, not in the core modules (`docs/udales-case-hooks.md`)
 
 ## Tooling
 
