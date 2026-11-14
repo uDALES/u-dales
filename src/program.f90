@@ -225,8 +225,6 @@ program uDALES
 
     call statsdump
 
-    call thermostat
-
     call boundary
 
     !call fixthetainf ! deprecated
@@ -235,6 +233,9 @@ program uDALES
 !   3.6   LIQUID WATER CONTENT AND DIAGNOSTIC FIELDS
 !-----------------------------------------------------
     call thermodynamics
+
+    ! after thermodynamics, so that ql0, rhof and exnf match thl0/qt0 (as DALES timestat)
+    call thermostat
 
 !-----------------------------------------------------
 !   3.7  WRITE RESTARTFILES AND DO STATISTICS

@@ -22,6 +22,12 @@ that they are easy to find when upgrading.
   `dthvdz(kb)` used the gradients of the previous substep. `bottom` still applies
   the stress. Who is affected: only runs with `BCbotm = 4/5`; all other runs are
   unchanged bit for bit.
+- **Thermostat diagnostics are sampled after `thermodynamics`.** `thermostat` now
+  runs at the end of the time step, after `boundary` and `thermodynamics`, so `ql`,
+  `rhof`, `exnf` and the slab means it writes belong to the same state as `thl`,
+  `qt` and `w` (DALES samples its time series after thermodynamics too). Before,
+  `ql0` and `rhof` were one RK substep old. The output times are unchanged. Who is
+  affected: only runs with `lthermostat = .true.`; the solution itself is unchanged.
 - **One-equation SGS model (`loneeqn`) aligned with DALES.** Four changes to
   `modsubgrid.f90`, following DALES dev 075ac4e (#401). Who is affected: only runs with
   `loneeqn = .true.`; Vreman and Smagorinsky runs are unchanged (bit for bit).
