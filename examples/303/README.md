@@ -50,7 +50,7 @@ limited by diffusion (`peclet = 0.15`, 32368 of 35236 steps), not by its Courant
 | 10-20 min | 0.523 s | 0.502 s | 0.738 s |
 | 20-23 min | 0.435 s | 0.437 s | (0.600 s, 20-30 min) |
 
-`diffnr = 0.16` is DALES `peclet = 0.15` times 1.065 (`min(dz, dx)^2 (1/dz^2 + 1/dx^2 + 1/dy^2)` for dz = 5 m, dx = 35 m); with
+`diffnr = 0.16` is DALES `peclet = 0.15` times 1.041, rounded up (`min(dz, dx)^2 (1/dz^2 + 1/dx^2 + 1/dy^2)` for dz = 5 m, dx = 35 m); with
 it the step is within 5 % of DALES. A run with `courant = 1.0` gave the same series, so `courant` is not limiting. These
 numbers come from 30 min runs (1260-1800 s were reached), before the cloud develops; later in the run the step will
 differ. For a **fixed** step, uncomment the two commented lines in `&RUN` of `namoptions.303` (`ladaptive = .false.`,

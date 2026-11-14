@@ -11,7 +11,7 @@ Full-size validation case for the scalar radiation absorber (`rad_absorber = 'sv
 |---|---|---|
 | grid | 64 x 64 x 250, dx = dy = 50 m, dz = 5 m (z up to 1250 m) | DALES `itot, jtot, kmax, xsize = ysize = 3200`; z from `prof.inp.001` |
 | duration | 10800 s (3 h) | DALES `runtime` |
-| time step | `ladaptive`, `courant = 0.5`, `diffnr = 0.16`, `dtmax = 20` | DALES `ladaptive, courant` (explicit in the DALES smoke case; DALES measures it with the L2 norm, uDALES with the L1 sum); `diffnr` = DALES `peclet = 0.15` x 1.08 (uDALES sums three terms in `ekm dt (1/dz^2 + 1/dx^2 + 1/dy^2)`; dz = 5 m dominates); `dtmax` = DALES default. No DALES smoke run exists, so the step was not tuned; the 60 s smoke test reached dt = 0.36 s at the end of the start-up doubling |
+| time step | `ladaptive`, `courant = 0.5`, `diffnr = 0.16`, `dtmax = 20` | DALES `ladaptive, courant` (explicit in the DALES smoke case; DALES measures it with the L2 norm, uDALES with the L1 sum); `diffnr` = DALES `peclet = 0.15` x 1.02, rounded up (uDALES sums three terms in `ekm dt (1/dz^2 + 1/dx^2 + 1/dy^2)`; dz = 5 m dominates); `dtmax` = DALES default. No DALES smoke run exists, so the step was not tuned; the 60 s smoke test reached dt = 0.36 s at the end of the start-up doubling |
 | `ps`, `thls` | 100000 Pa, 288 K | DALES |
 | moisture | `lmoist = .false.` | DALES |
 | surface | `BCbotm = 4` (MO, u* from MO), `z0 = z0h = 0.1` m, `wtsurf = wqsurf = 0` | DALES `isurf = 4`, `z0`, `wtsurf`, `wqsurf`; `ustin = 0.2` is unused with `BCbotm = 4`; `z0h` set equal to `z0` |
