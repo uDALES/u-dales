@@ -13,6 +13,14 @@ that they are easy to find when upgrading.
 
 ### Breaking changes
 
+- **The SGS TKE halos are exchanged between MPI ranks** ([issue #405](https://github.com/uDALES/u-dales/issues/405)).
+  `modboundary:halos` never called `exchange_halo_z` for `e120` and `e12m`, so with the
+  one-equation closure (`loneeqn = .true.`) and `nprocx > 1` or `nprocy > 1` the e12 halo
+  cells on inter-rank boundaries kept their initial values for the whole run. The TKE
+  diffusion (`diffe`) and the horizontal averages of the closure used them, giving a
+  permanent spurious TKE source at the tile edges. Both fields are now exchanged when
+  `loneeqn` is set. Affected: every multi-rank run with `loneeqn = .true.` (results change).
+  Not affected: Smagorinsky and Vreman runs, and 1-rank runs, which are bit-identical.
 - **Initial perturbations use a decomposition-independent hash, and thl/qt noise is
   available** ([issue #395](https://github.com/uDALES/u-dales/issues/395)).
   `modstartup:randomize_field` added one step of a linear congruential generator, seeded

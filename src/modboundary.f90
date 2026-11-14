@@ -71,7 +71,8 @@ contains
                             BCxm_periodic, BCxT_periodic, BCxq_periodic, BCxs_periodic, &
                             BCym_periodic, BCyT_periodic, BCyq_periodic, BCys_periodic, &
                             ibrank, ierank, jbrank, jerank
-      use modfields, only : u0, v0, w0, um, vm, wm, thl0, thlm, qt0, qtm, sv0, svm, thl0c
+      use modfields, only : u0, v0, w0, um, vm, wm, thl0, thlm, qt0, qtm, sv0, svm, thl0c, e120, e12m
+      use modsubgriddata, only : loneeqn
       use decomp_2d, only : exchange_halo_z
       implicit none
       integer n
@@ -87,6 +88,10 @@ contains
       call exchange_halo_z(thl0c, opt_zlevel=(/ihc,jhc,khc/))
       call exchange_halo_z(qt0)
       call exchange_halo_z(qtm)
+      if (loneeqn) then ! SGS TKE halos feed diffe and the closure (#405)
+         call exchange_halo_z(e120)
+         call exchange_halo_z(e12m)
+      end if
       do n = 1, nsv
          call exchange_halo_z(sv0(:, :, :, n), opt_zlevel=(/ihc,jhc,khc/))
          call exchange_halo_z(svm(:, :, :, n), opt_zlevel=(/ihc,jhc,khc/))

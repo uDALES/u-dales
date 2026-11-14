@@ -582,6 +582,42 @@ class TestDecomposition(_SolverTest):
                                                err_msg=f"{label}:{v}")
 
 
+class TestSGSHaloExchange(_SolverTest):
+    """#405: the one-equation SGS TKE (e120/e12m) halos must be exchanged between ranks. Without it
+    the e12 halo cells keep their initial value, so the diffusion of e12 at tile edges (and through
+    ekm every field) depends on the decomposition."""
+
+    VARS = ("u0", "v0", "w0", "th")
+
+    def _fields(self, name, npx, npy):
+        d = tc.write_case(self.tmp / name, u=3.0, v=-2.0, groups={
+            "RUN": {"runtime": "3.5", "lrandomize": ".true.", "randu": "0.5", "randthl": "0.3",
+                    "nprocx": str(npx), "nprocy": str(npy)},
+            "OUTPUT": {"lfielddump": ".true.", "tfielddump": "3.5", "fieldvars": "'u0,v0,w0,th'"},
+            "NAMSUBGRID": {"loneeqn": ".true.", "lvreman": ".false.", "ldelta": ".false."}})
+        self.run_ok(d, npx * npy)
+        tiles = {}
+        for f in sorted(d.glob("fielddump.*.*.310.nc")):
+            ix, iy = int(f.name.split(".")[1]), int(f.name.split(".")[2])
+            with Dataset(f) as nc:
+                names = {"u0": "u", "v0": "v", "w0": "w", "th": "thl"}
+                tiles[ix, iy] = {v: np.asarray(nc[names[v]][-1]) for v in self.VARS}   # (z, y, x)
+        nx, ny = 1 + max(k[0] for k in tiles), 1 + max(k[1] for k in tiles)
+        return {v: np.concatenate([np.concatenate([tiles[ix, iy][v] for ix in range(nx)], axis=2)
+                                   for iy in range(ny)], axis=1) for v in self.VARS}
+
+    def test_decomposition_independent(self):
+        ref = self._fields("sgshalo_1x1", 1, 1)
+        for npx, npy in ((2, 1), (1, 2), (2, 2)):
+            out = self._fields(f"sgshalo_{npx}x{npy}", npx, npy)
+            for v in self.VARS:
+                diff = np.abs(out[v] - ref[v]).max()
+                print(f"\n[sgshalo] {npx}x{npy}:{v} max abs diff={diff:.3e}")
+                with self.subTest(split=(npx, npy), var=v):
+                    # bit-identical with the fix; a missing e12 halo exchange gives ~1e-5 differences (floor: 1e-6 of max)
+                    np.testing.assert_allclose(out[v], ref[v], rtol=1e-5, atol=1e-6 * max(np.abs(ref[v]).max(), 1e-30))
+
+
 class TestSGSOneEqn(_SolverTest):
     """In-solver test (runmode 1008, tests.f90:tests_sgs_oneeqn) of the one-equation
     SGS model aligned with DALES dev 075ac4e: Kh/Km = 1/Prandtl = 3 in unstable cells and
