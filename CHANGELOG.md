@@ -28,6 +28,14 @@ that they are easy to find when upgrading.
   `qt` and `w` (DALES samples its time series after thermodynamics too). Before,
   `ql0` and `rhof` were one RK substep old. The output times are unchanged. Who is
   affected: only runs with `lthermostat = .true.`; the solution itself is unchanged.
+- **Large-scale subsidence acts on the local fields.** `lstend` now applies the
+  upwind subsidence term `-whls dphi/dz` to `thl0`, `qt0`, `sv0` (and `u0`, `v0` with
+  `lmomsubs`) cell by cell, as DALES dev 075ac4e does, instead of to the slab means
+  `thl0av`, `qt0av`, `sv0av`. The mean tendency is the same; the term now also
+  advects the fluctuations, which matters at a sharp, wavy inversion (DYCOMS RF01).
+  The first level keeps the downward-only treatment (as in DALES). Who is affected:
+  runs with a non-zero `wfls` in `lscale.inp`; urban cases (`wfls = 0`) are unchanged
+  bit for bit.
 - **One-equation SGS model (`loneeqn`) aligned with DALES.** Four changes to
   `modsubgrid.f90`, following DALES dev 075ac4e (#401). Who is affected: only runs with
   `loneeqn = .true.`; Vreman and Smagorinsky runs are unchanged (bit for bit).

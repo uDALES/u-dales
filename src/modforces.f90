@@ -738,88 +738,65 @@ module modforces
     !                                                                 |
     !-----------------------------------------------------------------|
 
+    ! DALES dev 075ac4e modforces.f90:lstend: upwind subsidence on the LOCAL fields
+    ! thl0, qt0, sv0 (and u0, v0 if lmomsubs), per cell, rather than on the slab means.
+    ! First level kb: only the downward (whls(kb+1) < 0) term; the effect of mean ascent
+    ! is neglected there. DALES does the same at k = 1, and without a factor 0.5.
+    ! No IBM mask, as before: lstend acts on every cell and the IBM routines that run
+    ! after it treat the solid cells (urban cases have whls = 0 in any case).
     use modglobal, only : ib,ie,jb,je,kb,ke,dzh,nsv,lmomsubs
     use modfields, only : up,vp,thlp,qtp,svp,&
-                          whls, u0av,v0av,thl0av,qt0av,sv0av,&
+                          whls,u0av,v0av,thl0,qt0,sv0,u0,v0,&
                           dudxls,dudyls,dvdxls,dvdyls,dthldxls,dthldyls,dqtdxls,dqtdyls,dqtdtls
     implicit none
 
-    integer k,n
-    real subs_thl,subs_qt,subs_u,subs_v,subs_sv
+    integer i,j,k,n
+    real subs_thl,subs_qt,subs_u,subs_v
 
-    ! if (ltimedep) then
-    !   ! call ls
-    ! end if
-    ! if (myid==0) then
-    !   write(*,*) "up before lstend",up(3,3,ke)
-    ! end if
+    do k=kb,ke
+      do j=jb,je
+        do i=ib,ie
+          subs_thl = 0.
+          subs_qt  = 0.
+          subs_u   = 0.
+          subs_v   = 0.
+          if (whls(k+1).lt.0) then   !downwind scheme for subsidence
+            subs_thl = whls(k+1) * (thl0(i,j,k+1) - thl0(i,j,k))/dzh(k+1)
+            subs_qt  = whls(k+1) * (qt0 (i,j,k+1) - qt0 (i,j,k))/dzh(k+1)
+            if (lmomsubs) then
+              subs_u = whls(k+1) * (u0  (i,j,k+1) - u0  (i,j,k))/dzh(k+1)
+              subs_v = whls(k+1) * (v0  (i,j,k+1) - v0  (i,j,k))/dzh(k+1)
+            endif
+          else if (k > kb) then      !downwind scheme for mean upward motions (not at kb)
+            subs_thl = whls(k) * (thl0(i,j,k) - thl0(i,j,k-1))/dzh(k)
+            subs_qt  = whls(k) * (qt0 (i,j,k) - qt0 (i,j,k-1))/dzh(k)
+            if (lmomsubs) then
+              subs_u = whls(k) * (u0  (i,j,k) - u0  (i,j,k-1))/dzh(k)
+              subs_v = whls(k) * (v0  (i,j,k) - v0  (i,j,k-1))/dzh(k)
+            endif
+          endif
 
+          thlp(i,j,k) = thlp(i,j,k)-u0av(k)*dthldxls(k)-v0av(k)*dthldyls(k)-subs_thl
+          qtp (i,j,k) = qtp (i,j,k)-u0av(k)*dqtdxls (k)-v0av(k)*dqtdyls (k)-subs_qt+dqtdtls(k)
+          up  (i,j,k) = up  (i,j,k)-u0av(k)*dudxls  (k)-v0av(k)*dudyls  (k)-subs_u
+          vp  (i,j,k) = vp  (i,j,k)-u0av(k)*dvdxls  (k)-v0av(k)*dvdyls  (k)-subs_v
+        end do
+      end do
+    end do
 
-    ! 1. DETERMINE LARGE SCALE TENDENCIES
-    !    --------------------------------
-
-    ! 1.1 lowest model level above surface : only downward component
-
-    subs_u   = 0.
-    subs_v   = 0.
-    subs_thl = 0.
-    subs_qt  = 0.
-    subs_sv  = 0.
-
-    k = kb
-    if (whls(k+1).lt.0) then !neglect effect of mean ascending on tendencies at the lowest full level
-      subs_thl     = whls(k+1)  *(thl0av(k+1)-thl0av(k))/dzh(k+1) ! tg3315 ils13 bss116 31/07/18 Dales 4.0 multiplies these by 0.5. To reduce subsidence towards the ground? Have removed
-      subs_qt      = whls(k+1)  *(qt0av (k+1)-qt0av(k) )/dzh(k+1)
-      if(lmomsubs) then
-        subs_u  = whls(k+1)  *(u0av  (k+1)-u0av(k)  )/dzh(k+1)
-        subs_v  = whls(k+1)  *(v0av  (k+1)-v0av(k)  )/dzh(k+1)
-      endif
-      do n=1,nsv
-        subs_sv =  whls(k+1)  *(sv0av(k+1,n)-sv0av(k,n)  )/dzh(k+1)
-        ! svp(2:i1,2:j1,1,n) = svp(2:i1,2:j1,1,n)-subs_sv
-        svp(ib:ie,jb:je,kb,n) = svp(ib:ie,jb:je,kb,n)-subs_sv
-      enddo
-    endif
-
-    thlp(ib:ie,jb:je,k) = thlp(ib:ie,jb:je,k) -u0av(k)*dthldxls(k)-v0av(k)*dthldyls(k)-subs_thl
-    qtp(ib:ie,jb:je,k)  = qtp (ib:ie,jb:je,k) -u0av(k)*dqtdxls (k)-v0av(k)*dqtdyls (k)-subs_qt +dqtdtls(k)
-    up(ib:ie,jb:je,k)   = up  (ib:ie,jb:je,k) -u0av(k)*dudxls(k)  -v0av(k)*dudyls  (k)-subs_u
-    vp(ib:ie,jb:je,k)   = vp  (ib:ie,jb:je,k) -u0av(k)*dvdxls(k)  -v0av(k)*dvdyls  (k)-subs_v
-
-
-    ! 1.2 other model levels twostream
-    do k=kb+1,ke
-
-      if (whls(k+1).lt.0) then   !downwind scheme for subsidence
-        subs_thl    = whls(k+1) * (thl0av(k+1) - thl0av(k))/dzh(k+1)
-        subs_qt     = whls(k+1) * (qt0av (k+1) - qt0av (k))/dzh(k+1)
-        do n=1,nsv
-          subs_sv   = whls(k+1)  *(sv0av(k+1,n) - sv0av(k,n))/dzh(k+1)
-          svp(ib:ie,jb:je,k,n) = svp(ib:ie,jb:je,k,n)-subs_sv
-        enddo
-        if(lmomsubs) then
-          subs_u   = whls(k+1) * (u0av  (k+1) - u0av  (k))/dzh(k+1)
-          subs_v   = whls(k+1) * (v0av  (k+1) - v0av  (k))/dzh(k+1)
-        endif
-      else !downwind scheme for mean upward motions
-        subs_thl    = whls(k) * (thl0av(k) - thl0av(k-1))/dzh(k)
-        subs_qt     = whls(k) * (qt0av (k) - qt0av (k-1))/dzh(k)
-        do n=1,nsv
-          subs_sv   = whls(k) * (sv0av(k,n) - sv0av(k-1,n))/dzh(k)
-          svp(ib:ie,jb:je,k,n) = svp(ib:ie,jb:je,k,n)-subs_sv
-        enddo
-        if(lmomsubs) then
-          subs_u   = whls(k) * (u0av  (k) - u0av  (k-1))/dzh(k)
-          subs_v   = whls(k) * (v0av  (k) - v0av  (k-1))/dzh(k)
-        endif
-      endif
-
-      thlp(ib:ie,jb:je,k) = thlp(ib:ie,jb:je,k)-u0av(k)*dthldxls(k)-v0av(k)*dthldyls(k)-subs_thl
-      qtp (ib:ie,jb:je,k) = qtp (ib:ie,jb:je,k)-u0av(k)*dqtdxls (k)-v0av(k)*dqtdyls (k)-subs_qt+dqtdtls(k)
-      up  (ib:ie,jb:je,k) = up  (ib:ie,jb:je,k)-u0av(k)*dudxls  (k)-v0av(k)*dudyls  (k)-subs_u
-      vp  (ib:ie,jb:je,k) = vp  (ib:ie,jb:je,k)-u0av(k)*dvdxls  (k)-v0av(k)*dvdyls  (k)-subs_v
-
-    enddo
+    do n=1,nsv
+      do k=kb,ke
+        do j=jb,je
+          do i=ib,ie
+            if (whls(k+1).lt.0) then
+              svp(i,j,k,n) = svp(i,j,k,n) - whls(k+1) * (sv0(i,j,k+1,n) - sv0(i,j,k,n))/dzh(k+1)
+            else if (k > kb) then
+              svp(i,j,k,n) = svp(i,j,k,n) - whls(k) * (sv0(i,j,k,n) - sv0(i,j,k-1,n))/dzh(k)
+            endif
+          end do
+        end do
+      end do
+    end do
 
     return
   end subroutine lstend
