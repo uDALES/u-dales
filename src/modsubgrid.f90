@@ -205,7 +205,7 @@ contains
     use modglobal,   only : ib,ie,jb,je,kb,ke,delta,grav,&
          dxi,dxiq,dx2,dy2,dyi,dyiq,dzf,dzf2,dzfi,dzhi, &
          numol,prandtlmoli,dzfiq,lbuoyancy,dzh,eps1
-    use modfields,   only : dthvdz,e120,u0,v0,w0,thl0,thvf
+    use modfields,   only : dthvdz,e120,u0,v0,w0,thl0,thvf,IIcs
     use modmpi,    only : excjs,slabsumi
     use modboundary, only : closurebc
     implicit none
@@ -389,7 +389,11 @@ contains
                 !else
                 damp(i,j,k) = 1.
                 !end if
-                if ((ldelta) .or. (dthvdz(i,j,k)<=0)) then
+                ! A fully solid slab above kb (IIcs(k) == 0) has thvf(k) = -999 (the
+                ! avexy_ibm fill), so grav/thvf(k) is meaningless there: use the neutral
+                ! length scale. Only solid cells are affected. kb never carries the fill
+                ! (avexy_ibm averages over all cells there), so it is left as it was.
+                if ((ldelta) .or. (dthvdz(i,j,k)<=0) .or. (IIcs(k)==0 .and. k>kb)) then
                    zlt(i,j,k) = delta(i,k)
                    ekm(i,j,k) = cm * zlt(i,j,k) *damp(i,j,k)* e120(i,j,k) !* 0.5! LES with near-wall damping !!! added factor 0.5 for shear-driven flow
                    ekh(i,j,k) = (ch1 + ch2) * ekm(i,j,k)               ! = ekm/Prandtl
@@ -448,7 +452,7 @@ contains
     !-----------------------------------------------------------------|
 
     use modglobal,   only : ib,ie,jb,je,kb,ke,dxi,delta,dyi,dzfi,dzhi,grav,numol,prandtlmol
-    use modfields,   only : u0,v0,w0,e120,e12p,dthvdz,thvf
+    use modfields,   only : u0,v0,w0,e120,e12p,dthvdz,thvf,IIcs
     use modsurface,  only : lmo_surface, dudz_mo, dvdz_mo
     implicit none
 
@@ -494,7 +498,12 @@ contains
              ! ekm/ekh subtracted (uDALES adds numol in closure) and the near-wall damp
              ! (uDALES; 1 away from walls) in the dissipation
              sbshr(i,j,k)  = (ekm(i,j,k)-numol)*tdef2/ ( 2*e120(i,j,k))
-             sbbuo(i,j,k)  = -(ekh(i,j,k)-numol*prandtlmoli)*grav/thvf(k)*dthvdz(i,j,k)/ ( 2*e120(i,j,k))
+             ! no buoyancy source in a fully solid slab: thvf(k) holds the -999 fill there
+             if (IIcs(k) > 0) then
+                sbbuo(i,j,k)  = -(ekh(i,j,k)-numol*prandtlmoli)*grav/thvf(k)*dthvdz(i,j,k)/ ( 2*e120(i,j,k))
+             else
+                sbbuo(i,j,k)  = 0.
+             end if
              sbdiss(i,j,k) = - (ce1 + ce2*zlt(i,j,k)/delta(i,k)) * e120(i,j,k)**2 /(2.*damp(i,j,k)*zlt(i,j,k))
           end do
        end do
