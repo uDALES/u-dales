@@ -391,8 +391,10 @@ contains
                 !end if
                 ! A fully solid slab above kb (IIcs(k) == 0) has thvf(k) = -999 (the
                 ! avexy_ibm fill), so grav/thvf(k) is meaningless there: use the neutral
-                ! length scale. Only solid cells are affected. kb never carries the fill
-                ! (avexy_ibm averages over all cells there), so it is left as it was.
+                ! length scale (before: a NaN). The values change in solid cells only, but
+                ! diffe has no IBM mask, so the fluid cells next to the slab see the change
+                ! through e12 diffusion. kb never carries the fill (avexy_ibm averages over
+                ! all cells there), so it is left as it was.
                 if ((ldelta) .or. (dthvdz(i,j,k)<=0) .or. (IIcs(k)==0 .and. k>kb)) then
                    zlt(i,j,k) = delta(i,k)
                    ekm(i,j,k) = cm * zlt(i,j,k) *damp(i,j,k)* e120(i,j,k) !* 0.5! LES with near-wall damping !!! added factor 0.5 for shear-driven flow

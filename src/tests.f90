@@ -754,13 +754,16 @@ contains
   !!   (b) sources without the MO surface: no TKE source at kb, set explicitly (the
   !!       work arrays are pre-filled with garbage), and interior dissipation without
   !!       the old factor 2, buoyancy with grav/thvf(k);
-  !!   (c) sources with the MO surface: the kb sources use dudz_mo/dvdz_mo and dthvdz(kb).
+  !!   (c) sources with the MO surface: the kb sources use dudz_mo/dvdz_mo and dthvdz(kb);
+  !!   (d) a synthetic fully solid level k0 > kb (IIcs(k0) = 0, thvf(k0) = -999, the
+  !!       avexy_ibm fill) with dthvdz > 0: neutral length scale, no buoyancy source,
+  !!       everything finite (before the guard: sqrt of a negative number).
   !! The namelist must set loneeqn = .true. and ldelta = .false.; Prandtl must be 1/3 to
   !! full precision (the default).
   logical function tests_sgs_oneeqn()
     use modglobal,      only : ib, ie, jb, je, kb, ke, runmode, delta, grav, eps1, numol, &
                                prandtlmoli, pi, BCbotm, BCbotm_mo
-    use modfields,      only : initfields, u0, v0, w0, e120, e12p, dthvdz, thvf
+    use modfields,      only : initfields, u0, v0, w0, e120, e12p, dthvdz, thvf, IIcs
     use modsurfdata,    only : thvs
     use modsubgrid,     only : initsubgrid, closure, sources
     use modsubgriddata, only : ekm, ekh, zlt, sbshr, sbbuo, sbdiss, loneeqn, ldelta, Prandtl, &
@@ -770,13 +773,15 @@ contains
     use modibm,         only : initibm, createmasks
     use initfac,        only : readfacetfiles
     use decomp_2d,      only : zstart
+    use, intrinsic :: ieee_arithmetic, only : ieee_is_nan
 
     implicit none
 
     real, parameter :: tol = 1.e-10
     real, parameter :: dudz0 = 0.05, dvdz0 = -0.03, dthvdz0 = -0.01
     real :: kmt, kht, ratio, zexp, cm_l, ceps_l, ce1_l, ce2_l, expd, expb, exps, worst
-    integer :: i, j, k, gi, nstable, nunstable, nlimited, BCbotm_save
+    integer :: i, j, k, gi, nstable, nunstable, nlimited, BCbotm_save, k0, IIcs_save
+    real :: thvf_save
     logical :: all_passed
 
     if (myid == 0) then
@@ -927,6 +932,33 @@ contains
     if (myid == 0) write(*,'(A,ES12.4)') 'MO kb sources worst relative deviation', worst
     if (worst > tol) then
       if (myid == 0) write(*,'(A,ES12.4)') 'FAIL MO kb sources', worst
+      all_passed = .false.
+    end if
+
+    !----------------------------------------------------------------------
+    ! (d) fully solid level: the grav/thvf guard
+    !----------------------------------------------------------------------
+    k0 = kb + 2
+    IIcs_save = IIcs(k0); thvf_save = thvf(k0)
+    IIcs(k0) = 0
+    thvf(k0) = -999.
+    dthvdz(:,:,k0) = 0.01
+    call closure
+    e12p = 0.
+    call sources
+    worst = 0.
+    do j = jb, je
+      do i = ib, ie
+        worst = max(worst, abs(zlt(i,j,k0) - delta(i,k0))/delta(i,k0), abs(sbbuo(i,j,k0)))
+        if (ieee_is_nan(zlt(i,j,k0)) .or. ieee_is_nan(ekm(i,j,k0)) .or. ieee_is_nan(ekh(i,j,k0)) &
+            .or. ieee_is_nan(sbshr(i,j,k0)) .or. ieee_is_nan(sbdiss(i,j,k0)) &
+            .or. ieee_is_nan(e12p(i,j,k0))) worst = huge(1.)
+      end do
+    end do
+    IIcs(k0) = IIcs_save; thvf(k0) = thvf_save
+    if (myid == 0) write(*,'(A,ES12.4)') 'fully solid level guard worst deviation', worst
+    if (worst > tol) then
+      if (myid == 0) write(*,'(A,ES12.4)') 'FAIL fully solid level guard', worst
       all_passed = .false.
     end if
 

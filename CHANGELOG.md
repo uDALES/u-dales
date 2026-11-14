@@ -115,7 +115,10 @@ that they are easy to find when upgrading.
 - One-equation SGS model: in a fully solid slab above `kb` the slab-mean `thvf(k)`
   holds the `-999` fill, so `grav/thvf(k)` gave a negative buoyancy parameter (a NaN
   length scale where `dthvdz > 0`, a wrong-sign buoyancy source). Those levels now use
-  the neutral length scale and no buoyancy source. Only solid cells are affected.
+  the neutral length scale and no buoyancy source. The values change in the solid
+  cells, but the fluid cells directly above or below such a slab see the change
+  through the SGS diffusion of `e12` (`diffe` has no IBM mask); before, a NaN could
+  reach them the same way.
 - The SGS statistics no longer read uninitialised data at the top level
   `ke+kh`, and all SGS output arrays are zeroed before use.
 - The 3-D `sv1sgs`–`sv4sgs` output in `tdump` is now masked with `IIw`, so solid
