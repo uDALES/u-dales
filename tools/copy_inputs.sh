@@ -94,7 +94,7 @@ if [ ! -d $DA_EXPDIR/$src ]; then
 fi
 
 # list of files to copy
-declare -a tocopy=("/namoptions." "/facetarea.inp." "/facets.inp." "/facets_unused." "/factypes.inp." "/heatpump.inp." "/lad.inp." "/lscale.inp." "/netsw.inp." "/prof.inp." "/purifs.inp." "/scalar.inp." "/scals.inp." "/sveg.inp." "/svf.inp." "/Tfacinit.inp." "/Tfacinit_layers.inp." "/timedeplw.inp." "/timedepnudge.inp." "/timedepsw.inp." "/trees.inp." "/veg.inp." "/veg_params.inp." "/vf.nc.inp." "/vfsparse.inp.")
+declare -a tocopy=("/namoptions." "/facetarea.inp." "/facets.inp." "/facets_unused." "/factypes.inp." "/factypeflux.inp." "/heatpump.inp." "/lad.inp." "/lscale.inp." "/netsw.inp." "/prof.inp." "/purifs.inp." "/scalar.inp." "/scals.inp." "/sveg.inp." "/svf.inp." "/Tfacinit.inp." "/Tfacinit_layers.inp." "/timedeplw.inp." "/timedepnudge.inp." "/timedepsw.inp." "/trees.inp." "/veg.inp." "/veg_params.inp." "/vf.nc.inp." "/vfsparse.inp.")
 
 # copy and rename files
 case $case in

@@ -65,7 +65,7 @@ Determined by `BCbotT`. Possible values:
 
 Determined by `iwalltemp`. Possible values:
 
-- 1: prescribed flux. A facet whose type is listed in the optional `factypeflux.inp` gets the heat flux of that type [K m/s] (see the facet types in the pre-processing documentation). Otherwise a facet with normal exactly in the -/+ x-direction gets `bctfxm`/`bctfxp`, in the -/+ y-direction `bctfym`/`bctfyp`, and in the +z direction `bctfz`. Any other facet (sloped, or facing down) with no `factypeflux.inp` entry gets zero flux; a start-up line reports how many.
+- 1: prescribed flux. A facet whose type is listed in the optional `factypeflux.inp` gets the heat flux of that type [K m/s] (see the facet types in the pre-processing documentation). Otherwise a facet with normal exactly in the -/+ x-direction gets `bctfxm`/`bctfxp`, in the -/+ y-direction `bctfym`/`bctfyp`, and in the +z direction `bctfz`. Any other facet (sloped, or facing down) with no `factypeflux.inp` entry gets zero flux; a start-up line reports how many. A listed type takes both its heat and its moisture flux from the file (it cannot keep the directional value for one of them), and its flux is constant in time: it ignores `timedepsurf.inp`, which varies `bctf*` only.
 - 2: flux given by wall function.
 
 Values other than 1 and 2 are rejected at start-up.
@@ -74,7 +74,7 @@ Values other than 1 and 2 are rejected at start-up.
 
 Determined by `iwallmoist`. Possible values:
 
-- 1: prescribed flux, on green (`lGR`) facets only. A facet whose type is listed in `factypeflux.inp` gets the moisture flux of that type [kg/kg m/s]. Otherwise a facet with normal exactly in the -/+ x-direction gets `bcqfxm`/`bcqfxp`, in the -/+ y-direction `bcqfym`/`bcqfyp`, and in the +z direction `bcqfz`. Any other facet with no `factypeflux.inp` entry gets zero flux; a start-up line reports how many.
+- 1: prescribed flux, on green (`lGR`) facets only. A facet whose type is listed in `factypeflux.inp` gets the moisture flux of that type [kg/kg m/s]. Otherwise a facet with normal exactly in the -/+ x-direction gets `bcqfxm`/`bcqfxp`, in the -/+ y-direction `bcqfym`/`bcqfyp`, and in the +z direction `bcqfz`. Any other facet with no `factypeflux.inp` entry gets zero flux; a start-up line reports how many. A moisture flux listed in `factypeflux.inp` for a non-green type is ignored.
 - 2: flux given by wall function. This needs the heat transfer coefficient of the temperature wall function, so it requires `ltempeq = .true.` and `iwalltemp = 2`; the run stops at start-up otherwise. Where the heat transfer coefficient times the tangential velocity is zero, the moisture flux is zero.
 
 Heat and moisture fluxes are independent: with `iwalltemp = 2` and `iwallmoist = 1` the moisture flux comes only from `bcqf*` / `factypeflux.inp`.

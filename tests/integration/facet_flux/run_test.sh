@@ -110,16 +110,43 @@ run_mode() {
         echo "FAIL: TEST_FACET_FLUX [$family $label] unexpected start-up line"
         failures=$((failures + 1))
     fi
-    grep -h "FACETFLUX\|^Prescribed " "${run_dir}/run.log"
+    if [ "$family" = pertype ] && ! grep -q "^Read factypeflux.inp.100: prescribed flux for 1 facet types (1102 of 1102 facets)" "${run_dir}/run.log"; then
+        echo "FAIL: TEST_FACET_FLUX [$family $label] factypeflux.inp start-up line missing"
+        failures=$((failures + 1))
+    fi
+    grep -h "FACETFLUX\|^Prescribed \|^Read factypeflux" "${run_dir}/run.log"
     grep "^ *FACETFLUX" "${run_dir}/run.log" | sed 's/^[^:]*://' > "${ROOT_RUN_DIR}/${family}-${label}.totals"
 }
 
 for family in direct pertype mixed; do
-    run_mode serial 1 1 1 "${NAMELIST_DIR}/namoptions.1008.${family}.serial" "$family"
-    run_mode xsplit 2 1 2 "${NAMELIST_DIR}/namoptions.1008.${family}.xsplit" "$family"
-    run_mode ysplit 1 2 2 "${NAMELIST_DIR}/namoptions.1008.${family}.ysplit" "$family"
-    run_mode xysplit 2 2 4 "${NAMELIST_DIR}/namoptions.1008.${family}.xysplit" "$family"
+    nlfam=$family
+    [ "$family" = pertype ] && nlfam=direct # same namelist; only the copied factypeflux.inp differs
+    run_mode serial 1 1 1 "${NAMELIST_DIR}/namoptions.1008.${nlfam}.serial" "$family"
+    run_mode xsplit 2 1 2 "${NAMELIST_DIR}/namoptions.1008.${nlfam}.xsplit" "$family"
+    run_mode ysplit 1 2 2 "${NAMELIST_DIR}/namoptions.1008.${nlfam}.ysplit" "$family"
+    run_mode xysplit 2 2 4 "${NAMELIST_DIR}/namoptions.1008.${nlfam}.xysplit" "$family"
 done
+
+# Unsupported wall treatments and a malformed factypeflux.inp stop the run at start-up.
+check_abort() {
+    local label="$1" expect="$2" sedexpr="$3" fluxfile="$4"
+    local run_dir="${ROOT_RUN_DIR}/abort-${label}"
+    mkdir -p "$run_dir"
+    cp -r "$CASE_SOURCE"/. "$run_dir"/
+    sed "$sedexpr" "${NAMELIST_DIR}/namoptions.1008.direct.serial" > "$run_dir/$NAMELIST"
+    [ -n "$fluxfile" ] && printf '%s\n' "$fluxfile" > "$run_dir/factypeflux.inp.100"
+    local rc=0
+    (cd "$run_dir" && mpi_preflight 1 && "$MPIEXEC" $MPI_LAUNCH_EXTRA_ARGS -n 1 "$UDALES_BUILD" "$NAMELIST" > run.log 2>&1) || rc=$?
+    if [ "$rc" -eq 0 ] || ! grep -q "$expect" "$run_dir/run.log"; then
+        echo "FAIL: TEST_FACET_FLUX abort check [$label] (exit code $rc, expected message: $expect)"
+        failures=$((failures + 1))
+    fi
+}
+check_abort iwalltemp3 "iwalltemp must be 1 or 2" 's/^nfcts = 1102/iwalltemp = 3\nnfcts = 1102/' ""
+check_abort iwallmoist3 "iwallmoist must be 1 or 2" 's/^nfcts = 1102/iwallmoist = 3\nnfcts = 1102/' ""
+check_abort iwallmoist2 "iwallmoist = 2 needs the heat transfer coefficient" 's/^nfcts = 1102/iwallmoist = 2\nnfcts = 1102/' ""
+check_abort badfluxfile "cannot read line of factypeflux.inp" 's/^nfcts = 1102/nfcts = 1102/' "1  abc  def"
+check_abort unknowntype "not in factypes.inp" 's/^nfcts = 1102/nfcts = 1102/' "77  1.0  1.0"
 
 # The totals must not depend on the decomposition (summation order only: relative 1e-10).
 if [ "$failures" -eq 0 ]; then

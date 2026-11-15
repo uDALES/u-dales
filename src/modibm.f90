@@ -263,10 +263,11 @@ module modibm
      integer :: n, nh, nq
      logical :: lh, lq
 
+     if (nfcts <= 0) return ! facet arrays are not allocated
      lh = ltempeq .and. iwalltemp == 1 .and. &
           (ltimedepsurf .or. any((/bctfxm, bctfxp, bctfym, bctfyp, bctfz/) /= 0.) .or. any(facfluxh /= 0.))
-     lq = lmoist .and. iwallmoist == 1 .and. &
-          (ltimedepsurf .or. any((/bcqfxm, bcqfxp, bcqfym, bcqfyp, bcqfz/) /= 0.) .or. any(facfluxq /= 0.))
+     lq = lmoist .and. iwallmoist == 1 .and. & ! ltimedepsurf varies bctf* only, not bcqf*
+          (any((/bcqfxm, bcqfxp, bcqfym, bcqfyp, bcqfz/) /= 0.) .or. any(facfluxq /= 0.))
      if (.not. (lh .or. lq)) return
 
      nh = 0

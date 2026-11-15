@@ -156,7 +156,7 @@ class TestRunAllGating(unittest.TestCase):
         # stability-wall config here; the fallback path is covered in
         # test_udprep_core.TestSEBSection.
         section, _ = make_seb_section(
-            self.workdir, lEB=False, iwallmom=2, iwalltemp=3, ltempeq=True
+            self.workdir, lEB=False, iwallmom=2, iwalltemp=2, ltempeq=True
         )
         section.run_all()
         self.assertTrue(self._tfacinit().exists())
@@ -167,7 +167,7 @@ class TestRunAllGating(unittest.TestCase):
         self.assertTrue(self._tfacinit().exists())
 
     def test_runs_when_iwallmoist_is_2(self):
-        section, _ = make_seb_section(self.workdir, lEB=False, iwallmoist=2)
+        section, _ = make_seb_section(self.workdir, lEB=False, iwallmoist=2, iwalltemp=2, ltempeq=True)
         section.run_all()
         self.assertTrue(self._tfacinit().exists())
 

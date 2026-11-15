@@ -296,6 +296,11 @@
                 ! end do
               end do
 
+              if (count(tfluxset) > 0) then
+                write (*, '(A,I0,A,I0,A,I0,A)') 'Read factypeflux.inp.'//cexpnr//': prescribed flux for ', count(tfluxset), &
+                  ' facet types (', count(facfluxset), ' of ', nfcts, ' facets); used with iwalltemp = 1 / iwallmoist = 1'
+              end if
+
               if (lEB .or. lwritefac) then
                 ! read facet areas
                 open (ifinput, file='facetarea.inp.'//cexpnr)

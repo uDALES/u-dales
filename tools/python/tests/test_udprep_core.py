@@ -508,8 +508,8 @@ class TestSEBSection(unittest.TestCase):
         triggers = [
             ("energy_balance", {"lEB": True}),
             ("fixed_wall_temperature", {"iwalltemp": 2}),
-            ("stability_wall_momentum", {"iwallmom": 2, "iwalltemp": 3, "ltempeq": True}),
-            ("fixed_wall_moisture", {"iwallmoist": 2}),
+            ("stability_wall_momentum", {"iwallmom": 2, "iwalltemp": 2, "ltempeq": True}),
+            ("fixed_wall_moisture", {"iwallmoist": 2, "iwalltemp": 2, "ltempeq": True}),
         ]
         for name, overrides in triggers:
             with self.subTest(name=name):
@@ -527,7 +527,7 @@ class TestSEBSection(unittest.TestCase):
     def test_switches_invalid_iwallmom_temperature_combinations_to_neutral(self):
         cases = [
             ("fixed_flux_temperature", {"iwallmom": 2, "iwalltemp": 1, "ltempeq": True}),
-            ("temperature_not_evolved", {"iwallmom": 2, "iwalltemp": 3, "ltempeq": False}),
+            ("temperature_not_evolved", {"iwallmom": 2, "iwalltemp": 1, "ltempeq": False}),
         ]
         for name, overrides in cases:
             with self.subTest(name=name):
