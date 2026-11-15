@@ -13,6 +13,16 @@ that they are easy to find when upgrading.
 
 ### Breaking changes
 
+- **`&NAMTHERMOSTAT` is removed; the diagnostics are `lbldump` in `&OUTPUT`.** The cloud,
+  boundary-layer and radiation time series and profiles are now part of the statistics
+  machinery (`modstatsdump`, helper `modbldiag`) and written to `bldump_t.<expnr>.nc` and
+  `bldump_z.<expnr>.nc` (were `thermostat_t`/`thermostat_z`); variables, units and
+  definitions are unchanged. `lthermostat` becomes `lbldump` (default `.false.`) and
+  `tthermostat` is replaced by `tstatsdump` (samples every `tstatsdump` from `tstatstart` on,
+  at the same point of the time loop); `zi_qt_thres`, `zi_sv_index` and `zi_sv_thres`
+  move to `&OUTPUT` with the same defaults and checks. An old `&NAMTHERMOSTAT` group in
+  `namoptions` is silently ignored (no diagnostics are written), so set `lbldump = .true.`
+  and `tstatsdump` in `&OUTPUT`.
 - **The von Karman constant default `fkar` is 0.40 instead of 0.41.** It is now the value used by DALES
   (`fkar = 0.4`), PALM (`kappa = 0.4`) and WRF; the 2.3 % u* gap between uDALES and DALES in the RF01 comparison
   was entirely this constant. `fkar` remains a `&WALLS` input. The inlet generator (`modinlet`) keeps its own
@@ -53,7 +63,7 @@ that they are easy to find when upgrading.
   relative). Now
   fixed: `thermo` takes assumed-shape arguments with the actual lower bounds. Every
   run with `lmoist = .true.` and any saturated cell changes, through these routes:
-  - `ql` itself in field dumps, restart files and the thermostat (`ql`, `cfracz`,
+  - `ql` itself in field dumps, restart files and the `bldump` files (`ql`, `cfracz`,
     `lwp_bar`, `cfrac`, `qlmax`);
   - the slab means `ql0av`, hence `th0av`, `thvf`, `thvh(kb)`, `presf`/`presh`,
     `exnf`/`exnh` and `rhof`;
@@ -205,14 +215,14 @@ that they are easy to find when upgrading.
   `dycoms_rf01` (`&NAMCASE_DYCOMS dycoms_D, dycoms_qt_thres`), the DYCOMS-II RF01
   free-troposphere radiation term, computed as the divergence of the analytic flux between cell
   faces (finite at the inversion, conserves the column integral).
-- **Thermostat diagnostics** (`&NAMTHERMOSTAT`, `lthermostat`, `tthermostat`;
-  `modthermostat`): `thermostat_t.<expnr>.nc` (liquid water path, cloud cover, boundary-layer
-  heights, `wmax`, `qlmax`, `ustar`, `obl`, `thls`, `qts`, first-level `u`, `v`) and
-  `thermostat_z.<expnr>.nc` (slab-mean profiles). Sampled at the end of the time step, after
+- **`bldump` diagnostics** (`lbldump`, `tstatsdump`, `zi_qt_thres`, `zi_sv_index`, `zi_sv_thres` in
+  `&OUTPUT`; `modbldiag`, called from `modstatsdump`): `bldump_t.<expnr>.nc` (liquid water path, cloud
+  cover, boundary-layer heights, `wmax`, `qlmax`, `ustar`, `obl`, `thls`, `qts`, first-level `u`, `v`) and
+  `bldump_z.<expnr>.nc` (slab-mean profiles). Instantaneous samples every `tstatsdump` from `tstatstart`
+  on, at the end of the time step, after
   `thermodynamics`, so `ql`, `rhof`, `exnf` and the slab means belong to the same state as
   `thl`, `qt` and `w`. The tracer boundary-layer heights `zi_sv` (`zi_sv_index`, `zi_sv_thres`) and
-  `zi_qt` (`zi_qt_thres`) are written only when set. `tthermostat` has no default (0) and
-  `lthermostat = .true.` aborts without it. Off by default; the solution itself is unaffected.
+  `zi_qt` (`zi_qt_thres`) are written only when set. Off by default; the solution itself is unaffected.
 - **Moist `dthvdz(kb)`** at the surface level (`calthv`, with the Monin-Obukhov surface; otherwise
   0 as before), and `fieldvars = 'dt'` writes `dthvdz` to the field dump.
 - **Initial `thl` and `qt` noise** (`randthl`, `randqt`; see Breaking changes, issue #395).
@@ -225,7 +235,7 @@ that they are easy to find when upgrading.
   Monin-Obukhov kernels), driven by `tests/integration/thermo/test_thermo.py` (includes the
   1-rank against multi-rank check of the e12 halos).
 - **Module hygiene for the new modules**: `modsurface`, `modradiation`, `modraddata`,
-  `modthermostat`, `modcases` and `case_dycoms_rf01` are private by default with explicit
+  `modbldiag`, `modcases` and `case_dycoms_rf01` are private by default with explicit
   public lists; configuration and namelist read errors in them abort all ranks through
   `modmpi:abort_all_ranks`, after one message from rank 0 (this includes the new start-up
   checks in `checkinitvalues`); `iradiation = 2` also rejects negative `timerad`, `dlwtop`,

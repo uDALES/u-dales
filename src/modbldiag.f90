@@ -1,59 +1,38 @@
-!> Cloud, surface and radiation diagnostics: domain-mean time series and slab
-!> profiles, the uDALES counterpart of DALES tmser/profiles. Kept separate from
-!> modstatsdump so it can move into the statsout framework as one unit.
-module modthermostat
+!> Cloud, boundary-layer and radiation diagnostics (bldump): domain-mean time
+!> series and slab profiles, the uDALES counterpart of DALES tmser/profiles.
+!> Called from modstatsdump (initstatsdump, exitstatsdump) and sampled from the
+!> time loop after thermodynamics, every tstatsdump from tstatstart on. Written
+!> to bldump_t.<expnr>.nc and bldump_z.<expnr>.nc when lbldump is set.
+module modbldiag
   use mpi   ! explicit MPI interfaces: gfortran rejects MPI_BCAST calls of different types in one file otherwise
   implicit none
   save
   private
-  public :: initthermostat, thermostat, exitthermostat
+  public :: initbldiag, bldiag, exitbldiag
 
-  logical :: lthermostat = .false.
-  real    :: tthermostat = 0.     !< output interval [s]; required (> 0) if lthermostat
   real    :: tnext = 0.
   integer :: ncidt, ncidz, nrect = 0, nrecz = 0
-  real    :: zi_qt_thres = 0.      !< zi_qt: qt threshold [kg/kg]; 0 = off
-  integer :: zi_sv_index = 0       !< scalar for the zi_sv diagnostic; 0 = off
-  real    :: zi_sv_thres = 0.      !< zi_sv: threshold of scalar zi_sv_index; required (> 0) if on
   integer, parameter :: nvtmax = 13, nvz = 11, ivt_zi_qt = 4, ivt_zi_sv = 5
   integer :: nvt = 0               !< number of time series written
   integer :: ivt(nvtmax)           !< indices into vt/nct of the time series written
-  character(80) :: fnamet = 'thermostat_t.xxx.nc', fnamez = 'thermostat_z.xxx.nc'
+  character(80) :: fnamet = 'bldump_t.xxx.nc', fnamez = 'bldump_z.xxx.nc'
   character(80) :: tnct(1,4), tncz(1,4), nct(nvtmax,4), ncz(nvz,4)
 
 contains
 
-  subroutine initthermostat
-    use modglobal, only : ifnamopt, fname_options, cexpnr, kb, ke, timee
-    use modmpi,    only : myid, comm3d, mpierr, my_real, mpi_logical, mpi_integer, abort_all_ranks
+  subroutine initbldiag
+    use modglobal, only : cexpnr, kb, ke, timee, tstatsdump, lbldump, zi_qt_thres, zi_sv_index
+    use modmpi,    only : myid
     use modstat_nc, only : ncinfo, open_nc, define_nc, writestat_dims_nc
     implicit none
-    integer :: ierr, n
-    character(80) :: msg
-    namelist/NAMTHERMOSTAT/ lthermostat, tthermostat, zi_qt_thres, zi_sv_index, zi_sv_thres
+    integer :: n
 
-    if (myid == 0) then
-      open(ifnamopt, file=fname_options, status='old', iostat=ierr)
-      read (ifnamopt, NAMTHERMOSTAT, iostat=ierr)
-      if (ierr > 0) write(msg, '(a,i0)') 'Problem in namoptions NAMTHERMOSTAT, iostat = ', ierr
-      close(ifnamopt)
-    end if
-    call MPI_BCAST(ierr, 1, MPI_INTEGER, 0, comm3d, mpierr)   ! all ranks abort together
-    if (ierr > 0) then
-      if (myid == 0) write(0, '(2a)') 'ERROR: ', trim(msg)
-      call abort_all_ranks(1)
-    end if
-    call MPI_BCAST(lthermostat, 1, MPI_LOGICAL, 0, comm3d, mpierr)
-    call MPI_BCAST(tthermostat, 1, MY_REAL,     0, comm3d, mpierr)
-    call MPI_BCAST(zi_qt_thres, 1, MY_REAL,     0, comm3d, mpierr)
-    call MPI_BCAST(zi_sv_index, 1, MPI_INTEGER, 0, comm3d, mpierr)
-    call MPI_BCAST(zi_sv_thres, 1, MY_REAL,     0, comm3d, mpierr)
-    call check_thermostat_options
-    if (.not. lthermostat) return
+    call check_bldiag_options
+    if (.not. lbldump) return
 
-    tnext = timee + tthermostat      ! timee is set by readinitfiles (restart time) before this
-    fnamet(14:16) = cexpnr
-    fnamez(14:16) = cexpnr
+    tnext = timee + tstatsdump       ! timee is set by readinitfiles (restart time) before this
+    fnamet(10:12) = cexpnr
+    fnamez(10:12) = cexpnr
     call ncinfo(tnct(1,:), 'time', 'Time', 's', 'time')
     tncz = tnct
     call ncinfo(nct( 1,:), 'lwp_bar',  'Liquid water path',             'kg/m^2', 'time')
@@ -94,14 +73,15 @@ contains
       call open_nc(fnamez, ncidz, nrecz, n3=ke-kb+1)
       if (nrecz == 0) then
         call define_nc(ncidz, 1, tncz)
-        call writestat_dims_nc(ncidz)      ! fill zt/zm, as modstatsdump.f90:219-222
+        call writestat_dims_nc(ncidz)      ! fill zt/zm, as modstatsdump does
       end if
       call define_nc(ncidz, nvz, ncz)
     end if
-  end subroutine initthermostat
+  end subroutine initbldiag
 
-  subroutine thermostat
-    use modglobal,  only : ib, ie, jb, je, kb, ke, timee, rk3step, zf, zh, dzf, dzh
+  subroutine bldiag
+    use modglobal,  only : ib, ie, jb, je, kb, ke, timee, rk3step, zf, zh, dzf, dzh, &
+                           lbldump, tstatsdump, tstatstart, zi_qt_thres, zi_sv_index, zi_sv_thres
     use modfields,  only : thl0, qt0, ql0, w0, sv0, rhof, exnf, IIc, IIcs, IIw, IIws, u0av, v0av
     use modsurfdata, only : thls, qts
     use modraddata, only : thlprad, lwu, lwd, iradiation, irad_none
@@ -115,9 +95,9 @@ contains
     integer :: i, j, k, kmx
     real :: ncol
 
-    if (.not. lthermostat) return
-    if (rk3step /= 3 .or. timee < tnext) return
-    tnext = tnext + tthermostat
+    if (.not. lbldump) return
+    if (rk3step /= 3 .or. timee < tstatstart .or. timee < tnext) return
+    tnext = tnext + tstatsdump
     allocate(tmp3(ib:ie,jb:je,kb:ke+1))
 
     ! --- column diagnostics: lwp, cloud cover, three BL heights
@@ -217,44 +197,44 @@ contains
       end do
     end function crossing
 
-  end subroutine thermostat
+  end subroutine bldiag
 
   !> Abort on settings that cannot be meaningful; warn (rank 0) on settings that are inactive.
-  subroutine check_thermostat_options
-    use modglobal, only : nsv, lmoist
+  subroutine check_bldiag_options
+    use modglobal, only : nsv, lmoist, lbldump, tstatsdump, zi_qt_thres, zi_sv_index, zi_sv_thres
     use modmpi,    only : myid, abort_all_ranks
     implicit none
     if (zi_qt_thres < 0. .or. (zi_qt_thres > 0. .and. .not. lmoist)) then
-      if (myid == 0) write(0, '(a,es12.4)') 'ERROR: &NAMTHERMOSTAT zi_qt_thres must be >= 0, and > 0 requires lmoist; got ', &
+      if (myid == 0) write(0, '(a,es12.4)') 'ERROR: &OUTPUT zi_qt_thres must be >= 0, and > 0 requires lmoist; got ', &
                                  zi_qt_thres
       call abort_all_ranks(1)
     end if
     if (zi_sv_index < 0 .or. zi_sv_index > nsv .or. (zi_sv_index > 0 .and. zi_sv_thres <= 0.)) then
-      if (myid == 0) write(0, '(2a,i0,es12.4)') 'ERROR: &NAMTHERMOSTAT zi_sv_index > 0 requires zi_sv_index <= nsv ', &
+      if (myid == 0) write(0, '(2a,i0,es12.4)') 'ERROR: &OUTPUT zi_sv_index > 0 requires zi_sv_index <= nsv ', &
                                  'and zi_sv_thres > 0; got ', zi_sv_index, zi_sv_thres
       call abort_all_ranks(1)
     end if
-    if (lthermostat .and. tthermostat <= 0.) then
-      if (myid == 0) write(0, '(a,es12.4)') 'ERROR: &NAMTHERMOSTAT lthermostat = .true. requires tthermostat > 0 (no default); got ', &
-                                 tthermostat
+    if (lbldump .and. tstatsdump <= 0.) then
+      if (myid == 0) write(0, '(a,es12.4)') 'ERROR: &OUTPUT lbldump = .true. requires tstatsdump > 0; got ', tstatsdump
       call abort_all_ranks(1)
     end if
     if (myid /= 0) return
     if (zi_sv_index == 0 .and. zi_sv_thres /= 0.) &
-      write(0, '(a)') 'WARNING: &NAMTHERMOSTAT zi_sv_thres ignored: zi_sv_index = 0'
-    if (.not. lthermostat .and. (zi_qt_thres /= 0. .or. zi_sv_index /= 0)) &
-      write(0, '(a)') 'WARNING: &NAMTHERMOSTAT zi_qt_thres/zi_sv_index ignored: lthermostat = .false.'
-  end subroutine check_thermostat_options
+      write(0, '(a)') 'WARNING: &OUTPUT zi_sv_thres ignored: zi_sv_index = 0'
+    if (.not. lbldump .and. (zi_qt_thres /= 0. .or. zi_sv_index /= 0)) &
+      write(0, '(a)') 'WARNING: &OUTPUT zi_qt_thres/zi_sv_index ignored: lbldump = .false.'
+  end subroutine check_bldiag_options
 
-  subroutine exitthermostat
+  subroutine exitbldiag
+    use modglobal, only : lbldump
     use modmpi, only : myid
     use modstat_nc, only : exitstat_nc
     implicit none
-    if (.not. lthermostat) return
+    if (.not. lbldump) return
     if (myid == 0) then
       call exitstat_nc(ncidt)
       call exitstat_nc(ncidz)
     end if
-  end subroutine exitthermostat
+  end subroutine exitbldiag
 
-end module modthermostat
+end module modbldiag

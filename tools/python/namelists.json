@@ -181,18 +181,12 @@
       "prandtl",
       "rigc"
     ],
-    "NAMTHERMOSTAT": [
-      "lthermostat",
-      "tthermostat",
-      "zi_qt_thres",
-      "zi_sv_index",
-      "zi_sv_thres"
-    ],
     "OUTPUT": [
       "fieldvars",
       "islice",
       "jslice",
       "kslice",
+      "lbldump",
       "lfielddump",
       "lislicedump",
       "ljslicedump",
@@ -207,7 +201,10 @@
       "tfielddump",
       "tsample",
       "tstatsdump",
-      "tstatstart"
+      "tstatstart",
+      "zi_qt_thres",
+      "zi_sv_index",
+      "zi_sv_thres"
     ],
     "PHYSICS": [
       "dpdx",
@@ -423,6 +420,7 @@
     "ktot": "DOMAIN",
     "lad": "TREES",
     "ladaptive": "RUN",
+    "lbldump": "OUTPUT",
     "lbottom": "WALLS",
     "lbuoyancy": "PHYSICS",
     "lbuoycorr": "NAMSUBGRID",
@@ -471,7 +469,6 @@
     "lstratstart": "RUN",
     "ltdump": "NAMSTATSDUMP",
     "ltempeq": "PHYSICS",
-    "lthermostat": "NAMTHERMOSTAT",
     "ltimedeplw": "PHYSICS",
     "ltimedepnudge": "PHYSICS",
     "ltimedepsurf": "PHYSICS",
@@ -564,7 +561,6 @@
     "tscale": "PHYSICS",
     "tstatsdump": "NAMSTATSDUMP",
     "tstatstart": "OUTPUT",
-    "tthermostat": "NAMTHERMOSTAT",
     "ud": "TREES",
     "uflowrate": "PHYSICS",
     "uinf": "INLET",
@@ -589,8 +585,8 @@
     "ylen": "DOMAIN",
     "z0": "BC",
     "z0h": "BC",
-    "zi_qt_thres": "NAMTHERMOSTAT",
-    "zi_sv_index": "NAMTHERMOSTAT",
-    "zi_sv_thres": "NAMTHERMOSTAT"
+    "zi_qt_thres": "OUTPUT",
+    "zi_sv_index": "OUTPUT",
+    "zi_sv_thres": "OUTPUT"
   }
 }

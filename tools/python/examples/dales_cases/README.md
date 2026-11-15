@@ -29,15 +29,15 @@ not re-checked. Override with `--t0/--t1/--fit0/--fit1`.
 ## DALES versus uDALES variables
 
 DALES `tmser.001.nc`: `lwp_bar` [kg/m2], `cfrac`, `zi`, `ustar`, `we`. DALES `profiles.001.nc`: `thl`, `qt`,
-`ql`, `wthlr`/`wqtr` (resolved fluxes). uDALES `thermostat_t`/`thermostat_z`: see `NAMTHERMOSTAT`.
+`ql`, `wthlr`/`wqtr` (resolved fluxes). uDALES `bldump_t`/`bldump_z`: see `lbldump` in the OUTPUT namelist overview.
 The `zi` diagnostics of the two codes differ (DALES tmser: thv gradient on a 4-column composite by default;
-uDALES thermostat: column-wise max `dthl/dz`), so `compare_dales.py` recomputes zi for both codes from the
+uDALES bldump: column-wise max `dthl/dz`), so `compare_dales.py` recomputes zi for both codes from the
 block-mean profiles with one definition: the half level of the maximum `dthl/dz`, and for 303 also `zi_qt8`,
 the highest crossing of qt = 8 g/kg. DALES profiles are block means over `timeav` (600 s) labelled at the
 block end; the tool averages the 60 s uDALES snapshots into the same blocks and uses the blocks that lie
 inside the window (a 3-6 h window starts with the block 3h00-3h10 in both codes; the earlier version also
 took the DALES block 2h50-3h00, and read the resolved w'thl' under a name DALES does not write, `wtlr`).
-The uDALES `thermostat_z` fluxes `wthl`, `wqt` are resolved fluxes only.
+The uDALES `bldump_z` fluxes `wthl`, `wqt` are resolved fluxes only.
 
 ## Running the cases
 

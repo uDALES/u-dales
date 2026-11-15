@@ -1,4 +1,4 @@
-# Smoke longwave reference (earlier smoke-specific implementation, Debug build), last thermostat_z record
+# Smoke longwave reference (earlier smoke-specific implementation, Debug build), last bldump_z record
 # of TestRadiation smoke case with runtime 2.5.
 # thl thlprad lwd lwu
 2.880000000e+02 -9.017141200e-11 3.525131660e-06 0.000000000e+00

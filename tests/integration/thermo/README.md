@@ -30,17 +30,17 @@ Run: `python tests/integration/thermo/test_thermo.py -v [TestClass]`.
 - `TestCalthv`, `TestCalthvGuard`: the Deardorff surface-level `thv` from MO
   gradients; unsaturated and no-MO cases; a uniform saturated column must not
   divide by zero. Reference: analytic `thv` from `thl`, `qt`, `ql`.
-- `TestThermostat`: cloudy-column diagnostics (`ql`, `lwp_bar`) and a dry
+- `TestBldump`: cloudy-column diagnostics (`ql`, `lwp_bar`) and a dry
   column without moist diagnostics. Reference: Python saturation adjustment of
   the RF01 profiles. The record's `ql` is also recomputed from the same record's
   `thl`, `qt` and `exnf` with the uDALES adjustment (checks `rlv`, the
-  thermostat timing and that `ql0(k)` belongs to level k, #403).
+  bldump timing and that `ql0(k)` belongs to level k, #403).
 - `TestRadiation`: `thlprad` for liquid and smoke (`rad_absorber = 'sv'`, also bit-identical to the
   recorded reference `smoke_reference.txt`, see below), `zi_sv`, and the DYCOMS free-troposphere
   term of the `dycoms_rf01` case hook (flux form vs pointwise form, column integral, subsidence balance),
   against the closed-form longwave expressions
 - `TestCaseHooks`: the `&NAMCASES` registry (unknown names abort, `case_hooks = ''` is a no-op), the
-  aborts for required parameters that are not set (including `tthermostat`), a namelist read error aborting
+  aborts for required parameters that are not set (including `tstatsdump` with `lbldump`), a namelist read error aborting
   once on all ranks, and the warning for a case group whose hook is not listed
 - `TestDecomposition`: radiation, MO surface and moist SGS in a randomised
   short run (`runtime` 2.5 s, `dtmax` 1 s, about 3 steps) on 1, 2 (x) and 4 (2 x 2) ranks. Reference: the serial run.
@@ -67,6 +67,6 @@ Run: `python tests/integration/thermo/test_thermo.py -v [TestClass]`.
 `smoke_reference.txt` pins the smoke longwave path exactly (`assert_array_equal`) to
 the output of an earlier smoke-specific implementation (Debug build). It
 proves that the generic `rad_absorber = 'sv'` path reproduces it. Any later,
-intended change to the smoke path, the laminar dry column or the thermostat output
+intended change to the smoke path, the laminar dry column or the bldump output
 breaks it, and a Release `UDALES_BUILD` may differ in the last bit: then retire the test
 (or regenerate the fixture from the new code and say so in the commit). Retire it when it is no longer useful.

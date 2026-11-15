@@ -66,7 +66,7 @@ module modstartup
                                     lper2inout, libm, lconservativeibm, lnudge, lnudgevel, tnudge, nnudge, lles, luoutflowr, lvoutflowr, luvolflowr, lvvolflowr, &
                                     uflowrate, vflowrate, lstoreplane, iplane, &
                                     lreadmean, inletav, lreadminl, Uinf, Vinf, linletRA, &
-                                    lscasrc,lscasrcl,lscasrcr,lydump,lytdump,lxydump,lxytdump,ltdump,lmintdump,ltkedump,&
+                                    lscasrc,lscasrcl,lscasrcr,lydump,lytdump,lxydump,lxytdump,ltdump,lmintdump,ltkedump,lbldump,zi_qt_thres,zi_sv_index,zi_sv_thres,&
                                     lkslicedump,lislicedump,ljslicedump,kslice,islice,jslice,&
                                     lbuoyancy, ltempeq, &
                                     lfixinlet, lfixutauin, pi, &
@@ -165,7 +165,7 @@ module modstartup
          lfielddump, tfielddump, fieldvars, &
          ltdump, lydump, lytdump, lxydump, lxytdump, lmintdump, &
          lkslicedump, kslice, lislicedump, islice, ljslicedump, jslice, ltkedump, tstatsdump, tsample, &
-         tstatstart
+         tstatstart, lbldump, zi_qt_thres, zi_sv_index, zi_sv_thres
       namelist/TREES/ &
          ltrees, ntrees, cd, dec, ud, lad, Qstar, dQdt, lsize, r_s, ltreedump, itree_mode
       namelist/PURIFS/ &
@@ -478,6 +478,10 @@ module modstartup
       call MPI_BCAST(tsample, 1, MY_REAL, 0, comm3d, mpierr) !tg3315
       call MPI_BCAST(tstatsdump, 1, MY_REAL, 0, comm3d, mpierr) !tg3315
       call MPI_BCAST(tstatstart, 1, MY_REAL, 0, comm3d, mpierr)
+      call MPI_BCAST(lbldump, 1, MPI_LOGICAL, 0, comm3d, mpierr)
+      call MPI_BCAST(zi_qt_thres, 1, MY_REAL, 0, comm3d, mpierr)
+      call MPI_BCAST(zi_sv_index, 1, MPI_INTEGER, 0, comm3d, mpierr)
+      call MPI_BCAST(zi_sv_thres, 1, MY_REAL, 0, comm3d, mpierr)
       call MPI_BCAST(tEB, 1, MY_REAL, 0, comm3d, mpierr)
       tnextEB = dtEB
       call MPI_BCAST(tnextEB, 1, MY_REAL, 0, comm3d, mpierr)

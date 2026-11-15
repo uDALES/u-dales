@@ -54,8 +54,7 @@ program uDALES
   use modchecksim,     only : initchecksim,checksim
   use modstat_nc,      only : initstat_nc
   use modfielddump,    only : initfielddump,fielddump,exitfielddump
-  use modstatsdump,    only : initstatsdump,statsdump,exitstatsdump    !tg3315
-  use modthermostat,   only : initthermostat,thermostat,exitthermostat
+  use modstatsdump,    only : initstatsdump,statsdump,bldumpstats,exitstatsdump    !tg3315
   use modradiation,    only : initradiation,radiation,exitradiation
   use modcases,        only : initcases,call_hooks_init,call_hooks_forcing,call_hooks_stats
   use modtimedep,      only : inittimedep,timedep
@@ -125,7 +124,6 @@ program uDALES
   call inittimedep
 
   call initfielddump
-  call initthermostat
 
   call boundary
 
@@ -249,7 +247,7 @@ program uDALES
     call thermodynamics
 
     ! after thermodynamics, so that ql0, rhof and exnf match thl0/qt0 (as DALES timestat)
-    call thermostat
+    call bldumpstats
 
     call call_hooks_stats ! case-specific diagnostics (no-op without &NAMCASES)
 
@@ -269,7 +267,6 @@ program uDALES
 !-------------------------------------------------------
   call exitfielddump
   call exitstatsdump     !tg3315
-  call exitthermostat
   call exitradiation
   call exitsurface_mo
   call exit_heatpump

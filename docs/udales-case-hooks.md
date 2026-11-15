@@ -25,7 +25,7 @@ The core modules call the registered hooks at fixed points. Without `&NAMCASES`,
 | `init` | `program.f90`, after `readinitfiles` (cold and warm starts) | once | checks that need the initial fields |
 | `radiation` | `modradiation:radiation`, after the generic `radpar` tendency is computed and before `thlprad` is added to `thlp` (only with `iradiation /= 0`) | at each radiation update (`rk3step == 1`, every `timerad`); the contribution is held in `thlprad` until the next update | add to `thlprad` |
 | `forcing` | the time loop, after `lstend` | every Runge-Kutta substep | add to the tendencies (`up`, `thlp`, ...) |
-| `stats` | the time loop, after `thermostat` | every Runge-Kutta substep: the hook must gate itself on `rk3step == 3` and its own output time, as `thermostat` does | write case-specific diagnostics |
+| `stats` | the time loop, after `bldumpstats` | every Runge-Kutta substep: the hook must gate itself on `rk3step == 3` and its own output time, as `bldumpstats` does | write case-specific diagnostics |
 
 Hooks take no arguments: they use the model state through `use` statements, like any other module.
 

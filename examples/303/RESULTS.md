@@ -93,7 +93,7 @@ No DALES reference. Time series (interpolated; window 3-4 h means from compare_d
 | zi_qt8 [m] (now `zi_qt`, `zi_qt_thres = 8e-3`) | 845.4 | 845.5 | 856.9 | 868.5 | 879.3 | - |
 | u* [m/s] | 0.255 | 0.245 | 0.253 | 0.250 | 0.248 | 0.248 |
 
-Entrainment rate (zi_qt8, large-scale divergence D = 3.75e-6 1/s, fit 1-4 h): we = 6.26e-3 m/s. (LWP at 0.5-2 h computed from thermostat_t; 3 h and 4 h are read from the plot; the 3-4 h mean is from summary.md.)
+Entrainment rate (zi_qt8, large-scale divergence D = 3.75e-6 1/s, fit 1-4 h): we = 6.26e-3 m/s. (LWP at 0.5-2 h computed from bldump_t; 3 h and 4 h are read from the plot; the 3-4 h mean is from summary.md.)
 
 Observations (tentative):
 - No cloud collapse: cloud cover stays above 0.994 throughout and LWP, after an initial spin-up dip to ~19 g/m2 at 0.8 h, recovers and rises slowly. Stratocumulus-top ql peaks at ~0.43 g/kg near 850 m, inversion near 870-890 m.

@@ -224,12 +224,12 @@ obstacles (DALES modibm.f90:183-193, 640-649), without a facet energy balance. T
 
 ## Diagnostics
 
-| item | DALES | uDALES thermostat | status |
+| item | DALES | uDALES bldump | status |
 |---|---|---|---|
-| LWP | mean over columns of `sum rhof ql dzf` (DALES modtimestat.f90:424-435, 617) | the same (src/modthermostat.f90:129-133) | aligned |
-| cloud cover | fraction of columns with column ql > 0 (DALES modtimestat.f90:432, 616) | fraction of columns with any ql > 0 (src/modthermostat.f90:134) | aligned |
-| zi | max gradient of thv on 4-column composites, refined by the zero of the gradient change (DALES modtimestat.f90:60-61, 1191-1221) | per column, half level of the max dthl/dz, then averaged (src/modthermostat.f90:135-143) | different; the validation computes zi identically for both codes from the 600 s block-mean thl profile (`compare_dales.py`) |
-| zi from qt | no timestat output (the DYCOMS `rad_user` uses a qt = 8 g/kg crossing per column for the radiation only) | `zi_qt` with `zi_qt_thres` (src/modthermostat.f90:144) | the validation computes `zi_qt8` for both codes from the block-mean qt profile (`compare_dales.py`) |
+| LWP | mean over columns of `sum rhof ql dzf` (DALES modtimestat.f90:424-435, 617) | the same (src/modbldiag.f90:109-113) | aligned |
+| cloud cover | fraction of columns with column ql > 0 (DALES modtimestat.f90:432, 616) | fraction of columns with any ql > 0 (src/modbldiag.f90:114) | aligned |
+| zi | max gradient of thv on 4-column composites, refined by the zero of the gradient change (DALES modtimestat.f90:60-61, 1191-1221) | per column, half level of the max dthl/dz, then averaged (src/modbldiag.f90:115-123) | different; the validation computes zi identically for both codes from the 600 s block-mean thl profile (`compare_dales.py`) |
+| zi from qt | no timestat output (the DYCOMS `rad_user` uses a qt = 8 g/kg crossing per column for the radiation only) | `zi_qt` with `zi_qt_thres` (src/modbldiag.f90:124) | the validation computes `zi_qt8` for both codes from the block-mean qt profile (`compare_dales.py`) |
 | sampling | after `thermodynamics`; profiles are 600 s block means of 60 s samples | after `thermodynamics` (src/program.f90:249-252); 60 s snapshots, block-averaged in `compare_dales.py` | aligned |
 
 ## Settings of the validation runs

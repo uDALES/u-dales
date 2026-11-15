@@ -23,6 +23,10 @@ krand        = 250          ! = ktot: all levels, as DALES
 lfielddump   = .false.
 ltdump       = .false.
 lxytdump     = .false.
+lbldump      = .true.       ! bldump_t and bldump_z: cloud, boundary-layer and radiation diagnostics
+tstatsdump   = 60.
+zi_sv_index  = 1            ! zi_sv: BL height from the smoke = 0.5 crossing
+zi_sv_thres  = 0.5
 /
 
 &DOMAIN
@@ -87,13 +91,6 @@ rka          = 0.02         ! DALES
 dlwtop       = 60.          ! DALES
 dlwbot       = 0.
 timerad      = 0.           ! every step (DALES file: 600 s)
-/
-
-&NAMTHERMOSTAT
-lthermostat  = .true.
-tthermostat  = 60.
-zi_sv_index  = 1            ! zi_sv: BL height from the smoke = 0.5 crossing
-zi_sv_thres  = 0.5
 /
 
 &NAMCHECKSIM

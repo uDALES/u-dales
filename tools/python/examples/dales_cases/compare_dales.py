@@ -7,7 +7,7 @@ Usage:
     python compare_dales.py <case> <udales_run_dir> <dales_results_dir|none> <out_dir> [options]  (one pair)
 
 case        301 (BOMEX), 302 (smoke) or 303 (DYCOMS-II RF01)
---udales    uDALES run directories holding thermostat_t.<case>.nc and thermostat_z.<case>.nc
+--udales    uDALES run directories holding bldump_t.<case>.nc and bldump_z.<case>.nc
 --dales     DALES run directories holding tmser.001.nc and profiles.001.nc
 out_dir     PNGs, summary.md and summary.json are written here
 
@@ -21,8 +21,8 @@ Outputs
 
 Time alignment
   DALES profiles.001.nc holds block means over `timeav` (600 s in the shipped DALES cases) labelled
-  at the block END: the record at t covers (t - timeav, t]. uDALES thermostat_z holds slab-mean
-  snapshots every tthermostat (60 s). Both codes' profiles are put on the same blocks: uDALES
+  at the block END: the record at t covers (t - timeav, t]. uDALES bldump_z holds slab-mean
+  snapshots every tstatsdump (60 s). Both codes' profiles are put on the same blocks: uDALES
   snapshots with t in (tb - block, tb] are averaged into block tb, where block is the DALES record
   spacing (or --block, default 600 s without DALES). A block is in the averaging window when
   tb - block >= t0 and tb <= t1, so a 3-6 h window uses the 18 blocks ending at 3h10 ... 6h for
@@ -30,7 +30,7 @@ Time alignment
   Time series (60 s samples in both codes) use t0 < t <= t1.
 
 Boundary-layer height
-  The tmser/thermostat zi diagnostics differ between the codes (DALES: thv gradient on a 4-column
+  The tmser/bldump zi diagnostics differ between the codes (DALES: thv gradient on a 4-column
   composite unless iblh_* are set; uDALES: column-wise max dthl/dz), so both are recomputed here
   from the block-mean profiles with one definition:
     zi       half level of the maximum dthl/dz of the block-mean thl profile (as uDALES zh(kmx));
@@ -53,7 +53,7 @@ Published bands
   without a band are reported "no cited band" and are neither passed nor failed.
 
 Variable names
-  uDALES thermostat_t: time, lwp_bar, cfrac, zi, zi_qt, ustar; thermostat_z: time, thl, qt, ql (zt), wthl, wqt (zm)
+  uDALES bldump_t: time, lwp_bar, cfrac, zi, zi_qt, ustar; bldump_z: time, thl, qt, ql (zt), wthl, wqt (zm)
   DALES tmser.001.nc: time, lwp_bar, cfrac, ustar; profiles.001.nc: time, zt, zm, thl, qt, ql, wthlr, wqtr
 """
 from __future__ import annotations
@@ -100,7 +100,7 @@ def read_nc(path: Path) -> dict[str, np.ndarray]:
 
 # ---------------------------------------------------------------- profile diagnostics
 def zi_grad(thl, zt, zm):
-    """Half level of the maximum dthl/dz (uDALES thermostat definition, on a mean profile)."""
+    """Half level of the maximum dthl/dz (uDALES bldump definition, on a mean profile)."""
     g = np.diff(thl) / np.diff(zt)                    # gradient at face k (between k-1 and k)
     return float(zm[1 + int(np.nanargmax(g))])
 
@@ -126,8 +126,8 @@ class Run:
         self.code, self.path, self.case = code, Path(path), case
         p = self.path
         if code == "uDALES":
-            ts = read_nc(p / f"thermostat_t.{case}.nc")
-            pr = read_nc(p / f"thermostat_z.{case}.nc")
+            ts = read_nc(p / f"bldump_t.{case}.nc")
+            pr = read_nc(p / f"bldump_z.{case}.nc")
             self.prof = {v: pr[v] for v, *_ in PROF_VARS}
         else:
             ts = read_nc(p / "tmser.001.nc")

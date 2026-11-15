@@ -59,10 +59,10 @@ class TestSurfaceSign(_SolverTest):
             "RUN": {"runtime": "0.5", "dtmax": "1.0"},
             "BC": {"BCbotm": "3", "wtsurf": str(wtsurf), "wqsurf": str(wqsurf)},
             "NAMSUBGRID": {"loneeqn": ".false.", "lvreman": ".true."},
-            "NAMTHERMOSTAT": {"lthermostat": ".true.", "tthermostat": "0.5"}},
+            "OUTPUT": {"lbldump": ".true.", "tstatsdump": "0.5"}},
             thl=np.full(64, 289.0), qt=np.full(64, 5.0e-3))
         self.run_ok(d)
-        with Dataset(d / "thermostat_z.310.nc") as z:
+        with Dataset(d / "bldump_z.310.nc") as z:
             return float(z["thl"][-1, 0]) - 289.0, float(z["qt"][-1, 0]) - 5.0e-3
 
     def test_positive_flux_is_downward(self):
@@ -84,13 +84,13 @@ class TestMO(_SolverTest):
         # runs every RK substep and re-diagnoses thls each time.
         d = tc.write_case(self.tmp / name, u=7.0, v=-5.5, groups={
             "RUN": {"runtime": "19.5"}, "BC": bc,
-            "NAMTHERMOSTAT": {"lthermostat": ".true.", "tthermostat": "1."}})
+            "OUTPUT": {"lbldump": ".true.", "tstatsdump": "1."}})
         self.run_ok(d)
         return d
 
     def test_mo_ustar_obl_match_reference(self):
         d = self._mo_case("mo4", 4)
-        with Dataset(d / "thermostat_t.310.nc") as t, Dataset(d / "thermostat_z.310.nc") as z:
+        with Dataset(d / "bldump_t.310.nc") as t, Dataset(d / "bldump_z.310.nc") as z:
             ustar, obl = float(t["ustar"][-1]), float(t["obl"][-1])
             thls, qts = float(t["thls"][-1]), float(t["qts"][-1])
             thl1, qt1 = float(z["thl"][-1, 0]), float(z["qt"][-1, 0])
@@ -118,7 +118,7 @@ class TestMO(_SolverTest):
 
     def test_prescribed_ustar(self):
         d = self._mo_case("mo5", 5, {"ustin": "0.28"})
-        with Dataset(d / "thermostat_t.310.nc") as t:
+        with Dataset(d / "bldump_t.310.nc") as t:
             self.assertAlmostEqual(float(t["ustar"][-1]), 0.28, places=6)   # float32 record
 
 
@@ -155,23 +155,23 @@ class TestCalthv(_SolverTest):
     def test_surface_level_unsaturated(self):
         d = tc.write_case(self.tmp / "calthv_sfc", u=7.0, v=-5.5, groups={
             "RUN": {"runtime": "2.5"},
-            "OUTPUT": {"lfielddump": ".true.", "tfielddump": "1.", "fieldvars": "'th,qt,ql,dt'"},
-            "BC": {"BCbotm": "4", "wtsurf": "-0.05", "wqsurf": "-5.0e-5", "z0": "2.e-4", "z0h": "2.e-4"},
-            "NAMTHERMOSTAT": {"lthermostat": ".true.", "tthermostat": "1."}})
+            "OUTPUT": {"lfielddump": ".true.", "tfielddump": "1.", "fieldvars": "'th,qt,ql,dt'",
+                       "lbldump": ".true.", "tstatsdump": "1."},
+            "BC": {"BCbotm": "4", "wtsurf": "-0.05", "wqsurf": "-5.0e-5", "z0": "2.e-4", "z0h": "2.e-4"}})
         self.run_ok(d)
         # Record alignment (approximate). Per RK substep the order is: surface_mo_state
-        # ... tstep_integrate -> fielddump -> boundary -> thermodynamics -> thermostat (writes
+        # ... tstep_integrate -> fielddump -> boundary -> thermodynamics -> bldump (writes
         # only at rk3step == 3 when due); calthv runs on EVERY substep. Dump record n holds
         # end-of-step-n thl/qt. The dthvdz in dump record n+1 was computed by calthv at the
         # end of RK substep 2 of step n+1, from the substep-2 intermediate fields and the
-        # ustar_mo/obl_mo of that substep. That is closer to thermostat record n+1 (substep 3
+        # ustar_mo/obl_mo of that substep. That is closer to bldump record n+1 (substep 3
         # of step n+1) than to record n, so ustar/obl are taken from record n+1 and thl/qt
         # from dump record n (ql from n+1, diagnosed from them). The pairing is off by one
         # RK substep in both state and ustar/obl; it works because the laminar column is
         # near-steady and the 5e-3 tolerance absorbs it.
         n = 0
         with Dataset(d / "fielddump.000.000.310.nc") as f, \
-             Dataset(d / "thermostat_t.310.nc") as t, Dataset(d / "thermostat_z.310.nc") as z:
+             Dataset(d / "bldump_t.310.nc") as t, Dataset(d / "bldump_z.310.nc") as z:
             dthv = np.asarray(f["dthvdz"][n + 1])        # (z, y, x)
             thl1 = np.asarray(f["thl"][n])[0].mean()
             qt1 = np.asarray(f["qt"][n])[0].mean()
@@ -195,7 +195,7 @@ class TestCalthv(_SolverTest):
             self.assertTrue(np.all(np.abs(np.asarray(f["dthvdz"][-1])[0]) <= 2e-10))  # float32(eps1)
 
 
-class TestThermostat(_SolverTest):
+class TestBldump(_SolverTest):
     def test_cloudy_column_diagnostics(self):
         # 3 steps, laminar RF01 column: horizontally homogeneous, so column = slab mean
         # A perfectly uniform saturated mixed layer divides by zero in calthv
@@ -207,9 +207,9 @@ class TestThermostat(_SolverTest):
         qt = qt - np.where(zf <= 840.0, 1.0e-7 * zf / 20.0, 0.0)
         d = tc.write_case(self.tmp / "stat", thl=thl, qt=qt, groups={
             "RUN": {"runtime": "2.5"},
-            "NAMTHERMOSTAT": {"lthermostat": ".true.", "tthermostat": "1.", "zi_qt_thres": "8.e-3"}})
+            "OUTPUT": {"lbldump": ".true.", "tstatsdump": "1.", "zi_qt_thres": "8.e-3"}})
         self.run_ok(d)
-        with Dataset(d / "thermostat_t.310.nc") as t, Dataset(d / "thermostat_z.310.nc") as z:
+        with Dataset(d / "bldump_t.310.nc") as t, Dataset(d / "bldump_z.310.nc") as z:
             self.assertGreaterEqual(len(t["time"]), 2)
             ql = z["ql"][-1, :]
             rhof = z["rhof"][-1, :]
@@ -228,9 +228,9 @@ class TestThermostat(_SolverTest):
         d = tc.write_case(self.tmp / "drystat", groups={
             "RUN": {"runtime": "1.5"},
             "PHYSICS": {"lmoist": ".false."}, "BC": {"qts": "-1."},
-            "NAMTHERMOSTAT": {"lthermostat": ".true.", "tthermostat": "1."}})
+            "OUTPUT": {"lbldump": ".true.", "tstatsdump": "1."}})
         self.run_ok(d)
-        with Dataset(d / "thermostat_t.310.nc") as t:
+        with Dataset(d / "bldump_t.310.nc") as t:
             self.assertGreaterEqual(len(t["time"]), 1)
             self.assertNotIn("zi_qt", t.variables)      # zi_qt_thres not set
             self.assertEqual(float(t["lwp_bar"][-1]), 0.0)
@@ -246,9 +246,9 @@ class TestThermostat(_SolverTest):
             qt = qt - np.where(zf <= 840.0, 1.0e-7 * zf / 20.0, 0.0)
             d = tc.write_case(self.tmp / "stat_ql", thl=thl, qt=qt, groups={
                 "RUN": {"runtime": "2.5"},
-                "NAMTHERMOSTAT": {"lthermostat": ".true.", "tthermostat": "1."}})
+                "OUTPUT": {"lbldump": ".true.", "tstatsdump": "1."}})
             self.run_ok(d)
-            with Dataset(d / "thermostat_z.310.nc") as z:
+            with Dataset(d / "bldump_z.310.nc") as z:
                 ql, thl_r, qt_r, exn_r = (np.asarray(z[v][-1, :], dtype=float)
                                           for v in ("ql", "thl", "qt", "exnf"))
             type(self)._qlrec = (ql, ql_udales(thl_r, qt_r, exn_r))
@@ -257,7 +257,7 @@ class TestThermostat(_SolverTest):
     def test_record_ql_matches_record_thl_qt(self):
         # Checks rlv (a wrong rlv changes ql by ~12 %), that ql0(k) belongs to level k (#403:
         # it used to hold the ql of level k+1) and that the record's ql belongs to the same
-        # state as its thl/qt (thermostat after thermodynamics).
+        # state as its thl/qt (bldump after thermodynamics).
         ql, ref = self._ql_record()
         sat = ref > 0.1 * ref.max()
         self.assertGreater(int(sat.sum()), 5)
@@ -282,7 +282,7 @@ class TestRadiation(_SolverTest):
 
     def _run(self, name, rad, nprocs=1, **case):
         groups = {"RUN": {"runtime": "0.5"}, "NAMRADIATION": rad,
-                  "NAMTHERMOSTAT": {"lthermostat": ".true.", "tthermostat": "0.5"}}
+                  "OUTPUT": {"lbldump": ".true.", "tstatsdump": "0.5"}}
         groups.update(case.pop("groups", {}))
         d = tc.write_case(self.tmp / name, groups=groups, **case)
         self.run_ok(d, nprocs)
@@ -295,7 +295,7 @@ class TestRadiation(_SolverTest):
 
     def test_liquid_longwave_matches_formula(self):
         d = self._run("rad_liq", self.RAD)
-        with Dataset(d / "thermostat_z.310.nc") as z:
+        with Dataset(d / "bldump_z.310.nc") as z:
             ql, rho, exn = (np.asarray(z[v][-1]) for v in ("ql", "rhof", "exnf"))
             got = np.asarray(z["thlprad"][-1])
         ref = radpar_reference(ql, rho, exn, 20.0, 70.0, 22.0, 85.0)
@@ -307,20 +307,20 @@ class TestRadiation(_SolverTest):
 
     SMOKE = dict(RAD, rad_absorber="'sv'", rad_absorber_sv="1", rka="0.02", dlwtop="60.", dlwbot="0.")
 
-    def _smoke_run(self, name, runtime="0.5", thermostat=None):
+    def _smoke_run(self, name, runtime="0.5", bldump=None):
         zf = (np.arange(64) + 0.5) * 20.0
         smoke = np.where(zf < 700, 1.0, 0.0)
-        th = {"lthermostat": ".true.", "tthermostat": "0.5"}
-        th.update(thermostat or {})
+        th = {"lbldump": ".true.", "tstatsdump": "0.5"}
+        th.update(bldump or {})
         d = self._run(name, self.SMOKE, groups={"RUN": {"runtime": runtime}, "PHYSICS": {"lmoist": ".false."},
                                                 "BC": {"qts": "-1."}, "SCALARS": {"nsv": "1"},
-                                                "NAMTHERMOSTAT": th},
+                                                "OUTPUT": th},
                       thl=np.where(zf < 700, 288.0, 295.0), qt=np.zeros(64), sv=smoke[:, None])
         return d, smoke
 
     def test_smoke_longwave_matches_formula(self):
         d, smoke = self._smoke_run("rad_smoke")
-        with Dataset(d / "thermostat_z.310.nc") as z:
+        with Dataset(d / "bldump_z.310.nc") as z:
             rho, exn = np.asarray(z["rhof"][-1]), np.asarray(z["exnf"][-1])
             got = np.asarray(z["thlprad"][-1])
         ref = radpar_reference(smoke, rho, exn, 20.0, 60.0, 0.0, 0.02)
@@ -331,9 +331,9 @@ class TestRadiation(_SolverTest):
         # smoke_reference.txt: the same case recorded with an earlier smoke-specific longwave
         # implementation (Debug build). rad_absorber = 'sv' must reproduce it exactly.
         d, _ = self._smoke_run("rad_smoke_pre16", runtime="2.5",
-                               thermostat={"zi_sv_index": "1", "zi_sv_thres": "0.5"})
+                               bldump={"zi_sv_index": "1", "zi_sv_thres": "0.5"})
         ref = np.loadtxt(Path(__file__).with_name("smoke_reference.txt"), dtype=np.float32)
-        with Dataset(d / "thermostat_z.310.nc") as z, Dataset(d / "thermostat_t.310.nc") as t:
+        with Dataset(d / "bldump_z.310.nc") as z, Dataset(d / "bldump_t.310.nc") as t:
             for col, v in enumerate(("thl", "thlprad", "lwd", "lwu")):
                 with self.subTest(var=v):
                     np.testing.assert_array_equal(np.asarray(z[v][-1], dtype=np.float32), ref[:, col])
@@ -341,7 +341,7 @@ class TestRadiation(_SolverTest):
 
     def test_zi_sv_written_only_when_configured(self):
         d, _ = self._smoke_run("zi_sv_off")
-        with Dataset(d / "thermostat_t.310.nc") as t:
+        with Dataset(d / "bldump_t.310.nc") as t:
             self.assertNotIn("zi_sv", t.variables)
             self.assertNotIn("zi_qt", t.variables)
 
@@ -362,7 +362,7 @@ class TestRadiation(_SolverTest):
         if not hasattr(type(self), "_ft"):
             a = self._run("ft_hook", self.RAD, groups=self.DYCOMS)
             b = self._run("ft_none", self.RAD)
-            with Dataset(a / "thermostat_z.310.nc") as za, Dataset(b / "thermostat_z.310.nc") as zb:
+            with Dataset(a / "bldump_z.310.nc") as za, Dataset(b / "bldump_z.310.nc") as zb:
                 ft = np.asarray(za["thlprad"][0], dtype=float) - np.asarray(zb["thlprad"][0], dtype=float)
             zf = (np.arange(64) + 0.5) * 20.0
             qt = tc.rf01_profiles(zf)[1]
@@ -405,10 +405,10 @@ class TestRadiation(_SolverTest):
         zf = (np.arange(64) + 0.5) * 20.0
         D = self.D
         common = dict(wfls=-D * zf, groups={"RUN": {"runtime": "299.5"},
-                                            "NAMTHERMOSTAT": {"lthermostat": ".true.", "tthermostat": "300."}})
+                                            "OUTPUT": {"lbldump": ".true.", "tstatsdump": "300."}})
         a = self._run("ft_both", self.RAD, groups=dict(common["groups"], **self.DYCOMS), wfls=common["wfls"])
         b = self._run("ft_subs", {"iradiation": "0"}, **common)
-        with Dataset(a / "thermostat_z.310.nc") as za, Dataset(b / "thermostat_z.310.nc") as zb:
+        with Dataset(a / "bldump_z.310.nc") as za, Dataset(b / "bldump_z.310.nc") as zb:
             dthl_both = np.asarray(za["thl"][-1], dtype=float) - tc.rf01_profiles(zf)[0]
             dthl_subs = np.asarray(zb["thl"][-1], dtype=float) - tc.rf01_profiles(zf)[0]
         # The top cell is excluded: there the subsidence stencil is one-sided/boundary-
@@ -459,7 +459,7 @@ class TestCaseHooks(_SolverTest):
         zf = (np.arange(64) + 0.5) * 20.0
         d = tc.write_case(self.tmp / "hook_moisttop", thl=tc.rf01_profiles(zf)[0], qt=np.full(64, 9.0e-3),
                           groups=dict(TestRadiation.DYCOMS, NAMRADIATION=self.RAD,
-                                      NAMTHERMOSTAT={"lthermostat": ".true.", "tthermostat": "0.5"}))
+                                      OUTPUT={"lbldump": ".true.", "tstatsdump": "0.5"}))
         res = self.run_ok(d)
         self.assertIn("the free-troposphere term is off", res.stdout + res.stderr)
 
@@ -490,23 +490,23 @@ class TestCaseHooks(_SolverTest):
 
     def test_zi_sv_index_above_nsv_aborts(self):
         self._abort("zisv_big", {"SCALARS": {"nsv": "1"},
-                                 "NAMTHERMOSTAT": {"lthermostat": ".true.", "zi_sv_index": "2",
+                                 "OUTPUT": {"lbldump": ".true.", "zi_sv_index": "2",
                                                    "zi_sv_thres": "0.5"}},
                     "zi_sv_index > 0 requires", sv=np.ones((64, 1)))
 
     def test_zi_qt_without_moisture_aborts(self):
         self._abort("ziqt_dry", {"PHYSICS": {"lmoist": ".false."}, "BC": {"qts": "-1."},
-                                 "NAMTHERMOSTAT": {"lthermostat": ".true.", "zi_qt_thres": "8.e-3"}},
+                                 "OUTPUT": {"lbldump": ".true.", "zi_qt_thres": "8.e-3"}},
                     "zi_qt_thres must be >= 0, and > 0 requires lmoist")
 
     def test_zi_sv_without_threshold_aborts(self):
         self._abort("zisv_nothres", {"SCALARS": {"nsv": "1"},
-                                     "NAMTHERMOSTAT": {"lthermostat": ".true.", "zi_sv_index": "1"}},
+                                     "OUTPUT": {"lbldump": ".true.", "zi_sv_index": "1"}},
                     "zi_sv_index > 0 requires", sv=np.ones((64, 1)))
 
-    def test_thermostat_without_interval_aborts(self):
-        self._abort("therm_noint", {"NAMTHERMOSTAT": {"lthermostat": ".true."}},
-                    "requires tthermostat > 0 (no default)")
+    def test_bldump_without_interval_aborts(self):
+        self._abort("bld_noint", {"OUTPUT": {"lbldump": ".true.", "tstatsdump": "0."}},
+                    "requires tstatsdump > 0")
 
     def test_negative_radiation_parameters_abort(self):
         self._abort("rad_negflux", {"NAMRADIATION": dict(self.RAD, dlwbot="-5.")},
@@ -517,11 +517,11 @@ class TestCaseHooks(_SolverTest):
     def test_unreadable_namelist_aborts_once_on_all_ranks(self):
         # a read error in a new namelist group is collective: rank 0 reports once, all ranks abort
         d = tc.write_case(self.tmp / "nml_bad", groups={
-            "RUN": {"nprocx": "2"}, "NAMTHERMOSTAT": {"lthermostat": "banana"}})
+            "RUN": {"nprocx": "2"}, "NAMRADIATION": {"iradiation": "banana"}})
         res = tc.run(d, 2)
         out = res.stdout + res.stderr
         self.assertNotEqual(res.returncode, 0)
-        self.assertEqual(out.count("Problem in namoptions NAMTHERMOSTAT"), 1)
+        self.assertEqual(out.count("Problem in namoptions NAMRADIATION"), 1)
 
     def test_case_group_without_hook_warns(self):
         # &NAMCASE_DYCOMS is present but 'dycoms_rf01' is not in case_hooks: the run goes on, with a warning
@@ -536,16 +536,16 @@ class TestCaseHooks(_SolverTest):
         self.assertNotIn("is not in case_hooks", res.stdout + res.stderr)
 
     def test_no_hooks_identical_to_run_without_namelist(self):
-        # case_hooks = '' must be a no-op: every thermostat output identical to a run
+        # case_hooks = '' must be a no-op: every bldump output identical to a run
         # without &NAMCASES (laminar, one rank).
         groups = {"RUN": {"runtime": "2.5"}, "NAMRADIATION": self.RAD,
-                  "NAMTHERMOSTAT": {"lthermostat": ".true.", "tthermostat": "0.5"}}
+                  "OUTPUT": {"lbldump": ".true.", "tstatsdump": "0.5"}}
         runs = {}
         for label, extra in (("absent", {}), ("empty", {"NAMCASES": {"case_hooks": "''"}})):
             d = tc.write_case(self.tmp / f"nohook_{label}", groups=dict(groups, **extra))
             self.run_ok(d)
             runs[label] = d
-        for f in ("thermostat_t.310.nc", "thermostat_z.310.nc"):
+        for f in ("bldump_t.310.nc", "bldump_z.310.nc"):
             with Dataset(runs["absent"] / f) as a, Dataset(runs["empty"] / f) as b:
                 self.assertEqual(set(a.variables), set(b.variables))
                 for v in a.variables:
@@ -561,7 +561,7 @@ class TestDecomposition(_SolverTest):
                   "BC": {"BCbotm": "4", "wtsurf": "-0.012", "wqsurf": "-4.7e-5",
                          "z0": "2.e-4", "z0h": "2.e-4"},
                   "NAMRADIATION": TestRadiation.RAD,
-                  "NAMTHERMOSTAT": {"lthermostat": ".true.", "tthermostat": "1."},
+                  "OUTPUT": {"lbldump": ".true.", "tstatsdump": "1."},
                   **TestRadiation.DYCOMS}
         zf = (np.arange(64) + 0.5) * 20.0
         out = {}
@@ -570,7 +570,7 @@ class TestDecomposition(_SolverTest):
             g["RUN"].update(nprocx=str(npx), nprocy=str(npy))
             d = tc.write_case(self.tmp / f"dec_{label}", groups=g, wfls=-3.75e-6 * zf)
             self.run_ok(d, npx * npy)
-            with Dataset(d / "thermostat_t.310.nc") as t, Dataset(d / "thermostat_z.310.nc") as z:
+            with Dataset(d / "bldump_t.310.nc") as t, Dataset(d / "bldump_z.310.nc") as z:
                 out[label] = {v: np.asarray(t[v][:]) for v in ("lwp_bar", "ustar", "obl", "thls")}
                 out[label].update({v: np.asarray(z[v][:]) for v in ("thl", "qt", "ql", "thlprad", "wthl")})
         for label in ("x", "xy"):

@@ -225,6 +225,10 @@ module modglobal
    logical :: jslicerank    ! cpu that jslice is on
    logical :: ltdump    = .false.      !<  switch to output time-averaged statistics every tstatsdump
    logical :: lmintdump    = .false.      !<  switch to output prognostic statistics every tstatsdump
+   logical :: lbldump     = .false.      !<  switch to output cloud, boundary-layer and radiation diagnostics (bldump_t, bldump_z) every tstatsdump
+   real    :: zi_qt_thres = 0.           !<  bldump: qt threshold for the zi_qt boundary-layer height [kg/kg]; 0 = off
+   integer :: zi_sv_index = 0            !<  bldump: scalar used for the zi_sv boundary-layer height; 0 = off
+   real    :: zi_sv_thres = 0.           !<  bldump: threshold of scalar zi_sv_index for zi_sv; required (> 0) if zi_sv_index > 0
 
    integer, parameter :: TREE_MODE_DRAG_ONLY = 1
    integer, parameter :: TREE_MODE_SVEG = 2

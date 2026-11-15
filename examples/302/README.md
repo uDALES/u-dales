@@ -1,7 +1,7 @@
 # 302: smoke cloud (Bretherton et al. 1999)
 
 Full-size validation case for the scalar radiation absorber (`rad_absorber = 'sv'`), the dry MO surface and the
-`zi_sv` thermostat diagnostic (`zi_sv_index = 1`, `zi_sv_thres = 0.5`). Inputs are converted from the DALES case `cases/smoke`
+`zi_sv` bldump diagnostic (`zi_sv_index = 1`, `zi_sv_thres = 0.5`). Inputs are converted from the DALES case `cases/smoke`
 (`convert_dales_case.py`), grid and profiles unchanged. Run with `tools/hpc_execute.sh examples/302`
 (16 ranks, 8 x 2); compare with `compare_dales.py` (entrainment rate from `zi_sv`, D = 0).
 
@@ -21,7 +21,7 @@ Full-size validation case for the scalar radiation absorber (`rad_absorber = 'sv
 | `timerad` | 0 | task spec; the DALES file has 600 s |
 | Coriolis, sponge | `lcoriol = .false.`, `igrw_damp = 0` | DALES `lcoriol = .false.`, `igrw_damp = 0` |
 | SGS | `loneeqn = .true.`, `ldelta = .false.` | as DALES (default) |
-| thermostat | `lthermostat`, `tthermostat = 60` s | task spec |
+| bldump | `lbldump`, `tstatsdump = 60` s | task spec |
 | initial noise | `lrandomize`, `randthl = 0.1` K, `randu = 0`, `randqt = 0`, `krand = 250` (all levels), `irandom = 43` | DALES `randthl`, `irandom`; DALES applies no u, v, w noise; DALES `randqt = 2.5e-5` acts on an inert qt (`lmoist = .false.`) and is not set |
 | `lqlnr` | `.true.` | the closest option to DALES (inert here, `lmoist = .false.`) |
 | `tcheck` | 60 s | mean dt to the log every minute |
@@ -48,9 +48,9 @@ No DALES smoke reference run exists. The DALES case settings and the uDALES choi
 - `iadv_qt = 2` (see the table); no 5th-order scheme in uDALES.
 - Radiation updated every step rather than every 600 s.
 - The `lscale.inp` of the case is all zero except the grid; `thlpcar = 0`, the cooling is the smoke radiation.
-- Output: only the thermostat files.
+- Output: only the bldump files.
 
 ## Concerns
 
 - The smoke profile in `scalar.inp.302` has a sharp edge at 700 m; kappa advection keeps it monotone, but
-  the thermostat `zi_sv` (smoke = 0.5 crossing) is quantised by the 5 m grid.
+  the bldump `zi_sv` (smoke = 0.5 crossing) is quantised by the 5 m grid.

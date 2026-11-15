@@ -26,6 +26,8 @@ krand        = 80           ! = ktot: all levels, as DALES (krand default = kmax
 lfielddump   = .false.
 ltdump       = .false.
 lxytdump     = .false.
+lbldump      = .true.       ! bldump_t and bldump_z: cloud, boundary-layer and radiation diagnostics
+tstatsdump   = 60.
 /
 
 &DOMAIN
@@ -81,11 +83,6 @@ ustin        = 0.28         ! DALES
 &NAMRADIATION
 iradiation   = 0            ! the -2 K/day cooling is the thlpcar column of lscale.inp
 timerad      = 0.
-/
-
-&NAMTHERMOSTAT
-lthermostat  = .true.
-tthermostat  = 60.
 /
 
 &NAMCHECKSIM

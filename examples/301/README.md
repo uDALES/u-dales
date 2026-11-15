@@ -1,11 +1,11 @@
 # 301: BOMEX shallow cumulus (Siebesma et al. 2003)
 
 Full-size validation case for the moist thermodynamics, Monin-Obukhov (MO) surface and
-thermostat diagnostics. Inputs are converted from the DALES case `cases/bomex`
+bldump diagnostics. Inputs are converted from the DALES case `cases/bomex`
 (`tools/python/examples/dales_cases/convert_dales_case.py`), grid and forcing unchanged.
 Run on CX3 with `tools/hpc_execute.sh examples/301` (8 ranks, 4 x 2); compare with
 `tools/python/examples/dales_cases/compare_dales.py` (see the README there).
-Outputs of interest: `thermostat_t.301.nc`, `thermostat_z.301.nc`.
+Outputs of interest: `bldump_t.301.nc`, `bldump_z.301.nc`.
 
 ## Settings and sources
 
@@ -30,7 +30,7 @@ Outputs of interest: `thermostat_t.301.nc`, `thermostat_z.301.nc`.
 | sponge | `igrw_damp = 2`, `ksp` default (top quarter, `rnu0 = 2.75e-3`) | DALES default `igrw_damp = 2`; the `ksp` default is the same formula |
 | `lqlnr` | `.true.` | exact liquid water by Newton-Raphson; DALES dev uses two linearised steps (within 0.2 % of exact) and ignores its `lqlnr` |
 | surface | `libm = .false.`, `lbottom = .true.`, `nfcts = 0`, `BCbotT = BCbotq = 1` | flat bottom without buildings |
-| thermostat | `lthermostat`, `tthermostat = 60` s | task spec |
+| bldump | `lbldump`, `tstatsdump = 60` s | task spec |
 | `timerad` | 0 | task spec (radiation every step; unused with `iradiation = 0`) |
 | initial noise | `lrandomize`, `randthl = 0.1` K, `randqt = 2.5e-5` kg/kg, `randu = 0`, `krand = 80` (all levels), `irandom = 43` | DALES `randthl`, `randqt`, `irandom`; DALES BOMEX applies no u, v, w noise (its momentum noise is off) and perturbs all levels |
 | `tcheck` | 60 s | mean dt to the log every minute (used for the time-step comparison) |
@@ -94,10 +94,10 @@ reported runs in [RESULTS.md](RESULTS.md).
 - uDALES has no 5th-order advection scheme; BOMEX uses second-order central differences in DALES too. The
   remaining differences are listed in [uDALES and DALES numerics](../../docs/udales-dales-numerics.md).
 - Duration 6 h instead of 8 h (task spec).
-- Output: only the thermostat files (statistics, field dumps and cross sections are off).
+- Output: only the bldump files (statistics, field dumps and cross sections are off).
 
 ## Concerns
 
 - The dt match is a 6 h-mean match (see "Time step"); hours 1-3 run about 25 % longer steps than DALES.
 - The `qts` and `thls` namelist values are first guesses only; the comparison should use the
-  diagnosed `thls`, `qts`, `ustar` and `obl` in `thermostat_t`.
+  diagnosed `thls`, `qts`, `ustar` and `obl` in `bldump_t`.

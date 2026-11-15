@@ -52,7 +52,7 @@ contains
       return
     end if
     ! allocated only when the scheme is on: with iradiation = 0 nothing reads these arrays
-    ! (radiation and thermostat are guarded by iradiation; exitradiation tests allocated)
+    ! (radiation and bldiag are guarded by iradiation; exitradiation tests allocated)
     allocate(thlprad(ib:ie,jb:je,kb:ke)); thlprad = 0.
     allocate(lwd(ib:ie,jb:je,kb:ke+1));   lwd = 0.
     allocate(lwu(ib:ie,jb:je,kb:ke+1));   lwu = 0.

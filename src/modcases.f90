@@ -15,7 +15,7 @@
 !!             every timerad), after the generic radpar tendency and before
 !!             thlprad is added to thlp; may add to thlprad (held until the next update)
 !! - forcing   in the time loop after lstend, every RK substep; may add to the tendencies
-!! - stats     in the time loop after thermostat, every RK substep; a stats hook
+!! - stats     in the time loop after bldumpstats, every RK substep; a stats hook
 !!             gates itself on rk3step == 3 and its own output time
 !!
 !! A case namelist group that is in namoptions while its hook is not in case_hooks is

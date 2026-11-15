@@ -215,54 +215,6 @@ Parameters of the `dycoms_rf01` hook: the free-troposphere term of the DYCOMS-II
 | dycoms_D | 0. (unset) | `REAL` > 0 | Large-scale divergence (RF01: 3.75e-6). | [1/s] |
 | dycoms_qt_thres | 0. (unset) | `REAL` > 0 | `qt` value defining the local inversion height (RF01: 8e-3). | [kg/kg] |
 
-## Namelist NAMTHERMOSTAT
-
-Time-series and profile diagnostics for boundary-layer cases (BOMEX, smoke, DYCOMS). Off by default. Variable names follow DALES where an equivalent exists (`modtimestat`, `modgenstat`). Output files are described below. Invalid `zi_*` settings abort; `zi_sv_thres` without `zi_sv_index`, and `zi_*` settings with `lthermostat = .false.`, are ignored with a warning.
-
-| Name | Default | Possible values | Description | Unit |
-| ---- | ------- | --------------- | ----------- | ---- |
-| lthermostat | .false. | .true. or .false. | Write `thermostat_t.<expnr>.nc` and `thermostat_z.<expnr>.nc`. | - |
-| tthermostat | 0. (unset) | `REAL` > 0 | Output interval. Required when `lthermostat = .true.`; the run aborts if it is not set. | [s] |
-| zi_qt_thres | 0. (off) | `REAL` >= 0 | `qt` threshold whose highest downward crossing is written as `zi_qt`. 0 writes no `zi_qt`; > 0 requires `lmoist`. | [kg/kg] |
-| zi_sv_index | 0 (off) | 0 to `nsv` | Scalar whose highest downward crossing of `zi_sv_thres` is written as `zi_sv`. 0 writes no `zi_sv`. | - |
-| zi_sv_thres | 0. (unset) | `REAL` > 0 | Threshold of the `zi_sv` diagnostic. Required with `zi_sv_index > 0`; the run aborts if it is not set. | scalar unit |
-
-Both files are written by rank 0 in single precision, every `tthermostat`. Averages are over fluid cells only. Fluxes are resolved fluxes only (no SGS contribution).
-
-`thermostat_t.<expnr>.nc` (time series, dimension `time`):
-
-| Variable | Description | Unit |
-| -------- | ----------- | ---- |
-| lwp_bar | Liquid water path, mean over fluid columns | kg/m^2 |
-| cfrac | Cloud cover: fraction of columns with `ql > 0` anywhere | - |
-| zi | Boundary-layer height: mean over columns of the half level of maximum `dthl/dz` | m |
-| zi_qt | Boundary-layer height: highest downward crossing of `qt = zi_qt_thres` (0 if none). Written only with `zi_qt_thres > 0` | m |
-| zi_sv | Boundary-layer height: highest downward crossing of `zi_sv_thres` by scalar `zi_sv_index` (0 if none). Written only with `zi_sv_index > 0` | m |
-| wmax | Maximum vertical velocity | m/s |
-| qlmax | Maximum liquid water | kg/kg |
-| ustar | Friction velocity | m/s |
-| obl | Obukhov length | m |
-| thls | Surface thl | K |
-| qts | Surface qt | kg/kg |
-| u1 | Slab-mean u at first level | m/s |
-| v1 | Slab-mean v at first level | m/s |
-
-`thermostat_z.<expnr>.nc` (slab-mean profiles, dimensions `time` and height; `tt` = full levels, `mt` = half levels):
-
-| Variable | Description | Unit | Levels |
-| -------- | ----------- | ---- | ------ |
-| thl | Liquid water potential temperature | K | full |
-| qt | Total water | kg/kg | full |
-| ql | Liquid water | kg/kg | full |
-| cfracz | Cloud fraction | - | full |
-| rhof | Density | kg/m^3 | full |
-| exnf | Exner function | - | full |
-| thlprad | Radiative thl tendency (0 without radiation) | K/s | full |
-| wthl | Resolved w thl flux | K m/s | half |
-| wqt | Resolved w qt flux | m/s | half |
-| lwu | Longwave flux, F1 term (0 without radiation) | W/m^2 | half |
-| lwd | Longwave flux, F0 term (0 without radiation) | W/m^2 | half |
-
 ## Namelist WALLS
 
 1 = fixed flux
@@ -355,9 +307,51 @@ Both files are written by rank 0 in single precision, every `tthermostat`. Avera
 | lytdump | .false. | .true. or .false. | Switch to output y- and time- averaged statistics. *Only functional if x-direction is not parallelised.* | - |
 | lxydump | .false. | .true. or .false. | Switch to output x- and y- averaged statistics. | - |
 | lxytdump | .false. | .true. or .false. | Switch to output x-, y- and time-averaged statistics. | - |
+| lbldump | .false. | .true. or .false. | Write `bldump_t.<expnr>.nc` and `bldump_z.<expnr>.nc`: cloud, boundary-layer and radiation diagnostics for boundary-layer cases (BOMEX, smoke, DYCOMS). Instantaneous samples every `tstatsdump` from `tstatstart` on, after the thermodynamics of the time step. Files and variables: see below. | - |
+| zi_qt_thres | 0. (off) | `REAL` >= 0 | `bldump`: `qt` threshold whose highest downward crossing is written as `zi_qt`. 0 writes no `zi_qt`; > 0 requires `lmoist`. | [kg/kg] |
+| zi_sv_index | 0 (off) | 0 to `nsv` | `bldump`: scalar whose highest downward crossing of `zi_sv_thres` is written as `zi_sv`. 0 writes no `zi_sv`. | - |
+| zi_sv_thres | 0. (unset) | `REAL` > 0 | `bldump`: threshold of the `zi_sv` diagnostic. Required with `zi_sv_index > 0`; the run aborts if it is not set. | scalar unit |
 <!---
 | ltkedump | .false. | .true. or .false. | *Not supported in the current version.* | - |
 --->
+
+### bldump files
+
+Time-series and profile diagnostics for boundary-layer cases. Off by default. Variable names follow DALES where an equivalent exists (`modtimestat`, `modgenstat`). Invalid `zi_*` settings abort, as does `lbldump = .true.` with `tstatsdump <= 0`; `zi_sv_thres` without `zi_sv_index`, and `zi_*` settings with `lbldump = .false.`, are ignored with a warning. Both files are written by rank 0 in single precision. Averages are over fluid cells only. Fluxes are resolved fluxes only (no SGS contribution).
+
+`bldump_t.<expnr>.nc` (time series, dimension `time`):
+
+| Variable | Description | Unit |
+| -------- | ----------- | ---- |
+| lwp_bar | Liquid water path, mean over fluid columns | kg/m^2 |
+| cfrac | Cloud cover: fraction of columns with `ql > 0` anywhere | - |
+| zi | Boundary-layer height: mean over columns of the half level of maximum `dthl/dz` | m |
+| zi_qt | Boundary-layer height: highest downward crossing of `qt = zi_qt_thres` (0 if none). Written only with `zi_qt_thres > 0` | m |
+| zi_sv | Boundary-layer height: highest downward crossing of `zi_sv_thres` by scalar `zi_sv_index` (0 if none). Written only with `zi_sv_index > 0` | m |
+| wmax | Maximum vertical velocity | m/s |
+| qlmax | Maximum liquid water | kg/kg |
+| ustar | Friction velocity | m/s |
+| obl | Obukhov length | m |
+| thls | Surface thl | K |
+| qts | Surface qt | kg/kg |
+| u1 | Slab-mean u at first level | m/s |
+| v1 | Slab-mean v at first level | m/s |
+
+`bldump_z.<expnr>.nc` (slab-mean profiles, dimensions `time` and height; `tt` = full levels, `mt` = half levels):
+
+| Variable | Description | Unit | Levels |
+| -------- | ----------- | ---- | ------ |
+| thl | Liquid water potential temperature | K | full |
+| qt | Total water | kg/kg | full |
+| ql | Liquid water | kg/kg | full |
+| cfracz | Cloud fraction | - | full |
+| rhof | Density | kg/m^3 | full |
+| exnf | Exner function | - | full |
+| thlprad | Radiative thl tendency (0 without radiation) | K/s | full |
+| wthl | Resolved w thl flux | K m/s | half |
+| wqt | Resolved w qt flux | m/s | half |
+| lwu | Longwave flux, F1 term (0 without radiation) | W/m^2 | half |
+| lwd | Longwave flux, F0 term (0 without radiation) | W/m^2 | half |
 
 ## Namelist INPS
 

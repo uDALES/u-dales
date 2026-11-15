@@ -46,7 +46,7 @@ Analysis: `compare_dales.py 301 <out> --udales ... --dales ...`. BOMEX was not r
 | initial noise | thl +-0.1 K, qt +-2.5e-5 on all 80 levels, no u, v, w noise | same amplitudes and levels | amplitudes yes; generators differ (uDALES splitmix64 with one draw for thlm and thl0, DALES LCG with separate draws), a different realisation by design |
 | initial e12 | `prof.inp` e12 column | same | yes |
 | decomposition | 4 x 2 | 4 x 4 | irrelevant once the e12 halo bug is fixed |
-| diagnostics | 60 s slab-mean snapshots (thermostat) | 60 s samples, 600 s block means (genstat) | aligned in compare_dales.py: same 600 s blocks, same zi definition from the block-mean profiles |
+| diagnostics | 60 s slab-mean snapshots (bldump) | 60 s samples, 600 s block means (genstat) | aligned in compare_dales.py: same 600 s blocks, same zi definition from the block-mean profiles |
 
 ### Results, fixed dt = 2 s, window 3-6 h (3 seeds each)
 
