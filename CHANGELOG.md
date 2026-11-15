@@ -72,6 +72,22 @@ that they are easy to find when upgrading.
 
 ### Added
 
+- **Facet-size uniformisation in the Python preprocessing.** With
+  `lfacetuniform = .true.` (namelist `&INPS`), `udprep` first rebuilds the STL
+  so that facet areas fall within a band around a target area: facets above the
+  band are split and coplanar facets of the same type below it are merged, with
+  the geometry, the creases, the facet types and the mesh conformity preserved.
+  The result is written to `<stem>_uniform.stl` (plus facet types, a face map
+  and a JSON sidecar), `stl_file`/`types_path` are pointed at it, and the
+  original STL is left untouched. Options `facet_target_edge`,
+  `facet_size_band`, `facet_allow_split`, `facet_allow_merge` and
+  `facet_count_max`; the default target keeps the facet count about the same.
+  Also available as `udgeom.uniformize_facets`. See
+  [Pre-processing](docs/udales-pre-processing.md#facet-size-uniformisation).
+- `udprep` now refuses an existing `facets.inp` whose facet count does not
+  match the geometry instead of silently reusing it, and `Section.save_param`
+  updates a preprocessing-only variable (such as `stl_file`) in the namelist
+  block where it already appears instead of appending a new `&INP` block.
 - `docs/udales-output-files.md` now documents the SGS flux definitions, their
   sign convention, and the fact that the SGS statistics carry **no** surface or
   wall-model contribution, so the total-stress profile does not close at the

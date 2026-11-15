@@ -2,7 +2,8 @@
 udgeom - Geometry utilities package for uDALES
 
 This package provides geometry manipulation and analysis tools for uDALES simulations,
-including mesh operations, building separation, and outline calculation.
+including mesh operations, building separation, facet-size uniformisation,
+and outline calculation.
 
 Copyright (C) 2016-2025 the uDALES Team.
 """
@@ -22,6 +23,13 @@ from .extrude_to_ground import extrude_to_ground
 from .fix_mesh import fix, repair_adjacent_buildings, resolve_vertical_coplanar_overlaps, weld_touching_boundaries
 from .split_buildings import split_buildings
 from .truncate_below_ground import truncate_below_ground
+from .uniform_facets import (
+    FacetCountError,
+    UniformFacetsResult,
+    target_area_from_edge,
+    target_edge_from_area,
+    uniformize_facets,
+)
 from .geometry_generation import (
     add_ground,
     create_flat_surface,
@@ -66,6 +74,11 @@ __all__ = [
     'split_buildings',
     'truncate_below_ground',
     'weld_touching_boundaries',
+    'FacetCountError',
+    'UniformFacetsResult',
+    'target_area_from_edge',
+    'target_edge_from_area',
+    'uniformize_facets',
     'add_ground',
     'create_flat_surface',
     'create_canyons',
