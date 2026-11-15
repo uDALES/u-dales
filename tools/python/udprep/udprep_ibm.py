@@ -40,7 +40,7 @@ class IBMSection(Section):
 
         if self.libm:
             if self.gen_geom:
-                if getattr(self, "lfacetuniform", False):
+                if self.lfacetuniform:
                     steps.append(("uniformize_facets", self.uniformize_facets))
                 steps.extend(
                     [
