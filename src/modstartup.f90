@@ -75,7 +75,7 @@ module modstartup
                                     BCxm,BCxT,BCxq,BCxs,BCym,BCyT,BCyq,BCys,BCzp,ds, &
                                     BCtopm,BCtopT,BCtopq,BCtops,BCbotm,BCbotT,BCbotq,BCbots, &
                                     idriver,tdriverstart,driverjobnr,dtdriver,driverstore,lchunkread,chunkread_size, &
-                                    lrandomize, prandtlturb, fkar, lwritefac, dtfac, tfac, tnextfac, &
+                                    lrandomize, prandtlturb, fkar, mo_maxslope, lwritefac, dtfac, tfac, tnextfac, &
                                     ltrees,ntrees,Qstar,dQdt,lad,lsize,r_s,cd,dec,ud,ltreedump,itree_mode, &
                                     lpurif,npurif,Qpu,epu, &
                                     lheatpump,lfan_hp,nhppoints,Q_dot_hp,QH_dot_hp
@@ -152,7 +152,7 @@ module modstartup
          nsolpts_u, nsolpts_v, nsolpts_w, nsolpts_c, &
          nbndpts_u, nbndpts_v, nbndpts_w, nbndpts_c, &
          nfctsecs_u, nfctsecs_v, nfctsecs_w, nfctsecs_c, lbottom, lnorec, &
-         prandtlturb, fkar, lwritefac, dtfac
+         prandtlturb, fkar, mo_maxslope, lwritefac, dtfac
       namelist/ENERGYBALANCE/ &
          lEB, lwriteEBfiles, lperiodicEBcorr, sinkbase, lconstW, dtEB, bldT, flrT, wsoil, wgrmax, wwilt, wfc, &
          skyLW, GRLAI, rsmin, nfaclyrs, lfacTlyrs, lvfsparse, nnz, fraction
@@ -595,6 +595,7 @@ module modstartup
       call MPI_BCAST(lrandomize, 1, MPI_LOGICAL, 0, comm3d, mpierr)
       call MPI_BCAST(prandtlturb, 1, MY_REAL, 0, comm3d, mpierr)
       call MPI_BCAST(fkar, 1, MY_REAL, 0, comm3d, mpierr)
+      call MPI_BCAST(mo_maxslope, 1, MY_REAL, 0, comm3d, mpierr)
       call MPI_BCAST(ltrees, 1, MPI_LOGICAL, 0, comm3d, mpierr)
       call MPI_BCAST(ntrees, 1, MPI_INTEGER, 0, comm3d, mpierr)
       call MPI_BCAST(ltreedump, 1, MPI_LOGICAL, 0, comm3d, mpierr)
@@ -725,7 +726,7 @@ module modstartup
                               BCxm_driver, BCxT_driver, BCxq_driver, BCxs_driver, &
                               BCym_periodic, BCym_profile, BCyT_periodic, BCyT_profile, &
                               BCyq_periodic, BCyq_profile, &
-                              linoutflow,ltempeq,iwalltemp,iwallmom,&
+                              linoutflow,ltempeq,iwalltemp,iwallmom,iwallmoist,iwallmom_mo,mo_maxslope,libm,&
                               ipoiss,POISS_FFT2D,&
                               lydump,lytdump,luoutflowr,lvoutflowr,&
                               lhdriver,lqdriver,lsdriver,ltrees,lEB,itree_mode,&
@@ -817,6 +818,22 @@ module modstartup
          end if
          if ((BCbotm == BCbotm_mo_ustar) .and. (ustin <= 0.)) then
             if (myid == 0) write(0, *) 'ERROR: BCbotm = 5 requires ustin > 0'
+            call abort_all_ranks(1)
+         end if
+      end if
+      ! iwallmom = 4: Monin-Obukhov on the near-horizontal facets, from the prescribed facet
+      ! fluxes (bctfz, and bcqfz on facets whose type has lGR = 1)
+      if (iwallmom == iwallmom_mo) then
+         if ((.not. libm) .or. (.not. ltempeq) .or. (iwalltemp /= 1)) then
+            if (myid == 0) write(0, *) 'ERROR: iwallmom = 4 (Monin-Obukhov facets) requires libm, ltempeq and iwalltemp = 1'
+            call abort_all_ranks(1)
+         end if
+         if (lmoist .and. (iwallmoist /= 1)) then
+            if (myid == 0) write(0, *) 'ERROR: iwallmom = 4 with lmoist requires iwallmoist = 1 (prescribed bcqfz)'
+            call abort_all_ranks(1)
+         end if
+         if ((mo_maxslope < 0.) .or. (mo_maxslope >= 90.)) then
+            if (myid == 0) write(0, *) 'ERROR: mo_maxslope must be in [0, 90) degrees, got ', mo_maxslope
             call abort_all_ranks(1)
          end if
       end if

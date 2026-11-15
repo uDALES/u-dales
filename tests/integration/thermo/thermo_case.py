@@ -16,7 +16,9 @@ RUNTIME_MODULES = os.environ.get(
     "intel/2021a netCDF/4.8.0-iimpi-2021a netCDF-Fortran/4.5.3-iimpi-2021a FFTW/3.3.9-intel-2021a",
 )
 sys.path.insert(0, str(REPO_ROOT / "tests" / "integration"))
+sys.path.insert(0, str(REPO_ROOT / "tools" / "python"))
 import mpi_env  # noqa: E402
+from udprep.flat_floor import write_flat_floor  # noqa: E402
 
 EXPNR = "310"
 
@@ -44,10 +46,28 @@ def rf01_profiles(zf: np.ndarray, zi: float = 840.0):
 
 
 def write_case(run_dir: Path, groups: dict | None = None, ktot: int = 64, dz: float = 20.0,
-               thl=None, qt=None, u=7.0, v=-5.5, wfls=None, thlpcar=None, sv=None) -> Path:
-    """Write namoptions/prof.inp/lscale.inp for a flat case. Returns run_dir."""
+               thl=None, qt=None, u=7.0, v=-5.5, wfls=None, thlpcar=None, sv=None,
+               floor: dict | None = None) -> Path:
+    """Write namoptions/prof.inp/lscale.inp for a flat case. Returns run_dir.
+
+    floor: if given, the bottom is a facet floor (udprep.flat_floor) with Monin-Obukhov
+    facets (iwallmom = 4) instead of the flat bottom boundary (lbottom). Its keys are the
+    keyword arguments of write_flat_floor (z0 and z0h are required); the facet fluxes
+    bctfz/bcqfz go in groups["BC"]. groups are applied after the floor settings."""
     run_dir.mkdir(parents=True, exist_ok=True)
     nml = {g: dict(kv) for g, kv in BASE.items()}
+    if floor is not None:
+        itot, jtot = int(nml["DOMAIN"]["itot"]), int(nml["DOMAIN"]["jtot"])
+        for g, kv in (groups or {}).items():          # a domain override must reach the floor too
+            if g == "DOMAIN":
+                itot, jtot = int(kv.get("itot", itot)), int(kv.get("jtot", jtot))
+        xlen = float(((groups or {}).get("DOMAIN") or {}).get("xlen", nml["DOMAIN"]["xlen"]))
+        ylen = float(((groups or {}).get("DOMAIN") or {}).get("ylen", nml["DOMAIN"]["ylen"]))
+        counts = write_flat_floor(run_dir, EXPNR, itot, jtot, xlen / itot, ylen / jtot, z1=0.5 * dz, **floor)
+        nml["RUN"]["libm"] = ".true."
+        nml["WALLS"] = {"lbottom": ".false.", "iwallmom": "4", "iwalltemp": "1", "iwallmoist": "1",
+                        **{k: str(v) for k, v in counts.items()}}
+        nml["BC"] = {k: v for k, v in nml["BC"].items() if k in ("thls", "qts")}
     for g, kv in (groups or {}).items():
         nml.setdefault(g, {}).update(kv)
     nml["DOMAIN"]["ktot"] = str(ktot)

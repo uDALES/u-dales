@@ -81,11 +81,13 @@ contains
 
   subroutine bldiag
     use modglobal,  only : ib, ie, jb, je, kb, ke, timee, rk3step, zf, zh, dzf, dzh, &
-                           lbldump, tstatsdump, tstatstart, zi_qt_thres, zi_sv_index, zi_sv_thres
+                           lbldump, tstatsdump, tstatstart, zi_qt_thres, zi_sv_index, zi_sv_thres, &
+                           iwallmom, iwallmom_mo
     use modfields,  only : thl0, qt0, ql0, w0, sv0, rhof, exnf, IIc, IIcs, IIw, IIws, u0av, v0av
     use modsurfdata, only : thls, qts
     use modraddata, only : thlprad, lwu, lwd, iradiation, irad_none
     use modsurface, only : ustar_mo, obl_mo
+    use modibm,     only : mo_facet_means
     use modmpi,     only : myid, comm3d, mpierr, my_real, mpi_sum, mpi_max, avexy_ibm
     use modstat_nc, only : writestat_nc
     implicit none
@@ -133,10 +135,15 @@ contains
     ncol = max(glob(8), 1.)                  ! columns with at least one fluid cell
     vt(1:5) = glob(1:5) / ncol
     vt(6:7) = glob(6:7)
-    vt(8)  = ustar_mo
-    vt(9)  = obl_mo
-    vt(10) = thls
-    vt(11) = qts
+    if (iwallmom == iwallmom_mo) then
+      ! Monin-Obukhov facets: area means over their sections (obl = 1/mean(1/L))
+      call mo_facet_means(vt(8), vt(9), vt(10), vt(11))
+    else
+      vt(8)  = ustar_mo
+      vt(9)  = obl_mo
+      vt(10) = thls
+      vt(11) = qts
+    end if
     vt(12) = u0av(kb)
     vt(13) = v0av(kb)
 

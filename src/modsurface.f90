@@ -16,6 +16,7 @@ module modsurface
   public :: initsurface_mo, exitsurface_mo, surface_mo_state, surface_mo, lmo_surface, &
             ustar_mo, obl_mo, dthldz_mo, dqtdz_mo, dudz_mo, dvdz_mo
   public :: psim, psih, phim, phih, calc_obl_iter, rib_from_obl, mo_wind_gradient   ! pure kernels, tested by tests.f90:tests_mo_kernels
+  public :: mo_local_update
 
   real :: ustar_mo  = 0.      !< friction velocity [m/s]
   real :: obl_mo    = -0.1    !< Obukhov length [m] (also the iteration's first guess)
@@ -176,6 +177,35 @@ contains
       end do
     end do
   end subroutine surface_mo
+
+  !> Local Monin-Obukhov update of one surface element (a facet section), lmostlocal = .true.
+  !> Port of the per-column sequence of DALES dev 075ac4e modsurface.f90:surface, isurf = 4
+  !> (isurf = 3 when ustin > 0): calc_drag_coefficients with the previous L, get_obl,
+  !> calc_friction_velocity (presc_friction_velocity), calc_surface_scalars.
+  !> thl, qt and horv are the air state at the reference point, a height z1 above the surface;
+  !> wthl_up, wqt_up the prescribed kinematic fluxes, positive upward (away from the surface).
+  !> obl, tskin and qskin carry the state from the previous call.
+  subroutine mo_local_update(thl, qt, horv, z1, z0m, z0h, wthl_up, wqt_up, ustin, obl, tskin, qskin, ustar)
+    use modglobal, only : fkar
+    real, intent(in)    :: thl, qt, horv, z1, z0m, z0h, wthl_up, wqt_up, ustin
+    real, intent(inout) :: obl, tskin, qskin
+    real, intent(out)   :: ustar
+    real :: horvf, cm, cs
+
+    horvf = max(horv, min_horv)
+    cm = fkar**2 / (log(z1/z0m) - psim(z1/obl) + psim(z0m/obl))**2
+    cs = fkar**2 / (log(z1/z0m) - psim(z1/obl) + psim(z0m/obl)) &
+                 / (log(z1/z0h) - psih(z1/obl) + psih(z0h/obl))
+    obl = calc_obl_iter(thl, qt, tskin, qskin, z1, z0m, z0h, horv, 0., obl)
+    if (ustin > 0.) then
+      ustar = ustin
+    else
+      ustar = sqrt(cm) * horvf
+    end if
+    ustar = max(ustar, ustar_min)
+    tskin = min(max(wthl_up / (cs * horvf), -dtskin_max), dtskin_max) + thl
+    qskin = min(max(wqt_up  / (cs * horvf), -dqskin_max), dqskin_max) + qt
+  end subroutine mo_local_update
 
   !> Surface-layer gradient of a horizontal wind component: u* phim(z1/L) / (kappa z1) * uc/|U|,
   !> uc the component at the cell centre and horv = |U| floored at min_horv.

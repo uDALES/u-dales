@@ -324,6 +324,8 @@ module modglobal
    real :: prandtlturb = prandtlmol
 
    integer         :: iwallmom = 2, iwalltemp = 1, iwallmoist = 1, iwallscal = 1
+   integer, parameter :: iwallmom_mo = 4 !< iwallmom: Monin-Obukhov surface layer on near-horizontal facets
+   real            :: mo_maxslope = 30. !< iwallmom = 4: facets with slope <= mo_maxslope [deg] use Monin-Obukhov
 
    real, parameter :: rhow = 0.998e3 !<    * Density of water
    real, parameter :: pref0 = 1.e5 !<    *standard pressure used in exner function.
