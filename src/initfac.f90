@@ -49,6 +49,10 @@
       !integer, allocatable :: facain(:) !facet area as sum of indeces
       integer, allocatable :: facets(:) !facet orientation, walltype, block and building Nr
       real, allocatable    :: facnorm(:,:)
+      ! prescribed fluxes per facet from the optional factypeflux.inp.<expnr> (iwalltemp = 1, iwallmoist = 1); see #409
+      real, allocatable    :: facfluxh(:) !prescribed heat flux [Km/s]
+      real, allocatable    :: facfluxq(:) !prescribed moisture flux [kg/kg m/s]
+      logical, allocatable :: facfluxset(:) !facet type has a prescribed flux in factypeflux.inp
       real, allocatable    :: factypes(:, :) !the defined wall and rooftypes with properties
       !radiation
       real, allocatable    :: vf(:, :) !viewfactors between facets
@@ -103,6 +107,11 @@
         integer :: ncid, varid
         integer :: n = 0, m = 0, i = 0, j = 0, io = 0
         integer :: iret
+        logical, allocatable :: tfluxset(:)
+        real, allocatable :: tfluxh(:), tfluxq(:)
+        character(256) :: fluxline
+        real :: fluxh, fluxq
+        integer :: fluxid
 
         if (.not.(nfcts > 0)) return
 
@@ -111,6 +120,9 @@
         ! used by LES solver - needed on every rank
         allocate (facets(nfcts)); facets = 0
         allocate (facnorm(nfcts,3)); facnorm = 0.
+        allocate (facfluxh(nfcts)); facfluxh = 0.
+        allocate (facfluxq(nfcts)); facfluxq = 0.
+        allocate (facfluxset(nfcts)); facfluxset = .false.
         allocate (facz0(1:nfcts)); facz0 = 0.
         allocate (facz0h(1:nfcts)); facz0h = 0.
         allocate (faca(1:nfcts)); faca = 0.
@@ -204,6 +216,42 @@
               typeloc(int(factypes(n, 1))) = n
               end do
 
+              ! optional prescribed flux per facet type (iwalltemp = 1 / iwallmoist = 1): factypeflux.inp.<expnr>,
+              ! rows 'walltype  heat flux [Km/s]  moisture flux [kg/kg m/s]'; lines starting with # are comments.
+              ! Types not listed (or no file) use bctf*/bcqf* by facet direction.
+              allocate (tfluxset(nfactypes)); tfluxset = .false.
+              allocate (tfluxh(nfactypes)); tfluxh = 0.
+              allocate (tfluxq(nfactypes)); tfluxq = 0.
+              if (iwalltemp == 1 .or. iwallmoist == 1) then
+                open (ifinput, file='factypeflux.inp.'//cexpnr, status='old', iostat=io)
+                if (io == 0) then
+                  do
+                    read (ifinput, '(a)', iostat=io) fluxline
+                    if (io /= 0) exit
+                    if (len_trim(fluxline) == 0) cycle
+                    fluxline = adjustl(fluxline)
+                    if (fluxline(1:1) == '#') cycle
+                    read (fluxline, *, iostat=io) fluxid, fluxh, fluxq
+                    if (io /= 0) then
+                      write (*, *) 'ERROR: cannot read line of factypeflux.inp.'//cexpnr//': ', trim(fluxline)
+                      stop 1
+                    end if
+                    if (fluxid < lbound(typeloc,1) .or. fluxid > ubound(typeloc,1)) then
+                      write (*, *) 'ERROR: factypeflux.inp.'//cexpnr//' lists a wall type not in factypes.inp: ', fluxid
+                      stop 1
+                    end if
+                    if (typeloc(fluxid) == 0) then
+                      write (*, *) 'ERROR: factypeflux.inp.'//cexpnr//' lists a wall type not in factypes.inp: ', fluxid
+                      stop 1
+                    end if
+                    tfluxset(typeloc(fluxid)) = .true.
+                    tfluxh(typeloc(fluxid)) = fluxh
+                    tfluxq(typeloc(fluxid)) = fluxq
+                  end do
+                  close (ifinput)
+                end if
+              end if
+
               open (ifinput, file='facets.inp.'//cexpnr)
               read (ifinput, '(a80)') chmess
               do n = 1, nfcts
@@ -214,6 +262,11 @@
               do n = 1, nfcts
                 i = typeloc(facets(n))
                 faclGR(n) = (abs(factypes(i, 2) - 1.00) < 1.0D-5) !logic for green surface, conversion from real to logical
+                if (tfluxset(i)) then
+                  facfluxset(n) = .true.
+                  facfluxh(n) = tfluxh(i)
+                  facfluxq(n) = tfluxq(i)
+                end if
                 facz0(n) = factypes(i, 3)  !surface momentum roughness
                 facz0h(n) = factypes(i, 4) !surface heat & moisture roughness
                 !facalb(n) = factypes(i, 5) !surface shortwave albedo
@@ -370,6 +423,9 @@
             call MPI_BCAST(facets, nfcts, MPI_Integer, 0, comm3d, mpierr)
             call MPI_BCAST(facnorm, nfcts*3, MY_REAL, 0, comm3d, mpierr)
             call MPI_BCAST(faclGR(1:nfcts), nfcts, mpi_logical, 0, comm3d, mpierr)
+            call MPI_BCAST(facfluxset, nfcts, mpi_logical, 0, comm3d, mpierr)
+            call MPI_BCAST(facfluxh, nfcts, MY_REAL, 0, comm3d, mpierr)
+            call MPI_BCAST(facfluxq, nfcts, MY_REAL, 0, comm3d, mpierr)
 
             !call MPI_BCAST(facalb(1:nfcts), nfcts, MY_REAL, 0, comm3d, mpierr)
             !call MPI_BCAST(facem(1:nfcts), nfcts, MY_REAL, 0, comm3d, mpierr)

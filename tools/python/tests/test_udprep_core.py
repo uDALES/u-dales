@@ -195,6 +195,17 @@ class TestIBMSection(unittest.TestCase):
         section.copy_geom_outputs = mock.Mock(side_effect=lambda: calls.append(("copy_geom_outputs", None)))
         return section, calls
 
+    def test_write_factypeflux(self):
+        section, _ = self._recording_section()
+        section.write_factypeflux({11: (0.0, -1.5e-5), 1: (0.05, 0.0)})
+        lines = (self.workdir / "factypeflux.inp.321").read_text(encoding="ascii").splitlines()
+        rows = [ln.split() for ln in lines if not ln.startswith("#")]
+        self.assertEqual([int(r[0]) for r in rows], [1, 11])
+        self.assertAlmostEqual(float(rows[0][1]), 0.05)
+        self.assertAlmostEqual(float(rows[1][2]), -1.5e-5)
+        with self.assertRaises(ValueError):
+            section.write_factypeflux({})
+
     def test_run_all_orchestrates_ibm_preprocessing_modes(self):
         with self.subTest("generate geometry and default factypes"):
             section, calls = self._recording_section()

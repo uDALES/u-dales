@@ -193,8 +193,8 @@ BCs at the bottom (BCbot; only effective if not covered with ground facets): 1 =
 | ---- | ------- | --------------- | ----------- | ---- |
 | nfcts | -1 | `INTEGER` | Number of facets specified in `facets.inp`. | - |
 | iwallmom | 2 | 1, 2, 3 (1 means zero flux) | Building wall momentum flux. | - |
-| iwalltemp | 1 | 1, 2 |  Building wall temperature flux. | - |
-| iwallmoist | 1 | 1, 2 |  Building wall moisture flux. | - |
+| iwalltemp | 1 | 1, 2 |  Building wall temperature flux: 1 prescribed (`factypeflux.inp`, else `bctf*`; zero on other facets), 2 wall function. Other values stop the run. | - |
+| iwallmoist | 1 | 1, 2 |  Building wall moisture flux: 1 prescribed (`factypeflux.inp`, else `bcqf*`; zero on other facets), 2 wall function (needs `ltempeq` and `iwalltemp = 2`). Other values stop the run. | - |
 | iwallscal | 1 | 1, 2 | Building wall scalar flux | - |
 | lbottom | .false. | .true., .false. | Switch for using wall function as bottom BC. *Used only if no ground facets.* | - |
 | nsolpts_u | 0 | `INTEGER` | Number of solid points on u-grid. | - |

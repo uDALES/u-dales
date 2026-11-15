@@ -721,7 +721,7 @@ module modstartup
                               BCxm_driver, BCxT_driver, BCxq_driver, BCxs_driver, &
                               BCym_periodic, BCym_profile, BCyT_periodic, BCyT_profile, &
                               BCyq_periodic, BCyq_profile, &
-                              linoutflow,ltempeq,iwalltemp,iwallmom,&
+                              linoutflow,ltempeq,iwalltemp,iwallmoist,libm,iwallmom,&
                               ipoiss,POISS_FFT2D,&
                               lydump,lytdump,luoutflowr,lvoutflowr,&
                               lhdriver,lqdriver,lsdriver,ltrees,lEB,itree_mode,&
@@ -809,6 +809,23 @@ module modstartup
             end if
             stop 1
          end if
+      end if
+
+      ! Supported wall treatments for heat and moisture (#409): 1 = prescribed flux, 2 = wall function
+      if (iwalltemp /= 1 .and. iwalltemp /= 2) then
+        if (myid == 0) write(0,*) 'ERROR: iwalltemp must be 1 or 2, got ', iwalltemp
+        call MPI_FINALIZE(mpierr)
+        stop 1
+      end if
+      if (iwallmoist /= 1 .and. iwallmoist /= 2) then
+        if (myid == 0) write(0,*) 'ERROR: iwallmoist must be 1 or 2, got ', iwallmoist
+        call MPI_FINALIZE(mpierr)
+        stop 1
+      end if
+      if (libm .and. lmoist .and. iwallmoist == 2 .and. .not. (ltempeq .and. iwalltemp == 2)) then
+        if (myid == 0) write(0,*) 'ERROR: iwallmoist = 2 needs the heat transfer coefficient: set ltempeq = .true. and iwalltemp = 2'
+        call MPI_FINALIZE(mpierr)
+        stop 1
       end if
 
       ! Call neutral wall function when air temperature not evolved or if constant heat flux.

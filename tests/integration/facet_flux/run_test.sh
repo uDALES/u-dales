@@ -48,12 +48,13 @@ trap 'rm -rf "$ROOT_RUN_DIR"' EXIT
 failures=0
 
 run_mode() {
+    local family="$6"
     local label="$1"
     local npx="$2"
     local npy="$3"
     local np="$4"
     local namelist_source="$5"
-    local run_dir="${ROOT_RUN_DIR}/${label}"
+    local run_dir="${ROOT_RUN_DIR}/${family}-${label}"
 
     mkdir -p "$run_dir"
     cp -r "$CASE_SOURCE"/. "$run_dir"/
@@ -62,9 +63,15 @@ run_mode() {
         exit 1
     fi
     cp "$namelist_source" "$run_dir/$NAMELIST"
+    if [ "$family" = mixed ]; then # iwalltemp = 2 reads the initial facet temperatures
+        { echo "# initial facet temperatures"; awk 'NR > 1 { print "288.000000" }' "$run_dir/facets.inp.100"; } > "$run_dir/Tfacinit.inp.100"
+    fi
+    if [ "$family" = pertype ]; then
+        cp "${SCRIPT_DIR}/factypeflux.inp.100" "$run_dir/"
+    fi
 
     echo "=========================================="
-    echo "Running TEST_FACET_FLUX [$label]"
+    echo "Running TEST_FACET_FLUX [$family $label]"
     echo "MPI processes: $np"
     echo "nprocx/nprocy: $npx/$npy"
     echo "Run directory: $run_dir"
@@ -78,41 +85,57 @@ run_mode() {
     ) || run_rc=$?
 
     if [ "$run_rc" -ne 0 ]; then
-        echo "FAIL: TEST_FACET_FLUX [$label] exited with code $run_rc"
+        echo "FAIL: TEST_FACET_FLUX [$family $label] exited with code $run_rc"
         tail -n 120 "${run_dir}/run.log" || true
         failures=$((failures + 1))
         return
     fi
 
     if ! grep -q "ALL TESTS PASSED: tests_facet_flux" "${run_dir}/run.log"; then
-        echo "FAIL: TEST_FACET_FLUX [$label]"
+        echo "FAIL: TEST_FACET_FLUX [$family $label]"
         tail -n 120 "${run_dir}/run.log" || true
         failures=$((failures + 1))
         return
     fi
 
-    grep -h "FACETFLUX\|Prescribed facet fluxes" "${run_dir}/run.log"
-    grep "^ *FACETFLUX" "${run_dir}/run.log" | sed 's/^[^:]*://' > "${ROOT_RUN_DIR}/${label}.totals"
+    local nlines
+    nlines=$(grep -c "^Prescribed " "${run_dir}/run.log" || true)
+    if [ "$family" = direct ]; then
+        if ! grep -q "^Prescribed heat flux (iwalltemp = 1): 287 of 1102 facets" "${run_dir}/run.log" || \
+           ! grep -q "^Prescribed moisture flux (iwallmoist = 1): 287 of 1102 facets" "${run_dir}/run.log"; then
+            echo "FAIL: TEST_FACET_FLUX [$family $label] start-up lines missing"
+            failures=$((failures + 1))
+        fi
+    elif [ "$nlines" -ne 0 ]; then
+        echo "FAIL: TEST_FACET_FLUX [$family $label] unexpected start-up line"
+        failures=$((failures + 1))
+    fi
+    grep -h "FACETFLUX\|^Prescribed " "${run_dir}/run.log"
+    grep "^ *FACETFLUX" "${run_dir}/run.log" | sed 's/^[^:]*://' > "${ROOT_RUN_DIR}/${family}-${label}.totals"
 }
 
-run_mode serial 1 1 1 "${NAMELIST_DIR}/namoptions.1008.serial"
-run_mode xsplit 2 1 2 "${NAMELIST_DIR}/namoptions.1008.xsplit"
-run_mode ysplit 1 2 2 "${NAMELIST_DIR}/namoptions.1008.ysplit"
-run_mode xysplit 2 2 4 "${NAMELIST_DIR}/namoptions.1008.xysplit"
+for family in direct pertype mixed; do
+    run_mode serial 1 1 1 "${NAMELIST_DIR}/namoptions.1008.${family}.serial" "$family"
+    run_mode xsplit 2 1 2 "${NAMELIST_DIR}/namoptions.1008.${family}.xsplit" "$family"
+    run_mode ysplit 1 2 2 "${NAMELIST_DIR}/namoptions.1008.${family}.ysplit" "$family"
+    run_mode xysplit 2 2 4 "${NAMELIST_DIR}/namoptions.1008.${family}.xysplit" "$family"
+done
 
 # The totals must not depend on the decomposition (summation order only: relative 1e-10).
 if [ "$failures" -eq 0 ]; then
-    for label in ysplit xsplit xysplit; do
-        if ! python3 - "${ROOT_RUN_DIR}/serial.totals" "${ROOT_RUN_DIR}/${label}.totals" <<'PYEOF'
+    for family in direct pertype mixed; do
+        for label in ysplit xsplit xysplit; do
+            if ! python3 - "${ROOT_RUN_DIR}/${family}-serial.totals" "${ROOT_RUN_DIR}/${family}-${label}.totals" <<'PYEOF'
 import sys
 a, b = [[float(x) for x in open(p).read().split()] for p in sys.argv[1:3]]
-sys.exit(0 if len(a) == len(b) == 8 and all(abs(x - y) <= 1e-10 * max(abs(x), abs(y), 1e-300) for x, y in zip(a, b)) else 1)
+sys.exit(0 if len(a) == len(b) == 10 and all(abs(x - y) <= 1e-10 * max(abs(x), abs(y)) for x, y in zip(a, b)) else 1)
 PYEOF
-        then
-            echo "FAIL: TEST_FACET_FLUX totals differ between serial and $label"
-            cat "${ROOT_RUN_DIR}/serial.totals" "${ROOT_RUN_DIR}/${label}.totals"
-            failures=$((failures + 1))
-        fi
+            then
+                echo "FAIL: TEST_FACET_FLUX [$family] totals differ between serial and $label"
+                cat "${ROOT_RUN_DIR}/${family}-serial.totals" "${ROOT_RUN_DIR}/${family}-${label}.totals"
+                failures=$((failures + 1))
+            fi
+        done
     done
 fi
 

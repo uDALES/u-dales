@@ -252,31 +252,39 @@ module modibm
 
 
    subroutine report_unprescribed_facets
-     ! Prescribed facet fluxes (iwalltemp = 1, iwallmoist = 1) only exist for the five grid-aligned
-     ! directions; any other facet (sloped, or facing down) gets zero flux in wallfunheat (#409).
+     ! Prescribed facet fluxes (iwalltemp = 1, iwallmoist = 1) come from the facet type (factypeflux.inp) or, for the
+     ! five grid-aligned directions, from bctf*/bcqf*. Any other facet gets zero flux in wallfunheat (#409);
+     ! report how many when the corresponding prescribed fluxes are nonzero.
      use modglobal, only : xhat, yhat, zhat, nfcts, ltempeq, lmoist, iwalltemp, iwallmoist
+     use modtimedep, only : ltimedepsurf
      use modibmdata, only : bctfxm, bctfxp, bctfym, bctfyp, bctfz, bcqfxm, bcqfxp, bcqfym, bcqfyp, bcqfz
-     use initfac,   only : facnorm
+     use initfac,   only : facnorm, facfluxh, facfluxq, facfluxset, faclGR
      use modmpi,    only : myid
-     integer :: n, nunpres
-     logical :: lprescribed
+     integer :: n, nh, nq
+     logical :: lh, lq
 
-     lprescribed = (ltempeq .and. iwalltemp == 1 .and. &
-                    any((/bctfxm, bctfxp, bctfym, bctfyp, bctfz/) /= 0.)) .or. &
-                   (lmoist .and. iwallmoist == 1 .and. &
-                    any((/bcqfxm, bcqfxp, bcqfym, bcqfyp, bcqfz/) /= 0.))
-     if (.not. lprescribed) return
+     lh = ltempeq .and. iwalltemp == 1 .and. &
+          (ltimedepsurf .or. any((/bctfxm, bctfxp, bctfym, bctfyp, bctfz/) /= 0.) .or. any(facfluxh /= 0.))
+     lq = lmoist .and. iwallmoist == 1 .and. &
+          (ltimedepsurf .or. any((/bcqfxm, bcqfxp, bcqfym, bcqfyp, bcqfz/) /= 0.) .or. any(facfluxq /= 0.))
+     if (.not. (lh .or. lq)) return
 
-     nunpres = 0
+     nh = 0
+     nq = 0
      do n = 1, nfcts
-       if (.not. (is_equal(facnorm(n,:), xhat) .or. is_equal(facnorm(n,:), -xhat) .or. &
-                  is_equal(facnorm(n,:), yhat) .or. is_equal(facnorm(n,:), -yhat) .or. &
-                  is_equal(facnorm(n,:), zhat))) nunpres = nunpres + 1
+       if (facfluxset(n)) cycle
+       if (is_equal(facnorm(n,:), xhat) .or. is_equal(facnorm(n,:), -xhat) .or. &
+           is_equal(facnorm(n,:), yhat) .or. is_equal(facnorm(n,:), -yhat) .or. &
+           is_equal(facnorm(n,:), zhat)) cycle
+       nh = nh + 1
+       if (faclGR(n)) nq = nq + 1
      end do
 
-     if (myid == 0 .and. nunpres > 0) then
-       write(*,'(A,I0,A,I0,A)') 'Prescribed facet fluxes (bctf*/bcqf*) are zero on ', nunpres, ' of ', nfcts, &
-                                ' facets (not grid-aligned or facing down)'
+     if (myid == 0) then
+       if (lh .and. nh > 0) write(*,'(A,I0,A,I0,A)') 'Prescribed heat flux (iwalltemp = 1): ', nh, ' of ', nfcts, &
+                  ' facets have no prescribed flux (no factypeflux.inp entry, not grid-aligned or facing down): zero flux'
+       if (lq .and. nq > 0) write(*,'(A,I0,A,I0,A)') 'Prescribed moisture flux (iwallmoist = 1): ', nq, ' of ', nfcts, &
+                  ' facets have no prescribed flux (no factypeflux.inp entry, not grid-aligned or facing down): zero flux'
      end if
 
    end subroutine report_unprescribed_facets
@@ -1516,13 +1524,13 @@ module modibm
                            xhat, yhat, zhat, vec0, ltempeq, lmoist, iwalltemp, iwallmoist, lEB, lwritefac, nfcts, rk3step, totheatflux, totqflux, &
                            lfielddump
      use modfields, only : u0, v0, w0, thl0, thlp, qt0, qtp, pres0, thl_flux
-     use initfac,   only : facT, facz0, facz0h, facnorm, fachf, facef, facqsat, fachurel, facf, faclGR, faca
+     use initfac,   only : facT, facz0, facz0h, facnorm, facfluxh, facfluxq, facfluxset, fachf, facef, facqsat, fachurel, facf, faclGR, faca
      use modmpi,    only : comm3d, mpi_sum, mpierr, my_real
      use modibmdata, only : bctfxm, bctfxp, bctfym, bctfyp, bctfz
      use decomp_2d, only : zstart
 
      integer i, j, k, sec, fac
-     real :: dist, flux, area, Tair, utan, cth, htc, cveg, hurel, qtair, qwall, resa, resc, ress, xrec, yrec, zrec
+     real :: dist, hflux, qflux, area, Tair, utan, cth, htc, cveg, hurel, qtair, qwall, resa, resc, ress, xrec, yrec, zrec
      real, dimension(3) :: uvec, norm, span, strm
      real, dimension(1:nfcts) :: fac_htc_loc, fac_cth_loc, fac_pres_loc, fac_pres2_loc
      logical :: valid
@@ -1581,6 +1589,8 @@ module modibm
 
        end if
 
+       htc = 0.
+       cth = 0.
        if (log(dist/facz0(fac)) <= 1.) then
           cycle
           !dist = facz0(fac)+facz0h(fac)
@@ -1594,65 +1604,62 @@ module modibm
        !utan = max(0.01, utan) ! uDALES 1
 
        ! Sensible heat
+       hflux = 0. ! heat and moisture have separate flux variables: neither can leak into the other (#409)
        if (ltempeq) then
-         if (iwalltemp == 1) then ! probably remove this eventually, only relevant to grid-aligned facets
-           !if     (all(abs(norm - xhat) < eps1)) then
-           if     (is_equal(norm, xhat)) then
-             flux = bctfxp
-           !elseif (all(abs(norm + xhat) < eps1)) then
+         if (iwalltemp == 1) then ! prescribed flux: per facet type if given, else by direction for grid-aligned facets, else 0
+           if (facfluxset(fac)) then
+             hflux = facfluxh(fac)
+           elseif (is_equal(norm, xhat)) then
+             hflux = bctfxp
            elseif (is_equal(norm, -xhat)) then
-             flux = bctfxm
-           !elseif (all(abs(norm - yhat) < eps1)) then
+             hflux = bctfxm
            elseif (is_equal(norm, yhat)) then
-             flux = bctfyp
-           !elseif (all(abs(norm + yhat) < eps1)) then
+             hflux = bctfyp
            elseif (is_equal(norm, -yhat)) then
-             flux = bctfym
-           !elseif (all(abs(norm - zhat) < eps1)) then
+             hflux = bctfym
            elseif (is_equal(norm, zhat)) then
-             flux = bctfz
-           else ! not grid-aligned (or facing down): no prescribed flux (#409)
-             flux = 0.
+             hflux = bctfz
            end if
 
          elseif (iwalltemp == 2) then
-           call heat_transfer_coef_flux(utan, dist, facz0(fac), facz0h(fac), Tair, facT(fac, 1), cth, flux, htc)
+           call heat_transfer_coef_flux(utan, dist, facz0(fac), facz0h(fac), Tair, facT(fac, 1), cth, hflux, htc)
            fac_cth_loc(fac) = fac_cth_loc(fac) + cth * area ! output heat transfer coefficients on facets
            fac_htc_loc(fac) = fac_htc_loc(fac) + htc * area ! output heat transfer coefficients on facets
          end if
 
-         ! flux [Km/s]
-         ! fluid volumetric sensible heat source/sink = flux * area / volume [K/s]
-         ! facet sensible heat flux = volumetric heat capacity of air * flux * sectionarea / facetarea [W/m^2]
+         ! hflux [Km/s]
+         ! fluid volumetric sensible heat source/sink = hflux * area / volume [K/s]
+         ! facet sensible heat flux = volumetric heat capacity of air * hflux * sectionarea / facetarea [W/m^2]
          ! volume of the scalar cell centred on zf(k) is dx*dy*dzf(k) (dzh(k) is the centre-to-centre distance)
-         thlp(i,j,k) = thlp(i,j,k) - flux * area / (dx*dy*dzf(k))
-         if (lfielddump) thl_flux(i,j,k) = thl_flux(i,j,k) - flux * area / (dx*dy*dzf(k)) ! flux delta for fielddump (see #330)
+         thlp(i,j,k) = thlp(i,j,k) - hflux * area / (dx*dy*dzf(k))
+         if (lfielddump) thl_flux(i,j,k) = thl_flux(i,j,k) - hflux * area / (dx*dy*dzf(k)) ! flux delta for fielddump (see #330)
 
-         totheatflux = totheatflux + flux*area ! [Km^3s^-1] This sums the flux over all facets (unconditional, mirrors totqflux; decouples periodicEBcorr from lEB)
+         totheatflux = totheatflux + hflux*area ! [Km^3s^-1] This sums the flux over all facets (unconditional, mirrors totqflux; decouples periodicEBcorr from lEB)
 
          if (lEB) then
-           fachf(fac) = fachf(fac) + flux * area ! [Km^2/s] (will be divided by facetarea(fac) in modEB)
+           fachf(fac) = fachf(fac) + hflux * area ! [Km^2/s] (will be divided by facetarea(fac) in modEB)
          end if !fachf=[Km/s]
        end if
 
        ! Latent heat
+       qflux = 0.
        if (lmoist .and. faclGR(fac)) then
-         if (iwallmoist == 1) then ! probably remove this eventually, only relevant to grid-aligned facets
-           if     (is_equal(norm, xhat)) then
-             flux = bcqfxp
+         if (iwallmoist == 1) then ! prescribed flux: per facet type if given, else by direction for grid-aligned facets, else 0
+           if (facfluxset(fac)) then
+             qflux = facfluxq(fac)
+           elseif (is_equal(norm, xhat)) then
+             qflux = bcqfxp
            elseif (is_equal(norm, -xhat)) then
-             flux = bcqfxm
+             qflux = bcqfxm
            elseif (is_equal(norm, yhat)) then
-             flux = bcqfyp
+             qflux = bcqfyp
            elseif (is_equal(norm, -yhat)) then
-             flux = bcqfym
+             qflux = bcqfym
            elseif (is_equal(norm, zhat)) then
-             flux = bcqfz
-           else ! not grid-aligned (or facing down): no prescribed flux (#409)
-             flux = 0.
+             qflux = bcqfz
            end if
 
-         elseif (iwallmoist == 2) then
+         elseif (iwallmoist == 2) then ! htc is set above (checkinitvalues requires iwalltemp = 2); zero flux where htc*utan is zero
             if (abs(htc*abs(utan)) > 0.) then
                qwall = facqsat(fac) ! saturation humidity
                hurel = fachurel(fac) ! relative humidity
@@ -1660,18 +1667,18 @@ module modibm
                resc = facf(fac,4) ! canopy resistance
                ress = facf(fac,5) ! soil resistance
                cveg = 0.8 ! vegetation fraction
-               flux = moist_flux(cveg, resa, qtair, qwall, hurel, resc, ress)
+               qflux = moist_flux(cveg, resa, qtair, qwall, hurel, resc, ress)
             end if
          end if
 
-         ! flux [kg/kg m/s]
-         ! fluid volumetric latent heat source/sink = flux * area / volume [kg/kg / s]
-         ! facet latent heat flux = volumetric heat capacity of air * flux * sectionarea / facetarea [W/m^2]
-         totqflux = totqflux + flux*area ! [Km^3s^-1] This sums the flux over all facets
-         qtp(i,j,k) = qtp(i,j,k) - flux * area / (dx*dy*dzf(k))
+         ! qflux [kg/kg m/s]
+         ! fluid volumetric latent heat source/sink = qflux * area / volume [kg/kg / s]
+         ! facet latent heat flux = volumetric heat capacity of air * qflux * sectionarea / facetarea [W/m^2]
+         totqflux = totqflux + qflux*area ! [Km^3s^-1] This sums the flux over all facets
+         qtp(i,j,k) = qtp(i,j,k) - qflux * area / (dx*dy*dzf(k))
 
          if (lEB) then
-           facef(fac) = facef(fac) + flux * area ! [Km^2/s] (will be divided by facetarea(fac) in modEB)
+           facef(fac) = facef(fac) + qflux * area ! [Km^2/s] (will be divided by facetarea(fac) in modEB)
          end if
        end if
 

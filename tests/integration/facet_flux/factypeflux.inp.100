@@ -1,0 +1,3 @@
+# prescribed flux per facet type (iwalltemp = 1 / iwallmoist = 1), used instead of bctf*/bcqf* for the listed types
+# wallid  heat flux [K m/s]  moisture flux [kg/kg m/s]
+       1             3.0               1.5
