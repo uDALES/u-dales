@@ -294,6 +294,17 @@ anelastic base state (not tested). The adaptive steps differ (see [Time integrat
 Known to matter at this resolution: **cd2 for qt and thl at the 5 m inversion** (see
 [Advection](#advection)); the cd2 vs 5th-order comparison with DALES is open.
 
+### 304 dry CBL over a floor of fixed temperature
+
+uDALES 304 is the counterpart of DALES `isurf = 2` (not a DALES case; settings table in `examples/304/README.md`):
+96 x 96 x 80 at 50 m x 50 m x 25 m, cd2 everywhere, fixed dt 1.0 s, one-equation SGS, `iwallmom = 4` with
+`iwalltemp = 2` and the facet at 302 K (`lEB` off) against DALES `isurf = 2` with `thls = 302`, z0 = 0.1 m, z0h = 0.01 m,
+geostrophic wind (5, 0) m/s at 45 degrees, thl noise 0.1 K, seeds 43-45, constant-density DALES base state. uDALES
+is dry; DALES runs `lmoist` with qt = 0 and `rsisurf2 = 1e10` (dry `isurf = 2` leaves `qskin` uninitialised). Result
+(examples/304/RESULTS.md): u* and the surface heat flux per unit first-level wind agree within 0.1 %; the absolute values are
+0.3 % low, following a 0.4 % lower first-level wind; zi within a grid level; the resolved w'thl' 0.7 % low in the mixed layer
+and 3.3 % at 25 m (2.0-2.3 rms spreads, which are only 0.3-0.7 % of the flux).
+
 ### 302 smoke cloud
 
 uDALES 302 follows DALES `cases/smoke`: 64 x 64 x 250 at 50 m x 50 m x 5 m, cd2 for momentum and e12, kappa for
