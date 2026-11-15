@@ -83,12 +83,8 @@ else
   mkdir -p $DA_EXPDIR/$tar
 fi
 
-if [ -d $DA_WORKDIR/$tar ]; then
-  echo "target directory $tar already exists in $DA_WORKDIR"
-else
-  mkdir -p $DA_WORKDIR/$tar
-  echo "Creating target work directory, $tar, in $DA_WORKDIR"
-fi
+# The output directory $DA_WORKDIR/$tar is NOT created here: the execute scripts
+# create it at run time and refuse to run if it already exists.
 
 # test if original simulation exists
 if [ ! -d $DA_EXPDIR/$src ]; then

@@ -127,6 +127,16 @@ that they are easy to find when upgrading.
   relied on the sentinels (they now stop at start-up), and dry `ltempeq` runs through
   `thvs`.
 
+- **Execute scripts refuse an existing output directory.** `local_execute.sh`,
+  `hpc_execute.sh`, `archer_execute.sh` and `ecmwf_execute.sh` (and so
+  `ud_run <machine> sim`) now exit with an error when `$DA_WORKDIR/<expnr>`
+  already exists, instead of copying the inputs and the executable over it and
+  writing the new run next to the old results. To rerun a case, move or delete
+  its output directory yourself first. `copy_inputs.sh` no longer creates the
+  (empty) output directory of the new case; cases prepared with the previous
+  version have an empty output directory that must be removed before the first
+  run.
+
 - **SGS flux sign convention.** All subgrid-scale fluxes in the statistics
   output (`usgs*`, `vsgs*`, `wsgs*`, `thlsgs*`, `qtsgs*`, `sv1sgs`–`sv4sgs`,
   `sca1sgs*`–`sca3sgs*`) were previously stored as `+K dphi/dn`, i.e. **minus**
