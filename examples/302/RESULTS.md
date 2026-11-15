@@ -1,5 +1,8 @@
 # Tier-2 validation results: 302 smoke
 
+This is a smoke test of commit 4e26f81a only (1800 s, Release). The case uses `iadv_thl = 7`, so later commits on the
+branch (from 45667662) give a different realisation; it was not re-run and is not a validation.
+
 ## Smoke test of the facet floor (shipped configuration)
 
 The shipped `namoptions.302` has a floor made of one facet with the Monin-Obukhov facet surface (`iwallmom = 4`, u*

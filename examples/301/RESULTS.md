@@ -1,8 +1,11 @@
 # Tier-2 validation results: 301 BOMEX
 
+Validated binary: commit 09f8119f (Release, FFTW_ESTIMATE). Later commits on the branch do not change the solution of
+this case (`iadv_thl = 2`).
+
 Note on the von Karman constant: the flat-bottom runs (the sections from "Earlier close-match validation" on) used kappa = 0.41 in uDALES (its default then) and
-kappa = 0.4 in DALES (built in). The uDALES default `fkar` is now 0.40, the DALES value. BOMEX has a prescribed u*
-(`BCbotm = 5`), so kappa enters only through the surface-layer gradients (see the settings table); the runs were not
+kappa = 0.4 in DALES (built in). The uDALES default `fkar` is now 0.40, the DALES value. BOMEX had a prescribed u*
+(`BCbotm = 5`, an option that no longer exists; the shipped case uses `ustin`), so kappa enters only through the surface-layer gradients (see the settings table); the runs were not
 repeated with `fkar = 0.40`. `namoptions.301` prescribes z0 = 2e-4 m independently of kappa, so it needs no change.
 
 ## Facet floor with the Monin-Obukhov facet surface and the first-level SGS treatment (shipped configuration)

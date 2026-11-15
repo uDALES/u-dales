@@ -1,5 +1,8 @@
 # Tier-2 validation results: 303 DYCOMS-II RF01
 
+Validated binary: commit 09f8119f (Release, FFTW_ESTIMATE). Later commits on the branch do not change the solution of
+this case (`iadv_thl = 2`).
+
 ## Facet floor with the Monin-Obukhov facet surface and the first-level SGS treatment (shipped configuration)
 
 The shipped `namoptions.303`: a floor made of one horizontal facet with `iwallmom = 4` (local Monin-Obukhov per facet
