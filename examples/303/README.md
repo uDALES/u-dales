@@ -90,7 +90,7 @@ reported runs in [RESULTS.md](RESULTS.md).
 | Galilean shift | none | none | yes |
 | SGS | one-equation TKE, DALES constants | the same | yes |
 | saturation adjustment, es | exact (`lqlnr`), Tetens | two-step (within 0.2 %), Tetens (patched) | nearly |
-| surface | MO, u* diagnosed from one domain-mean L; kappa 0.40 | `isurf = 4`, per-column L; kappa 0.4 (native) | kappa yes; local vs mean no (u* agrees to 0.0001 m/s) |
+| surface | MO, u* diagnosed from one domain-mean L; kappa 0.40 | `isurf = 4`, per-column L; kappa 0.4 (native) | kappa yes; local vs mean no (u* agrees to 0.0004 m/s) |
 | radiation | radpar longwave + free-troposphere hook, every step | radpar (`iradiation = 10` with `dales-075ac4e-iradiation10.patch`) + patched `rad_user` | yes |
 | sponge, noise | `igrw_damp = 2`, `ksp = 225`; thl 0.1 K, qt 2.5e-5 on all levels | the same | yes (different generators) |
 
