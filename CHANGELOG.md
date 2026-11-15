@@ -57,6 +57,17 @@ that they are easy to find when upgrading.
 
 ### Fixed
 
+- **Prescribed facet heat and moisture flux on non-grid-aligned facets.** With
+  `iwalltemp = 1` (the default) or `iwallmoist = 1`, `wallfunheat` only assigned
+  the prescribed flux (`bctf*`, `bcqf*`) to facets facing exactly `+x`, `-x`,
+  `+y`, `-y` or `+z`. Any other facet (sloped, or facing down) was left with
+  the flux of the previously processed section, or an undefined value, which
+  also entered the total heat and moisture flux and the facet energy balance.
+  These facets now get zero prescribed flux, and a start-up line reports how many
+  there are when a prescribed flux is nonzero. Affected: runs with
+  non-grid-aligned facets (STL terrain or buildings) and a nonzero `bctf*` or
+  `bcqf*`; their results change (and no longer depend on the decomposition).
+  Runs with all prescribed fluxes zero are unchanged. See #409.
 - The SGS statistics no longer read uninitialised data at the top level
   `ke+kh`, and all SGS output arrays are zeroed before use.
 - The 3-D `sv1sgs`–`sv4sgs` output in `tdump` is now masked with `IIw`, so solid

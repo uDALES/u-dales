@@ -31,7 +31,7 @@ module modibm
              nsolpts_u, nsolpts_v, nsolpts_w, nsolpts_c, &
              nbndpts_u, nbndpts_v, nbndpts_w, nbndpts_c, &
              nfctsecs_u, nfctsecs_v, nfctsecs_w, nfctsecs_c, &
-             mask_u, mask_v, mask_w, mask_c
+             mask_u, mask_v, mask_w, mask_c, wallfunheat
 
     abstract interface
       function interp_velocity(i,j,k)
@@ -246,7 +246,40 @@ module modibm
        end if
      end if
 
+     call report_unprescribed_facets
+
    end subroutine initibm
+
+
+   subroutine report_unprescribed_facets
+     ! Prescribed facet fluxes (iwalltemp = 1, iwallmoist = 1) only exist for the five grid-aligned
+     ! directions; any other facet (sloped, or facing down) gets zero flux in wallfunheat (#409).
+     use modglobal, only : xhat, yhat, zhat, nfcts, ltempeq, lmoist, iwalltemp, iwallmoist
+     use modibmdata, only : bctfxm, bctfxp, bctfym, bctfyp, bctfz, bcqfxm, bcqfxp, bcqfym, bcqfyp, bcqfz
+     use initfac,   only : facnorm
+     use modmpi,    only : myid
+     integer :: n, nunpres
+     logical :: lprescribed
+
+     lprescribed = (ltempeq .and. iwalltemp == 1 .and. &
+                    any((/bctfxm, bctfxp, bctfym, bctfyp, bctfz/) /= 0.)) .or. &
+                   (lmoist .and. iwallmoist == 1 .and. &
+                    any((/bcqfxm, bcqfxp, bcqfym, bcqfyp, bcqfz/) /= 0.))
+     if (.not. lprescribed) return
+
+     nunpres = 0
+     do n = 1, nfcts
+       if (.not. (is_equal(facnorm(n,:), xhat) .or. is_equal(facnorm(n,:), -xhat) .or. &
+                  is_equal(facnorm(n,:), yhat) .or. is_equal(facnorm(n,:), -yhat) .or. &
+                  is_equal(facnorm(n,:), zhat))) nunpres = nunpres + 1
+     end do
+
+     if (myid == 0 .and. nunpres > 0) then
+       write(*,'(A,I0,A,I0,A)') 'Prescribed facet fluxes (bctf*/bcqf*) are zero on ', nunpres, ' of ', nfcts, &
+                                ' facets (not grid-aligned or facing down)'
+     end if
+
+   end subroutine report_unprescribed_facets
 
 
    subroutine initibmnorm(fname, solid_info)
@@ -1578,6 +1611,8 @@ module modibm
            !elseif (all(abs(norm - zhat) < eps1)) then
            elseif (is_equal(norm, zhat)) then
              flux = bctfz
+           else ! not grid-aligned (or facing down): no prescribed flux (#409)
+             flux = 0.
            end if
 
          elseif (iwalltemp == 2) then
@@ -1613,6 +1648,8 @@ module modibm
              flux = bcqfym
            elseif (is_equal(norm, zhat)) then
              flux = bcqfz
+           else ! not grid-aligned (or facing down): no prescribed flux (#409)
+             flux = 0.
            end if
 
          elseif (iwallmoist == 2) then
