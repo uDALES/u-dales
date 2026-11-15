@@ -71,6 +71,12 @@ while smaller requests use the requested GiB value.
 
 Use `ud_run` rather than writing a new launcher command from scratch:
 
+All execute scripts create the output directory `$DA_WORKDIR/<expnr>` and copy the
+inputs and the executable into it. If that directory already exists they exit
+with an error and leave it untouched: uDALES never removes, modifies or
+overwrites existing results. To rerun a case on purpose, move or delete its
+output directory yourself first (or use a new case number).
+
 ```bash
 ./bin/ud_run icl sim <case-directory>      # or hx1 on HX1
 ```
