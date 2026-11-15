@@ -2585,9 +2585,10 @@ module modstartup
    !! Hash: the splitmix64 finaliser (Steele, Lea & Flood 2014, OOPSLA; Vigna,
    !! https://prng.di.unimi.it/splitmix64.c) applied after each key is added to the state,
    !! with the golden-ratio increment 0x9E3779B97F4A7C15. Fortran has no unsigned integers,
-   !! so the 64-bit arithmetic is done on integer(int64), which wraps silently under
-   !! ifort/gfortran (the code is compiled without -ftrapv), and the logical shifts use
-   !! shiftr. The top 53 bits give a uniform real in [0,1).
+   !! and signed overflow is undefined (gfortran -O3 exploits it: every tag gave the same
+   !! deviate), so each 64-bit value is held as two 32-bit limbs (hi, lo) in integer(int64)
+   !! and the add, multiply and shift are done limb-wise without overflow. The result is
+   !! bit-identical to the unsigned splitmix64. The top 53 bits give a uniform real in [0,1).
    !!
    !! cap_by_field = .true. caps the amplitude pointwise at the value of field itself, taken
    !! before the perturbation is added (used for qt >= 0). The cap is not a second dummy
@@ -2602,7 +2603,8 @@ module modstartup
       real, intent(inout) :: field(ib - ihl:ie + ihl, jb - jhl:je + jhl, kb - kh:ke + kh)
       logical, intent(in), optional :: cap_by_field
       integer :: i, j, iglob, jglob
-      integer(int64) :: h
+      integer(int64) :: h(2)
+      integer(int64), parameter :: m32 = 4294967295_int64, m16 = 65535_int64
       real(8) :: ran
       real :: a
 
@@ -2610,12 +2612,13 @@ module modstartup
          jglob = j + zstart(2) - 1
          do i = ib, ie
             iglob = i + zstart(1) - 1
-            h = int(ir, int64)
-            h = mix64(h + int(tag, int64))
-            h = mix64(h + int(iglob, int64))
-            h = mix64(h + int(jglob, int64))
-            h = mix64(h + int(klev, int64))
-            ran = real(shiftr(h, 11), 8)*(0.5_8**53)    ! [0,1), exact in double
+            h = limbs(int(ir, int64))
+            h = mix64(add64(h, limbs(int(tag, int64))))
+            h = mix64(add64(h, limbs(int(iglob, int64))))
+            h = mix64(add64(h, limbs(int(jglob, int64))))
+            h = mix64(add64(h, limbs(int(klev, int64))))
+            ! top 53 bits, h >> 11: [0,1), exact in double
+            ran = (real(h(1), 8)*2._8**21 + real(shiftr(h(2), 11), 8))*(0.5_8**53)
             a = ampl
             if (present(cap_by_field)) then
                if (cap_by_field) a = min(ampl, field(i, j, klev))
@@ -2628,17 +2631,60 @@ module modstartup
 
       !> splitmix64 step: add the golden-ratio increment, then the finaliser.
       pure function mix64(x) result(z)
-         integer(int64), intent(in) :: x
-         integer(int64) :: z
-         ! 0x9E3779B97F4A7C15, 0xBF58476D1CE4E5B9, 0x94D049BB133111EB as signed int64
-         integer(int64), parameter :: g = -7046029254386353131_int64
-         integer(int64), parameter :: m1 = -4658895280553007687_int64
-         integer(int64), parameter :: m2 = -7723592293110705685_int64
-         z = x + g
-         z = ieor(z, shiftr(z, 30))*m1
-         z = ieor(z, shiftr(z, 27))*m2
-         z = ieor(z, shiftr(z, 31))
+         integer(int64), intent(in) :: x(2)
+         integer(int64) :: z(2)
+         ! 0x9E3779B97F4A7C15, 0xBF58476D1CE4E5B9, 0x94D049BB133111EB as (hi, lo) limbs
+         integer(int64), parameter :: g(2) = [2654435769_int64, 2135587861_int64]
+         integer(int64), parameter :: m1(2) = [3210233709_int64, 484763065_int64]
+         integer(int64), parameter :: m2(2) = [2496678331_int64, 321982955_int64]
+         z = add64(x, g)
+         z = mul64(xorshr(z, 30), m1)
+         z = mul64(xorshr(z, 27), m2)
+         z = xorshr(z, 31)
       end function mix64
+
+      !> the 64 bits of v (two's complement) as (hi, lo) limbs in [0, 2^32)
+      pure function limbs(v) result(r)
+         integer(int64), intent(in) :: v
+         integer(int64) :: r(2)
+         r = [iand(shiftr(v, 32), m32), iand(v, m32)]
+      end function limbs
+
+      !> a + b mod 2^64
+      pure function add64(a, b) result(r)
+         integer(int64), intent(in) :: a(2), b(2)
+         integer(int64) :: r(2), lo
+         lo = a(2) + b(2)                                   ! < 2^33
+         r = [iand(a(1) + b(1) + shiftr(lo, 32), m32), iand(lo, m32)]
+      end function add64
+
+      !> x*y mod 2^32 for x, y in [0, 2^32): y split in 16-bit halves, products < 2^48
+      pure function mulmod32(x, y) result(r)
+         integer(int64), intent(in) :: x, y
+         integer(int64) :: r
+         r = iand(iand(x*shiftr(y, 16), m16)*65536_int64 + x*iand(y, m16), m32)
+      end function mulmod32
+
+      !> a*b mod 2^64: full lo*lo product from 16-bit pieces, cross terms mod 2^32
+      pure function mul64(a, b) result(r)
+         integer(int64), intent(in) :: a(2), b(2)
+         integer(int64) :: r(2), t0, t1, lo, hi
+         t0 = iand(a(2), m16)*b(2)                          ! < 2^48
+         t1 = shiftr(a(2), 16)*b(2)                         ! < 2^48
+         lo = iand(t0, m32) + iand(t1, m16)*65536_int64     ! < 2^33
+         hi = shiftr(t0, 32) + shiftr(t1, 16) + shiftr(lo, 32) &
+              + mulmod32(a(1), b(2)) + mulmod32(a(2), b(1))
+         r = [iand(hi, m32), iand(lo, m32)]
+      end function mul64
+
+      !> a xor (a >> s), logical shift, 0 < s < 32
+      pure function xorshr(a, s) result(r)
+         integer(int64), intent(in) :: a(2)
+         integer, intent(in) :: s
+         integer(int64) :: r(2)
+         r = [ieor(a(1), shiftr(a(1), s)), &
+              ieor(a(2), ior(shiftr(a(2), s), iand(shiftl(a(1), 32 - s), m32)))]
+      end function xorshr
 
    end subroutine randomize_field
 

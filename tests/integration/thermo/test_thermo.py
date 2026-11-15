@@ -130,7 +130,8 @@ class TestMO(_SolverTest):
     def test_neutral_ustar_is_log_law(self):
         d, _ = self._mo_case("mo_neutral", bctfz="0.", bcqfz="0.")
         r = self._last(d)
-        self.assertEqual(r["obl"][-1], 1.e6)              # Rib = 0: neutral cap
+        # neutral cap; its sign is that of a round-off Rib (FMA contraction at -O3 -march=native)
+        self.assertEqual(abs(r["obl"][-1]), 1.e6)
         expect = tc.FKAR * np.hypot(r["u1"][-1], r["v1"][-1]) / np.log(self.Z1 / self.Z0)
         self.assertAlmostEqual(r["ustar"][-1], expect, delta=1e-3 * expect)
 
