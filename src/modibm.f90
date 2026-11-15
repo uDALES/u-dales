@@ -1743,13 +1743,8 @@ module modibm
 
        if (bound_info%lcomprec_loc(sec) .or. lnorec) then
          uvec = interp_velocity_ptr(i, j, k)
-         if (lstab) then
-           Tair = interp_temperature_ptr(i, j, k)
-         end if
-         if (lmosec) then
-           Tair  = interp_temperature_ptr(i, j, k)
-           qtair = interp_scalar_ptr(qt0, i, j, k)
-         end if
+         if (lstab .or. lmosec) Tair  = interp_temperature_ptr(i, j, k)
+         if (lmosec)            qtair = interp_scalar_ptr(qt0, i, j, k)
          dist = bound_info%bnddst_loc(sec)
        else
          xrec = bound_info%recpts_loc(sec,1)
@@ -1880,6 +1875,7 @@ module modibm
      use initfac,   only : facT, facz0, facz0h, facnorm, fachf, facef, facqsat, fachurel, facf, faclGR, faca
      use modmpi,    only : comm3d, mpi_sum, mpierr, my_real
      use modibmdata, only : bctfxm, bctfxp, bctfym, bctfyp, bctfz
+     use modsurface, only : min_horv
      use decomp_2d, only : zstart
 
      integer i, j, k, sec, fac
@@ -1992,9 +1988,10 @@ module modibm
              ! substep (same u0, thl0); the others are updated here.
              if (.not. lmocsec(sec)) call mo_section_tskin(bound_info_c, sec, fac, Tair, qtair, utan, dist, .true.)
              flux = -bound_info_c%mo_wthl(sec)
-             ! cth: the Monin-Obukhov Cs; htc = flux / (|utan| dT) as for wfuno, = Cs max(|U|, 0.1)/|utan|
+             ! cth: the Monin-Obukhov Cs; htc = flux / (|utan| dT) as for wfuno, = Cs max(|U|, 0.1)/|utan|,
+             ! with |utan| floored as U (so htc = Cs below the wind floor)
              cth = bound_info_c%mo_cs(sec)
-             htc = bound_info_c%mo_csu(sec) / max(abs(utan), tiny(1.))
+             htc = bound_info_c%mo_csu(sec) / max(abs(utan), min_horv)
            else
              call heat_transfer_coef_flux(utan, dist, facz0(fac), facz0h(fac), Tair, facT(fac, 1), cth, flux, htc)
            end if

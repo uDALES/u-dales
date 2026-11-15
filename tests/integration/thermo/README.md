@@ -47,7 +47,9 @@ Run: `python tests/integration/thermo/test_thermo.py -v [TestClass]`.
   `resa = 1/(Cs U)`, `qts = qt + wq/(Cs U)`); a 60 degree facet runs the `iwallmom = 2` wall function
   bit for bit (and differs from the neutral one); the slope split (20 degree facet MO, 60 degree facet
   wfuno); `lEB` (the facEB `hf` is `-rhoa cp wtheta`, the next MO step uses the EB facet temperature);
-  the ridge on 1 and 2 ranks (rtol 1e-6, skips without `gfortran`); the start-up checks of `iwalltemp`/`iwallmoist`.
+  the ridge on 1 and 2 ranks (rtol 1e-6, skips without `gfortran`); the start-up checks of `iwalltemp`/`iwallmoist`;
+  a stable facet (2 K colder: L > 0, downward flux, same identities); the first-level `dthvdz(kb)` from the facet-temperature
+  state (unstable and stable, rtol 1e-3); and with `lEB` and `iwallmoist = 2` the facEB `ef` is `-rhoa rlv wq`.
 - `TestCalthv`, `TestCalthvGuard`: `dthvdz` at the surface level is zero; a uniform saturated
   column must not divide by zero.
 - `TestBldump`: cloudy-column diagnostics (`ql`, `lwp_bar`) and a dry
@@ -79,8 +81,8 @@ Run: `python tests/integration/thermo/test_thermo.py -v [TestClass]`.
   number of a known `L`, and `mo_local_update` (the per-section surface of `iwallmom = 4`) at its fixed point: neutral
   `u* = kappa |U| / ln(z1/z0)`, unstable u* with `L = -u*^3 tskin / (kappa g w'thl')`, prescribed `ustin`, the u* floor;
   and `mo_presc_tskin_update` (`iwalltemp = 2`, DALES `isurf = 2`): L recovered from the Richardson number of a known L
-  in one update, Cs and u* the drag coefficients of that L, the fluxes closing the flux definition of L, neutral,
-  the |U| floor in `Cs U`, `ustin`.
+  in one update (also with `qskin /= qt`), Cs and u* the drag coefficients of that L, the fluxes closing the flux
+  definition of L, neutral, the |U| floor in `Cs U`, `ustin`.
 - `TestThermoLevels`: in-solver `runmode = 1010` (`tests.f90:tests_thermo_levels`):
   after `thermodynamics`, `ql0(k)` and `ql0h(k)` are the saturation adjustment of
   `thl0`/`qt0` and `thl0h`/`qt0h` at the same level, cell by cell (#403).

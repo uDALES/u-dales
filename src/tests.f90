@@ -1290,7 +1290,7 @@ contains
   !!    (to its 1e-4 stopping criterion), neutral Ri_b = 0 gives the 1e6 sentinel, and the sign of
   !!    L follows the sign of Ri_b.
   logical function tests_mo_kernels()
-    use modglobal,  only : runmode, fkar, grav
+    use modglobal,  only : runmode, fkar, grav, rv, rd
     use modsurface, only : psim, psih, phim, phih, calc_obl_iter, rib_from_obl, mo_local_update, mo_presc_tskin_update
     implicit none
 
@@ -1402,6 +1402,21 @@ contains
     if (abs(csu / (cs * 0.1) - 1.) > 1.e-6) call report_fail('mo_presc_tskin_update: |U| floor 0.1 m/s in Cs U')
     call mo_presc_tskin_update(tskin - 1., 0., ucomp, z1, z0, z0h, tskin, 0., 0.28, obl, ustar, cs, csu)
     if (ustar /= 0.28) call report_fail('mo_presc_tskin_update: ustin > 0 must prescribe u*')
+    ! humidity enters Ri_b through thv: qt = 1e-2 in the air and qskin = 1.5e-2 at the surface, the air
+    ! thl set so that thv(air) - thv(surface) gives the Ri_b of a known L; L is recovered only if
+    ! both humidities enter as in DALES (thv = thl (1 + (rv/rd - 1) qt), thvsl likewise with qskin)
+    e = 0.
+    do n = 1, size(ltrue)
+      rib  = rib_from_obl(z1, ltrue(n), z0h, z0)
+      qs   = tskin * (1. + (rv/rd - 1.) * 1.5e-2)              ! thvsl
+      dthv = rib * ucomp**2 * qs / (grav * z1)
+      thl  = (qs + dthv) / (1. + (rv/rd - 1.) * 1.e-2)
+      obl  = -0.1
+      call mo_presc_tskin_update(thl, 1.e-2, ucomp, z1, z0, z0h, tskin, 1.5e-2, 0., obl, ustar, cs, csu)
+      e = max(e, abs(obl / ltrue(n) - 1.))
+    end do
+    if (myid == 0) write(*, '(A,ES12.4)') 'mo_presc_tskin_update with qskin /= qt worst rel. error of L', e
+    if (e > 2.e-3) call report_fail('mo_presc_tskin_update: the humidities do not enter Ri_b as in DALES')
 
     if (all_passed .and. myid == 0) then
       write(*, '(A)') '------------------------------------------------'
