@@ -46,18 +46,18 @@ patches are in `tools/python/examples/dales_cases/dales_inputs`; the runs, setti
 |---|---|---|---|---|
 | density | anelastic: `rhobf(k)`, `rhobh(k)` from the base state; advection `-(1/rhobf) d(rhobf w a)/dz` (DALES advec_2nd.f90:101, 127), Poisson RHS `rhobf (du/dx + dv/dy) + d(rhobh w)/dz` (DALES modpois.f90:318-320), SGS fluxes weighted by `rhobh/rhobf` (DALES modsubgrid.f90:712-716) | Boussinesq: `rhobf = rhobh = 1` (src/modfields.f90:556-557); no density in advection (src/modadvection.f90:103-146), Poisson (src/modpois.f90:962) or diffusion | different by design (see summary #1) | validation: DALES `ibas_prf = 5` with constant `rhobf` |
 | base state | `ibas_prf = 3` default: standard lapse rate from `thls` (DALES modglobal.f90:133, modstartup.f90:1764-1774); 4.4.2 the same | none | different by design | DALES base `pb` set to the uDALES hydrostatic pressure of the initial profile (`make_dales_baseprof.py`) |
-| Exner | fixed at start-up: `exnf = (pb/pref0)^(rd/cp)` (DALES modstartup.f90:1832); `presf` is recomputed hydrostatically every step (DALES modthermodynamics.f90:583-639) and used for qsat | recomputed every step from the hydrostatic slab-mean `presf` (src/modthermodynamics.f90:336, 353-357) | different by design (summary #2) | drift of order 1e-5 over the validation runs |
+| Exner | fixed at start-up: `exnf = (pb/pref0)^(rd/cp)` (DALES modstartup.f90:1832); `presf` is recomputed hydrostatically every step (DALES modthermodynamics.f90:583-639) and used for qsat | recomputed every step from the hydrostatic slab-mean `presf` (src/modthermodynamics.f90:340-347, 353-357) | different by design (summary #2) | drift of order 1e-5 over the validation runs |
 | buoyancy | `wp += grav (thv0h - thvh)/thvh`, `thvh` the slab mean of `thv0h`, first level from `th0av` (DALES modforces.f90:135, modthermodynamics.f90:288) | the same (src/modforces.f90:83, src/modthermodynamics.f90:80, 90) | aligned | - |
-| hydrostatic pressure start | `thvh(1)` from `th0av(1)`, `qt0av(1)`, `ql0av(1)` (DALES modthermodynamics.f90:611) | `thvh(kb) = thvs` (src/modthermodynamics.f90:419) | different by design | less than 1 Pa at the first level |
+| hydrostatic pressure start | `thvh(1)` from `th0av(1)`, `qt0av(1)`, `ql0av(1)` (DALES modthermodynamics.f90:611) | `thvh(kb) = thvs` (src/modthermodynamics.f90:424) | different by design | less than 1 Pa at the first level |
 
 ## Grid and staggering
 
 | item | DALES | uDALES | status |
 |---|---|---|---|
 | staggering | Arakawa C, periodic laterally | the same | aligned |
-| vertical grid | `zf` from `prof.inp`, `zh(1) = 0`, `zh(k+1) = zh(k) + 2 (zf(k) - zh(k))`, `dzh(1) = 2 zf(1)` (DALES modglobal.f90:445-460) | the same (src/modglobal.f90:763-777) | aligned |
-| filter width | `delta = (dx dy dzf)^(1/3)` (DALES modglobal.f90:468) | `(dxf dy dzf)^(1/3)` (src/modglobal.f90:811) | aligned for uniform dx |
-| halos | 1 (cd2), 2 (kappa), 3 (5th/6th) (DALES modglobal.f90:330-366) | `ih = 1` for the prognostic fields; scalars and kappa-advected `thl` use a 2-cell copy (`ihc = 2`, `thl0c`) (src/modglobal.f90:602-624) | - |
+| vertical grid | `zf` from `prof.inp`, `zh(1) = 0`, `zh(k+1) = zh(k) + 2 (zf(k) - zh(k))`, `dzh(1) = 2 zf(1)` (DALES modglobal.f90:445-460) | the same (src/modglobal.f90:768-783) | aligned |
+| filter width | `delta = (dx dy dzf)^(1/3)` (DALES modglobal.f90:468) | `(dxf dy dzf)^(1/3)` (src/modglobal.f90:816) | aligned for uniform dx |
+| halos | 1 (cd2), 2 (kappa), 3 (5th/6th) (DALES modglobal.f90:330-366) | `ih = 1` for the prognostic fields; scalars and kappa-advected `thl` use a 2-cell copy (`ihc = 2`, `thl0c`) (src/modglobal.f90:606-630) | - |
 
 ## Advection
 
@@ -67,11 +67,11 @@ patches are in `tools/python/examples/dales_cases/dales_inputs`; the runs, setti
 | e12 | as momentum, plus kappa and upwind | cd2 only (src/modadvection.f90:56-64) | different, open |
 | thl | cd2, 5, 52, cd6, 62, kappa (7), upwind (1), hybrid (DALES modadvection.f90:182-218) | cd2 or kappa (src/modadvection.f90:66-76) | different, open |
 | qt | as thl (DALES modadvection.f90:223-) | cd2 only (src/modadvection.f90:78-86) | different, open |
-| passive scalars | one scheme for all scalars (`iadv_sv`, a scalar in dev; an array in 4.4.2) | cd2, kappa or upwind in the dispatch (src/modadvection.f90:87-99), but `initglobal` overwrites `iadv_sv` with kappa for every scalar, whatever the namelist says (src/modglobal.f90:573-575) | different, open (#407) |
-| default | `iadv_mom = 5`; the others default to `iadv_mom` (DALES modglobal.f90:142, 373-381) | `iadv_mom = 2`; the others default to `iadv_mom` (src/modglobal.f90:416, 565-567) | - |
+| passive scalars | one scheme for all scalars (`iadv_sv`, a scalar in dev; an array in 4.4.2) | cd2, kappa or upwind in the dispatch (src/modadvection.f90:87-99), but `initglobal` overwrites `iadv_sv` with kappa for every scalar, whatever the namelist says (src/modglobal.f90:577-580) | different, open (#407) |
+| default | `iadv_mom = 5`; the others default to `iadv_mom` (DALES modglobal.f90:142, 373-381) | `iadv_mom = 2`; the others default to `iadv_mom` (src/modglobal.f90:421, 565-567) | - |
 | cd2 stencil | flux form `u (a_i + a_{i-1})/2`, vertical with `rhobf` weights (DALES advec_2nd.f90:36-139) | the same without density, general `dzf` weights (src/modadvection.f90:103-146) | aligned for constant density and uniform dz |
 | kappa limiter | `phi(r) = max(0, min(2r, min(1/3 + 2r/3, 2)))` (DALES advec_kappa.f90:409-421; the advection loops use an inlined form without the division and `eps1`, advec_kappa.f90:26) | the same function, with `eps1` (src/modadvection.f90:376-387) | aligned (up to the `eps1` regularisation) |
-| half levels for buoyancy | `thl0h`, `qt0h` from the kappa reconstruction when that variable is kappa-advected, linear otherwise (DALES modthermodynamics.f90:225-226, 932-973) | always linear (src/modthermodynamics.f90:535-565) | different, open (advection PR) |
+| half levels for buoyancy | `thl0h`, `qt0h` from the kappa reconstruction when that variable is kappa-advected, linear otherwise (DALES modthermodynamics.f90:225-226, 932-973) | always linear (src/modthermodynamics.f90:541-571) | different, open (advection PR) |
 
 **What the GCSS DALES cases use** (DALES `cases/*/namoptions.001` at 075ac4e):
 
@@ -109,8 +109,8 @@ Extending kappa (or a 5th-order scheme) to qt and e12 is the planned advection p
 | scheme | low-storage RK3 (Wicker and Skamarock), `rk3coef = dt/(4 - rk3step)` (DALES tstep.f90:259) | the same (src/modtstep.f90:191) | aligned | - |
 | e12 floor | `e120 = max(e12min, ...)` every substep (DALES tstep.f90:272) | the same (src/modtstep.f90:215, 226) | aligned | - |
 | CFL number | L2 norm `sqrt((u dt/dx)^2 + (v dt/dy)^2 + (w dt/dzh)^2)`, in the Galilean frame (DALES tstep.f90:190-206) | L1 sum `(abs(u)/dx + abs(v)/dy + abs(w)/dzh) dt`, physical winds (src/modtstep.f90:119, 139) | different by design (summary #5) | for the same `courant` uDALES takes shorter steps (up to sqrt(3) for equal components) |
-| default `courant` | 1.0 for cd2 and 5th order, 0.7 with kappa, cd6 or 62 (DALES tstep.f90:63-98) | 1.5 for cd2 momentum, 1.4 otherwise, at most 1.1 with kappa or upwind (src/modglobal.f90:579-593) | - | - |
-| diffusion limit | Peclet `max(ekm, ekh) dt / min(dzh, dx, dy)^2 <= peclet`, default 0.15 (DALES tstep.f90:194-198, modglobal.f90:184) | `max(ekm, ekh)(1/dzh^2 + 1/dx^2 + 1/dy^2) dt <= diffnr`, default 0.25 (src/modtstep.f90:120-121, src/modglobal.f90:477) | different by design | the cases convert `peclet` to `diffnr` by the ratio of the two formulas (case READMEs) |
+| default `courant` | 1.0 for cd2 and 5th order, 0.7 with kappa, cd6 or 62 (DALES tstep.f90:63-98) | 1.5 for cd2 momentum, 1.4 otherwise, at most 1.1 with kappa or upwind (src/modglobal.f90:584-598) | - | - |
+| diffusion limit | Peclet `max(ekm, ekh) dt / min(dzh, dx, dy)^2 <= peclet`, default 0.15 (DALES tstep.f90:194-198, modglobal.f90:184) | `max(ekm, ekh)(1/dzh^2 + 1/dx^2 + 1/dy^2) dt <= diffnr`, default 0.25 (src/modtstep.f90:120-121, src/modglobal.f90:482) | different by design | the cases convert `peclet` to `diffnr` by the ratio of the two formulas (case READMEs) |
 | output times | adaptive mode: `dt` is clipped to hit radiation and output times (`dt_lim`, DALES tstep.f90:206, modradiation.f90:243-245) | not clipped | different by design | none for statistics sampled at multiples of a fixed dt |
 | spin-up | `dt` doubles from a small value until the CFL and Peclet numbers settle, even with `ladaptive = .false.` | no spin-up by default (src/modtstep.f90:64) | different by design | first steps only (about 1 % e12 offset in the first minute of an RF01 column test) |
 | logged Courant number | from absolute velocities, L2 per level (DALES modchecksim.f90:297-357) | `tcheck` logs `max((um/dx + vm/dy + wm/dz) dtmn)` with signed velocities and the interval-mean dt (src/modchecksim.f90:115), not the controlling L1 sum | different, open (#408) | diagnostic only; with a large mean wind of either sign the logged number can be far from the controlling one |
@@ -156,10 +156,10 @@ The three validation cases use the one-equation (Deardorff) TKE model with `ldel
 | stability functions, Obukhov length iteration | unstable Businger-Dyer, stable Beljaars-Holtslag; `calc_obl_iter` Newton iteration on Rib (DALES surface/modsurface.f90) | the same formulas (src/modsurface.f90:60-96, 106-) | aligned | - |
 | local or domain-mean MO | dev default `lmostlocal = .true.`: per-column L, Cm and (isurf 4) u* = sqrt(Cm) times the local wind speed (DALES surface/modsurfdata.f90:240, surface/modsurface.f90:651-690, 905-958); 4.4.2 default `.false.` | local: per facet section, L, Cm, Cs, u*, tskin and qskin from the air state interpolated to the section's point (the u, v points on a flat floor) (src/modsurface.f90:37-57) | aligned (summary #7) | RF01 u* 0.2464 vs 0.2469 m/s (0.2 %); BOMEX u* prescribed |
 | surface fluxes | `wtsurf`, `wqsurf`, positive upward | facet fluxes `bctfz`, `bcqfz` (on facets of a type with `lGR = 1`), positive downward | aligned (sign converted) | - |
-| cold start | `tskin = thlprof(1)`, `qskin = qtprof(1)`, `obl = -0.1`, one `surface` call in `readinitfiles` (DALES modstartup.f90:836-889) | the same per section at its first visit (src/modibm.f90:1671-1678); the first-level cells at a cold start in `readinitfiles`, at a warm start at their first visit (src/modibm.f90:1490-1549) | aligned | - |
-| von Karman constant | 0.4 (parameter, DALES modglobal.f90:101) | 0.40 (`&WALLS fkar`, src/modglobal.f90:333); the inlet generator keeps 0.41 with its Coles wake constants | aligned | 0.41 against 0.4 gives a 2.3 % u* difference in RF01 |
-| order | `surface` before advection and subgrid (DALES program.f90:232-238) | the stress in the wall function (`ibmwallfun`, after subgrid), from the same `u0`, `thl0`, `qt0` of the substep; the first-level cells above horizontal Monin-Obukhov facets (`mo_cells_update`) before subgrid, and at a cold start once before the start-up thermodynamics, as DALES `readinitfiles` (src/program.f90:166, src/modstartup.f90:1672-1679) | aligned | - |
-| stress stencil | cell-centred `u + cu`, 4-point v, u* averaged over two cells, wind floor 1e-10 (DALES modsubgrid.f90:942-951) | u* and L of the section at the u (v) point, 4-point v (u), `min_horv = 0.1` in Cm (src/modibm.f90:1664-1682) | different by design | second-order equivalent |
+| cold start | `tskin = thlprof(1)`, `qskin = qtprof(1)`, `obl = -0.1`, one `surface` call in `readinitfiles` (DALES modstartup.f90:836-889) | the same per section at its first visit (src/modibm.f90:1683-1690); the first-level cells at a cold start in `readinitfiles`, at a warm start at their first visit (src/modibm.f90:1503-1557) | aligned | - |
+| von Karman constant | 0.4 (parameter, DALES modglobal.f90:101) | 0.40 (`&WALLS fkar`, src/modglobal.f90:338); the inlet generator keeps 0.41 with its Coles wake constants | aligned | 0.41 against 0.4 gives a 2.3 % u* difference in RF01 |
+| order | `surface` before advection and subgrid (DALES program.f90:232-238) | the stress in the wall function (`ibmwallfun`, after subgrid), from the same `u0`, `thl0`, `qt0` of the substep; the first-level cells above horizontal Monin-Obukhov facets (`mo_cells_update`) before subgrid, and at a cold start once before the start-up thermodynamics, as DALES `readinitfiles` (src/program.f90:166, src/modstartup.f90:1680-1687) | aligned | - |
+| stress stencil | cell-centred `u + cu`, 4-point v, u* averaged over two cells, wind floor 1e-10 (DALES modsubgrid.f90:942-951) | u* and L of the section at the u (v) point, 4-point v (u), `min_horv = 0.1` in Cm (src/modibm.f90:1676-1694) | different by design | second-order equivalent |
 
 ### Wall functions
 
@@ -178,20 +178,20 @@ obstacles (DALES modibm.f90:183-193, 640-649), without a facet energy balance. T
 
 | item | DALES | uDALES | status | effect |
 |---|---|---|---|---|
-| constants | grav 9.81, rd 287.04, rv 461.5, cp 1004, rlv 2.53e6, pref0 1e5, tmelt 273.16 (DALES modglobal.f90:78-95) | the same (src/modglobal.f90:287-326) | aligned | `rlv = 2.53e6` is the DALES value, chosen for identical constants; the real value is 2.50e6 at 0 °C and 2.45e6 at 20 °C (2.53e6 is about 3 % above it), and the old uDALES 2.26e6 is the 100 °C value |
-| es | Murphy and Koop (2005) table, 0.2 K spacing, linear interpolation; liquid-ice blend between 253 and 268 K (DALES modthermodynamics.f90:136-156, 701-716) | Tetens, `610.78 exp(17.27 (T - 273.16)/(T - 35.86))` (src/modthermodynamics.f90:491, 520); no ice | aligned in the validation (DALES patched to Tetens) | Tetens is 0.10-0.13 % lower at 285-298 K, about +1 % ql at 0.5 g/kg (offline estimate) |
-| qsat | `(rd/rv) es / (p - (1 - rd/rv) es)` | the same (src/modthermodynamics.f90:492) | aligned | - |
-| saturation adjustment | two linearised steps, the second re-linearised at the first estimate (DALES modthermodynamics.f90:766-797); its `lqlnr` is ignored. 4.4.2: Newton-Raphson iteration (`icethermo0`) by default | `lqlnr = .true.`: Newton-Raphson to 1e-5 relative (src/modthermodynamics.f90:476-500), used by 301-303; default `.false.`: one linearised step (src/modthermodynamics.f90:505-525) | different by design (summary #3) | dev two-step within about 0.2 % of exact; the one-step default overestimates ql by 0.6-9 % in BOMEX cores (offline estimate) |
-| half levels | linear (or kappa, see Advection) with `thls`, `qts` at the surface; saturation adjustment repeated at half levels | linear with `thls`, `qts` (src/modthermodynamics.f90:535-565); repeated at half levels (src/modthermodynamics.f90:71-73); with `iwallmom = 4` the namelist `thls`, `qts` are kept (DALES re-diagnoses them every step from `tskin`, `qskin`; `bldump` reports the diagnosed means) | aligned for cd2 | - |
-| `calthv` | Deardorff moist/dry `dthvdz` with `chi_half = 0.5`, MO gradient at k = 1 (DALES modthermodynamics.f90:333-479) | the same, plus a guard against a zero denominator (src/modthermodynamics.f90:130-259) | aligned | - |
-| density | `rhof = presf/(rd Tv)` (DALES modthermodynamics.f90:575) | the same (src/modthermodynamics.f90:371) | aligned | - |
+| constants | grav 9.81, rd 287.04, rv 461.5, cp 1004, rlv 2.53e6, pref0 1e5, tmelt 273.16 (DALES modglobal.f90:78-95) | the same (src/modglobal.f90:287-331) | aligned | `rlv = 2.53e6` is the DALES value, chosen for identical constants; the real value is 2.50e6 at 0 °C and 2.45e6 at 20 °C (2.53e6 is about 3 % above it), and the old uDALES 2.26e6 is the 100 °C value |
+| es | Murphy and Koop (2005) table, 0.2 K spacing, linear interpolation; liquid-ice blend between 253 and 268 K (DALES modthermodynamics.f90:136-156, 701-716) | Tetens, `610.78 exp(17.27 (T - 273.16)/(T - 35.86))` (src/modthermodynamics.f90:497, 520); no ice | aligned in the validation (DALES patched to Tetens) | Tetens is 0.10-0.13 % lower at 285-298 K, about +1 % ql at 0.5 g/kg (offline estimate) |
+| qsat | `(rd/rv) es / (p - (1 - rd/rv) es)` | the same (src/modthermodynamics.f90:498) | aligned | - |
+| saturation adjustment | two linearised steps, the second re-linearised at the first estimate (DALES modthermodynamics.f90:766-797); its `lqlnr` is ignored. 4.4.2: Newton-Raphson iteration (`icethermo0`) by default | `lqlnr = .true.`: Newton-Raphson to 1e-5 relative (src/modthermodynamics.f90:481-510), used by 301-303; default `.false.`: one linearised step (src/modthermodynamics.f90:511-534) | different by design (summary #3) | dev two-step within about 0.2 % of exact; the one-step default overestimates ql by 0.6-9 % in BOMEX cores (offline estimate) |
+| half levels | linear (or kappa, see Advection) with `thls`, `qts` at the surface; saturation adjustment repeated at half levels | linear with `thls`, `qts` (src/modthermodynamics.f90:541-571); repeated at half levels (src/modthermodynamics.f90:71-73); with `iwallmom = 4` the namelist `thls`, `qts` are kept (DALES re-diagnoses them every step from `tskin`, `qskin`; `bldump` reports the diagnosed means) | aligned for cd2 | - |
+| `calthv` | Deardorff moist/dry `dthvdz` with `chi_half = 0.5`, MO gradient at k = 1 (DALES modthermodynamics.f90:333-479) | the same, plus a guard against a zero denominator (src/modthermodynamics.f90:130-264) | aligned | - |
+| density | `rhof = presf/(rd Tv)` (DALES modthermodynamics.f90:575) | the same (src/modthermodynamics.f90:376) | aligned | - |
 
 ## Radiation
 
 | item | DALES | uDALES | status | effect |
 |---|---|---|---|---|
-| parametrised longwave | `radpar`: `lwd = dlwtop exp(-rka LWP_above)`, `lwu = dlwbot exp(-rka LWP_below)`, `thlprad = -dF/dz /(rhof cp exnf)` (DALES modradiation.f90:339-452) | `iradiation = 2`, the same (src/modradiation.f90:130-166); absorber ql or a scalar (`rad_absorber`) | aligned | - |
-| update | at `rk3step = 1` every `timerad`, held for all substeps (DALES modradiation.f90:243-248) | the same (src/modradiation.f90:120-126) | aligned | - |
+| parametrised longwave | `radpar`: `lwd = dlwtop exp(-rka LWP_above)`, `lwu = dlwbot exp(-rka LWP_below)`, `thlprad = -dF/dz /(rhof cp exnf)` (DALES modradiation.f90:339-452) | `iradiation = 2`, the same (src/modradiation.f90:132-168); absorber ql or a scalar (`rad_absorber`) | aligned | - |
+| update | at `rk3step = 1` every `timerad`, held for all substeps (DALES modradiation.f90:243-248) | the same (src/modradiation.f90:122-127) | aligned | - |
 | DYCOMS free-troposphere term | `rad_user` in `cases/dycoms_rf02/moduser.f90`: pointwise derivative, sign that warms (dalesteam/dales#347) | case hook `dycoms_rf01`: divergence of the analytic flux between faces, cooling (src/cases/case_dycoms_rf01.f90:112-149) | different by design; the DALES reference was patched to the uDALES form | - |
 | `iradiation = 10` | `initradiation` resets `rad_longw = rad_shortw = rad_smoke = .false.` for `iradiation = 10`, so `radpar` never runs in the `irad_user` branch (DALES modradiation.f90:187; also in 4.4.2) | not applicable | DALES defect (dalesteam/dales#347); the DALES comparison inputs patch it | without the patch DALES RF01 has no cloud-top longwave cooling |
 | prescribed cooling | `thlpcar` added through `rad_ls` (DALES modradiation.f90:570) | added in `forces` (src/modforces.f90:107) | aligned | BOMEX -2 K/day |
@@ -202,8 +202,8 @@ obstacles (DALES modibm.f90:183-193, 640-649), without a facet energy balance. T
 |---|---|---|---|
 | subsidence | upwind `-whls dphi/dz` on the local fields, ascent term not at k = 1 (DALES modforces.f90:339-345) | the same (src/modforces.f90:766-783) | aligned |
 | momentum subsidence | `lmomsubs`, default off | the same | aligned |
-| prescribed tendencies | `dqtdtls`, advective `dthldxls` etc. (DALES modforces.f90:381) | the same (src/modforces.f90:785-788) | aligned |
-| geostrophic forcing | `dpdxl = om23_gs vg`, `dpdyl = -om23_gs ug` | the same (src/modstartup.f90:2180-2181) | aligned |
+| prescribed tendencies | `dqtdtls`, advective `dthldxls` etc. (DALES modforces.f90:381) | the same (src/modforces.f90:782-785) | aligned |
+| geostrophic forcing | `dpdxl = om23_gs vg`, `dpdyl = -om23_gs ug` | the same (src/modstartup.f90:2213-2214) | aligned |
 | Coriolis | 4-point averages with the `2 Omega cos(lat)` terms (`om22`) in u and w, `omega = 7.292e-5`, plus `cu`, `cv` terms (DALES modforces.f90:200-286) | the same without `cu`, `cv` (src/modforces.f90:631-675) | aligned for `cu = cv = 0` |
 
 ## Galilean transform, sponge layer and boundary conditions
@@ -220,8 +220,8 @@ obstacles (DALES modibm.f90:183-193, 640-649), without a facet energy balance. T
 
 | item | DALES | uDALES | status |
 |---|---|---|---|
-| generator | sequential LCG over the global domain, carried across levels and fields (DALES modstartup.f90:1623-1662) | counter-based splitmix64 hash of `(irandom, field, i, j, k)` (src/modstartup.f90:2562-2610) | different by design (other realisations) |
-| fields and levels | thl and qt on levels `1..krand` (default all), m and 0 fields drawn separately; u, v, w on `krandumin..krandumax` (default none) (DALES modstartup.f90:763-786) | u, v, w on `kb..krand` with `randu`; thl, qt with `randthl`, `randqt` (one draw for the m and 0 fields) (src/modstartup.f90:1254-1278) | aligned in the validation (no velocity noise, thl 0.1 K and qt 2.5e-5 on all levels) |
+| generator | sequential LCG over the global domain, carried across levels and fields (DALES modstartup.f90:1623-1662) | counter-based splitmix64 hash of `(irandom, field, i, j, k)` (src/modstartup.f90:2595-2643) | different by design (other realisations) |
+| fields and levels | thl and qt on levels `1..krand` (default all), m and 0 fields drawn separately; u, v, w on `krandumin..krandumax` (default none) (DALES modstartup.f90:763-786) | u, v, w on `kb..krand` with `randu`; thl, qt with `randthl`, `randqt` (one draw for the m and 0 fields) (src/modstartup.f90:1286-1310) | aligned in the validation (no velocity noise, thl 0.1 K and qt 2.5e-5 on all levels) |
 | qt cap | amplitude capped at the local qt | the same | aligned |
 | defaults | `randthl = 0.1`, `randqt = 1e-5`, `randu = 0.5`, `irandom = 0` (DALES modstartup.f90:44-47) | `randu = 0.01`, `randthl = randqt = 0`, `irandom = 43` (src/modstartup.f90:42-44) | different |
 
@@ -229,11 +229,11 @@ obstacles (DALES modibm.f90:183-193, 640-649), without a facet energy balance. T
 
 | item | DALES | uDALES bldump | status |
 |---|---|---|---|
-| LWP | mean over columns of `sum rhof ql dzf` (DALES modtimestat.f90:424-435, 617) | the same (src/modbldiag.f90:109-113) | aligned |
-| cloud cover | fraction of columns with column ql > 0 (DALES modtimestat.f90:432, 616) | fraction of columns with any ql > 0 (src/modbldiag.f90:114) | aligned |
-| zi | max gradient of thv on 4-column composites, refined by the zero of the gradient change (DALES modtimestat.f90:60-61, 1191-1221) | per column, half level of the max dthl/dz, then averaged (src/modbldiag.f90:115-123) | different; the validation computes zi identically for both codes from the 600 s block-mean thl profile (`compare_dales.py`) |
-| zi from qt | no timestat output (the DYCOMS `rad_user` uses a qt = 8 g/kg crossing per column for the radiation only) | `zi_qt` with `zi_qt_thres` (src/modbldiag.f90:124) | the validation computes `zi_qt8` for both codes from the block-mean qt profile (`compare_dales.py`) |
-| sampling | after `thermodynamics`; profiles are 600 s block means of 60 s samples | after `thermodynamics` (src/program.f90:249-252); 60 s snapshots, block-averaged in `compare_dales.py` | aligned |
+| LWP | mean over columns of `sum rhof ql dzf` (DALES modtimestat.f90:424-435, 617) | the same (src/modbldiag.f90:113-117) | aligned |
+| cloud cover | fraction of columns with column ql > 0 (DALES modtimestat.f90:432, 616) | fraction of columns with any ql > 0 (src/modbldiag.f90:118) | aligned |
+| zi | max gradient of thv on 4-column composites, refined by the zero of the gradient change (DALES modtimestat.f90:60-61, 1191-1221) | per column, half level of the max dthl/dz, then averaged (src/modbldiag.f90:119-127) | different; the validation computes zi identically for both codes from the 600 s block-mean thl profile (`compare_dales.py`) |
+| zi from qt | no timestat output (the DYCOMS `rad_user` uses a qt = 8 g/kg crossing per column for the radiation only) | `zi_qt` with `zi_qt_thres` (src/modbldiag.f90:128) | the validation computes `zi_qt8` for both codes from the block-mean qt profile (`compare_dales.py`) |
+| sampling | after `thermodynamics`; profiles are 600 s block means of 60 s samples | after `thermodynamics` (src/program.f90:240-243); 60 s snapshots, block-averaged in `compare_dales.py` | aligned |
 
 ## Settings of the validation runs
 
