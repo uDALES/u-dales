@@ -300,8 +300,8 @@ module modibm
    !> iwallmom = 4: list the fluid cells that own a c-grid section of a horizontal
    !> Monin-Obukhov facet (normal +z), on this rank (at a roof edge this can be a cell beside
    !> the roof). In these cells the one-equation SGS TKE sources and dthvdz use the Monin-Obukhov
-   !> surface-layer gradients, as DALES does at its first level (mo_cells_update). Sections with log(dist/max(z0,z0h)) <= 1 are left out, as in
-   !> wallfunmom. Sloped Monin-Obukhov facets and all other walls get no such treatment.
+   !> surface-layer gradients, as DALES does at its first level (mo_cells_update).
+   !> Sections with log(dist/max(z0,z0h)) <= 1 are left out, as in wallfunmom. Sloped Monin-Obukhov facets and all other walls get no such treatment.
    subroutine initibm_mocells
      use modglobal, only : ib, ie, jb, je, kb, ke, nfcts
      use initfac,   only : facnorm, facz0, facz0h

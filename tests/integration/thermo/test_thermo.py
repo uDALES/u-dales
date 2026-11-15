@@ -794,6 +794,7 @@ class TestMOSlopedFacet(_SolverTest):
     def setUpClass(cls):
         super().setUpClass()
         if not tc.ibm_preprocessor_available():
+            cls._tmp.cleanup()
             raise unittest.SkipTest("no gfortran for the udprep legacy IBM preprocessor")
         try:
             cls.prep = tc.prepare_ridge(cls.tmp / "prep", cls.ANGLE, cls.Z0)
