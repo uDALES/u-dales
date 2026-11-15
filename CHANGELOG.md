@@ -21,8 +21,8 @@ that they are easy to find when upgrading.
   `tthermostat` is replaced by `tstatsdump` (samples every `tstatsdump` from `tstatstart` on,
   at the same point of the time loop); `zi_qt_thres`, `zi_sv_index` and `zi_sv_thres`
   move to `&OUTPUT` with the same defaults and checks. An old `&NAMTHERMOSTAT` group in
-  `namoptions` is silently ignored (no diagnostics are written), so set `lbldump = .true.`
-  and `tstatsdump` in `&OUTPUT`.
+  `namoptions` aborts at start-up with a message pointing to `lbldump`: replace it by
+  `lbldump = .true.` and `tstatsdump` in `&OUTPUT`.
 - **The von Karman constant default `fkar` is 0.40 instead of 0.41.** It is now the value used by DALES
   (`fkar = 0.4`), PALM (`kappa = 0.4`) and WRF; the 2.3 % u* gap between uDALES and DALES in the RF01 comparison
   was entirely this constant. `fkar` remains a `&WALLS` input. The inlet generator (`modinlet`) keeps its own
@@ -171,6 +171,8 @@ that they are easy to find when upgrading.
 
 ### Fixed
 
+- **The start-up noise on `thl` is also applied to the kappa-scheme copy** (`iadv_thl = 7`,
+  `randthl > 0`), so the first time step advects the perturbed field.
 - `modthermodynamics:thermo` no longer reads the iteration counter `niter` uninitialised
   in the Newton-Raphson saturation adjustment (`lqlnr = .true.`)
   ([issue #400](https://github.com/uDALES/u-dales/issues/400)). `niter` is a diagnostic

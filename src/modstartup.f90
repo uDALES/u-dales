@@ -100,7 +100,8 @@ module modstartup
       use decomp_2d
 
       implicit none
-      integer :: ierr
+      integer :: ierr, ic
+      character(len=256) :: nmlline
 
       !declare namelists
 
@@ -319,6 +320,24 @@ module modstartup
             stop 1
          endif
          !write (6, OUTPUT)
+         rewind (ifnamopt)
+
+         ! &NAMTHERMOSTAT was replaced by lbldump in &OUTPUT; an old group would be ignored silently
+         do
+            read (ifnamopt, '(a)', iostat=ierr) nmlline
+            if (ierr /= 0) exit
+            nmlline = adjustl(nmlline)
+            if (nmlline(1:1) /= '&') cycle
+            do ic = 1, 14
+               if (nmlline(ic:ic) >= 'A' .and. nmlline(ic:ic) <= 'Z') &
+                  nmlline(ic:ic) = achar(iachar(nmlline(ic:ic)) + 32)
+            end do
+            if (nmlline(1:14) == '&namthermostat') then
+               write(0, *) 'ERROR: namelist group &NAMTHERMOSTAT is no longer read. Set lbldump = .true. and ', &
+                           'tstatsdump in &OUTPUT instead (the diagnostics are written to bldump_t/bldump_z).'
+               stop 1
+            end if
+         end do
          close (ifnamopt)
       end if
 
@@ -1271,6 +1290,8 @@ module modstartup
                   call randomize_field(thlm, k, randthl, irandom, 4, ih, jh)
                   call randomize_field(thl0, k, randthl, irandom, 4, ih, jh)
                 end do
+                ! the kappa advection scheme works on the copy thl0c: keep it equal to thl0
+                thl0c(ib:ie, jb:je, kb:krand) = thl0(ib:ie, jb:je, kb:krand)
               end if
               if (randqt > 0.) then
                 ! as in DALES the amplitude is capped at qt, so that qt stays >= 0
