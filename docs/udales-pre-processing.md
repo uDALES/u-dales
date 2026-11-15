@@ -150,51 +150,103 @@ energy balance. A huge facet spreads one temperature over a whole wall, and a
 sliver gets all-or-nothing sun and hardly any view-factor neighbours.
 
 With `lfacetuniform = .true.` under `&INPS`, the Python preprocessing first
-rebuilds the mesh so that facet areas fall within a band around a target area:
+rebuilds the mesh so that facet areas fall within a band around a target area,
+writes the result as a new STL (and a new facet-type file) next to the original,
+and runs every later step on the new geometry. The original files are never
+modified.
 
-- faces are grouped into coplanar, edge-connected patches of the same facet
-  type (types are read from `types_path` when `read_types` is true);
-- a patch that contains faces below the band is retriangulated as a whole, which
-  merges the tiny faces into their coplanar neighbours;
-- faces above the band are split;
-- faces inside the band are copied unchanged, so a mesh that is already uniform
-  passes through untouched and running the step twice changes nothing;
-- the geometry itself is preserved: no vertex moves, creases and type boundaries
+### Inputs
+
+The step is driven entirely from `namoptions.<expnr>`. Only the switch is
+required; the geometry variables are the same ones used without uniformisation:
+
+```fortran
+&INPS
+  stl_file          = 'geom.stl'        ! source STL, relative to the case directory
+  read_types        = .true.            ! optional: per-facet types ...
+  types_path        = 'geom_types.txt'  ! ... one integer per face, in face order
+  lfacetuniform     = .true.            ! switch the step on
+  facet_target_edge = 0.0               ! optional tuning, see below
+  facet_size_band   = 4.0
+  facet_allow_split = .true.
+  facet_allow_merge = .true.
+  facet_count_max   = 0
+/
+```
+
+| Variable | Default | Meaning |
+| --- | --- | --- |
+| `lfacetuniform` | `.false.` | Switch. Everything else only matters when this is true. |
+| `facet_target_edge` | `0.0` | Target facet edge length in metres; the target area is that of the equilateral triangle with this edge. `0` keeps the facet count about the same by taking the mean facet area of the input as the target. Set it explicitly when the whole mesh is uniformly too coarse or too fine, which the automatic target cannot correct. |
+| `facet_size_band` | `4.0` | Facets with an area between target/band and target×band are accepted as they are. A larger band touches fewer facets and adds fewer new ones. |
+| `facet_allow_split` | `.true.` | Allow facets above the band to be split. |
+| `facet_allow_merge` | `.true.` | Allow facets below the band to be merged with coplanar neighbours of the same type. |
+| `facet_count_max` | `0` | Abort when the result would have more facets than this. `0` means four times the input facet count. The view-factor and shortwave steps scale with the square of the facet count, so this guards against an unintentionally fine target. |
+
+When `read_types` is true the facet types are read from `types_path` and carried
+over to the new faces; merging never crosses a type boundary. Without types, all
+faces are treated as one type.
+
+### What the step does
+
+- Faces are grouped into coplanar, edge-connected patches of the same facet type.
+- A patch that contains faces below the band is retriangulated as a whole, which
+  merges the tiny faces into their coplanar neighbours.
+- Faces above the band are split.
+- Faces inside the band are copied unchanged, so a mesh that is already uniform
+  passes through untouched and running the step twice changes nothing.
+- The geometry itself is preserved: no vertex moves, creases and type boundaries
   stay where they are, the mesh stays conforming (no T-junctions) and the output
   has no unused vertices.
 
-The target is set with `facet_target_edge` (m). The default, 0, keeps the facet
-count about the same by taking the mean facet area of the input as the target;
-a smaller edge gives more, smaller facets. The accepted band is
-`facet_size_band` (default 4) either side of the target area. When all facets
-are uniformly too large or too small, `facet_allow_split` and
-`facet_allow_merge` select which of the two operations is allowed. The step
-prints a summary (facet counts, area percentiles before and after, number of
-faces merged and split) and refuses to continue when the result would exceed
-`facet_count_max` facets (default: four times the input count), because the
-cost of the view-factor and shortwave steps grows with the square of the facet
-count.
+The step prints a summary: facet counts, area percentiles before and after, the
+number of faces merged and split, and the number of faces that remain outside
+the band.
 
-The outputs are written next to the input STL and never overwrite it:
-`<stem>_uniform.stl`, `<types stem>_uniform<ext>` (facet types of the new
-faces), `<stem>_uniform_facemap.txt` (1-based index of the input face each new
-face comes from, for carrying other per-facet data across) and
-`<stem>_uniform.json` (source checksum, settings and summary). `stl_file` and
-`types_path` in `namoptions` are then pointed at the new files, so every later
-step (IBM, `facets.inp`, view factors, shortwave, SEB) and post-processing with
-`udbase` use the uniform geometry. Existing `facets.inp`/`factypes.inp` written
-for the original STL are refused, as their facet count no longer matches.
+### Outputs and what happens next
+
+The outputs are written next to the input STL and never overwrite anything:
+
+| File | Content |
+| --- | --- |
+| `<stem>_uniform.stl` | the uniformised geometry |
+| `<types stem>_uniform<ext>` | facet types of the new faces (only when `read_types` is true) |
+| `<stem>_uniform_facemap.txt` | 1-based index of the input face each new face comes from, for carrying other per-facet data across |
+| `<stem>_uniform.json` | source file checksums, settings used and the summary |
+
+`stl_file` and `types_path` in `namoptions` are then rewritten in place to point
+at the new files, and the geometry is reloaded. From this point on, the
+preprocessing (IBM, `facets.inp`, view factors, shortwave, SEB) and
+post-processing with `udbase` use only the uniform geometry; the original STL
+and types file are not read again.
+
+### Rerunning and regenerating
+
 Rerunning the preprocessing with the rewritten `namoptions` is a no-op for this
-step; an existing `<stem>_uniform.stl` is reused only when its sidecar matches
-the source and the settings, and refused otherwise (delete or rename it to
-regenerate).
+step: `stl_file` already names a uniformised geometry made with the current
+settings, and nothing is recomputed.
 
-Two limits are worth knowing. Merging never crosses a crease or a type
-boundary, and a facet narrower than the target (a 1 m wide wall piece, say)
-stays small whatever the settings, because its edges are real geometry; the
-summary reports how many such faces remain. And an edge shared with a face that
-is kept as it is cannot be split, so a split facet next to a kept one may stay
-larger than the target along that edge.
+Per-facet input files generated earlier from the original STL are stale. In
+particular an existing `facets.inp.<expnr>` is refused because its facet count
+no longer matches the geometry, and other steps that do not overwrite their
+outputs (for example `Tfacinit.inp`, the View3D view factors) keep the old
+files. Delete those files before enabling uniformisation on an existing case so
+they are regenerated. `factypes.inp` is a material table, not per facet, and
+stays valid.
+
+To regenerate with different settings, set `stl_file` (and `types_path`) back to
+the source files and delete the `_uniform` outputs. The step refuses to
+overwrite an existing `<stem>_uniform.stl` unless its sidecar matches the
+current source and settings, and refuses to continue when `stl_file` names a
+uniformised geometry made with settings different from the current ones.
+
+### Limits
+
+Merging never crosses a crease or a type boundary, and a facet narrower than
+the target (a 1 m wide wall piece, say) stays small whatever the settings,
+because its edges are real geometry; the summary reports how many such faces
+remain. An edge shared with a face that is kept as it is cannot be split, so a
+split facet next to a kept one may stay larger than the target along that edge.
 
 The same operation is available in Python as `udgeom.uniformize_facets(mesh,
 ...)` or `UDGeom.uniformize_facets(...)`.
