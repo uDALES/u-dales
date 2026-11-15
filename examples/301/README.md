@@ -23,7 +23,7 @@ moisture (`iwallmoist = 1` applies `bcqfz` to it)).
 | setting | value | source |
 |---|---|---|
 | grid | 64 x 64 x 80, dx = dy = 100 m, dz = 40 m (z up to 3200 m) | DALES `itot, jtot, kmax, xsize, ysize`; z from `prof.inp.001` |
-| duration | 21600 s (6 h) | task spec; the DALES file has `runtime = 28800` |
+| duration | 21600 s (6 h) | case setup; the DALES file has `runtime = 28800` |
 | time step | `ladaptive`, `courant = 0.55`, `diffnr = 0.2`, `dtmax = 20` | DALES `ladaptive`; `courant` tuned so that the mean dt matches the DALES run (see "Time step"); `diffnr` = DALES `peclet = 0.15` x 1.32 (not limiting); `dtmax` = DALES default |
 | `ps` | 101500 Pa | DALES `ps` |
 | `thls` | 299.1 K | DALES `thls`; the reference surface value (`thvs`, base state); the floor facet diagnoses its own surface thl every step |
@@ -40,8 +40,8 @@ moisture (`iwallmoist = 1` applies `bcqfz` to it)).
 | sponge | `igrw_damp = 2`, `ksp` default (top quarter, `rnu0 = 2.75e-3`) | DALES default `igrw_damp = 2`; the `ksp` default is the same formula |
 | `lqlnr` | `.true.` | exact liquid water by Newton-Raphson; DALES dev uses two linearised steps (within 0.2 % of exact) and ignores its `lqlnr` |
 | surface | `libm = .true.`, `lbottom = .false.`, one floor facet, `iwalltemp = iwallmoist = 1` | a facet floor without buildings (see "Floor") |
-| bldump | `lbldump`, `tstatsdump = 60` s | task spec |
-| `timerad` | 0 | task spec (radiation every step; unused with `iradiation = 0`) |
+| bldump | `lbldump`, `tstatsdump = 60` s | case setup |
+| `timerad` | 0 | case setup (radiation every step; unused with `iradiation = 0`) |
 | initial noise | `lrandomize`, `randthl = 0.1` K, `randqt = 2.5e-5` kg/kg, `randu = 0`, `krand = 80` (all levels), `irandom = 43` | DALES `randthl`, `randqt`, `irandom`; DALES BOMEX applies no u, v, w noise (its momentum noise is off) and perturbs all levels |
 | `tcheck` | 60 s | mean dt to the log every minute (used for the time-step comparison) |
 | decomposition | `nprocx = 4`, `nprocy = 2`; `jtot % nprocy = 0` and `ktot % nprocy = 0` | |
@@ -103,7 +103,7 @@ reported runs in [RESULTS.md](RESULTS.md).
   default `courant` is 1.0 (not 0.5); `courant` is therefore a tuned value here, not a transcribed one.
 - uDALES has no 5th-order advection scheme; BOMEX uses second-order central differences in DALES too. The
   remaining differences are listed in [uDALES and DALES numerics](../../docs/udales-dales-numerics.md).
-- Duration 6 h instead of 8 h (task spec).
+- Duration 6 h instead of 8 h (case setup).
 - Output: only the bldump files (statistics, field dumps and cross sections are off).
 
 ## Concerns

@@ -29,10 +29,10 @@ which is not needed in this dry case. The smoke scalar has no flux through the f
 | scalar | `nsv = 1`, `iadv_sv = 7` (kappa), `scalar.inp.302` | DALES `nsv`, `iadv_sv = 7`, `scalar.inp.001` (smoke 1 up to 700 m, then a ramp to 0); `wsvsurf = 0` is the default |
 | advection | `iadv_mom = iadv_tke = 2`, `iadv_thl = 7` | DALES `iadv_*`; DALES `iadv_qt = 7` becomes 2: uDALES supports only 2 for qt, and qt is inert in this dry case |
 | radiation | `iradiation = 2`, `rad_longw`, `rad_absorber = 'sv'`, `rad_absorber_sv = 1`, `rka = 0.02`, `dlwtop = 60`, `dlwbot = 0` | DALES `namoptions.001` (`rad_smoke`, `isvsmoke = 1`; `dlwbot` is the default 0) |
-| `timerad` | 0 | task spec; the DALES file has 600 s |
+| `timerad` | 0 | case setup; the DALES file has 600 s |
 | Coriolis, sponge | `lcoriol = .false.`, `igrw_damp = 0` | DALES `lcoriol = .false.`, `igrw_damp = 0` |
 | SGS | `loneeqn = .true.`, `ldelta = .false.` | as DALES (default) |
-| bldump | `lbldump`, `tstatsdump = 60` s | task spec |
+| bldump | `lbldump`, `tstatsdump = 60` s | case setup |
 | initial noise | `lrandomize`, `randthl = 0.1` K, `randu = 0`, `randqt = 0`, `krand = 250` (all levels), `irandom = 43` | DALES `randthl`, `irandom`; DALES applies no u, v, w noise; DALES `randqt = 2.5e-5` acts on an inert qt (`lmoist = .false.`) and is not set |
 | `lqlnr` | `.true.` | the closest option to DALES (inert here, `lmoist = .false.`) |
 | `tcheck` | 60 s | mean dt to the log every minute |

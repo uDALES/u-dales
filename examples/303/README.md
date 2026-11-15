@@ -26,8 +26,8 @@ Surface.pyx, `RadiationDyCOMS_RF01` in Radiation.pyx).
 
 | setting | value | source |
 |---|---|---|
-| grid | 96 x 96 x 300, dx = dy = 35 m, dz = 5 m (3360 m x 3360 m x 1500 m) | task spec / Stevens et al. 2005 |
-| duration | 14400 s (4 h) | task spec |
+| grid | 96 x 96 x 300, dx = dy = 35 m, dz = 5 m (3360 m x 3360 m x 1500 m) | case setup / Stevens et al. 2005 |
+| duration | 14400 s (4 h) | case setup |
 | `thl` | 289 K for z <= 840 m; 297.5 + (z - 840)^(1/3) K above | PyCLES `InitDYCOMS_RF01` |
 | `qt` | 9 g/kg for z <= 840 m; 1.5 g/kg above | PyCLES `InitDYCOMS_RF01` |
 | u, v; ug, vg | 7, -5.5 m/s; ug = u, vg = v | PyCLES `RS.u0, RS.v0`; geostrophic wind equals the initial wind |
@@ -40,10 +40,10 @@ Surface.pyx, `RadiationDyCOMS_RF01` in Radiation.pyx).
 | surface | facet floor, `iwallmom = 4`, `z0 = z0h = 1.445944e-5` m (floor facet type, `factypes.inp.303`) | `z0 = (dz/2) exp(-0.40 / sqrt(0.0011))`: neutral Cm = 0.0011 at the first level (PyCLES `cm = 0.0011`) |
 | `thls`, `qts` | 289 K, 9e-3 | reference surface values (`thvs`, base state); the floor facet diagnoses its own every step |
 | radiation | `iradiation = 2`, `rad_longw`, `rka = 85`, `dlwtop = 70`, `dlwbot = 22`, `case_hooks = 'dycoms_rf01'` with `&NAMCASE_DYCOMS` `dycoms_D = 3.75e-6`, `dycoms_qt_thres = 8e-3` | PyCLES `RadiationDyCOMS_RF01` (`kap = 85, f0 = 70, f1 = 22, divergence = 3.75e-6`); the 8 g/kg threshold is that of DALES `rad_user` |
-| `timerad` | 0 | task spec |
-| SGS, advection | `loneeqn = .true.`; `iadv_mom = iadv_tke = iadv_thl = iadv_qt = 2` | task spec; uDALES has only central differences for qt |
+| `timerad` | 0 | case setup |
+| SGS, advection | `loneeqn = .true.`; `iadv_mom = iadv_tke = iadv_thl = iadv_qt = 2` | case setup; uDALES has only central differences for qt |
 | sponge | `igrw_damp = 2`, `ksp` default | DALES default; top quarter of the domain |
-| bldump | `lbldump`, `tstatsdump = 60` s | task spec |
+| bldump | `lbldump`, `tstatsdump = 60` s | case setup |
 | initial noise | `lrandomize`, `randthl = 0.1` K, `randqt = 2.5e-5` kg/kg, `randu = 0`, `krand = 300` (all levels), `irandom = 43` | DALES `cases/dycoms_rf02/namoptions.001` (`randthl`, `randqt`, `irandom`; all levels); DALES applies no u, v, w noise |
 | `lqlnr` | `.true.` | exact liquid water by Newton-Raphson; DALES dev uses two linearised steps (within 0.2 % of exact) |
 | time step | `ladaptive`, `courant = 0.5`, `diffnr = 0.16`, `dtmax = 20` | tuned against the invalid DALES run, see "Time step"; the DALES comparison uses a fixed 0.3 s |
