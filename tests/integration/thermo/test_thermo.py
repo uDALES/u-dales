@@ -623,9 +623,11 @@ class TestCaseHooks(_SolverTest):
                     "timerad must be >= 0")
 
     def test_unreadable_namelist_aborts_once_on_all_ranks(self):
-        # a read error in a new namelist group is collective: rank 0 reports once, all ranks abort
+        # a read error in a new namelist group is collective: rank 0 reports once, all ranks abort.
+        # An unknown variable name is a read error (iostat > 0) under both gfortran and ifort; a
+        # bad integer value ('banana') is not portable: gfortran 13-15 return iostat = -1 for it.
         d = tc.write_case(self.tmp / "nml_bad", groups={
-            "RUN": {"nprocx": "2"}, "NAMRADIATION": {"iradiation": "banana"}})
+            "RUN": {"nprocx": "2"}, "NAMRADIATION": {"iradiation": "2", "no_such_variable": "1"}})
         res = tc.run(d, 2)
         out = res.stdout + res.stderr
         self.assertNotEqual(res.returncode, 0)
