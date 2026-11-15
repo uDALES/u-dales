@@ -795,7 +795,11 @@ class TestMOSlopedFacet(_SolverTest):
         super().setUpClass()
         if not tc.ibm_preprocessor_available():
             raise unittest.SkipTest("no gfortran for the udprep legacy IBM preprocessor")
-        cls.prep = tc.prepare_ridge(cls.tmp / "prep", cls.ANGLE, cls.Z0)
+        try:
+            cls.prep = tc.prepare_ridge(cls.tmp / "prep", cls.ANGLE, cls.Z0)
+        except ImportError as exc:
+            cls._tmp.cleanup()
+            raise unittest.SkipTest(f"udprep dependencies missing: {exc}")
 
     def _run(self, name, nprocx):
         # uniform, unsaturated thl and qt: the heat budget below needs a known initial integral
