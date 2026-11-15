@@ -1,9 +1,20 @@
 # 302: smoke cloud (Bretherton et al. 1999)
 
-Full-size validation case for the scalar radiation absorber (`rad_absorber = 'sv'`), the dry MO surface and the
+Full-size validation case for the scalar radiation absorber (`rad_absorber = 'sv'`), the dry Monin-Obukhov facet surface and the
 `zi_sv` bldump diagnostic (`zi_sv_index = 1`, `zi_sv_thres = 0.5`). Inputs are converted from the DALES case `cases/smoke`
 (`convert_dales_case.py`), grid and profiles unchanged. Run with `tools/hpc_execute.sh examples/302`
 (16 ranks, 8 x 2); compare with `compare_dales.py` (entrainment rate from `zi_sv`, D = 0).
+
+## Floor
+
+The floor is one horizontal facet covering the domain (`libm = .true.`, `lbottom = .false.`, `nfcts = 1`),
+as in every uDALES case: the flat bottom boundary (`lbottom`) is not used. Its IBM files (`facets.inp`,
+`factypes.inp`, `facetarea.inp`, `solid_*.txt`, `fluid_boundary_*.txt`, `facet_sections_*.txt`) were written by
+`python -m udprep.flat_floor examples/302 302 --itot 64 --jtot 64 --dx 50 --dy 50 --z1 2.5 --z0 0.1 --z0h 0.1 --no-lgr`
+(from `tools/python`), which prints the `&WALLS` counts. The surface layer is the Monin-Obukhov facet scheme
+(`iwallmom = 4`, the DALES surface with a local Obukhov length per facet section). The floor's facet type (-1)
+has `lGR = 0` in `factypes.inp.302`: in uDALES this green flag only means that the facet exchanges moisture,
+which is not needed in this dry case. The smoke scalar has no flux through the floor.
 
 ## Settings and sources
 
@@ -14,7 +25,7 @@ Full-size validation case for the scalar radiation absorber (`rad_absorber = 'sv
 | time step | `ladaptive`, `courant = 0.5`, `diffnr = 0.16`, `dtmax = 20` | DALES `ladaptive, courant` (explicit in the DALES smoke case; DALES measures it with the L2 norm, uDALES with the L1 sum); `diffnr` = DALES `peclet = 0.15` x 1.02, rounded up (uDALES sums three terms in `ekm dt (1/dz^2 + 1/dx^2 + 1/dy^2)`; dz = 5 m dominates); `dtmax` = DALES default. No DALES smoke run exists, so the step was not tuned; the 60 s smoke test reached dt = 0.36 s at the end of the start-up doubling |
 | `ps`, `thls` | 100000 Pa, 288 K | DALES |
 | moisture | `lmoist = .false.` | DALES |
-| surface | `BCbotm = 4` (MO, u* from MO), `z0 = z0h = 0.1` m, `wtsurf = wqsurf = 0` | DALES `isurf = 4`, `z0`, `wtsurf`, `wqsurf`; `ustin = 0.2` is unused with `BCbotm = 4`; `z0h` set equal to `z0` |
+| surface | facet floor, `iwallmom = 4` (MO, u* from MO), `z0 = z0h = 0.1` m (floor facet type), `bctfz = 0` | DALES `isurf = 4`, `z0`, `wtsurf = wqsurf = 0`; DALES `ustin = 0.2` is unused with `isurf = 4`; `z0h` set equal to `z0` |
 | scalar | `nsv = 1`, `iadv_sv = 7` (kappa), `scalar.inp.302` | DALES `nsv`, `iadv_sv = 7`, `scalar.inp.001` (smoke 1 up to 700 m, then a ramp to 0); `wsvsurf = 0` is the default |
 | advection | `iadv_mom = iadv_tke = 2`, `iadv_thl = 7` | DALES `iadv_*`; DALES `iadv_qt = 7` becomes 2: uDALES supports only 2 for qt, and qt is inert in this dry case |
 | radiation | `iradiation = 2`, `rad_longw`, `rad_absorber = 'sv'`, `rad_absorber_sv = 1`, `rka = 0.02`, `dlwtop = 60`, `dlwbot = 0` | DALES `namoptions.001` (`rad_smoke`, `isvsmoke = 1`; `dlwbot` is the default 0) |

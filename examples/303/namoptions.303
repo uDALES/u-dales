@@ -10,7 +10,7 @@ diffnr       = 0.16         ! = DALES peclet 0.15 x 1.065 (uDALES sums 3 terms);
 ! Fixed time step (the DALES close-match comparison, RESULTS.md; DALES runs the same dt):
 ! ladaptive  = .false.      ! then dt = dtmax; courant and diffnr are ignored; runtime must be a multiple of dtmax
 ! dtmax      = 0.3          ! s; below both codes' adaptive dt (DALES hourly means 0.40-0.43 s); 60 s output = 200 steps
-libm         = .false.
+libm         = .true.       ! the floor is a facet (README)
 lles         = .true.
 nprocx       = 8
 nprocy       = 4
@@ -64,20 +64,30 @@ ldelta       = .false.
 /
 
 &WALLS
-nfcts        = 0
-lbottom      = .true.
+nfcts        = 1            ! the floor: one horizontal facet (files from tools/python/udprep/flat_floor.py; README)
+nsolpts_u    = 0
+nsolpts_v    = 0
+nsolpts_w    = 9216
+nsolpts_c    = 0
+nbndpts_u    = 9216
+nbndpts_v    = 9216
+nbndpts_w    = 9216
+nbndpts_c    = 9216
+nfctsecs_u   = 9216
+nfctsecs_v   = 9216
+nfctsecs_w   = 0
+nfctsecs_c   = 9216
+lbottom      = .false.
+iwallmom     = 4            ! Monin-Obukhov on the floor facet (DALES isurf 4, lmostlocal)
+iwalltemp    = 1            ! prescribed facet heat flux bctfz
+iwallmoist   = 1            ! prescribed facet moisture flux bcqfz (floor facet type has lGR = 1)
 /
 
 &BC
-BCbotm       = 4            ! MO surface with a z0 that gives neutral Cm = 0.0011 at z1 = 2.5 m
-BCbotT       = 1
-BCbotq       = 1
-thls         = 289.         ! first guess (surface thl is diagnosed every step)
-qts          = 9.0e-3       ! first guess
-wtsurf       = -1.22460976e-02   ! SHF 15 W/m2 upward / (1.22 kg/m3 * 1004 J/kg/K); negative = upward (D1)
-wqsurf       = -3.72578241e-05   ! LHF 115 W/m2 upward / (1.22 kg/m3 * 2.53e6 J/kg)
-z0           = 1.445944e-05      ! 2.5 m * exp(-0.40 / sqrt(0.0011)); printed by make_rf01.py
-z0h          = 1.445944e-05
+thls         = 289.         ! reference surface thl (thvs: base state); the floor facet diagnoses its own
+qts          = 9.0e-3       ! reference surface qt (thvs)
+bctfz        = -1.22460976e-02   ! floor SHF 15 W/m2 upward / (1.22 kg/m3 * 1004 J/kg/K); negative = upward (D1)
+bcqfz        = -3.72578241e-05   ! floor LHF 115 W/m2 upward / (1.22 kg/m3 * 2.53e6 J/kg)
 /
 
 &NAMRADIATION

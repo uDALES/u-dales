@@ -7,7 +7,7 @@ ladaptive    = .true.
 dtmax        = 20.          ! DALES default
 courant      = 0.5          ! DALES namoptions (L2 norm there, L1 sum here)
 diffnr       = 0.16         ! = DALES peclet 0.15 x 1.08 (uDALES sums 3 terms)
-libm         = .false.
+libm         = .true.       ! the floor is a facet (README)
 lles         = .true.
 nprocx       = 8
 nprocy       = 2
@@ -66,20 +66,27 @@ nsv          = 1
 /
 
 &WALLS
-nfcts        = 0
-lbottom      = .true.
+nfcts        = 1            ! the floor: one horizontal facet (files from tools/python/udprep/flat_floor.py; README)
+nsolpts_u    = 0
+nsolpts_v    = 0
+nsolpts_w    = 4096
+nsolpts_c    = 0
+nbndpts_u    = 4096
+nbndpts_v    = 4096
+nbndpts_w    = 4096
+nbndpts_c    = 4096
+nfctsecs_u   = 4096
+nfctsecs_v   = 4096
+nfctsecs_w   = 0
+nfctsecs_c   = 4096
+lbottom      = .false.
+iwallmom     = 4            ! Monin-Obukhov on the floor facet, u* from MO (DALES isurf = 4, lmostlocal)
+iwalltemp    = 1            ! prescribed facet heat flux bctfz (zero)
 /
 
 &BC
-BCbotm       = 4            ! MO surface, u* from MO (DALES isurf = 4)
-BCbotT       = 1
-BCbotq       = 1
-thls         = 288.         ! DALES
-wtsurf       = 0.
-wqsurf       = 0.
-z0           = 0.1          ! DALES
-z0h          = 0.1
-ustin        = 0.2          ! DALES; unused with BCbotm = 4
+thls         = 288.         ! DALES; reference surface thl (thvs: base state)
+bctfz        = 0.           ! DALES wtsurf = 0 (floor z0 = z0h = 0.1 m, DALES, in factypes.inp.302)
 /
 
 &NAMRADIATION

@@ -1,11 +1,22 @@
 # 301: BOMEX shallow cumulus (Siebesma et al. 2003)
 
-Full-size validation case for the moist thermodynamics, Monin-Obukhov (MO) surface and
+Full-size validation case for the moist thermodynamics, the Monin-Obukhov (MO) facet surface and
 bldump diagnostics. Inputs are converted from the DALES case `cases/bomex`
 (`tools/python/examples/dales_cases/convert_dales_case.py`), grid and forcing unchanged.
 Run on CX3 with `tools/hpc_execute.sh examples/301` (8 ranks, 4 x 2); compare with
 `tools/python/examples/dales_cases/compare_dales.py` (see the README there).
 Outputs of interest: `bldump_t.301.nc`, `bldump_z.301.nc`.
+
+## Floor
+
+The floor is one horizontal facet covering the domain (`libm = .true.`, `lbottom = .false.`, `nfcts = 1`),
+as in every uDALES case: the flat bottom boundary (`lbottom`) is not used. Its IBM files (`facets.inp`,
+`factypes.inp`, `facetarea.inp`, `solid_*.txt`, `fluid_boundary_*.txt`, `facet_sections_*.txt`) were written by
+`python -m udprep.flat_floor examples/301 301 --itot 64 --jtot 64 --dx 100 --dy 100 --z1 20 --z0 2e-4 --z0h 2e-4`
+(from `tools/python`), which prints the `&WALLS` counts. The surface layer is the Monin-Obukhov facet scheme
+(`iwallmom = 4`, the DALES surface with a local Obukhov length per facet section). The floor's facet type (-1)
+has `lGR = 1` in `factypes.inp.301`: in uDALES this green flag only means that the facet exchanges
+moisture (`iwallmoist = 1` applies `bcqfz` to it)).
 
 ## Settings and sources
 
@@ -15,13 +26,12 @@ Outputs of interest: `bldump_t.301.nc`, `bldump_z.301.nc`.
 | duration | 21600 s (6 h) | task spec; the DALES file has `runtime = 28800` |
 | time step | `ladaptive`, `courant = 0.55`, `diffnr = 0.2`, `dtmax = 20` | DALES `ladaptive`; `courant` tuned so that the mean dt matches the DALES run (see "Time step"); `diffnr` = DALES `peclet = 0.15` x 1.32 (not limiting); `dtmax` = DALES default |
 | `ps` | 101500 Pa | DALES `ps` |
-| `thls` | 299.1 K | DALES `thls` (initial value; MO diagnoses it every step) |
-| `qts` | 1.7e-2 kg/kg | first guess equal to `qt` at the first level; MO diagnoses it every step |
-| `wtsurf` | -8.0e-3 K m/s | DALES `wtsurf = +8e-3` (upward), negated: uDALES prescribed fluxes are positive downward (D1) |
-| `wqsurf` | -5.2e-5 kg/kg m/s | DALES `wqsurf = +5.2e-5`, negated |
-| `BCbotm` | 5 (MO, u* = ustin) | DALES `isurf = 3` |
-| `ustin` | 0.28 m/s | DALES `ustin` |
-| `z0`, `z0h` | 2e-4 m | DALES `z0` sets both |
+| `thls` | 299.1 K | DALES `thls`; the reference surface value (`thvs`, base state); the floor facet diagnoses its own surface thl every step |
+| `qts` | 1.7e-2 kg/kg | `qt` at the first level; reference value only, as `thls` |
+| `bctfz` | -8.0e-3 K m/s | DALES `wtsurf = +8e-3` (upward), negated: uDALES prescribed fluxes are positive downward (D1) |
+| `bcqfz` | -5.2e-5 kg/kg m/s | DALES `wqsurf = +5.2e-5`, negated |
+| `iwallmom`, `ustin` | 4 (MO facets), 0.28 m/s (prescribed u*) | DALES `isurf = 3`, `ustin` |
+| `z0`, `z0h` | 2e-4 m (floor facet type, `factypes.inp.301`) | DALES `z0` sets both |
 | Coriolis | `lcoriol`, `xlat = 15` (f = 0.3775e-4 1/s) | DALES `xlat = 15` (Siebesma et al. 2003 give f = 0.376e-4; the case file is followed) |
 | forcing | `lscale.inp.301` | DALES `lscale.inp.001`: `ug, vg, wfls, dqtdtls`; `dthlrad` becomes `thlpcar` (-2.315e-5 K/s) |
 | radiation | `iradiation = 0`; the cooling is the `thlpcar` column | DALES (no interactive radiation in BOMEX) |
@@ -29,7 +39,7 @@ Outputs of interest: `bldump_t.301.nc`, `bldump_z.301.nc`.
 | advection | `iadv_mom = iadv_tke = iadv_thl = iadv_qt = 2` | DALES `iadv_* = 2` |
 | sponge | `igrw_damp = 2`, `ksp` default (top quarter, `rnu0 = 2.75e-3`) | DALES default `igrw_damp = 2`; the `ksp` default is the same formula |
 | `lqlnr` | `.true.` | exact liquid water by Newton-Raphson; DALES dev uses two linearised steps (within 0.2 % of exact) and ignores its `lqlnr` |
-| surface | `libm = .false.`, `lbottom = .true.`, `nfcts = 0`, `BCbotT = BCbotq = 1` | flat bottom without buildings |
+| surface | `libm = .true.`, `lbottom = .false.`, one floor facet, `iwalltemp = iwallmoist = 1` | a facet floor without buildings (see "Floor") |
 | bldump | `lbldump`, `tstatsdump = 60` s | task spec |
 | `timerad` | 0 | task spec (radiation every step; unused with `iradiation = 0`) |
 | initial noise | `lrandomize`, `randthl = 0.1` K, `randqt = 2.5e-5` kg/kg, `randu = 0`, `krand = 80` (all levels), `irandom = 43` | DALES `randthl`, `randqt`, `irandom`; DALES BOMEX applies no u, v, w noise (its momentum noise is off) and perturbs all levels |
@@ -78,13 +88,13 @@ reported runs in [RESULTS.md](RESULTS.md).
 | Galilean shift | none | `cu = 0` (the DALES case uses `cu = -8`) | yes; the shift itself is not tested |
 | SGS | one-equation TKE, DALES constants | the same | yes |
 | saturation adjustment, es | exact (`lqlnr`), Tetens | two-step (within 0.2 %), Tetens (patched) | nearly |
-| surface | MO, u* = 0.28 prescribed, one domain-mean L | `isurf = 3`, per-column L (`lmostlocal` default) | values yes; local vs mean no |
+| surface | MO facet floor, u* = 0.28 prescribed, L per facet section | `isurf = 3`, per-column L (`lmostlocal` default) | yes |
 | sponge, noise | `igrw_damp = 2`, `ksp = 60`; thl 0.1 K, qt 2.5e-5 on all levels | the same | yes (different generators) |
 
 ## Deviations from DALES
 
-- MO surface: `BCbotm = 5` follows DALES `isurf = 3` (u* = ustin, prescribed fluxes), so the
-  spec's earlier wall-function caveat does not apply to this case.
+- MO surface: `iwallmom = 4` with `ustin` follows DALES `isurf = 3` (u* = ustin, prescribed fluxes) on the
+  floor facet; the surface state lives on the u and v points of the facet sections, not on the cell centres.
 - No Galilean shift: DALES runs with `cu = -8` (u is shifted by 8 m/s so that the domain-mean
   wind is small). uDALES has no `cu`; `prof.inp` and `lscale.inp` carry the physical winds
   (u about 9 m/s), so the uDALES Courant number is dominated by the advection of the mean wind
@@ -99,5 +109,5 @@ reported runs in [RESULTS.md](RESULTS.md).
 ## Concerns
 
 - The dt match is a 6 h-mean match (see "Time step"); hours 1-3 run about 25 % longer steps than DALES.
-- The `qts` and `thls` namelist values are first guesses only; the comparison should use the
-  diagnosed `thls`, `qts`, `ustar` and `obl` in `bldump_t`.
+- The `qts` and `thls` namelist values are reference values only; the comparison should use the
+  diagnosed `thls`, `qts`, `ustar` and `obl` in `bldump_t` (area means over the floor sections).

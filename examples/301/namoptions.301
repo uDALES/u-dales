@@ -10,7 +10,7 @@ diffnr       = 0.2          ! = DALES peclet 0.15 x 1.32 (uDALES sums 3 terms); 
 ! Fixed time step (the DALES close-match comparison, RESULTS.md; DALES runs the same dt):
 ! ladaptive  = .false.      ! then dt = dtmax; courant and diffnr are ignored; runtime must be a multiple of dtmax
 ! dtmax      = 2.0          ! s; below the DALES adaptive dt (hourly means 3.7-6.1 s) and the uDALES one (2.3-4.0 s); stable (RESULTS.md)
-libm         = .false.
+libm         = .true.       ! the floor is a facet (README)
 lles         = .true.
 nprocx       = 4
 nprocy       = 2
@@ -63,21 +63,31 @@ ldelta       = .false.      ! DALES
 /
 
 &WALLS
-nfcts        = 0
-lbottom      = .true.
+nfcts        = 1            ! the floor: one horizontal facet (files from tools/python/udprep/flat_floor.py; README)
+nsolpts_u    = 0
+nsolpts_v    = 0
+nsolpts_w    = 4096
+nsolpts_c    = 0
+nbndpts_u    = 4096
+nbndpts_v    = 4096
+nbndpts_w    = 4096
+nbndpts_c    = 4096
+nfctsecs_u   = 4096
+nfctsecs_v   = 4096
+nfctsecs_w   = 0
+nfctsecs_c   = 4096
+lbottom      = .false.
+iwallmom     = 4            ! Monin-Obukhov on the floor facet (DALES isurf 4, lmostlocal)
+iwalltemp    = 1            ! prescribed facet heat flux bctfz
+iwallmoist   = 1            ! prescribed facet moisture flux bcqfz (floor facet type has lGR = 1)
+ustin        = 0.28         ! DALES ustin: prescribed u* (DALES isurf = 3)
 /
 
 &BC
-BCbotm       = 5            ! MO surface, u* = ustin (DALES isurf = 3)
-BCbotT       = 1
-BCbotq       = 1
-thls         = 299.1        ! DALES
-qts          = 1.7e-2       ! first guess only; surface qt is diagnosed every step (prof.inp qt(z1) = 1.697e-2)
-wtsurf       = -8.0e-3      ! DALES +8e-3 K m/s upward; uDALES positive = downward (D1)
-wqsurf       = -5.2e-5      ! DALES +5.2e-5 kg/kg m/s upward
-z0           = 2.0e-4       ! DALES
-z0h          = 2.0e-4       ! DALES z0 sets both
-ustin        = 0.28         ! DALES
+thls         = 299.1        ! DALES; reference surface thl (thvs: base state); the floor facet diagnoses its own
+qts          = 1.7e-2       ! reference surface qt (thvs); prof.inp qt(z1) = 1.697e-2
+bctfz        = -8.0e-3      ! floor heat flux: DALES wtsurf +8e-3 K m/s upward; uDALES positive = downward (D1)
+bcqfz        = -5.2e-5      ! floor moisture flux: DALES wqsurf +5.2e-5 kg/kg m/s upward
 /
 
 &NAMRADIATION
