@@ -744,7 +744,7 @@ module modstartup
                               BCxm_driver, BCxT_driver, BCxq_driver, BCxs_driver, &
                               BCym_periodic, BCym_profile, BCyT_periodic, BCyT_profile, &
                               BCyq_periodic, BCyq_profile, &
-                              linoutflow,ltempeq,iwalltemp,iwallmom,iwallmoist,iwallmom_mo,mo_maxslope,libm,&
+                              linoutflow,ltempeq,iwalltemp,iwallmom,iwallmoist,iwallmom_mo,mo_maxslope,ustin,libm,&
                               ipoiss,POISS_FFT2D,&
                               lydump,lytdump,luoutflowr,lvoutflowr,&
                               lhdriver,lqdriver,lsdriver,ltrees,lEB,itree_mode,&
@@ -817,6 +817,10 @@ module modstartup
             thvs = thls*(1.+(rv/rd - 1.)*qts)
          end if
       end if
+      if ((iwallmom < 1) .or. (iwallmom > 4)) then
+         if (myid == 0) write(0, *) 'ERROR: iwallmom must be 1, 2, 3 or 4, got ', iwallmom
+         call abort_all_ranks(1)
+      end if
       ! iwallmom = 4: Monin-Obukhov on the near-horizontal facets, from the prescribed facet
       ! fluxes (bctfz, and bcqfz on facets whose type has lGR = 1)
       if (iwallmom == iwallmom_mo) then
@@ -830,6 +834,10 @@ module modstartup
          end if
          if ((mo_maxslope < 0.) .or. (mo_maxslope >= 90.)) then
             if (myid == 0) write(0, *) 'ERROR: mo_maxslope must be in [0, 90) degrees, got ', mo_maxslope
+            call abort_all_ranks(1)
+         end if
+         if (ustin < 0.) then
+            if (myid == 0) write(0, *) 'ERROR: ustin must be >= 0 (0 = u* from Monin-Obukhov similarity), got ', ustin
             call abort_all_ranks(1)
          end if
       end if

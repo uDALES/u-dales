@@ -520,7 +520,7 @@ contains
     sbbuo(ib:ie,jb:je,kb)  = 0.
     sbdiss(ib:ie,jb:je,kb) = 0.
 
-    ! iwallmom = 4: cells directly above a horizontal Monin-Obukhov facet (modibm:mo_cells_update).
+    ! iwallmom = 4: cells owning a c-section of a horizontal Monin-Obukhov facet (modibm:mo_cells_update).
     ! DALES dev 075ac4e modsubgrid.f90:sources, "special treatment for lowest full level"
     ! (sgs_surface_fix = .false.): the vertical shears are the surface-layer gradients du/dz,
     ! dv/dz, and dthvdz there holds the surface-layer gradient (calthv). Molecular parts and

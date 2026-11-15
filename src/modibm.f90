@@ -297,18 +297,18 @@ module modibm
      call alloc_mo_state(bound_info_w)
    end subroutine initibm_mo
 
-   !> iwallmom = 4: list the fluid cells directly above horizontal Monin-Obukhov facets
-   !> (normal +z) from the c-grid facet sections on this rank. In these cells the one-equation
-   !> SGS TKE sources and dthvdz use the Monin-Obukhov surface-layer gradients, as DALES does at
-   !> its first level (mo_cells_update). Sections with log(dist/z0) <= 1 are left out, as in
+   !> iwallmom = 4: list the fluid cells that own a c-grid section of a horizontal
+   !> Monin-Obukhov facet (normal +z), on this rank (at a roof edge this can be a cell beside
+   !> the roof). In these cells the one-equation SGS TKE sources and dthvdz use the Monin-Obukhov
+   !> surface-layer gradients, as DALES does at its first level (mo_cells_update). Sections with log(dist/max(z0,z0h)) <= 1 are left out, as in
    !> wallfunmom. Sloped Monin-Obukhov facets and all other walls get no such treatment.
    subroutine initibm_mocells
-     use modglobal, only : ib, ie, jb, je, kb, ke
-     use initfac,   only : facnorm, facz0
+     use modglobal, only : ib, ie, jb, je, kb, ke, nfcts
+     use initfac,   only : facnorm, facz0, facz0h
      use decomp_2d, only : zstart
      use modmpi,    only : myid, comm3d, mpierr, mpi_sum
      integer, allocatable :: cellid(:,:,:)
-     integer :: sec, fac, i, j, k, nloc(1), nglob(1)
+     integer :: sec, fac, i, j, k, nloc(1), nglob(1), nrej
 
      allocate(cellid(ib:ie,jb:je,kb:ke)); cellid = 0
      allocate(mosec_c(bound_info_c%nfctsecsrank), mosec_cell(bound_info_c%nfctsecsrank))
@@ -319,7 +319,7 @@ module modibm
        if (.not. lfacmo(fac)) cycle
        if (facnorm(fac,3) < 1. - mo_horizontal_tol) cycle
        if (bound_info_c%lskipsec_loc(sec)) cycle
-       if (log(bound_info_c%bnddst_loc(sec)/facz0(fac)) <= 1.) cycle
+       if (log(bound_info_c%bnddst_loc(sec)/max(facz0(fac), facz0h(fac))) <= 1.) cycle
        i = bound_info_c%secbndpts_loc(sec,1) - zstart(1) + 1
        j = bound_info_c%secbndpts_loc(sec,2) - zstart(2) + 1
        k = bound_info_c%secbndpts_loc(sec,3) - zstart(3) + 1
@@ -333,8 +333,13 @@ module modibm
      end do
 
      allocate(mocell_ijk(nmocells,3), mocell_dudz(nmocells), mocell_dvdz(nmocells), &
-              mocell_dthldz(nmocells), mocell_dqtdz(nmocells))
+              mocell_dthldz(nmocells), mocell_dqtdz(nmocells), mocell_wsum(nmocells))
      mocell_dudz = 0.; mocell_dvdz = 0.; mocell_dthldz = 0.; mocell_dqtdz = 0.
+     ! total section area of each cell, constant: the divisor of the area-weighted means
+     mocell_wsum = 0.
+     do sec = 1, nmosecs_c
+       mocell_wsum(mosec_cell(sec)) = mocell_wsum(mosec_cell(sec)) + bound_info_c%secareas_loc(mosec_c(sec))
+     end do
      do k = kb, ke
        do j = jb, je
          do i = ib, ie
@@ -348,6 +353,14 @@ module modibm
      nloc(1) = nmocells
      call MPI_ALLREDUCE(nloc, nglob, 1, MPI_INTEGER, MPI_SUM, comm3d, mpierr)
      lmocells = (nglob(1) > 0)
+     ! facets that are almost, but not within mo_horizontal_tol, horizontal get no first-level treatment
+     nrej = 0
+     do fac = 1, nfcts
+       if (lfacmo(fac) .and. (facnorm(fac,3) >= 1. - 1.e-3) .and. (facnorm(fac,3) < 1. - mo_horizontal_tol)) nrej = nrej + 1
+     end do
+     if ((myid == 0) .and. (nrej > 0)) write(0, '(a,i0,a,es8.1,a)') &
+       ' WARNING: iwallmom = 4: ', nrej, ' Monin-Obukhov facets are within 1e-3 of horizontal but not within ', &
+       mo_horizontal_tol, '; they get no first-level SGS treatment'
      if (myid == 0) write(*, '(a,i0,a)') ' iwallmom = 4: ', nglob(1), &
        ' cells above horizontal Monin-Obukhov facets use the surface-layer SGS treatment'
    end subroutine initibm_mocells
@@ -434,7 +447,7 @@ module modibm
      use modglobal, only : ifinput, ib, itot, ih, jb, jtot, jh, kb, ke, ktot, kh, &
                            xf, yf, zf, xh, yh, zh, dx, dy, xhat, yhat, zhat, eps1
      use modmpi,    only : myid, comm3d, MY_REAL, mpierr
-     use initfac,   only : facnorm, facz0
+     use initfac,   only : facnorm, facz0, facz0h
      use decomp_2d, only : zstart, zend
      use readinput, only : read_sparse_ijk
 
@@ -1495,11 +1508,8 @@ module modibm
      logical, intent(in) :: lstart
      integer :: m, sec, fac, c, i, j, k
      real :: upcu, vpcv, horv, horvf, dist, wthl_up, wqt_up, ustar, a, scaling
-     real, allocatable :: wsum(:)
 
      if (nmocells == 0) return
-     allocate(wsum(nmocells))
-     wsum = 0.
      mocell_dudz = 0.; mocell_dvdz = 0.; mocell_dthldz = 0.; mocell_dqtdz = 0.
      do m = 1, nmosecs_c
        sec = mosec_c(m)
@@ -1530,13 +1540,11 @@ module modibm
        mocell_dvdz(c)   = mocell_dvdz(c)   + a * ustar * phim(dist / bound_info_c%mo_obl(sec)) * scaling * vpcv / horvf
        mocell_dthldz(c) = mocell_dthldz(c) - a * wthl_up / ustar * phih(dist / bound_info_c%mo_obl(sec)) * scaling
        mocell_dqtdz(c)  = mocell_dqtdz(c)  - a * wqt_up  / ustar * phih(dist / bound_info_c%mo_obl(sec)) * scaling
-       wsum(c) = wsum(c) + a
      end do
-     mocell_dudz   = mocell_dudz   / wsum
-     mocell_dvdz   = mocell_dvdz   / wsum
-     mocell_dthldz = mocell_dthldz / wsum
-     mocell_dqtdz  = mocell_dqtdz  / wsum
-     deallocate(wsum)
+     mocell_dudz   = mocell_dudz   / mocell_wsum
+     mocell_dvdz   = mocell_dvdz   / mocell_wsum
+     mocell_dthldz = mocell_dthldz / mocell_wsum
+     mocell_dqtdz  = mocell_dqtdz  / mocell_wsum
 
    contains
 
@@ -1569,6 +1577,7 @@ module modibm
           wthl_up, wqt_up, ustar
      real, dimension(3) :: uvec, norm, strm, span, stressvec
      logical :: valid, lwgrid, lmosec
+     real    :: z0guard
      real, dimension(:,:,:), pointer :: tau
      real, dimension(1:nfcts) :: fac_tau_loc, fac_tau
      !real, dimension(:), allocatable :: fac_tau, fac_pres
@@ -1648,7 +1657,10 @@ module modibm
                                                      zrec - zf(bound_info%secbndpts_loc(sec,3))/))
        end if
 
-       if (log(dist/facz0(fac)) <= 1.) then
+       ! Monin-Obukhov sections also divide by log(dist/z0h), so z0h enters the same guard
+       z0guard = facz0(fac)
+       if (lmosec) z0guard = max(facz0(fac), facz0h(fac))
+       if (log(dist/z0guard) <= 1.) then
           cycle ! ideally would set a value for dist that gives a resonable (large) flux
           !dist = facz0(fac)+facz0h(fac)
        end if
@@ -1761,6 +1773,7 @@ module modibm
      real, dimension(3) :: uvec, norm, span, strm
      real, dimension(1:nfcts) :: fac_htc_loc, fac_cth_loc, fac_pres_loc, fac_pres2_loc
      logical :: valid, lmofac
+     real    :: z0guard
 
      fac_htc_loc = 0.
      fac_cth_loc = 0.
@@ -1820,7 +1833,9 @@ module modibm
 
        end if
 
-       if (log(dist/facz0(fac)) <= 1.) then
+       z0guard = facz0(fac)
+       if (lmofac) z0guard = max(facz0(fac), facz0h(fac))   ! as in wallfunmom
+       if (log(dist/z0guard) <= 1.) then
           cycle
           !dist = facz0(fac)+facz0h(fac)
        end if

@@ -64,7 +64,7 @@ module modibmdata
     real                 :: bcqfyp=0.
     real                 :: bcqfz=0.
 
-    ! iwallmom = 4: fluid cells directly above a horizontal Monin-Obukhov facet (normal +z).
+    ! iwallmom = 4: fluid cells that own a c-grid section of a horizontal Monin-Obukhov facet (normal +z).
     ! There the one-equation SGS TKE sources and dthvdz take the Monin-Obukhov surface-layer
     ! gradients (DALES first-level treatment); filled by modibm:mo_cells_update.
     integer              :: nmocells = 0             ! on this rank
@@ -72,6 +72,7 @@ module modibmdata
     integer, allocatable :: mocell_ijk(:,:)          ! local (i,j,k) of each cell
     real,    allocatable :: mocell_dudz(:), mocell_dvdz(:)       ! surface-layer du/dz, dv/dz [1/s]
     real,    allocatable :: mocell_dthldz(:), mocell_dqtdz(:)    ! surface-layer dthl/dz [K/m], dqt/dz [1/m]
+    real,    allocatable :: mocell_wsum(:)                       ! total c-section area of each cell [m2]
 
 
     integer              :: nxwallsnorm
