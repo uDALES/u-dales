@@ -168,6 +168,16 @@ groups:
         command:
           - "{python}"
           - "{tests_dir}/integration/tke_top_bc/test_tke_top_bc.py"
+      - label: "supported: geostrophic forcing needs lcoriol"
+        class: supported
+        kind: regression
+        component: solver
+        platform: hpc
+        cost: fast
+        env_UDALES_BUILD: "{repo_root}/build/{build_type_lower}/u-dales"
+        command:
+          - "{python}"
+          - "{tests_dir}/integration/geostrophic_forcing/test_geostrophic_forcing.py"
       - label: "supported: fielddump output-time diagnostics"
         class: supported
         kind: integration
