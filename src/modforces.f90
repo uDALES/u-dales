@@ -770,7 +770,7 @@ module modforces
               subs_u = whls(k+1) * (u0  (i,j,k+1) - u0  (i,j,k))/dzh(k+1)
               subs_v = whls(k+1) * (v0  (i,j,k+1) - v0  (i,j,k))/dzh(k+1)
             endif
-          else if (k > kb) then      !downwind scheme for mean upward motions (not at kb)
+          else if (k > kb .and. whls(k) /= 0.) then   !downwind scheme for mean upward motions (not at kb, skipped where whls = 0)
             subs_thl = whls(k) * (thl0(i,j,k) - thl0(i,j,k-1))/dzh(k)
             subs_qt  = whls(k) * (qt0 (i,j,k) - qt0 (i,j,k-1))/dzh(k)
             if (lmomsubs) then
@@ -793,7 +793,7 @@ module modforces
           do i=ib,ie
             if (whls(k+1).lt.0) then
               svp(i,j,k,n) = svp(i,j,k,n) - whls(k+1) * (sv0(i,j,k+1,n) - sv0(i,j,k,n))/dzh(k+1)
-            else if (k > kb) then
+            else if (k > kb .and. whls(k) /= 0.) then
               svp(i,j,k,n) = svp(i,j,k,n) - whls(k) * (sv0(i,j,k,n) - sv0(i,j,k-1,n))/dzh(k)
             endif
           end do
