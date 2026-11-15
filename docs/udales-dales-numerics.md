@@ -164,7 +164,7 @@ The three validation cases use the one-equation (Deardorff) TKE model with `ldel
 | cold start | `tskin = thlprof(1)`, `qskin = qtprof(1)`, `obl = -0.1`, one `surface` call in `readinitfiles` (DALES modstartup.f90:836-889) | the same per section at its first visit (src/modibm.f90:1792-1799); the first-level cells at a cold start in `readinitfiles`, at a warm start at their first visit (src/modibm.f90:1599-1661) | aligned | - |
 | von Karman constant | 0.4 (parameter, DALES modglobal.f90:101) | 0.40 (`&WALLS fkar`, src/modglobal.f90:338); the inlet generator keeps 0.41 with its Coles wake constants | aligned | 0.41 against 0.4 gives a 2.3 % u* difference in RF01 |
 | order | `surface` before advection and subgrid (DALES program.f90:232-238) | the stress in the wall function (`ibmwallfun`, after subgrid), from the same `u0`, `thl0`, `qt0` of the substep; the first-level cells above horizontal Monin-Obukhov facets (`mo_cells_update`) before subgrid, and at a cold start once before the start-up thermodynamics, as DALES `readinitfiles` (src/program.f90:166, src/modstartup.f90:1687-1694) | aligned | - |
-| stress stencil | cell-centred `u + cu`, 4-point v, u* averaged over two cells, wind floor 1e-10 (DALES modsubgrid.f90:942-951) | u* and L of the section at the u (v) point, 4-point v (u), `min_horv = 0.1` in Cm (src/modibm.f90:1779-1803) | different by design | second-order equivalent |
+| stress stencil | cell-centred `u + cu`, 4-point v, u* averaged over two cells, wind floor 1e-10 (DALES modsubgrid.f90:942-951) | u* and L of the section at the u (v) point, 4-point v (u), `min_horv = 0.1` in Cm (src/modibm.f90:1779-1803) | different by design | second-order equivalent; on the saved first-level fields of example 304 the uDALES stencil gives a 0.04-0.06 % larger mean stress (examples/304/RESULTS.md) |
 
 ### Wall functions
 
@@ -301,9 +301,15 @@ uDALES 304 is the counterpart of DALES `isurf = 2` (not a DALES case; settings t
 `iwalltemp = 2` and the facet at 302 K (`lEB` off) against DALES `isurf = 2` with `thls = 302`, z0 = 0.1 m, z0h = 0.01 m,
 geostrophic wind (5, 0) m/s at 45 degrees, thl noise 0.1 K, seeds 43-45, constant-density DALES base state. uDALES
 is dry; DALES runs `lmoist` with qt = 0 and `rsisurf2 = 1e10` (dry `isurf = 2` leaves `qskin` uninitialised). Result
-(examples/304/RESULTS.md): u* and the surface heat flux per unit first-level wind agree within 0.1 %; the absolute values are
-0.3 % low, following a 0.4 % lower first-level wind; zi within a grid level; the resolved w'thl' 0.7 % low in the mixed layer
-and 3.3 % at 25 m (2.0-2.3 rms spreads, which are only 0.3-0.7 % of the flux).
+with 6 seeds (examples/304/RESULTS.md):
+- The surface heat flux, zi and the thl and resolved w'thl' profiles are within the spread.
+- u* is 0.27 % low (1.4 of the smaller, 0.85 of the larger spread). The transfer per unit first-level wind agrees (u*/|U1|
+  within 0.03 %). The first-level wind is 0.3 % lower.
+- A prescribed-flux control (`iwalltemp = 1` against `isurf = 4`) shows the same lower wind and u* (0.48 %, 0.43 %), so
+  that difference does not come from the facet-temperature path. Its cause is not identified. The u-point stress stencil
+  (row "stress stencil") accounts for about 0.05 % of the stress on the saved fields.
+- The resolved w'thl' at 25 m is 1.9 % low (2.1 spreads). This does not appear in the control, and its cause is not
+  identified.
 
 ### 302 smoke cloud
 
