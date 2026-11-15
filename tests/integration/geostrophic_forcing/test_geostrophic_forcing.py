@@ -9,13 +9,14 @@ With ``lcoriol = .false.`` there is no such counterpart, so a nonzero ``ug``
 accelerated the whole domain at ``f*|u_g|`` (issue #410).
 
 The test runs a laminar column -- case 300 started from rest, no buildings, no
-temperature or moisture gradient -- with ``ug = UG`` in ``lscale.inp`` and
+temperature or moisture gradient -- with ``ug = UG`` and ``vg = VG`` in ``lscale.inp`` and
 reads the horizontal-mean wind back out of the restart file.
 
 * ``lcoriol = .false.``: the wind must stay at rest.
 * ``lcoriol = .true.``: unchanged behaviour.  From rest there is no Coriolis
   force yet, so the geostrophic gradient accelerates the flow at ``f*ug`` in
-  the v direction, and ``v = om23_gs*ug*t`` to well within 1 %.
+  the v direction and ``-f*vg`` in the u direction: ``v = om23_gs*ug*t`` and
+  ``u = -om23_gs*vg*t`` to well within 0.5 %.
 
 Environment:
   UDALES_BUILD            path to the u-dales executable
@@ -48,13 +49,14 @@ UDALES_BUILD = Path(os.environ.get("UDALES_BUILD", REPO_ROOT / "build" / "releas
 RUNTIME_MODULES = os.environ.get(
     "UDALES_RUNTIME_MODULES",
     "intel/2021a netCDF/4.8.0-iimpi-2021a netCDF-Fortran/4.5.3-iimpi-2021a "
-    "FFTW/3.3.9-intel-2021a CMake/3.29.3-GCCcore-13.3.0 git/2.45.1-GCCcore-13.3.0",
+    "FFTW/3.3.9-intel-2021a",
 )
 
 #: Restart record indices (modsave.f90): u0, v0, then the (timee, dt) pair.
 U0_RECORD, V0_RECORD, TIME_RECORD = 2, 3, 12
 
 UG = 10.0          # geostrophic u-wind [m/s]
+VG = 5.0           # geostrophic v-wind [m/s]
 RUNTIME = 2.0
 DTMAX = 0.2
 #: om23_gs = 2*omega_gs*sin(xlat); omega_gs and the default xlat are in modglobal.f90.
@@ -121,7 +123,7 @@ def _write_case(run_dir: Path, lcoriol: bool) -> None:
             body.append("  ".join(cols))
     prof.write_text("\n".join(lines[:2] + body) + "\n", encoding="utf-8")
 
-    # Geostrophic wind: ug = UG at every level, vg = 0, no other large-scale forcing.
+    # Geostrophic wind: ug = UG, vg = VG at every level, no other large-scale forcing.
     lscale = run_dir / f"lscale.inp.{CASE_ID}"
     lines = lscale.read_text(encoding="utf-8").splitlines()
     body = []
@@ -129,12 +131,13 @@ def _write_case(run_dir: Path, lcoriol: bool) -> None:
         if line.strip():
             cols = line.split()
             cols[1] = f"{UG:.6f}"
+            cols[2] = f"{VG:.6f}"
             body.append("  ".join(cols))
     lscale.write_text("\n".join(lines[:2] + body) + "\n", encoding="utf-8")
 
 
 def _records(path: Path) -> List[bytes]:
-    """Split an ifort sequential-unformatted file into its records."""
+    """Split a sequential-unformatted file (4-byte little-endian record markers: ifort and gfortran default) into records."""
     data = path.read_bytes()
     out: List[bytes] = []
     off = 0
@@ -199,7 +202,11 @@ class GeostrophicForcing(unittest.TestCase):
         expected_bug = OM23_GS * UG * t
         print(f"[lcoriol=F] t={t:g} s  mean u={u:.3e}  mean v={v:.3e}  "
               f"(the unbalanced gradient would give v={expected_bug:.3e})", flush=True)
-        self.assertLessEqual(abs(u), 1.0e-4, "mean u accelerated with lcoriol = .false.")
+        self.assertLessEqual(
+            abs(u), 1.0e-4,
+            f"mean u = {u:.3e} m/s with lcoriol = .false. and vg = {VG:g}: "
+            f"the geostrophic gradient is acting without Coriolis (f*vg*t = {OM23_GS * VG * t:.3e})",
+        )
         self.assertLessEqual(
             abs(v), 1.0e-4,
             f"mean v = {v:.3e} m/s after {t:g} s with lcoriol = .false. and ug = {UG:g}: "
@@ -212,7 +219,8 @@ class GeostrophicForcing(unittest.TestCase):
         expected = OM23_GS * UG * t
         print(f"[lcoriol=T] t={t:g} s  mean u={u:.3e}  mean v={v:.3e}  "
               f"expected v={expected:.3e}", flush=True)
-        self.assertAlmostEqual(v / expected, 1.0, delta=0.01)
+        self.assertAlmostEqual(v / expected, 1.0, delta=0.005)
+        self.assertAlmostEqual(u / (-OM23_GS * VG * t), 1.0, delta=0.005)
 
 
 if __name__ == "__main__":
