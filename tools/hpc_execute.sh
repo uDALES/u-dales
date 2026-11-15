@@ -148,6 +148,17 @@ fi
 ## set the output directory
 outdir="$DA_WORKDIR/$exp"
 
+## Refuse to run into an existing output directory. uDALES never removes,
+## modifies or overwrites existing results; that decision stays with the user.
+if [ -e "$outdir" ]; then
+    echo "ERROR: output directory $outdir already exists." >&2
+    echo "       uDALES does not remove, modify or overwrite existing results." >&2
+    echo "       To run a new case, give it a case number that has no output directory yet." >&2
+    echo "       To rerun case $exp on purpose, move or delete its output directory yourself first, e.g." >&2
+    echo "         mv $outdir ${outdir}_old        or        rm -r $outdir" >&2
+    exit 1
+fi
+
 ## create output directory and copy the inputs
 ## The executable is copied in with the inputs and the run uses that copy:
 ## $DA_BUILD usually lives in the repo on $HOME, whose I/O bandwidth is throttled
