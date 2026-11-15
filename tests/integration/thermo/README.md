@@ -30,6 +30,9 @@ Run: `python tests/integration/thermo/test_thermo.py -v [TestClass]`.
   functions, and against the flux definition of L), the neutral log law, the stress applied in the
   first step (`u*^2 dt / dzf` along the wind), a prescribed `ustin`, the `iwallmoist` start-up
   check, and the slope criterion (a 20 degree facet takes MO, a 60 degree facet the wall function).
+  The first level above a horizontal Monin-Obukhov facet: `dthvdz(kb)` is the surface-layer
+  gradient (from the recorded u*, L and the prescribed fluxes), and on a floor that is half
+  horizontal, half 20 degrees only the horizontal half gets it (the start-up line counts the cells).
   Tolerances 1e-3 relative (float32 records and the drift of the state within a step).
 - `TestCalthv`, `TestCalthvGuard`: `dthvdz` at the surface level is zero; a uniform saturated
   column must not divide by zero.
@@ -52,7 +55,9 @@ Run: `python tests/integration/thermo/test_thermo.py -v [TestClass]`.
   stratified state. Kh/Km = 1/Prandtl = 3 where `dthvdz <= 0` and
   `ch1 + ch2*zlt/delta` where `dthvdz > 0` (zlt with `grav/thvf`), interior
   dissipation without the old factor 2, no `e12p(kb)` source (work arrays
-  pre-filled with garbage), and a synthetic fully solid level (`thvf = -999`), which must get the
+  pre-filled with garbage), the DALES first-level sources in hand-set cells above horizontal
+  Monin-Obukhov facets (`modibmdata:mocell_*`, at `kb` and at one roof-level cell) and none in the
+  other `kb` cells, and a synthetic fully solid level (`thvf = -999`), which must get the
   neutral length scale and no buoyancy source. Reference: the closed-form
   expressions, constants recomputed independently.
 - `TestMOKernels`: in-solver `runmode = 1012` (`tests.f90:tests_mo_kernels`): `psim`/`psih` against Businger-Dyer

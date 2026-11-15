@@ -188,6 +188,50 @@ class TestMO(_SolverTest):
         expect = tc.FKAR * utan / np.log(self.Z1 / self.Z0)
         self.assertAlmostEqual(ustar, expect, delta=2e-3 * expect)   # u1 drifts within the first step
 
+    def test_horizontal_facet_cells_get_surface_layer_gradient(self):
+        """The cells above a horizontal Monin-Obukhov facet take the surface-layer dthvdz
+        (DALES calthv, first level) and the first-level one-equation TKE sources (whose
+        formula tests.f90:tests_sgs_oneeqn (c) checks): dthvdz(kb) = a dthl/dz + b thl dqt/dz with
+        dthl/dz = -w'thl' phih(z1/L) / (u* kappa z1). The c-grid state is computed from the
+        cell-centre wind, the bldump u*, L from the u/v sections: identical in a homogeneous
+        column up to the drift within the last step."""
+        d, out = self._mo_case("mo_cells", extra={"OUTPUT": {"lfielddump": ".true.", "tfielddump": "19.5",
+                                                               "fieldvars": "'dt,th,qt'"}})
+        self.assertIn("iwallmom = 4: 256 cells above horizontal Monin-Obukhov facets", out)
+        r = self._last(d)
+        ustar, obl = r["ustar"][-1], r["obl"][-1]
+        with Dataset(d / "fielddump.000.000.310.nc") as f:
+            dthvdz = np.asarray(f["dthvdz"][-1], dtype=float)[0]
+            thl = float(np.asarray(f["thl"][-1])[0].mean())
+            qt = float(np.asarray(f["qt"][-1])[0].mean())
+        zeta = self.Z1 / obl
+        phih = (1 - 16 * zeta) ** -0.5
+        scale = phih / (ustar * tc.FKAR * self.Z1)
+        a, b = 1 + (tc.RV / tc.RD - 1) * qt, tc.RV / tc.RD - 1
+        expect = a * (-0.05 * scale) + b * thl * (-5.0e-5 * scale)
+        self.assertLess(expect, 0.)
+        np.testing.assert_allclose(dthvdz, expect, rtol=1e-3)
+
+    def test_sloped_facet_cells_keep_wall_treatment(self):
+        """A 20 deg Monin-Obukhov facet (west half horizontal, east half 20 deg) gets no
+        first-level treatment: dthvdz(kb) stays 0 there (and so do the kb TKE sources: the
+        same cell list gates both), the horizontal half takes the surface-layer value."""
+        t20 = np.radians(20.0)
+        normals = [(0.0, 0.0, 1.0), (np.sin(t20), 0.0, np.cos(t20))]
+        d = tc.write_case(self.tmp / "mo_cells_slope", u=7.0, v=-5.5,
+                          floor={"z0": self.Z0, "z0h": self.Z0, "normals": normals,
+                                 "facet_of": lambda i, j: 1 if i <= 8 else 2},
+                          groups={"RUN": {"runtime": "1.5"}, "BC": {"bctfz": "-0.05", "bcqfz": "-5.0e-5"},
+                                  "OUTPUT": {"lfielddump": ".true.", "tfielddump": "1.5", "fieldvars": "'dt'"}})
+        res = self.run_ok(d)
+        out = res.stdout + res.stderr
+        self.assertIn("iwallmom = 4: 2 facets use Monin-Obukhov", out)
+        self.assertIn("iwallmom = 4: 128 cells above horizontal Monin-Obukhov facets", out)
+        with Dataset(d / "fielddump.000.000.310.nc") as f:
+            dthvdz = np.asarray(f["dthvdz"][-1], dtype=float)[0]      # (y, x) at kb
+        self.assertTrue(np.all(dthvdz[:, :8] < -1e-4))
+        self.assertTrue(np.all(np.abs(dthvdz[:, 8:]) <= 2e-10))      # float32(eps1) floor of calthv
+
 
 RV_RD = 461.5 / 287.04
 RLV, CP = 2.53e6, 1004.0   # check modglobal: rlv, cp

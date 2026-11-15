@@ -455,10 +455,11 @@ contains
 
     use modglobal,   only : ib,ie,jb,je,kb,ke,dxi,delta,dyi,dzfi,dzhi,grav,numol,prandtlmol
     use modfields,   only : u0,v0,w0,e120,e12p,dthvdz,thvf,IIcs
+    use modibmdata,  only : nmocells, mocell_ijk, mocell_dudz, mocell_dvdz
     implicit none
 
     real    tdef2,prandtlmoli
-    integer i,j,k,im,ip,jm,jp,km,kp
+    integer i,j,k,im,ip,jm,jp,km,kp,n
 
     prandtlmoli = 1./prandtlmol
 
@@ -518,6 +519,41 @@ contains
     sbshr(ib:ie,jb:je,kb)  = 0.
     sbbuo(ib:ie,jb:je,kb)  = 0.
     sbdiss(ib:ie,jb:je,kb) = 0.
+
+    ! iwallmom = 4: cells directly above a horizontal Monin-Obukhov facet (modibm:mo_cells_update).
+    ! DALES dev 075ac4e modsubgrid.f90:sources, "special treatment for lowest full level"
+    ! (sgs_surface_fix = .false.): the vertical shears are the surface-layer gradients du/dz,
+    ! dv/dz, and dthvdz there holds the surface-layer gradient (calthv). Molecular parts and
+    ! damp as in the interior loop.
+    do n = 1, nmocells
+       i  = mocell_ijk(n,1)
+       j  = mocell_ijk(n,2)
+       k  = mocell_ijk(n,3)
+       kp = k+1
+       jp = j+1
+       jm = j-1
+       ip = i+1
+       im = i-1
+
+       tdef2 = 2. * ( &
+               ((u0(ip,j,k)-u0(i,j,k)) * dxi     )**2 &
+             + ((v0(i,jp,k)-v0(i,j,k)) * dyi     )**2 &
+             + ((w0(i,j,kp)-w0(i,j,k)) * dzfi(k) )**2 )
+
+       tdef2 = tdef2 + ( 0.25*(w0(ip,j,kp)-w0(im,j,kp))*dxi + mocell_dudz(n) )**2
+
+       tdef2 = tdef2 + 0.25 * ( &
+               ((u0(i ,jp,k)-u0(i ,j ,k)) * dyi + (v0(i ,jp,k)-v0(im,jp,k)) * dxi)**2 &
+             + ((u0(i ,j ,k)-u0(i ,jm,k)) * dyi + (v0(i ,j ,k)-v0(im,j ,k)) * dxi)**2 &
+             + ((u0(ip,j ,k)-u0(ip,jm,k)) * dyi + (v0(ip,j ,k)-v0(i ,j ,k)) * dxi)**2 &
+             + ((u0(ip,jp,k)-u0(ip,j ,k)) * dyi + (v0(ip,jp,k)-v0(i ,jp,k)) * dxi)**2 )
+
+       tdef2 = tdef2 + ( 0.25*(w0(i,jp,kp)-w0(i,jm,kp))*dyi + mocell_dvdz(n) )**2
+
+       sbshr(i,j,k)  = (ekm(i,j,k)-numol)*tdef2/ ( 2*e120(i,j,k))
+       sbbuo(i,j,k)  = -(ekh(i,j,k)-numol*prandtlmoli)*grav/thvf(k)*dthvdz(i,j,k)/ ( 2*e120(i,j,k))
+       sbdiss(i,j,k) = - (ce1 + ce2*zlt(i,j,k)/delta(i,k)) * e120(i,j,k)**2 /(2.*damp(i,j,k)*zlt(i,j,k))
+    end do
 
     e12p(ib:ie,jb:je,kb:ke) = e12p(ib:ie,jb:je,kb:ke)+ &
          sbshr(ib:ie,jb:je,kb:ke)+sbbuo(ib:ie,jb:je,kb:ke)+sbdiss(ib:ie,jb:je,kb:ke)

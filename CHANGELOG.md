@@ -115,11 +115,11 @@ that they are easy to find when upgrading.
     fully solid slab above `kb` (IBM) `thvf(k)` holds the `-999` fill, so those
     levels use the neutral length scale and no buoyancy source; the fluid cells next
     to such a slab see this through the SGS diffusion of `e12`.
-  - The TKE sources at the first level `kb`: there are still none (the wall
-    functions, including the Monin-Obukhov facets, set the near-wall state), but
-    they are now set to zero explicitly; before, uninitialised memory was added to
-    `e12p(kb)`. DALES computes its k = 1 sources from the surface-layer shears;
-    see the [numerics reference](udales-dales-numerics.md).
+  - The TKE sources at the first level `kb`: there are still none next to the wall
+    functions (which set the near-wall state), but they are now set to zero
+    explicitly; before, uninitialised memory was added to `e12p(kb)`. Above
+    horizontal Monin-Obukhov facets (`iwallmom = 4`, new) they follow DALES, from
+    the surface-layer shears; see the [numerics reference](udales-dales-numerics.md).
 - **Default turbulent Prandtl number is exactly 1/3** (was 0.333), the DALES value.
   `Kh = Km/Prandtl` was `3.003 Km`; it is now `3 Km`, about 0.1 % less SGS heat,
   moisture and scalar diffusivity. Who is affected: every Smagorinsky, Vreman and
@@ -205,8 +205,11 @@ that they are easy to find when upgrading.
   `iwalltemp = 1`, `iwallmoist = 1` with `lmoist`, and `z0, z0h > 0` on the Monin-Obukhov facets; a start-up
   line counts the Monin-Obukhov and wall-function facets. `bldump` writes the area means over the
   Monin-Obukhov sections (`ustar`, `obl` as `1/mean(1/L)`, the diagnosed surface `thls`, `qts`). The
-  per-section state is not in the restart files (cold-started again on a warm start). Off by default
-  (`iwallmom = 2`); other runs are bit-identical. `tools/python/udprep/flat_floor.py` writes the IBM
+  per-section state is not in the restart files (cold-started again on a warm start). In the cells directly
+  above horizontal Monin-Obukhov facets (normal +z) the one-equation SGS TKE sources and `dthvdz` use the
+  Monin-Obukhov surface-layer gradients, the DALES first-level treatment (`modibm:mo_cells_update`, evaluated
+  before `subgrid` as in DALES); sloped Monin-Obukhov facets and all other walls keep no TKE source at `kb`.
+  Off by default (`iwallmom = 2`); other runs are bit-identical. `tools/python/udprep/flat_floor.py` writes the IBM
   inputs of a flat floor made of facets.
 - **Parametrised longwave radiation** (`&NAMRADIATION`, `iradiation = 2`; `modradiation`,
   `modraddata`), DALES `radpar`: cloud-water absorber `rad_absorber = 'ql' | 'sv'`

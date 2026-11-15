@@ -754,6 +754,10 @@ contains
   !!   (b) sources: no TKE source at kb, set explicitly (the work arrays are pre-filled
   !!       with garbage), and interior dissipation without the old factor 2, buoyancy
   !!       with grav/thvf(k);
+  !!   (c) sources in the cells above horizontal Monin-Obukhov facets (iwallmom = 4,
+  !!       modibmdata:mocell_*), set by hand here: a uniform kb plane and one cell above it,
+  !!       so the only shear is the surface-layer one; the DALES first-level form with
+  !!       mocell_dudz/dvdz and dthvdz; cells not in the list keep zero kb sources;
   !!   (d) a synthetic fully solid level k0 > kb (IIcs(k0) = 0, thvf(k0) = -999, the
   !!       avexy_ibm fill) with dthvdz > 0: neutral length scale, no buoyancy source,
   !!       everything finite (before the guard: sqrt of a negative number).
@@ -765,10 +769,11 @@ contains
     use modfields,      only : initfields, u0, v0, w0, e120, e12p, dthvdz, thvf, IIcs
     use modsurfdata,    only : thvs
     use modsubgrid,     only : initsubgrid, closure, sources
-    use modsubgriddata, only : ekm, ekh, zlt, sbshr, sbbuo, sbdiss, loneeqn, ldelta, Prandtl, &
+    use modsubgriddata, only : ekm, ekh, zlt, sbshr, sbbuo, sbdiss, damp, loneeqn, ldelta, Prandtl, &
                                cn, cf, Rigc, alpha_kolm
     use modboundary,    only : initboundary
     use modibm,         only : initibm, createmasks
+    use modibmdata,     only : nmocells, mocell_ijk, mocell_dudz, mocell_dvdz
     use initfac,        only : readfacetfiles
     use decomp_2d,      only : zstart
     use, intrinsic :: ieee_arithmetic, only : ieee_is_nan
@@ -776,8 +781,9 @@ contains
     implicit none
 
     real, parameter :: tol = 1.e-10
-    real :: kmt, kht, ratio, zexp, cm_l, ceps_l, ce1_l, ce2_l, expd, expb, worst
-    integer :: i, j, k, gi, nstable, nunstable, nlimited, k0, IIcs_save
+    real, parameter :: dudz0 = 0.05, dvdz0 = -0.03, dthvdz0 = -0.01
+    real :: kmt, kht, ratio, zexp, cm_l, ceps_l, ce1_l, ce2_l, expd, expb, exps, worst
+    integer :: i, j, k, gi, nstable, nunstable, nlimited, k0, IIcs_save, n, ncell
     real :: thvf_save
     logical :: all_passed
 
@@ -899,6 +905,69 @@ contains
       if (myid == 0) write(*,'(A,ES12.4)') 'FAIL interior sbdiss or sbbuo', worst
       all_passed = .false.
     end if
+
+    !----------------------------------------------------------------------
+    ! (c) cells above horizontal Monin-Obukhov facets: the west half of the kb plane and one
+    !     cell at kb+3 (a roof), uniform state there so the only vertical shear is the MO one
+    !----------------------------------------------------------------------
+    if (nmocells /= 0) then
+      if (myid == 0) write(*,'(A)') 'FAIL the test case must not have Monin-Obukhov facets'
+      all_passed = .false.
+    end if
+    ncell = 0
+    do j = jb, je
+      do i = ib, ie
+        if (i + zstart(1) - 1 <= (ie - ib + 1) / 2) ncell = ncell + 1
+      end do
+    end do
+    ncell = ncell + 1
+    allocate(mocell_ijk(ncell,3), mocell_dudz(ncell), mocell_dvdz(ncell))
+    n = 0
+    do j = jb, je
+      do i = ib, ie
+        if (i + zstart(1) - 1 <= (ie - ib + 1) / 2) then
+          n = n + 1
+          mocell_ijk(n,:) = (/ i, j, kb /)
+        end if
+      end do
+    end do
+    mocell_ijk(ncell,:) = (/ ib + 1, jb + 1, kb + 3 /)
+    nmocells = ncell
+    mocell_dudz = dudz0; mocell_dvdz = dvdz0
+    u0(:,:,kb) = 3.; v0(:,:,kb) = -2.; w0(:,:,kb) = 0.; w0(:,:,kb+1) = 0.
+    u0(:,:,kb+3) = 3.; v0(:,:,kb+3) = -2.; w0(:,:,kb+3) = 0.; w0(:,:,kb+4) = 0.
+    dthvdz(:,:,kb) = dthvdz0
+    dthvdz(:,:,kb+3) = dthvdz0
+    call closure
+    sbshr(:,:,kb) = 1.e30; sbbuo(:,:,kb) = -1.e30; sbdiss(:,:,kb) = 1.e30
+    e12p = 0.
+    call sources
+    worst = 0.
+    do n = 1, nmocells
+      i = mocell_ijk(n,1); j = mocell_ijk(n,2); k = mocell_ijk(n,3)
+      exps = (ekm(i,j,k) - numol)*(dudz0**2 + dvdz0**2)/(2.*e120(i,j,k)) &
+           - (ekh(i,j,k) - numol*prandtlmoli)*grav/thvf(k)*dthvdz0/(2.*e120(i,j,k)) &
+           - (ce1_l + ce2_l*zlt(i,j,k)/delta(i,k)) * e120(i,j,k)**2 / (2.*damp(i,j,k)*zlt(i,j,k))
+      worst = max(worst, abs(e12p(i,j,k) - exps)/abs(exps))
+    end do
+    if (myid == 0) write(*,'(A,ES12.4)') 'MO-cell sources worst relative deviation', worst
+    if (worst > tol) then
+      if (myid == 0) write(*,'(A,ES12.4)') 'FAIL MO-cell sources', worst
+      all_passed = .false.
+    end if
+    ! the east half of kb is not in the list: no source there
+    worst = 0.
+    do j = jb, je
+      do i = ib, ie
+        if (i + zstart(1) - 1 > (ie - ib + 1) / 2) worst = max(worst, abs(e12p(i,j,kb)))
+      end do
+    end do
+    if (worst /= 0.) then
+      if (myid == 0) write(*,'(A,ES12.4)') 'FAIL e12p(kb) outside the MO cells is not zero', worst
+      all_passed = .false.
+    end if
+    nmocells = 0
+    deallocate(mocell_ijk, mocell_dudz, mocell_dvdz)
 
     !----------------------------------------------------------------------
     ! (d) fully solid level: the grav/thvf guard

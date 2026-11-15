@@ -31,7 +31,7 @@ module modibm
              nsolpts_u, nsolpts_v, nsolpts_w, nsolpts_c, &
              nbndpts_u, nbndpts_v, nbndpts_w, nbndpts_c, &
              nfctsecs_u, nfctsecs_v, nfctsecs_w, nfctsecs_c, &
-             mask_u, mask_v, mask_w, mask_c, mo_facet_means
+             mask_u, mask_v, mask_w, mask_c, mo_facet_means, mo_cells_update
 
     abstract interface
       function interp_velocity(i,j,k)
@@ -119,6 +119,12 @@ module modibm
 
    !> iwallmom = 4: facet n uses Monin-Obukhov if facnorm(n,3) >= cos(mo_maxslope)
    logical, allocatable :: lfacmo(:)
+   !> iwallmom = 4: the c-grid sections of horizontal Monin-Obukhov facets on this rank
+   !> (indices into bound_info_c) and the first-level cell (modibmdata:mocell_*) of each
+   integer :: nmosecs_c = 0
+   integer, allocatable :: mosec_c(:), mosec_cell(:)
+   !> a facet is horizontal if facnorm(n,3) >= 1 - mo_horizontal_tol (round-off of the normal)
+   real, parameter :: mo_horizontal_tol = 1.e-6
 
    integer :: nstatfac=7, ncidfac, nrecfac=0
    character(80), allocatable :: ncstatfac(:,:)
@@ -206,6 +212,7 @@ module modibm
        call solid(solid_info_c, mask_c, rhs, 0., ih, jh, kh)
        call exchange_halo_z(mask_c)!, opt_zlevel=(/ih,jh,0/))
      end if
+     if (iwallmom == iwallmom_mo) call initibm_mocells   ! needs the c-grid sections
 
      deallocate(rhs)
 
@@ -289,6 +296,61 @@ module modibm
      call alloc_mo_state(bound_info_v)
      call alloc_mo_state(bound_info_w)
    end subroutine initibm_mo
+
+   !> iwallmom = 4: list the fluid cells directly above horizontal Monin-Obukhov facets
+   !> (normal +z) from the c-grid facet sections on this rank. In these cells the one-equation
+   !> SGS TKE sources and dthvdz use the Monin-Obukhov surface-layer gradients, as DALES does at
+   !> its first level (mo_cells_update). Sections with log(dist/z0) <= 1 are left out, as in
+   !> wallfunmom. Sloped Monin-Obukhov facets and all other walls get no such treatment.
+   subroutine initibm_mocells
+     use modglobal, only : ib, ie, jb, je, kb, ke
+     use initfac,   only : facnorm, facz0
+     use decomp_2d, only : zstart
+     use modmpi,    only : myid, comm3d, mpierr, mpi_sum
+     integer, allocatable :: cellid(:,:,:)
+     integer :: sec, fac, i, j, k, nloc(1), nglob(1)
+
+     allocate(cellid(ib:ie,jb:je,kb:ke)); cellid = 0
+     allocate(mosec_c(bound_info_c%nfctsecsrank), mosec_cell(bound_info_c%nfctsecsrank))
+     nmosecs_c = 0
+     nmocells = 0
+     do sec = 1, bound_info_c%nfctsecsrank
+       fac = bound_info_c%secfacids_loc(sec)
+       if (.not. lfacmo(fac)) cycle
+       if (facnorm(fac,3) < 1. - mo_horizontal_tol) cycle
+       if (bound_info_c%lskipsec_loc(sec)) cycle
+       if (log(bound_info_c%bnddst_loc(sec)/facz0(fac)) <= 1.) cycle
+       i = bound_info_c%secbndpts_loc(sec,1) - zstart(1) + 1
+       j = bound_info_c%secbndpts_loc(sec,2) - zstart(2) + 1
+       k = bound_info_c%secbndpts_loc(sec,3) - zstart(3) + 1
+       if (cellid(i,j,k) == 0) then
+         nmocells = nmocells + 1
+         cellid(i,j,k) = nmocells
+       end if
+       nmosecs_c = nmosecs_c + 1
+       mosec_c(nmosecs_c) = sec
+       mosec_cell(nmosecs_c) = cellid(i,j,k)
+     end do
+
+     allocate(mocell_ijk(nmocells,3), mocell_dudz(nmocells), mocell_dvdz(nmocells), &
+              mocell_dthldz(nmocells), mocell_dqtdz(nmocells))
+     mocell_dudz = 0.; mocell_dvdz = 0.; mocell_dthldz = 0.; mocell_dqtdz = 0.
+     do k = kb, ke
+       do j = jb, je
+         do i = ib, ie
+           if (cellid(i,j,k) > 0) mocell_ijk(cellid(i,j,k),:) = (/ i, j, k /)
+         end do
+       end do
+     end do
+     deallocate(cellid)
+     call alloc_mo_state(bound_info_c)
+
+     nloc(1) = nmocells
+     call MPI_ALLREDUCE(nloc, nglob, 1, MPI_INTEGER, MPI_SUM, comm3d, mpierr)
+     lmocells = (nglob(1) > 0)
+     if (myid == 0) write(*, '(a,i0,a)') ' iwallmom = 4: ', nglob(1), &
+       ' cells above horizontal Monin-Obukhov facets use the surface-layer SGS treatment'
+   end subroutine initibm_mocells
 
    subroutine alloc_mo_state(bound_info)
      type(bound_info_type), intent(inout) :: bound_info
@@ -1411,6 +1473,80 @@ module modibm
         end if !myid
       end if
    end subroutine ibmwallfun
+
+
+   !> iwallmom = 4: Monin-Obukhov state of the cells above horizontal Monin-Obukhov facets
+   !> (initibm_mocells) and their surface-layer gradients, the DALES dev 075ac4e first level:
+   !> per c-grid section the per-column surface of lmostlocal (mo_local_update) on the cell-centre
+   !> thl, qt and horizontal wind, with the section distance as z1, then calc_surface_gradients
+   !>   du/dz = u* phim(z1/L) / (kappa z1) * uc/|U|,  dthl/dz = -w'thl' / u* phih(z1/L) / (kappa z1)
+   !> (uc the cell-centre component, |U| floored at 0.1 m/s, fluxes upward-positive), area-averaged
+   !> over the sections of a cell. Used by modsubgrid:sources (one-equation TKE sources) and
+   !> modthermodynamics:calthv (dthvdz). Called before subgrid, as DALES calls its surface before
+   !> subgrid, and once at a cold start before the start-up thermodynamics (DALES readinitfiles).
+   !> lstart: the start-up call. A section's first visit is the DALES cold start (tskin = thl,
+   !> qskin = qt, L = -0.1, one surface call); outside the start-up call (warm start) it is followed
+   !> by the regular call, as in wallfunmom.
+   subroutine mo_cells_update(lstart)
+     use modglobal,  only : lmoist, ustin, fkar
+     use modfields,  only : u0, v0, thl0, qt0
+     use initfac,    only : facz0, facz0h, faclGR
+     use modsurface, only : mo_local_update, phim, phih, min_horv
+     logical, intent(in) :: lstart
+     integer :: m, sec, fac, c, i, j, k
+     real :: upcu, vpcv, horv, horvf, dist, wthl_up, wqt_up, ustar, a, scaling
+     real, allocatable :: wsum(:)
+
+     if (nmocells == 0) return
+     allocate(wsum(nmocells))
+     wsum = 0.
+     mocell_dudz = 0.; mocell_dvdz = 0.; mocell_dthldz = 0.; mocell_dqtdz = 0.
+     do m = 1, nmosecs_c
+       sec = mosec_c(m)
+       c   = mosec_cell(m)
+       fac = bound_info_c%secfacids_loc(sec)
+       i = mocell_ijk(c,1); j = mocell_ijk(c,2); k = mocell_ijk(c,3)
+       dist = bound_info_c%bnddst_loc(sec)
+       upcu = 0.5 * (u0(i,j,k) + u0(i+1,j,k))
+       vpcv = 0.5 * (v0(i,j,k) + v0(i,j+1,k))
+       horv = sqrt(upcu**2 + vpcv**2)
+       ! prescribed facet fluxes, positive into the surface (as in wallfunmom)
+       wthl_up = -bctfz
+       wqt_up  = 0.
+       if (lmoist .and. faclGR(fac)) wqt_up = -bcqfz
+       if (bound_info_c%mo_obl(sec) == 0.) then
+         bound_info_c%mo_tskin(sec) = thl0(i,j,k)
+         bound_info_c%mo_qskin(sec) = qt0(i,j,k)
+         bound_info_c%mo_obl(sec)   = -0.1
+         call cell_surface
+         if (.not. lstart) call cell_surface   ! warm start: the regular call of this substep
+       else
+         call cell_surface
+       end if
+       horvf = max(horv, min_horv)
+       scaling = 1. / (fkar * dist)
+       a = bound_info_c%secareas_loc(sec)
+       mocell_dudz(c)   = mocell_dudz(c)   + a * ustar * phim(dist / bound_info_c%mo_obl(sec)) * scaling * upcu / horvf
+       mocell_dvdz(c)   = mocell_dvdz(c)   + a * ustar * phim(dist / bound_info_c%mo_obl(sec)) * scaling * vpcv / horvf
+       mocell_dthldz(c) = mocell_dthldz(c) - a * wthl_up / ustar * phih(dist / bound_info_c%mo_obl(sec)) * scaling
+       mocell_dqtdz(c)  = mocell_dqtdz(c)  - a * wqt_up  / ustar * phih(dist / bound_info_c%mo_obl(sec)) * scaling
+       wsum(c) = wsum(c) + a
+     end do
+     mocell_dudz   = mocell_dudz   / wsum
+     mocell_dvdz   = mocell_dvdz   / wsum
+     mocell_dthldz = mocell_dthldz / wsum
+     mocell_dqtdz  = mocell_dqtdz  / wsum
+     deallocate(wsum)
+
+   contains
+
+     subroutine cell_surface
+       call mo_local_update(thl0(i,j,k), qt0(i,j,k), horv, dist, facz0(fac), facz0h(fac), wthl_up, wqt_up, &
+                            ustin, bound_info_c%mo_obl(sec), bound_info_c%mo_tskin(sec), &
+                            bound_info_c%mo_qskin(sec), ustar)
+       bound_info_c%mo_ustar(sec) = ustar
+     end subroutine cell_surface
+   end subroutine mo_cells_update
 
 
    subroutine wallfunmom(dir, rhs, bound_info)

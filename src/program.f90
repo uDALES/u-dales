@@ -36,7 +36,7 @@ program uDALES
   use modsubgrid,        only : initsubgrid,subgrid
   use modforces,         only : calcfluidvolumes,forces,coriolis,lstend,fixuinf1,fixuinf2,fixthetainf,nudge,masscorr,shiftedPBCs,periodicEBcorr
   use modpois,           only : initpois,poisson
-  use modibm,            only : initibm,createmasks,ibmwallfun,ibmnorm,bottom
+  use modibm,            only : initibm,createmasks,ibmwallfun,ibmnorm,bottom,mo_cells_update
   use vegetation,        only : init_vegetation, vegetation_forcing
   use modpurifiers,      only : createpurifiers,purifiers
   use modheatpump,       only : init_heatpump,heatpump,exit_heatpump
@@ -162,6 +162,8 @@ program uDALES
     call advection ! includes predicted pressure gradient term
 
     call shiftedPBCs
+
+    call mo_cells_update(.false.) ! iwallmom = 4: surface-layer gradients above horizontal MO facets, before subgrid (DALES order)
 
     call subgrid
 

@@ -1003,6 +1003,8 @@ module modstartup
       use modboundary, only:boundary, tqaver, halos
       use modmpi, only:slabsum, myid, comm3d, mpierr, my_real, avexy_ibm
       use modthermodynamics, only:thermodynamics, calc_halflev
+      use modibm,            only:mo_cells_update
+      use modibmdata,        only:lmocells
       use modinletdata, only:Uinl, Urec, Wrec, u0inletbc, v0inletbc, w0inletbc, ubulk, vbulk, irecy, Utav, Ttav, &
          uminletbc, vminletbc, wminletbc, u0inletbcold, v0inletbcold, w0inletbcold, &
          storeu0inletbc, storev0inletbc, storew0inletbc, nstepread, nfile, Tinl, &
@@ -1646,6 +1648,14 @@ module modstartup
          ! call boundary ! tg3315 17.10.17 having this in startup was causing issues for running with lmoist ! turned of when pot. temp = temp.
          ! SO: can't do this yet because uses u0 and it does not include halo cells
          call thermodynamics ! turned off when pot. temp = temp.
+         ! iwallmom = 4: DALES readinitfiles calls its surface and then thermodynamics again, so the
+         ! first subgrid call sees the surface-layer dthvdz above horizontal Monin-Obukhov facets.
+         ! mo_cells_update reads u0, v0 at i+1, j+1, so the halos are filled first.
+         if (lmocells) then             ! collective (halos): the global flag
+            call halos
+            call mo_cells_update(.true.)
+            call thermodynamics
+         end if
          !
          !    call boundary
          !    call thermodynamics ! turned off when pot. temp = temp.
