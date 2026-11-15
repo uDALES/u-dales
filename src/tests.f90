@@ -1291,7 +1291,7 @@ contains
   !!    L follows the sign of Ri_b.
   logical function tests_mo_kernels()
     use modglobal,  only : runmode, fkar, grav
-    use modsurface, only : psim, psih, phim, phih, calc_obl_iter, rib_from_obl, mo_local_update
+    use modsurface, only : psim, psih, phim, phih, calc_obl_iter, rib_from_obl, mo_local_update, mo_presc_tskin_update
     implicit none
 
     real, parameter :: ztab(6)  = (/ -2., -0.5, -0.01, 0.1, 1., 5. /)
@@ -1304,7 +1304,7 @@ contains
     real, parameter :: ltrue(6) = (/ -200., -20., -2., 2., 20., 200. /)
     real, parameter :: z1 = 10., z0 = 1.e-3, z0h = 1.e-4, tskin = 300., ucomp = 5.
     integer :: n
-    real :: e, dthv, thl, ustar, expect, lnum, rib, obl, ts, qs
+    real :: e, dthv, thl, ustar, expect, lnum, rib, obl, ts, qs, cs, csu, cm, es, eu, ef
     logical :: all_passed
 
     if (myid == 0) then
@@ -1369,6 +1369,39 @@ contains
     if (lnum <= 0.) call report_fail('calc_obl_iter: warm air over a cold surface must be stable (L > 0)')
     lnum = calc_obl_iter(tskin - 1., 0., tskin, 0., z1, z0, z0h, ucomp, 0., -0.1)
     if (lnum >= 0.) call report_fail('calc_obl_iter: cold air over a warm surface must be unstable (L < 0)')
+
+    ! mo_presc_tskin_update (DALES isurf 2, iwalltemp = 2): one update from the cold start L = -0.1
+    ! on the air state whose Ri_b belongs to a known L. L is recovered (as calc_obl_iter above),
+    ! Cs and u* are the drag coefficients of that L, and the fluxes they give close the flux
+    ! definition of L: -u*^3 tskin / (kappa g Cs U (tskin - thl)) = L (an identity of the
+    ! Ri_b - L relation, so only the iteration tolerance 1e-4 remains).
+    e = 0.; es = 0.; eu = 0.; ef = 0.
+    do n = 1, size(ltrue)
+      rib  = rib_from_obl(z1, ltrue(n), z0h, z0)
+      dthv = rib * ucomp**2 * tskin / (grav * z1)
+      obl  = -0.1
+      call mo_presc_tskin_update(tskin + dthv, 0., ucomp, z1, z0, z0h, tskin, 0., 0., obl, ustar, cs, csu)
+      cm = fkar**2 / (log(z1/z0) - psim(z1/obl) + psim(z0/obl))**2
+      expect = fkar**2 / (log(z1/z0) - psim(z1/obl) + psim(z0/obl)) / (log(z1/z0h) - psih(z1/obl) + psih(z0h/obl))
+      e  = max(e, abs(obl / ltrue(n) - 1.))
+      es = max(es, abs(cs / expect - 1.), abs(csu / (expect * ucomp) - 1.))
+      eu = max(eu, abs(ustar / (sqrt(cm) * ucomp) - 1.))
+      lnum = -ustar**3 * tskin / (fkar * grav * csu * (tskin - (tskin + dthv)))
+      ef = max(ef, abs(lnum / obl - 1.))
+    end do
+    if (myid == 0) write(*, '(A,4ES12.4)') 'mo_presc_tskin_update worst rel. error of L, Cs, u*, flux L', e, es, eu, ef
+    if (e > 2.e-3) call report_fail('mo_presc_tskin_update does not recover L from the bulk Richardson number')
+    if (es > 1.e-6 .or. eu > 1.e-6) call report_fail('mo_presc_tskin_update: Cs, u* are not the drag coefficients of L')
+    if (ef > 2.e-3) call report_fail('mo_presc_tskin_update: fluxes do not close the flux definition of L')
+    obl = -0.1
+    call mo_presc_tskin_update(tskin, 0., ucomp, z1, z0, z0h, tskin, 0., 0., obl, ustar, cs, csu)
+    if (obl /= 1.e6 .or. abs(ustar / (fkar * ucomp / log(z1 / z0)) - 1.) > 1.e-5) &
+      call report_fail('mo_presc_tskin_update neutral: L = 1e6 and the log-law u*')
+    obl = -0.1
+    call mo_presc_tskin_update(tskin - 1., 0., 0.05, z1, z0, z0h, tskin, 0., 0., obl, ustar, cs, csu)
+    if (abs(csu / (cs * 0.1) - 1.) > 1.e-6) call report_fail('mo_presc_tskin_update: |U| floor 0.1 m/s in Cs U')
+    call mo_presc_tskin_update(tskin - 1., 0., ucomp, z1, z0, z0h, tskin, 0., 0.28, obl, ustar, cs, csu)
+    if (ustar /= 0.28) call report_fail('mo_presc_tskin_update: ustin > 0 must prescribe u*')
 
     if (all_passed .and. myid == 0) then
       write(*, '(A)') '------------------------------------------------'

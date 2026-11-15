@@ -1,13 +1,15 @@
 !> Monin-Obukhov surface-layer kernels, ported from DALES dev 075ac4e src/surface/modsurface.f90:
 !> the stability functions psim, psih, phim, phih, the iterated Obukhov length (calc_obl_iter)
-!> and the per-element surface update of isurf 3/4 with lmostlocal = .true. (mo_local_update).
-!> Used by the Monin-Obukhov facets (iwallmom = 4, modibm:wallfunmom).
+!> and the per-element surface updates with lmostlocal = .true.: isurf 3/4, prescribed fluxes
+!> (mo_local_update), and isurf 2, prescribed surface temperature (mo_presc_tskin_update).
+!> Used by the Monin-Obukhov facets (iwallmom = 4, modibm:wallfunmom, wallfunheat, mo_cells_update).
 module modsurface
   implicit none
   save
   private
-  public :: psim, psih, phim, phih, calc_obl_iter, rib_from_obl, mo_local_update   ! pure kernels, tested by tests.f90:tests_mo_kernels
-  public :: min_horv, ustar_min
+  public :: psim, psih, phim, phih, calc_obl_iter, rib_from_obl, mo_local_update, &   ! pure kernels, tested by
+            mo_presc_tskin_update                                                     ! tests.f90:tests_mo_kernels
+  public :: min_horv, ustar_min, dqskin_max
 
   real, parameter :: min_horv = 0.1   !< minimum wind speed [m/s] (DALES)
   real, parameter :: ustar_min = 1.e-2   !< floor of the friction velocity [m/s] (DALES)
@@ -55,6 +57,38 @@ contains
     tskin = min(max(wthl_up / (cs * horvf), -dtskin_max), dtskin_max) + thl
     qskin = min(max(wqt_up  / (cs * horvf), -dqskin_max), dqskin_max) + qt
   end subroutine mo_local_update
+
+  !> Local Monin-Obukhov update of one surface element with a prescribed surface temperature
+  !> (iwalltemp = 2: the facet temperature), lmostlocal = .true. Port of the per-column sequence
+  !> of DALES dev 075ac4e modsurface.f90:surface, isurf = 2: calc_mean_wind (|U| floored at
+  !> min_horv), get_obl (L from the bulk Richardson number between the air and tskin, qskin),
+  !> calc_drag_coefficients with that new L, calc_aerodynamic_resistance (ra = 1/(Cs |U|)) and
+  !> calc_friction_velocity. Unlike isurf 3/4 (mo_local_update) the drag coefficients follow the
+  !> new L, as in DALES. thl, qt and horv are the air state a height z1 above the surface; tskin,
+  !> qskin the surface values (qskin from the previous call, as DALES qtsurf runs after get_obl);
+  !> obl carries L from the previous call. Returns u*, Cs and csu = Cs max(|U|, min_horv) = 1/ra;
+  !> the caller forms the fluxes as DALES calc_surface_flux, w'thl'_up = csu (tskin - thl).
+  !> ustin > 0 prescribes u* (a uDALES extension; DALES isurf 2 has no ustin).
+  subroutine mo_presc_tskin_update(thl, qt, horv, z1, z0m, z0h, tskin, qskin, ustin, obl, ustar, cs, csu)
+    use modglobal, only : fkar
+    real, intent(in)    :: thl, qt, horv, z1, z0m, z0h, tskin, qskin, ustin
+    real, intent(inout) :: obl
+    real, intent(out)   :: ustar, cs, csu
+    real :: horvf, cm
+
+    horvf = max(horv, min_horv)
+    obl = calc_obl_iter(thl, qt, tskin, qskin, z1, z0m, z0h, horv, 0., obl)
+    cm = fkar**2 / (log(z1/z0m) - psim(z1/obl) + psim(z0m/obl))**2
+    cs = fkar**2 / (log(z1/z0m) - psim(z1/obl) + psim(z0m/obl)) &
+                 / (log(z1/z0h) - psih(z1/obl) + psih(z0h/obl))
+    csu = cs * horvf
+    if (ustin > 0.) then
+      ustar = ustin
+    else
+      ustar = sqrt(cm) * horvf
+    end if
+    ustar = max(ustar, ustar_min)
+  end subroutine mo_presc_tskin_update
 
   !> Port of DALES dev 075ac4e modsurface.f90:calc_obl_iter (Newton iteration on Rib).
   real function calc_obl_iter(thl, qt, tskin, qskin, z, z0m, z0h, u, v, Lin) result(L)
