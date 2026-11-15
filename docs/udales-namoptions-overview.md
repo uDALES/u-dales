@@ -225,9 +225,9 @@ Parameters of the `dycoms_rf01` hook: the free-troposphere term of the DYCOMS-II
 | Name | Default | Possible values | Description | Unit |
 | ---- | ------- | --------------- | ----------- | ---- |
 | nfcts | -1 | `INTEGER` | Number of facets specified in `facets.inp`. | - |
-| iwallmom | 2 | 1, 2, 3, 4 (1 means zero flux) | Facet momentum flux: 2 wall function with stability (becomes 3 with `iwalltemp = 1`), 3 neutral wall function, 4 Monin-Obukhov surface layer on facets within `mo_maxslope` of horizontal and the neutral wall function on the others (see [boundary conditions](udales-boundary-conditions.md)). | - |
-| iwalltemp | 1 | 1, 2 |  Building wall temperature flux. | - |
-| iwallmoist | 1 | 1, 2 |  Building wall moisture flux. | - |
+| iwallmom | 2 | 1, 2, 3, 4 (1 means zero flux) | Facet momentum flux: 2 wall function with stability (becomes 3 with `iwalltemp = 1`), 3 neutral wall function, 4 Monin-Obukhov surface layer on facets within `mo_maxslope` of horizontal (from the prescribed facet fluxes with `iwalltemp = 1`, from the facet temperature with `iwalltemp = 2`) and on the others the wall function, neutral with `iwalltemp = 1` and with stability with `iwalltemp = 2` (see [boundary conditions](udales-boundary-conditions.md)). | - |
+| iwalltemp | 1 | 1, 2 |  Building wall temperature flux: 1 prescribed facet fluxes (`bctf*`), 2 from the facet temperature (`Tfacinit.inp`, evolved by `lEB`). | - |
+| iwallmoist | 1 | 1, 2 |  Building wall moisture flux: 1 prescribed (`bcqf*`), 2 resistance law on facets with `lGR = 1` (needs the facet temperature; with `iwallmom = 4` it requires `iwalltemp = 2`). | - |
 | iwallscal | 1 | 1, 2 | Building wall scalar flux | - |
 | lbottom | .false. | .true., .false. | Switch for using wall function as bottom BC. *Used only if no ground facets.* | - |
 | mo_maxslope | 30. | `REAL` in [0, 90) | `iwallmom = 4`: facets whose normal is at most `mo_maxslope` from the vertical use Monin-Obukhov. | [deg] |
@@ -337,6 +337,8 @@ Time-series and profile diagnostics for boundary-layer cases. Off by default. Va
 | qts | Surface qt | kg/kg |
 | u1 | Slab-mean u at first level | m/s |
 | v1 | Slab-mean v at first level | m/s |
+| wtheta | `iwallmom = 4`: surface kinematic heat flux, area mean of the flux applied on the Monin-Obukhov c-grid facet sections in the last substep, upward positive (DALES tmser `wtheta`); 0 otherwise | K m/s |
+| wq | `iwallmom = 4`: the same for the moisture flux (DALES tmser `wq`) | kg/kg m/s |
 
 `bldump_z.<expnr>.nc` (slab-mean profiles, dimensions `time` and height; `tt` = full levels, `mt` = half levels):
 

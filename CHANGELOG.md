@@ -202,11 +202,18 @@ that they are easy to find when upgrading.
   normal is within `mo_maxslope` (default 30 degrees) of the vertical use it, from the air state at the
   section's reference point (the interpolation of the other wall functions), the facet `z0`/`z0h` and the
   prescribed facet fluxes `bctfz` and `bcqfz` (the latter on facets whose type has `lGR = 1`, i.e. that
-  exchange moisture); such a facet takes `bctfz`/`bcqfz` whatever its slope. Steeper facets and walls use the
-  neutral log-law wall function (as `iwallmom = 2` does under `iwalltemp = 1`). Requires `libm`, `ltempeq`,
-  `iwalltemp = 1`, `iwallmoist = 1` with `lmoist`, and `z0, z0h > 0` on the Monin-Obukhov facets; a start-up
-  line counts the Monin-Obukhov and wall-function facets. `bldump` writes the area means over the
-  Monin-Obukhov sections (`ustar`, `obl` as `1/mean(1/L)`, the diagnosed surface `thls`, `qts`). The
+  exchange moisture); such a facet takes `bctfz`/`bcqfz` whatever its slope. With `iwalltemp = 2` the
+  Monin-Obukhov facets instead take the facet temperature as the surface temperature, the DALES `isurf = 2`
+  analogue (`modsurface:mo_presc_tskin_update`, `modibm:mo_section_tskin`): L from the bulk Richardson number
+  between the air and the facet, `u*^2 = Cm U^2`, heat flux `Cs U (Tfacet - Tair)` (upward), which feeds the
+  energy balance (`lEB`) unchanged; moisture `bcqfz` (`iwallmoist = 1`) or the resistance law with
+  `resa = 1/(Cs U)` (`iwallmoist = 2`). Steeper facets and walls use the wall function with its stability
+  correction (the `iwallmom = 2` path) under `iwalltemp = 2`, and the neutral log-law wall function under
+  `iwalltemp = 1` (as `iwallmom = 2` does there). Requires `libm`, `ltempeq`, `iwalltemp = 1` or 2, with
+  `lmoist` `iwallmoist = 1` or 2 (2 only with `iwalltemp = 2`), and `z0, z0h > 0` on the Monin-Obukhov facets;
+  a start-up line counts the Monin-Obukhov and wall-function facets. `bldump` writes the area means over the
+  Monin-Obukhov sections (`ustar`, `obl` as `1/mean(1/L)`, the diagnosed surface `thls`, `qts`, and the applied
+  surface fluxes `wtheta`, `wq`, upward positive). The
   per-section state is not in the restart files (cold-started again on a warm start). In the cells directly
   above horizontal Monin-Obukhov facets (normal +z; strictly: the cells that own a section of such a
   facet) the one-equation SGS TKE sources and `dthvdz` use the
@@ -217,7 +224,9 @@ that they are easy to find when upgrading.
   Monin-Obukhov sections with `log(dist/max(z0, z0h)) <= 1` are skipped; a rank-0 warning reports
   Monin-Obukhov facets that are within 1e-3 of horizontal but not within 1e-6 (they get no first-level treatment).
   Off by default (`iwallmom = 2`); other runs are bit-identical. `tools/python/udprep/flat_floor.py` writes the IBM
-  inputs of a flat floor made of facets.
+  inputs of a flat floor made of facets (`--tfacinit` also writes `Tfacinit.inp`). Example 304 (dry convective
+  boundary layer over a floor of fixed temperature, `iwalltemp = 2`) validates the facet-temperature path against
+  DALES `isurf = 2`.
 - **Parametrised longwave radiation** (`&NAMRADIATION`, `iradiation = 2`; `modradiation`,
   `modraddata`), DALES `radpar`: cloud-water absorber `rad_absorber = 'ql' | 'sv'`
   (`rad_absorber_sv`), optics `rka`, `dlwtop`, `dlwbot` and `timerad`. `rka` and `dlwtop` (or `dlwbot`)

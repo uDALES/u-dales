@@ -150,16 +150,21 @@ The three validation cases use the one-equation (Deardorff) TKE model with `ldel
 
 | item | DALES | uDALES | status | effect |
 |---|---|---|---|---|
-| where | the flat bottom, per column (`isurf`) | facets: `iwallmom = 4` on facets within `mo_maxslope` (30 degrees) of horizontal, per facet section of the u, v and w grids; the floor of 301-303 is one horizontal facet (src/modibm.f90:276-298, 1632-1682) | different by design | - |
-| MO with prescribed u* | `isurf = 3` (DALES surface/modsurface.f90:478-485) | `iwallmom = 4` with `ustin > 0` in `&WALLS` (src/modsurface.f90:37-57) | aligned | BOMEX |
-| MO with diagnosed u* | `isurf = 4` (DALES surface/modsurface.f90:486-493) | `iwallmom = 4` (src/modsurface.f90:37-57) | aligned | RF01, smoke |
-| stability functions, Obukhov length iteration | unstable Businger-Dyer, stable Beljaars-Holtslag; `calc_obl_iter` Newton iteration on Rib (DALES surface/modsurface.f90) | the same formulas (src/modsurface.f90:60-96, 106-) | aligned | - |
-| local or domain-mean MO | dev default `lmostlocal = .true.`: per-column L, Cm and (isurf 4) u* = sqrt(Cm) times the local wind speed (DALES surface/modsurfdata.f90:240, surface/modsurface.f90:651-690, 905-958); 4.4.2 default `.false.` | local: per facet section, L, Cm, Cs, u*, tskin and qskin from the air state interpolated to the section's point (the u, v points on a flat floor) (src/modsurface.f90:37-57) | aligned (summary #7) | RF01 u* 0.2464 vs 0.2469 m/s (0.2 %); BOMEX u* prescribed |
+| where | the flat bottom, per column (`isurf`) | facets: `iwallmom = 4` on facets within `mo_maxslope` (30 degrees) of horizontal, per facet section of the u, v and w grids; the floor of 301-303 is one horizontal facet (src/modibm.f90:287-313, 1740-1808) | different by design | - |
+| MO with prescribed u* | `isurf = 3` (DALES surface/modsurface.f90:478-485) | `iwallmom = 4` with `ustin > 0` in `&WALLS` (src/modsurface.f90:39-59) | aligned | BOMEX |
+| MO with diagnosed u* | `isurf = 4` (DALES surface/modsurface.f90:486-493) | `iwallmom = 4` (src/modsurface.f90:39-59) | aligned | RF01, smoke |
+| MO with prescribed surface temperature | `isurf = 2`: `calc_mean_wind`, `get_obl` (L from Rib between the first level and `tskin = thls`, `qskin` of the previous step), `calc_drag_coefficients` with that new L, `ra = 1/(Cs horv)`, `tskin = thls`, `qtsurf`, `u* = sqrt(Cm) horv`, `thlflux = (tskin - thl)/ra` (DALES surface/modsurface.f90:468-477, 507-555, 558-573, 724-797, 905-958) | `iwallmom = 4` with `iwalltemp = 2`: the same sequence per facet section with `tskin` = the facet temperature `facT(fac,1)`; `w'thl' = Cs U (Tfacet - thl)` (src/modsurface.f90:72-91, src/modibm.f90:1534-1581); applied by `wallfunheat` on the c-grid sections (src/modibm.f90:1988-2007), the stress by `wallfunmom` (src/modibm.f90:1784-1789) | aligned | example 304 (RESULTS.md) |
+| surface humidity with a prescribed surface temperature | `qtsurf`: `qskin = surfwet qsat(tskin) + (1 - surfwet) qt`, `surfwet = ra/(ra + rsisurf2)` (DALES surface/modsurface.f90:867-902) | facets with `lGR = 1`: `bcqfz` (`iwallmoist = 1`) or the uDALES resistance law `moist_flux` with `resa = 1/(Cs U)` (vegetation fraction 0.8, canopy and soil resistances `facf`, `fachurel`, Bolton `qsat`) (`iwallmoist = 2`); `qskin = qt + w'qt'/(Cs U)` from the previous flux, as DALES uses the `qskin` of its previous `qtsurf`; other facets `qskin = qt` (src/modibm.f90:1534-1581) | different by design (uDALES facet moisture laws) | 304 is dry |
+| `ustin` with a prescribed surface temperature | not available (`isurf = 2` diagnoses u*) | `ustin > 0` prescribes u* also under `iwalltemp = 2` (src/modsurface.f90:85-89) | uDALES extension | - |
+| cold start, prescribed surface temperature | `tskin = thls`, `obl = -0.1`, `qskin` from `qtsurf` with `ra = 50` (DALES modstartup.f90:833-834, 855-862) | per section at its first visit: `L = -0.1`, `qskin = qt` (zero flux), one extra update (src/modibm.f90:1545-1552) | aligned (except the DALES `ra = 50` start of `qskin`) | - |
+| steep facets with a facet temperature | - | `iwallmom = 4`, `iwalltemp = 2`: facets steeper than `mo_maxslope` use `wfuno` with its stability correction (the `iwallmom = 2` path; src/modibm.f90:1716); neutral under `iwalltemp = 1` | uDALES only | - |
+| stability functions, Obukhov length iteration | unstable Businger-Dyer, stable Beljaars-Holtslag; `calc_obl_iter` Newton iteration on Rib (DALES surface/modsurface.f90) | the same formulas (src/modsurface.f90:94-130, 140-) | aligned | - |
+| local or domain-mean MO | dev default `lmostlocal = .true.`: per-column L, Cm and (isurf 4) u* = sqrt(Cm) times the local wind speed (DALES surface/modsurfdata.f90:240, surface/modsurface.f90:651-690, 905-958); 4.4.2 default `.false.` | local: per facet section, L, Cm, Cs, u*, tskin and qskin from the air state interpolated to the section's point (the u, v points on a flat floor) (src/modsurface.f90:39-59) | aligned (summary #7) | RF01 u* 0.2464 vs 0.2469 m/s (0.2 %); BOMEX u* prescribed |
 | surface fluxes | `wtsurf`, `wqsurf`, positive upward | facet fluxes `bctfz`, `bcqfz` (on facets of a type with `lGR = 1`), positive downward | aligned (sign converted) | - |
-| cold start | `tskin = thlprof(1)`, `qskin = qtprof(1)`, `obl = -0.1`, one `surface` call in `readinitfiles` (DALES modstartup.f90:836-889) | the same per section at its first visit (src/modibm.f90:1683-1690); the first-level cells at a cold start in `readinitfiles`, at a warm start at their first visit (src/modibm.f90:1503-1557) | aligned | - |
+| cold start | `tskin = thlprof(1)`, `qskin = qtprof(1)`, `obl = -0.1`, one `surface` call in `readinitfiles` (DALES modstartup.f90:836-889) | the same per section at its first visit (src/modibm.f90:1797-1804); the first-level cells at a cold start in `readinitfiles`, at a warm start at their first visit (src/modibm.f90:1599-1661) | aligned | - |
 | von Karman constant | 0.4 (parameter, DALES modglobal.f90:101) | 0.40 (`&WALLS fkar`, src/modglobal.f90:338); the inlet generator keeps 0.41 with its Coles wake constants | aligned | 0.41 against 0.4 gives a 2.3 % u* difference in RF01 |
-| order | `surface` before advection and subgrid (DALES program.f90:232-238) | the stress in the wall function (`ibmwallfun`, after subgrid), from the same `u0`, `thl0`, `qt0` of the substep; the first-level cells above horizontal Monin-Obukhov facets (`mo_cells_update`) before subgrid, and at a cold start once before the start-up thermodynamics, as DALES `readinitfiles` (src/program.f90:166, src/modstartup.f90:1680-1687) | aligned | - |
-| stress stencil | cell-centred `u + cu`, 4-point v, u* averaged over two cells, wind floor 1e-10 (DALES modsubgrid.f90:942-951) | u* and L of the section at the u (v) point, 4-point v (u), `min_horv = 0.1` in Cm (src/modibm.f90:1676-1694) | different by design | second-order equivalent |
+| order | `surface` before advection and subgrid (DALES program.f90:232-238) | the stress in the wall function (`ibmwallfun`, after subgrid), from the same `u0`, `thl0`, `qt0` of the substep; the first-level cells above horizontal Monin-Obukhov facets (`mo_cells_update`) before subgrid, and at a cold start once before the start-up thermodynamics, as DALES `readinitfiles` (src/program.f90:166, src/modstartup.f90:1687-1694) | aligned | - |
+| stress stencil | cell-centred `u + cu`, 4-point v, u* averaged over two cells, wind floor 1e-10 (DALES modsubgrid.f90:942-951) | u* and L of the section at the u (v) point, 4-point v (u), `min_horv = 0.1` in Cm (src/modibm.f90:1784-1808) | different by design | second-order equivalent |
 
 ### Wall functions
 
@@ -171,7 +176,7 @@ obstacles (DALES modibm.f90:183-193, 640-649), without a facet energy balance. T
 | item | DALES | uDALES | status |
 |---|---|---|---|
 | flat bottom | MO only (`isurf`) | `BCbotm = 2`: `wfuno`, a log-law stress and heat flux with a Richardson-number stability correction (Uno et al. 1995, Cai 2012; extension of Louis 1979 to rough walls); `BCbotm = 3`: `wfmneutral`, neutral log law; for MO use a facet floor with `iwallmom = 4` (above) (src/modibm.f90:bottom, src/modwallfunctions.f90:24, 262) | different by design |
-| building facets | `lapply_ibm`: constant neutral law-of-the-wall coefficients for vertical walls, MO drag with stability for horizontal faces; prescribed wall temperatures (`lwallheat`) | the same wall functions at every IBM facet, `iwallmom = 2` (stability) or 3 (neutral), with `iwalltemp`/`iwallmoist` for scalars; with `iwallmom = 4` MO on the near-horizontal facets and the neutral law on the others (src/modibm.f90:wallfunmom, wallfunheat) | different by design |
+| building facets | `lapply_ibm`: constant neutral law-of-the-wall coefficients for vertical walls, MO drag with stability for horizontal faces; prescribed wall temperatures (`lwallheat`) | the same wall functions at every IBM facet, `iwallmom = 2` (stability) or 3 (neutral), with `iwalltemp`/`iwallmoist` for scalars; with `iwallmom = 4` MO on the near-horizontal facets and on the others the stability-corrected wall function (`iwalltemp = 2`) or the neutral law (`iwalltemp = 1`) (src/modibm.f90:wallfunmom, wallfunheat) | different by design |
 | TKE at the first level | MO sources at k = 1 | MO sources above horizontal Monin-Obukhov facets (`iwallmom = 4`, see Subgrid model); no sources at `kb` next to the wall functions and sloped Monin-Obukhov facets (src/modsubgrid.f90:515-556) | aligned on horizontal Monin-Obukhov facets; different by design elsewhere |
 
 ## Thermodynamics
@@ -203,7 +208,7 @@ obstacles (DALES modibm.f90:183-193, 640-649), without a facet energy balance. T
 | subsidence | upwind `-whls dphi/dz` on the local fields, ascent term not at k = 1 (DALES modforces.f90:339-345) | the same (src/modforces.f90:766-783) | aligned |
 | momentum subsidence | `lmomsubs`, default off | the same | aligned |
 | prescribed tendencies | `dqtdtls`, advective `dthldxls` etc. (DALES modforces.f90:381) | the same (src/modforces.f90:782-785) | aligned |
-| geostrophic forcing | `dpdxl = om23_gs vg`, `dpdyl = -om23_gs ug` | the same (src/modstartup.f90:2213-2214) | aligned |
+| geostrophic forcing | `dpdxl = om23_gs vg`, `dpdyl = -om23_gs ug` | the same (src/modstartup.f90:2220-2221) | aligned |
 | Coriolis | 4-point averages with the `2 Omega cos(lat)` terms (`om22`) in u and w, `omega = 7.292e-5`, plus `cu`, `cv` terms (DALES modforces.f90:200-286) | the same without `cu`, `cv` (src/modforces.f90:631-675) | aligned for `cu = cv = 0` |
 
 ## Galilean transform, sponge layer and boundary conditions
@@ -220,8 +225,8 @@ obstacles (DALES modibm.f90:183-193, 640-649), without a facet energy balance. T
 
 | item | DALES | uDALES | status |
 |---|---|---|---|
-| generator | sequential LCG over the global domain, carried across levels and fields (DALES modstartup.f90:1623-1662) | counter-based splitmix64 hash of `(irandom, field, i, j, k)` (src/modstartup.f90:2595-2643) | different by design (other realisations) |
-| fields and levels | thl and qt on levels `1..krand` (default all), m and 0 fields drawn separately; u, v, w on `krandumin..krandumax` (default none) (DALES modstartup.f90:763-786) | u, v, w on `kb..krand` with `randu`; thl, qt with `randthl`, `randqt` (one draw for the m and 0 fields) (src/modstartup.f90:1286-1310) | aligned in the validation (no velocity noise, thl 0.1 K and qt 2.5e-5 on all levels) |
+| generator | sequential LCG over the global domain, carried across levels and fields (DALES modstartup.f90:1623-1662) | counter-based splitmix64 hash of `(irandom, field, i, j, k)` (src/modstartup.f90:2602-2650) | different by design (other realisations) |
+| fields and levels | thl and qt on levels `1..krand` (default all), m and 0 fields drawn separately; u, v, w on `krandumin..krandumax` (default none) (DALES modstartup.f90:763-786) | u, v, w on `kb..krand` with `randu`; thl, qt with `randthl`, `randqt` (one draw for the m and 0 fields) (src/modstartup.f90:1293-1317) | aligned in the validation (no velocity noise, thl 0.1 K and qt 2.5e-5 on all levels) |
 | qt cap | amplitude capped at the local qt | the same | aligned |
 | defaults | `randthl = 0.1`, `randqt = 1e-5`, `randu = 0.5`, `irandom = 0` (DALES modstartup.f90:44-47) | `randu = 0.01`, `randthl = randqt = 0`, `irandom = 43` (src/modstartup.f90:42-44) | different |
 
@@ -229,10 +234,10 @@ obstacles (DALES modibm.f90:183-193, 640-649), without a facet energy balance. T
 
 | item | DALES | uDALES bldump | status |
 |---|---|---|---|
-| LWP | mean over columns of `sum rhof ql dzf` (DALES modtimestat.f90:424-435, 617) | the same (src/modbldiag.f90:113-117) | aligned |
-| cloud cover | fraction of columns with column ql > 0 (DALES modtimestat.f90:432, 616) | fraction of columns with any ql > 0 (src/modbldiag.f90:118) | aligned |
-| zi | max gradient of thv on 4-column composites, refined by the zero of the gradient change (DALES modtimestat.f90:60-61, 1191-1221) | per column, half level of the max dthl/dz, then averaged (src/modbldiag.f90:119-127) | different; the validation computes zi identically for both codes from the 600 s block-mean thl profile (`compare_dales.py`) |
-| zi from qt | no timestat output (the DYCOMS `rad_user` uses a qt = 8 g/kg crossing per column for the radiation only) | `zi_qt` with `zi_qt_thres` (src/modbldiag.f90:128) | the validation computes `zi_qt8` for both codes from the block-mean qt profile (`compare_dales.py`) |
+| LWP | mean over columns of `sum rhof ql dzf` (DALES modtimestat.f90:424-435, 617) | the same (src/modbldiag.f90:115-119) | aligned |
+| cloud cover | fraction of columns with column ql > 0 (DALES modtimestat.f90:432, 616) | fraction of columns with any ql > 0 (src/modbldiag.f90:120) | aligned |
+| zi | max gradient of thv on 4-column composites, refined by the zero of the gradient change (DALES modtimestat.f90:60-61, 1191-1221) | per column, half level of the max dthl/dz, then averaged (src/modbldiag.f90:121-129) | different; the validation computes zi identically for both codes from the 600 s block-mean thl profile (`compare_dales.py`) |
+| zi from qt | no timestat output (the DYCOMS `rad_user` uses a qt = 8 g/kg crossing per column for the radiation only) | `zi_qt` with `zi_qt_thres` (src/modbldiag.f90:130) | the validation computes `zi_qt8` for both codes from the block-mean qt profile (`compare_dales.py`) |
 | sampling | after `thermodynamics`; profiles are 600 s block means of 60 s samples | after `thermodynamics` (src/program.f90:240-243); 60 s snapshots, block-averaged in `compare_dales.py` | aligned |
 
 ## Settings of the validation runs
