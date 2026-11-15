@@ -308,7 +308,7 @@ Parameters of the `dycoms_rf01` hook: the free-troposphere term of the DYCOMS-II
 | lytdump | .false. | .true. or .false. | Switch to output y- and time- averaged statistics. *Only functional if x-direction is not parallelised.* | - |
 | lxydump | .false. | .true. or .false. | Switch to output x- and y- averaged statistics. | - |
 | lxytdump | .false. | .true. or .false. | Switch to output x-, y- and time-averaged statistics. | - |
-| lbldump | .false. | .true. or .false. | Write `bldump_t.<expnr>.nc` and `bldump_z.<expnr>.nc`: cloud, boundary-layer and radiation diagnostics for boundary-layer cases (BOMEX, smoke, DYCOMS). Instantaneous samples every `tstatsdump` from `tstatstart` on, after the thermodynamics of the time step. Files and variables: see below. | - |
+| lbldump | .false. | .true. or .false. | Write `bldump_t.<expnr>.nc` and `bldump_z.<expnr>.nc`: cloud, boundary-layer and radiation diagnostics for boundary-layer cases (BOMEX, smoke, DYCOMS). Instantaneous samples every `tstatsdump`, the first one `tstatsdump` after the later of the start time and `tstatstart`, after the thermodynamics of the time step. Files and variables: see below. | - |
 | zi_qt_thres | 0. (off) | `REAL` >= 0 | `bldump`: `qt` threshold whose highest downward crossing is written as `zi_qt`. 0 writes no `zi_qt`; > 0 requires `lmoist`. | [kg/kg] |
 | zi_sv_index | 0 (off) | 0 to `nsv` | `bldump`: scalar whose highest downward crossing of `zi_sv_thres` is written as `zi_sv`. 0 writes no `zi_sv`. | - |
 | zi_sv_thres | 0. (unset) | `REAL` > 0 | `bldump`: threshold of the `zi_sv` diagnostic. Required with `zi_sv_index > 0`; the run aborts if it is not set. | scalar unit |

@@ -21,7 +21,7 @@ module modbldiag
 contains
 
   subroutine initbldiag
-    use modglobal, only : cexpnr, kb, ke, timee, tstatsdump, lbldump, zi_qt_thres, zi_sv_index
+    use modglobal, only : cexpnr, kb, ke, timee, tstatsdump, tstatstart, lbldump, zi_qt_thres, zi_sv_index
     use modmpi,    only : myid
     use modstat_nc, only : ncinfo, open_nc, define_nc, writestat_dims_nc
     implicit none
@@ -30,7 +30,9 @@ contains
     call check_bldiag_options
     if (.not. lbldump) return
 
-    tnext = timee + tstatsdump       ! timee is set by readinitfiles (restart time) before this
+    ! timee is set by readinitfiles (restart time) before this; the first sample is tstatsdump
+    ! after the later of start and tstatstart
+    tnext = max(timee, tstatstart) + tstatsdump
     fnamet(10:12) = cexpnr
     fnamez(10:12) = cexpnr
     call ncinfo(tnct(1,:), 'time', 'Time', 's', 'time')
@@ -98,7 +100,8 @@ contains
 
     if (.not. lbldump) return
     if (rk3step /= 3 .or. timee < tstatstart .or. timee < tnext) return
-    tnext = tnext + tstatsdump
+    ! advance past timee in whole tstatsdump steps (a time step longer than tstatsdump writes once per step)
+    tnext = tnext + tstatsdump*(1. + floor((timee - tnext)/tstatsdump))
     allocate(tmp3(ib:ie,jb:je,kb:ke+1))
 
     ! --- column diagnostics: lwp, cloud cover, three BL heights
