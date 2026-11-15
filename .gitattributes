@@ -4,3 +4,6 @@
 # Declare files that will always have LF line endings on checkout.
 *.sh text eol=lf
 *.bash text eol=lf
+# Extensionless entry points in bin/ (bash and python shebangs) must stay LF as well:
+# with core.autocrlf=true a CRLF shebang fails with "/usr/bin/env: bash\r: No such file".
+bin/* text eol=lf
