@@ -135,13 +135,12 @@ BCs at the bottom (BCbot; only effective if not covered with ground facets): 1 =
 | thl_top | -1. | `REAL` >= 0 | Temperature at the top boundary. | [K] |
 | qt_top | -1. | `REAL` >= 0| Humidity at the top boundary. | [kg/kg] |
 | wttop | 0. | `REAL` | Kinematic heat flux at the top boundary, positive downward (into the domain). | [Km/s] |
-| BCbotm | 2 | 1,2,3,4,5 | Boundary condition for momentum at domain bottom (if `lbottom = .true.`). | - |
+| BCbotm | 2 | 1,2,3 | Boundary condition for momentum at domain bottom (if `lbottom = .true.`). | - |
 | BCbotT | 1 | 1,2 | Boundary condition for temperature at domain bottom (if `lbottom = .true.`). | - |
 | BCbotq | 1 | 1 | Boundary condition for humidity at domain bottom (if `lbottom = .true.`). | - |
 | BCbots | 1 | 1 | Boundary condition for scalars at domain bottom (if `lbottom = .true.`). | - |
 | wtsurf | -1. |`REAL` | Kinematic heat flux at domain bottom, positive downward (into the surface) (if `lbottom = .true.`). | [Km/s] |
 | wqsurf | -1. | `REAL`| Kinematic moisture flux at domain bottom, positive downward (into the surface) (if `lbottom = .true.`).  | [m/s] |
-| ustin | -1. | `REAL` > 0 | Prescribed friction velocity for `BCbotm = 5` (Monin-Obukhov). | [m/s] |
 | thls | -1. (unset) |  `REAL` > 0 | Temperature at domain bottom (if `lbottom = .true.`). Required (> 0) with `ltempeq` or `lbuoyancy`; the run aborts if it is unset. | [K] |
 | qts | -1. (unset) | `REAL` >= 0 | Moisture at domain bottom (if `lbottom = .true.`). Used in modthermodynamics to get a BC for the moisture profile. Required with `lmoist` (the run aborts if it is unset); dry runs use 0. | [kg/kg] |
 | z0 | -1. |  `REAL`| Momentum roughness length of the domain bottom (if `lbottom = .true.`).  | [m] |
@@ -188,7 +187,7 @@ Parametrised longwave radiation (Stevens et al. 2005; DALES `radpar`). Off by de
 | Name | Default | Possible values | Description | Unit |
 | ---- | ------- | --------------- | ----------- | ---- |
 | iradiation | 0 | 0, 2 | Radiation scheme: 0 none, 2 parametrised longwave (`radpar`). | - |
-| timerad | 0. | `REAL` >= 0 | Update interval of the radiative tendency; 0 updates every time step. The adaptive time step is not limited to land on the radiation time, so the update may overshoot by up to one step. | [s] |
+| timerad | 0. | `REAL` >= 0 | Update interval of the radiative tendency; 0 updates every time step. The adaptive time step is not limited to land on the radiation time, so the update may overshoot by up to one step. The schedule is not in the restart files, so after a warm start the tendency is recomputed at the first step. | [s] |
 | rad_longw | .true. | .true. or .false. | Longwave radiation on. | - |
 | rad_shortw | .false. | .false. | Shortwave radiation is not supported; `.true.` aborts. | - |
 | rad_absorber | 'ql' | 'ql' or 'sv' | Absorber of the longwave scheme: cloud liquid water `ql` (requires `lmoist`), or scalar `rad_absorber_sv` (e.g. smoke). Both use `rka`, `dlwtop` and `dlwbot`. Any other value aborts. | - |
@@ -226,11 +225,13 @@ Parameters of the `dycoms_rf01` hook: the free-troposphere term of the DYCOMS-II
 | Name | Default | Possible values | Description | Unit |
 | ---- | ------- | --------------- | ----------- | ---- |
 | nfcts | -1 | `INTEGER` | Number of facets specified in `facets.inp`. | - |
-| iwallmom | 2 | 1, 2, 3 (1 means zero flux) | Building wall momentum flux. | - |
+| iwallmom | 2 | 1, 2, 3, 4 (1 means zero flux) | Facet momentum flux: 2 wall function with stability (becomes 3 with `iwalltemp = 1`), 3 neutral wall function, 4 Monin-Obukhov surface layer on facets within `mo_maxslope` of horizontal and the neutral wall function on the others (see [boundary conditions](udales-boundary-conditions.md)). | - |
 | iwalltemp | 1 | 1, 2 |  Building wall temperature flux. | - |
 | iwallmoist | 1 | 1, 2 |  Building wall moisture flux. | - |
 | iwallscal | 1 | 1, 2 | Building wall scalar flux | - |
 | lbottom | .false. | .true., .false. | Switch for using wall function as bottom BC. *Used only if no ground facets.* | - |
+| mo_maxslope | 30. | `REAL` in [0, 90) | `iwallmom = 4`: facets whose normal is at most `mo_maxslope` from the vertical use Monin-Obukhov. | [deg] |
+| ustin | 0. | `REAL` >= 0 | `iwallmom = 4`: prescribed friction velocity on the Monin-Obukhov facets (DALES `isurf = 3`); 0 computes it from Monin-Obukhov similarity. | [m/s] |
 | fkar | 0.40 | `REAL` > 0 | von Karman constant of the wall functions and the Monin-Obukhov surface (the DALES, PALM and WRF value). Was 0.41 before; set `fkar = 0.41` to keep the old wall stresses (see the CHANGELOG). The inlet generator keeps its own 0.41. | - |
 | nsolpts_u | 0 | `INTEGER` | Number of solid points on u-grid. | - |
 | nsolpts_v | 0 | `INTEGER` | Number of solid points on v-grid. | - |

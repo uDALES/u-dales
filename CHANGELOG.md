@@ -27,8 +27,8 @@ that they are easy to find when upgrading.
   (`fkar = 0.4`), PALM (`kappa = 0.4`) and WRF; the 2.3 % u* gap between uDALES and DALES in the RF01 comparison
   was entirely this constant. `fkar` remains a `&WALLS` input. The inlet generator (`modinlet`) keeps its own
   0.41, which is calibrated together with its Coles wake constants. Affected: every run that does not set `fkar`,
-  through the wall functions (`modwallfunctions`, `modibm`) and the Monin-Obukhov surface (`modsurface`,
-  `BCbotm = 4, 5`); for the same roughness length the wall stresses fall by about 5 % (kappa^2 is 0.160 instead of
+  through the wall functions (`modwallfunctions`, `modibm`), including the Monin-Obukhov facets
+  (`iwallmom = 4`, new); for the same roughness length the wall stresses fall by about 5 % (kappa^2 is 0.160 instead of
   0.168). To keep the old behaviour set `fkar = 0.41` in `&WALLS`. Example 303 and the DALES RF01 inputs use the
   recomputed `z0 = z0h = 1.445944e-5 m` (same neutral Cm = 0.0011).
 - **The SGS TKE halos are exchanged between MPI ranks** ([issue #405](https://github.com/uDALES/u-dales/issues/405)).
@@ -115,11 +115,11 @@ that they are easy to find when upgrading.
     fully solid slab above `kb` (IBM) `thvf(k)` holds the `-999` fill, so those
     levels use the neutral length scale and no buoyancy source; the fluid cells next
     to such a slab see this through the SGS diffusion of `e12`.
-  - The TKE sources at the first level `kb`: with the Monin-Obukhov surface
-    (`BCbotm = 4/5`, new, see Added) they are computed as in DALES's k = 1 block,
-    from the surface-layer shears and `dthvdz(kb)`. With the other bottom
-    conditions there are still no sources at `kb`, but they are now set to zero
-    explicitly; before, uninitialised memory was added to `e12p(kb)`.
+  - The TKE sources at the first level `kb`: there are still none (the wall
+    functions, including the Monin-Obukhov facets, set the near-wall state), but
+    they are now set to zero explicitly; before, uninitialised memory was added to
+    `e12p(kb)`. DALES computes its k = 1 sources from the surface-layer shears;
+    see the [numerics reference](udales-dales-numerics.md).
 - **Default turbulent Prandtl number is exactly 1/3** (was 0.333), the DALES value.
   `Kh = Km/Prandtl` was `3.003 Km`; it is now `3 Km`, about 0.1 % less SGS heat,
   moisture and scalar diffusivity. Who is affected: every Smagorinsky, Vreman and
@@ -193,17 +193,21 @@ that they are easy to find when upgrading.
 
 ### Added
 
-- **Monin-Obukhov surface layer** (`BCbotm = 4`, or `5` with a prescribed friction velocity
-  `ustin`; `modsurface`), ported from DALES dev 075ac4e (`isurf = 4, 3`). The Obukhov length,
-  `u*`, the surface-layer gradients and the re-diagnosed `thls`/`qts`/`thvs` are computed at the
-  start of each RK substep (`surface_mo_state`, before advection and the SGS model, as in
-  DALES; on a cold start also during start-up, before a second `thermodynamics` call);
-  `bottom` applies the stress. The one-equation SGS TKE sources at `kb` use the
-  surface-layer shears, and `dthvdz(kb)` has the moist/dry surface-layer form. Requires
-  `lbottom = .true.`, `ltempeq`, `BCbotT = 1`, `z0, z0h > 0`, `wtsurf` (and `wqsurf` with `lmoist`)
-  set; the start-up checks abort otherwise. Not tested together with buildings, and the MO
-  state is not in the restart files (see [boundary conditions](udales-boundary-conditions.md)).
-  Off unless `BCbotm = 4/5`; other runs are bit-identical.
+- **Monin-Obukhov surface layer on facets** (`iwallmom = 4` in `&WALLS`, with the new inputs
+  `mo_maxslope` and `ustin`; `modsurface:mo_local_update`, `modibm:wallfunmom`), ported from DALES
+  dev 075ac4e (`isurf = 4`, or `isurf = 3` with a prescribed friction velocity `ustin > 0`) with the
+  Obukhov length computed locally (DALES default `lmostlocal = .true.`), per facet section. Facets whose
+  normal is within `mo_maxslope` (default 30 degrees) of the vertical use it, from the air state at the
+  section's reference point (the interpolation of the other wall functions), the facet `z0`/`z0h` and the
+  prescribed facet fluxes `bctfz` and `bcqfz` (the latter on facets whose type has `lGR = 1`, i.e. that
+  exchange moisture); such a facet takes `bctfz`/`bcqfz` whatever its slope. Steeper facets and walls use the
+  neutral log-law wall function (as `iwallmom = 2` does under `iwalltemp = 1`). Requires `libm`, `ltempeq`,
+  `iwalltemp = 1`, `iwallmoist = 1` with `lmoist`, and `z0, z0h > 0` on the Monin-Obukhov facets; a start-up
+  line counts the Monin-Obukhov and wall-function facets. `bldump` writes the area means over the
+  Monin-Obukhov sections (`ustar`, `obl` as `1/mean(1/L)`, the diagnosed surface `thls`, `qts`). The
+  per-section state is not in the restart files (cold-started again on a warm start). Off by default
+  (`iwallmom = 2`); other runs are bit-identical. `tools/python/udprep/flat_floor.py` writes the IBM
+  inputs of a flat floor made of facets.
 - **Parametrised longwave radiation** (`&NAMRADIATION`, `iradiation = 2`; `modradiation`,
   `modraddata`), DALES `radpar`: cloud-water absorber `rad_absorber = 'ql' | 'sv'`
   (`rad_absorber_sv`), optics `rka`, `dlwtop`, `dlwbot` and `timerad`. `rka` and `dlwtop` (or `dlwbot`)
@@ -223,17 +227,19 @@ that they are easy to find when upgrading.
   `thermodynamics`, so `ql`, `rhof`, `exnf` and the slab means belong to the same state as
   `thl`, `qt` and `w`. The tracer boundary-layer heights `zi_sv` (`zi_sv_index`, `zi_sv_thres`) and
   `zi_qt` (`zi_qt_thres`) are written only when set. Off by default; the solution itself is unaffected.
-- **Moist `dthvdz(kb)`** at the surface level (`calthv`, with the Monin-Obukhov surface; otherwise
-  0 as before), and `fieldvars = 'dt'` writes `dthvdz` to the field dump.
+- `fieldvars = 'dt'` writes `dthvdz` to the field dump.
 - **Initial `thl` and `qt` noise** (`randthl`, `randqt`; see Breaking changes, issue #395).
-- **Examples 301 (BOMEX), 302 (smoke cloud, scalar radiation absorber) and 303 (DYCOMS-II RF01)**, with
+- **Examples 301 (BOMEX), 302 (smoke cloud, scalar radiation absorber) and 303 (DYCOMS-II RF01)**, on a
+  floor made of one horizontal facet with the Monin-Obukhov facet surface (`iwallmom = 4`), with
   the DALES comparison tooling in `tools/python/examples/dales_cases` (input converter,
   `compare_dales.py`, DALES input sets and patches); results in each example's `RESULTS.md`.
 - **Tests**: in-solver runmodes 1008 (`tests_sgs_oneeqn`: one-equation SGS closure and TKE
   sources), 1009 (`tests_lstend`), 1010 (`tests_thermo_levels`: `ql0` level, #403), 1011 (cold
   start, write the initial fielddump record and stop), 1012 (`tests_mo_kernels`:
-  Monin-Obukhov kernels), driven by `tests/integration/thermo/test_thermo.py` (includes the
-  1-rank against multi-rank check of the e12 halos).
+  Monin-Obukhov kernels and the per-section surface update), driven by `tests/integration/thermo/test_thermo.py` (includes the
+  1-rank against multi-rank check of the e12 halos, and the Monin-Obukhov facet floor: u* and L
+  against the analytic values in a neutral and an unstable case, the applied stress, prescribed u*, and
+  the slope criterion).
 - **Module hygiene for the new modules**: `modsurface`, `modradiation`, `modraddata`,
   `modbldiag`, `modcases` and `case_dycoms_rf01` are private by default with explicit
   public lists; configuration and namelist read errors in them abort all ranks through

@@ -33,7 +33,7 @@ patches are in `tools/python/examples/dales_cases/dales_inputs`; the runs, setti
 | 4 | Galilean shift: none in uDALES; DALES BOMEX uses `cu = -8` | different by design | not measured (the validation used `cu = 0` in DALES); changes the cd2 dispersion error and the dt |
 | 5 | Courant number: L1 sum (uDALES) vs L2 norm (DALES); diffusion number vs Peclet number | different by design | the adaptive steps differ between the codes (measured steps in the case RESULTS); the comparison uses a fixed dt |
 | 6 | Advection schemes available | different, open (advection PR) | the validation used cd2 for every variable in both codes, while DALES's GCSS stratocumulus case uses 5th order; cd2 for qt and thl at the 5 m RF01 inversion is the setting most likely to matter. The cd2 vs 5th-order comparison with DALES has not been done |
-| 7 | MO surface: one domain-mean Obukhov length and u* (uDALES) vs per-column (DALES dev default `lmostlocal = .true.`) | different, open | not matched in the validation runs (the DALES inputs leave `lmostlocal` at its default); RF01 u* agrees to 0.0004 m/s and the BOMEX u* is prescribed |
+| 7 | MO surface: per facet section on a facet floor (uDALES `iwallmom = 4`) vs per column (DALES dev default `lmostlocal = .true.`) | aligned (local in both) | the u, v points of uDALES carry their own L and u*, DALES averages the u* of two columns at a u point; second-order equivalent (RESULTS of 301, 303) |
 | 8 | Saturation vapour pressure: Tetens (uDALES) vs Murphy-Koop table (DALES) | aligned in the validation (DALES patched) | Tetens is 0.10-0.13 % lower, about +1 % ql at 0.5 g/kg (offline estimate) |
 | 9 | Top boundary and sponge details | different by design | only in the top sponge cell |
 | 10 | SGS floors: `numol` added (uDALES) vs `ekmin = 1e-6` floor (DALES) | different by design | negligible (1e-5 m2/s) |
@@ -138,8 +138,8 @@ The three validation cases use the one-equation (Deardorff) TKE model with `ldel
 | Km, Kh | `ekm = cm zlt e12`, `ekh = (ch1 + ch2 zlt/delta) ekm` (DALES modsubgrid.f90:469-470) | the same (src/modsubgrid.f90:400-401, 407-408) | aligned | - |
 | floors | `max(ekm, ekmin)`, `max(ekh, ekmin)`, `ekmin = 1e-6` (DALES modsubgrid.f90:472-473) | `+ numol` (1.5e-5) and `+ numol/0.71`, no floor (src/modsubgrid.f90:402-403, 409-410) | different by design | negligible (1e-5 m2/s in the free troposphere) |
 | TKE sources | shear `Km S^2/(2 e12)`, buoyancy `-Kh (g/thvf) dthvdz/(2 e12)`, dissipation `-(ce1 + ce2 zlt/delta) e12^2/(2 zlt)` (DALES modsubgrid.f90:579-581) | the same, molecular parts subtracted, near-wall `damp` (1 away from walls) (src/modsubgrid.f90:502-509) | aligned | - |
-| first level | MO shears `dudz`, `dvdz` and `dthvdz(1)` in the k = 1 block (`sgs_surface_fix = .false.`) (DALES modsubgrid.f90:648-678) | the same with the MO surface (`BCbotm = 4, 5`); no sources at `kb` with wall functions (src/modsubgrid.f90:514-557) | aligned for MO | - |
-| SGS fluxes | `rhobh/rhobf`-weighted diffusion; surface flux enters as `flux/dzf` (DALES modsubgrid.f90:701-737) | the same stencil without density; the surface flux replaces the ghost-face diffusion in `bottom` (src/modsubgrid.f90:566-649) | aligned for constant density | - |
+| first level | MO shears `dudz`, `dvdz` and `dthvdz(1)` in the k = 1 block (`sgs_surface_fix = .false.`) (DALES modsubgrid.f90:648-678) | no sources at `kb`, with every wall treatment including the Monin-Obukhov facets; `dthvdz(kb) = 0` (src/modsubgrid.f90:515-520, src/modthermodynamics.f90:calthv) | different | a homogeneous laminar column differs by 1.7e-4 in L and 6e-5 in u* after 20 s (the kb sources raise the first-level e12 and Km); see the case RESULTS for the turbulent cases |
+| SGS fluxes | `rhobh/rhobf`-weighted diffusion; surface flux enters as `flux/dzf` (DALES modsubgrid.f90:701-737) | the same stencil without density; the facet flux replaces the diffusion across the floor (`modibm:diffu_corr`, `diffc_corr`, `wallfunmom`, `wallfunheat`) | aligned for constant density | - |
 | e12 halos | exchanged with the other prognostic fields | exchanged when `loneeqn` (src/modboundary.f90:91-94; #405) | aligned | - |
 | wall damping | none (optional Mason length scale, `lmason`) | `damp = 1` (Piomelli damping commented out) (src/modsubgrid.f90:385-390) | aligned in effect | - |
 | Smagorinsky | `ekm = (cs delta)^2 sqrt(2 S^2) sqrt(1 - Ri/Pr)`, MO `dudz` at k = 1 (DALES modsubgrid.f90:262-363) | neutral `(cs delta damp)^2 sqrt(2 S^2)`, no stability correction (src/modsubgrid.f90:219-279) | different by design | not used by the validation cases |
@@ -150,26 +150,29 @@ The three validation cases use the one-equation (Deardorff) TKE model with `ldel
 
 | item | DALES | uDALES | status | effect |
 |---|---|---|---|---|
-| MO with prescribed u* | `isurf = 3` (DALES surface/modsurface.f90:478-485) | `BCbotm = 5` (src/modsurface.f90:99-100) | aligned | BOMEX |
-| MO with diagnosed u* | `isurf = 4` (DALES surface/modsurface.f90:486-493) | `BCbotm = 4` (src/modsurface.f90:101-102) | aligned | RF01, smoke |
-| stability functions, Obukhov length iteration | unstable Businger-Dyer, stable Beljaars-Holtslag; `calc_obl_iter` Newton iteration on Rib (DALES surface/modsurface.f90) | the same formulas (src/modsurface.f90:32-40, 188-) | aligned | - |
-| local or domain-mean MO | dev default `lmostlocal = .true.`: per-column L, Cm and (isurf 4) u* = sqrt(Cm) times the local wind speed (DALES surface/modsurfdata.f90:240, surface/modsurface.f90:651-690, 905-958); 4.4.2 default `.false.` | one domain-mean L and u* from the slab-mean first-level wind (the `lmostlocal = .false.` variant) (src/modsurface.f90:88-104); the shears use the local wind direction | different, open (summary #7) | not matched in the DALES comparison; RF01 u* still agrees to 0.0001 m/s; BOMEX u* is prescribed |
+| where | the flat bottom, per column (`isurf`) | facets: `iwallmom = 4` on facets within `mo_maxslope` (30 degrees) of horizontal, per facet section of the u, v and w grids; the floor of 301-303 is one horizontal facet (src/modibm.f90:269-291, 1496-1546) | different by design | - |
+| MO with prescribed u* | `isurf = 3` (DALES surface/modsurface.f90:478-485) | `iwallmom = 4` with `ustin > 0` in `&WALLS` (src/modsurface.f90:37-57) | aligned | BOMEX |
+| MO with diagnosed u* | `isurf = 4` (DALES surface/modsurface.f90:486-493) | `iwallmom = 4` (src/modsurface.f90:37-57) | aligned | RF01, smoke |
+| stability functions, Obukhov length iteration | unstable Businger-Dyer, stable Beljaars-Holtslag; `calc_obl_iter` Newton iteration on Rib (DALES surface/modsurface.f90) | the same formulas (src/modsurface.f90:60-96, 106-) | aligned | - |
+| local or domain-mean MO | dev default `lmostlocal = .true.`: per-column L, Cm and (isurf 4) u* = sqrt(Cm) times the local wind speed (DALES surface/modsurfdata.f90:240, surface/modsurface.f90:651-690, 905-958); 4.4.2 default `.false.` | local: per facet section, L, Cm, Cs, u*, tskin and qskin from the air state interpolated to the section's point (the u, v points on a flat floor) (src/modsurface.f90:37-57) | aligned (summary #7) | see the case RESULTS |
+| surface fluxes | `wtsurf`, `wqsurf`, positive upward | facet fluxes `bctfz`, `bcqfz` (on facets of a type with `lGR = 1`), positive downward | aligned (sign converted) | - |
+| cold start | `tskin = thlprof(1)`, `qskin = qtprof(1)`, `obl = -0.1`, one `surface` call in `readinitfiles` (DALES modstartup.f90:836-889) | the same per section at its first visit (src/modibm.f90:1532-1542) | aligned | - |
 | von Karman constant | 0.4 (parameter, DALES modglobal.f90:101) | 0.40 (`&WALLS fkar`, src/modglobal.f90:333); the inlet generator keeps 0.41 with its Coles wake constants | aligned | 0.41 against 0.4 gives a 2.3 % u* difference in RF01 |
-| order | `surface` before advection and subgrid (DALES program.f90:232-238) | `surface_mo_state` before advection and subgrid; the stress is applied in `bottom` (src/program.f90:167-183) | aligned | - |
-| stress stencil | cell-centred `u + cu`, 4-point v, u* averaged over two cells, wind floor 1e-10 (DALES modsubgrid.f90:942-951) | face value, `min_horv = 0.1` (src/modsurface.f90:145-178) | different by design | second-order equivalent; the mean stress is the same |
+| order | `surface` before advection and subgrid (DALES program.f90:232-238) | in the wall function (`ibmwallfun`, after subgrid); it reads the same `u0`, `thl0`, `qt0` of the substep, and nothing earlier in the substep uses the surface state, since there are no `kb` TKE sources | aligned in effect | - |
+| stress stencil | cell-centred `u + cu`, 4-point v, u* averaged over two cells, wind floor 1e-10 (DALES modsubgrid.f90:942-951) | u* and L of the section at the u (v) point, 4-point v (u), `min_horv = 0.1` in Cm (src/modibm.f90:1528-1546) | different by design | second-order equivalent |
 
 ### Wall functions
 
-uDALES's other bottom conditions and every building facet use wall functions instead of Monin-Obukhov
+uDALES's flat-bottom conditions and every facet outside `iwallmom = 4` use wall functions instead of Monin-Obukhov
 similarity. DALES has no wall-function bottom conditions; its grid-conforming immersed-boundary method
 (`lapply_ibm`) applies a neutral log-law drag on vertical walls and a Monin-Obukhov drag on horizontal surfaces of
 obstacles (DALES modibm.f90:183-193, 640-649), without a facet energy balance. The comparison cases use neither.
 
 | item | DALES | uDALES | status |
 |---|---|---|---|
-| flat bottom | MO only (`isurf`) | `BCbotm = 2`: `wfuno`, a log-law stress and heat flux with a Richardson-number stability correction (Uno et al. 1995, Cai 2012; extension of Louis 1979 to rough walls); `BCbotm = 3`: `wfmneutral`, neutral log law; `BCbotm = 4, 5`: MO (above) (src/modibm.f90:2099-2103, src/modwallfunctions.f90:24, 262) | different by design |
-| building facets | `lapply_ibm`: constant neutral law-of-the-wall coefficients for vertical walls, MO drag with stability for horizontal faces; prescribed wall temperatures (`lwallheat`) | the same wall functions at every IBM facet, `iwallmom = 2` (stability) or 3 (neutral), with `iwalltemp`/`iwallmoist` for scalars (src/modibm.f90:1318-, 1481-) | different by design |
-| TKE at the first level | MO sources at k = 1 | no sources at `kb` with wall functions (src/modsubgrid.f90:550-557) | different by design |
+| flat bottom | MO only (`isurf`) | `BCbotm = 2`: `wfuno`, a log-law stress and heat flux with a Richardson-number stability correction (Uno et al. 1995, Cai 2012; extension of Louis 1979 to rough walls); `BCbotm = 3`: `wfmneutral`, neutral log law; for MO use a facet floor with `iwallmom = 4` (above) (src/modibm.f90:bottom, src/modwallfunctions.f90:24, 262) | different by design |
+| building facets | `lapply_ibm`: constant neutral law-of-the-wall coefficients for vertical walls, MO drag with stability for horizontal faces; prescribed wall temperatures (`lwallheat`) | the same wall functions at every IBM facet, `iwallmom = 2` (stability) or 3 (neutral), with `iwalltemp`/`iwallmoist` for scalars; with `iwallmom = 4` MO on the near-horizontal facets and the neutral law on the others (src/modibm.f90:wallfunmom, wallfunheat) | different by design |
+| TKE at the first level | MO sources at k = 1 | no sources at `kb` (src/modsubgrid.f90:515-520) | different by design |
 
 ## Thermodynamics
 
@@ -249,7 +252,7 @@ codes run the same numerics.
 | advection | cd2 for u, v, w, e12, thl, qt | cd2 for all | DALES case |
 | time step | fixed 2.0 s (commented block in `namoptions.301`); adaptive by default (`courant = 0.55`, `diffnr = 0.2`, `dtmax = 20`) | fixed 2.0 s (10800 steps); adaptive: `courant` 1.0 (L2), `peclet` 0.15 | match; 2.0 s is below both adaptive steps |
 | SGS | one-equation TKE, `ldelta = .false.`, DALES constants | the same | DALES case |
-| surface | `BCbotm = 5`, u* = 0.28, wtsurf 8e-3 and wqsurf 5.2e-5 upward, z0 = z0h = 2e-4 | `isurf = 3`, the same values; `lmostlocal` default (`.true.`) | DALES case; local vs mean MO not matched |
+| surface | facet floor, `iwallmom = 4`, `ustin = 0.28`, `bctfz`/`bcqfz` = 8e-3 and 5.2e-5 upward, z0 = z0h = 2e-4 | `isurf = 3`, the same values; `lmostlocal` default (`.true.`) | DALES case; local MO in both |
 | von Karman | 0.40 (default) | 0.4 | DALES value; u* is prescribed, so only the surface-layer gradients see it (the value used in the comparison runs is recorded in RESULTS) |
 | saturation | `lqlnr = .true.` (exact) | two-step | closest uDALES option |
 | radiation | none (`iradiation = 0`, `timerad` unused); -2 K/day `thlpcar` | `rad_ls` | DALES case |
@@ -272,7 +275,7 @@ anelastic base state (not tested). The adaptive steps differ (see [Time integrat
 | advection | cd2 for u, v, w, e12, thl, qt | cd2 for all | match; DALES's own stratocumulus case (RF02) uses 5th order |
 | time step | fixed 0.3 s (commented block in `namoptions.303`); adaptive by default (`courant = 0.5`, `diffnr = 0.16`, `dtmax = 20`) | fixed 0.3 s (48000 steps); `dtmax = 0.3` | match; below both adaptive steps |
 | SGS | one-equation TKE, DALES constants | the same | DALES default |
-| surface | `BCbotm = 4`, fixed SHF 15 and LHF 115 W/m2, z0 = z0h giving neutral Cm = 0.0011 | `isurf = 4`, the same fluxes and z0; `lmostlocal` default (`.true.`) | Stevens et al. (2005), cross-checked against PyCLES; local vs mean MO not matched |
+| surface | facet floor, `iwallmom = 4`, fixed SHF 15 and LHF 115 W/m2 (`bctfz`, `bcqfz`), z0 = z0h giving neutral Cm = 0.0011 | `isurf = 4`, the same fluxes and z0; `lmostlocal` default (`.true.`) | Stevens et al. (2005), cross-checked against PyCLES; local MO in both |
 | von Karman | 0.40 (default), `z0 = z0h = 1.445944e-5` m for neutral Cm = 0.0011 | 0.4, the same z0 | match (the value used in the comparison runs is recorded in RESULTS) |
 | saturation | `lqlnr = .true.` | two-step | closest uDALES option |
 | radiation | `iradiation = 2`, rka 85, F0 70, F1 22 W/m2, `timerad = 0` (every step), case hook `dycoms_rf01` (D = 3.75e-6) | `iradiation = 10` with radpar made reachable by the patch, patched `rad_user`, `timerad = 0` | Stevens et al. (2005) via PyCLES; the DALES patches give the same formula |

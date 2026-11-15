@@ -19,13 +19,6 @@ NB: only relevant if the bottom of the domain is not covered by floor facets. De
 - 1: free slip, i.e. zero flux.
 - 2: flux given by wall function involving temperature.
 - 3: flux given by neutral wall function.
-- 4: Monin-Obukhov surface layer (DALES `isurf = 4`): friction velocity from the domain-mean Obukhov length, stress applied locally. Requires `ltempeq`, `BCbotT = 1`, `z0`, `z0h`, `wtsurf` (and `wqsurf` if `lmoist`).
-- 5: as 4 but with the friction velocity prescribed by `ustin` (DALES `isurf = 3`).
-
-Caveats for `BCbotm = 4` and `5`:
-
-- MO with IBM (`libm = .true.`) is untested: the `tskin`/`qskin` averages are not masked by `IIc`, and the stress is applied in solid `kb` cells.
-- The MO state (`obl`, `thls`/`qts`) and the radiation schedule are not in the restart files. After a warm start they re-converge within a few substeps, so a warm start is not an exact continuation.
 
 ### Walls
 
@@ -34,6 +27,13 @@ Determined by `iwallmom`. Possible values:
 - 1: free-slip, i.e. zero flux.
 - 2: flux given by wall function involving temperature.
 - 3: flux given by neutral wall function.
+- 4: Monin-Obukhov surface layer on the facets whose normal is within `mo_maxslope` (default 30 degrees) of the vertical, so on floors and gentle slopes; the other facets (walls, steep slopes) use the neutral wall function (3).
+
+`iwallmom = 4` is the DALES dev 075ac4e surface layer for prescribed fluxes (`isurf = 4`, or `isurf = 3` with a prescribed friction velocity `ustin > 0` in `&WALLS`), with the Obukhov length computed locally (DALES `lmostlocal = .true.`), per facet section. In each section it takes the air state at the section's reference point (as the other wall functions), the facet roughness lengths `z0`, `z0h` (factypes columns 3 and 4) and the prescribed facet fluxes: `bctfz` for heat, and `bcqfz` for moisture on facets whose type has `lGR = 1` (factypes column 2; in this context the flag only means that the facet exchanges moisture). The drag coefficients use the previous Obukhov length, the new length follows from the bulk Richardson number with the surface `thl` and `qt` diagnosed from the fluxes, `u* = sqrt(Cm) max(|U|, 0.1 m/s)` (at least 0.01 m/s), and the stress is `u*^2` along the tangential wind. A Monin-Obukhov facet takes `bctfz`/`bcqfz` whatever its slope.
+
+Requirements: `libm`, `ltempeq`, `iwalltemp = 1` (prescribed heat flux) and, with `lmoist`, `iwallmoist = 1`; `z0, z0h > 0` on every Monin-Obukhov facet. Because `iwalltemp = 1` prescribes the flux, the facet temperature does not follow it, so the steep facets use the neutral wall function, as `iwallmom = 2` already does under `iwalltemp = 1`. A start-up line reports how many facets use each. `bldump` (`lbldump`) writes the area means over the Monin-Obukhov sections of `u*`, the Obukhov length (as `1/mean(1/L)`), and the diagnosed surface `thl`, `qt`.
+
+Caveats: the per-section state (Obukhov length, surface `thl`, `qt`) is not in the restart files; after a warm start it is cold-started again (surface values from the first level, `L = -0.1`) and re-converges within a few substeps. As with the other wall functions, a section is skipped while its wind is exactly zero. A flat floor of facets for a case without buildings is written by `tools/python/udprep/flat_floor.py`.
 
 ### x
 
