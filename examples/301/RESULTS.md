@@ -1,11 +1,63 @@
 # Tier-2 validation results: 301 BOMEX
 
-Note on the von Karman constant: the runs reported here used kappa = 0.41 in uDALES (its default then) and
+Note on the von Karman constant: the flat-bottom runs (the sections from "Earlier close-match validation" on) used kappa = 0.41 in uDALES (its default then) and
 kappa = 0.4 in DALES (built in). The uDALES default `fkar` is now 0.40, the DALES value. BOMEX has a prescribed u*
 (`BCbotm = 5`), so kappa enters only through the surface-layer gradients (see the settings table); the runs were not
 repeated with `fkar = 0.40`. `namoptions.301` prescribes z0 = 2e-4 m independently of kappa, so it needs no change.
 
-## Close-match validation against DALES dev
+## Facet floor with the Monin-Obukhov facet surface (shipped configuration)
+
+The shipped `namoptions.301` has a floor made of one facet with `iwallmom = 4` (local Monin-Obukhov per facet
+section, u* prescribed by `ustin = 0.28`, fluxes `bctfz`, `bcqfz`) and `fkar = 0.40` (default). Runs: Release build,
+FFTW planner `FFTW_ESTIMATE`, fixed dt = 2.0 s, 8 ranks (4 x 2), seeds 43-45. DALES: the same DALES dev 075ac4e runs as
+in the section below (fixed dt = 2.0 s, `lmostlocal = .true.` by default, kappa 0.4). Window 3-6 h, 600 s blocks.
+
+**Verdict.** The cloud layer and the mean profiles agree within the seed spread (thl, qt, ql: rms difference 0.81-0.85
+of the smaller rms spread; zi within 0.3 spreads). LWP is 0.13 g/m2 (2 %) lower than DALES, which is 3.2 spreads with
+both spreads near 0.04 g/m2, so the strict bar is not met for LWP; cloud cover is within the larger spread. The resolved
+fluxes do not meet the bar below about 100 m: at 40 m the resolved w'thl' is 3.47e-3 against 1.82e-3 K m/s in DALES
+(w'qt' 3.2e-5 against 2.0e-5). This is the one difference left between the codes near the surface: DALES computes the
+SGS TKE sources at its first level from the Monin-Obukhov surface-layer shears (and `dthvdz(1)`), uDALES has no TKE
+source at `kb` next to any wall. With less SGS TKE at the first level, more of the (prescribed) surface flux is carried
+by the resolved motion at 40 m. An A/B test on one seed confirms it: the earlier flat-bottom Monin-Obukhov route with
+these k = 1 sources gives 1.83e-3 K m/s at 40 m (DALES 1.79e-3, same seed), the same route without them 3.47e-3, and the
+facet floor 3.44e-3.
+
+| quantity | uDALES members | uDALES mean (spread) | DALES members | DALES mean (spread) | diff | ratio (min) | ratio (max) |
+|---|---|---|---|---|---|---|---|
+| LWP [g/m2] | 6.754, 6.787, 6.832 | 6.791 (0.039) | 6.926, 6.952, 6.875 | 6.918 (0.039) | -0.127 | 3.25 | 3.24 |
+| cloud cover | 0.2024, 0.2058, 0.2175 | 0.2086 (0.0080) | 0.2067, 0.2005, 0.2040 | 0.2037 (0.0031) | +0.0049 | 1.57 | 0.61 |
+| zi, max dthl/dz [m] | 1664, 1649, 1660 | 1658 (8) | 1647, 1669, 1651 | 1656 (12) | +2 | 0.28 | 0.19 |
+| u* [m/s] | 0.28 (prescribed) | 0.28 | 0.28 | 0.28 | 0 | - | - |
+
+| profile (z <= 2500 m) | max abs diff (z) | rms diff | rms spread U / D | rms diff / min rms spread | levels with diff < both spreads |
+|---|---|---|---|---|---|
+| thl [K] | 0.030 (1700 m) | 0.011 | 0.013 / 0.018 | 0.85 | 35 % |
+| qt [g/kg] | 0.038 (1620 m) | 0.017 | 0.021 / 0.023 | 0.81 | 38 % |
+| ql [g/kg] | 0.0003 (1500 m) | 0.00013 | 0.00015 / 0.00018 | 0.84 | 24 % |
+| w'thl' resolved [K m/s] | 0.0016 (40 m) | 0.0006 | 0.0005 / 0.0006 | 1.27 | 33 % |
+| w'qt' resolved [g/kg m/s] | 0.0117 (40 m) | 0.0020 | 0.0008 / 0.0009 | 2.40 | 33 % |
+
+Hourly LWP [g/m2], ensemble mean (spread):
+
+| code | 0-1 h | 1-2 h | 2-3 h | 3-4 h | 4-5 h | 5-6 h |
+|---|---|---|---|---|---|---|
+| uDALES facet floor | 3.34 (0.01) | 4.40 (0.21) | 6.26 (0.39) | 7.03 (0.93) | 6.46 (0.62) | 6.88 (0.70) |
+| DALES | 3.08 (0.10) | 5.14 (0.41) | 6.33 (0.84) | 6.22 (0.53) | 6.98 (0.65) | 7.55 (0.33) |
+
+Secondary reference, the earlier flat-bottom runs below (`BCbotm = 5`, removed since; kappa 0.41): against them the
+facet floor has LWP -0.16 g/m2 (0.86 of their spread), cloud cover +0.003 (0.4 spreads), zi -19 m and the same
+near-surface flux difference (w'thl' +1.6e-3 K m/s at 40 m; rms over height 1.5 times the smaller rms spread).
+
+Near-surface resolved fluxes, window 3-6 h, ensemble means (zm = 40, 80, 120 m):
+
+| run | w'thl' [K m/s] | w'qt' [kg/kg m/s] |
+|---|---|---|
+| facet floor (3 seeds) | 3.47e-3, 3.86e-3, 2.84e-3 | 3.18e-5, 4.31e-5, 4.56e-5 |
+| flat-bottom MO with k = 1 sources (3 seeds, kappa 0.41) | 1.83e-3, 2.88e-3, 2.48e-3 | 2.02e-5, 3.61e-5, 4.30e-5 |
+| DALES (3 seeds) | 1.82e-3, 2.88e-3, 2.49e-3 | 2.01e-5, 3.59e-5, 4.28e-5 |
+
+## Earlier close-match validation: flat-bottom Monin-Obukhov route (`BCbotm = 5`, since removed)
 
 **Verdict.** Before the #405 fix uDALES fails the close-match bar by a wide margin (LWP 2.3 vs 6.9 g/m2, cloud
 cover 0.03 vs 0.20). The cause is a uDALES bug, found here: **the SGS TKE `e120`/`e12m` halos are never exchanged

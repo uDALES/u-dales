@@ -1,5 +1,15 @@
 # Tier-2 validation results: 302 smoke
 
+## Smoke test of the facet floor (shipped configuration)
+
+The shipped `namoptions.302` has a floor made of one facet with the Monin-Obukhov facet surface (`iwallmom = 4`, u*
+from MO, zero surface fluxes). Smoke test: Release build, 16 ranks, fixed dt = 1.0 s, 1800 s, seed 43. It runs
+without error; the start-up line reports 1 Monin-Obukhov facet and 0 wall-function facets. At 1800 s: u* = 0.103 m/s
+(0.012 m/s, the floor value, during the first minutes while the flow is at rest), smoke zi_sv = 706 m and the max dthl/dz
+zi = 707 m (both 700 m initially), wmax = 1.43 m/s, surface thl 287.93 K. No DALES comparison (no DALES smoke run).
+The full-length results below are from the earlier flat-bottom configuration.
+
+
 Early run (Release, Intel/CX3, single node, 16 ranks), main loop 1250 s, no NaN.
 
 **Published-range checks are pending citable values**: `PUBLISHED` in compare_dales.py is empty by design, so there is no pass/fail table; numbers below are reported without verdicts. Interpretation is tentative.

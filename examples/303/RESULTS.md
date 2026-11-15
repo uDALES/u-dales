@@ -1,8 +1,51 @@
 # Tier-2 validation results: 303 DYCOMS-II RF01
 
-## Close-match validation against DALES dev 075ac4e (shipped configuration)
+## Facet floor with the Monin-Obukhov facet surface (shipped configuration)
 
-**Verdict: very close.** With the configuration that ships (uDALES Release build of this change, `examples/303/namoptions.303`
+The shipped `namoptions.303` has a floor made of one facet with `iwallmom = 4` (local Monin-Obukhov per facet section,
+u* from MO, fluxes `bctfz`, `bcqfz`), kappa = 0.40, `z0 = z0h = 1.445944e-5 m` in the floor facet type. Runs: Release
+build, FFTW planner `FFTW_ESTIMATE`, fixed dt = 0.3 s, 32 ranks (8 x 4), seeds 43-45, 4 h. DALES: the runs of the next
+section (DALES dev 075ac4e with both patches, `lmostlocal = .true.` by default). Window 3-4 h, 600 s blocks; entrainment
+fit 1-4 h.
+
+**Verdict.** LWP, zi, zi_qt8 and the thl, qt, ql profiles agree within the seed spread (profile rms ratios 0.47-0.79).
+u* is 0.2464 against 0.2469 m/s (0.2 %, 1.7 of the tiny spreads, as with the earlier flat-bottom runs) and the entrainment
+rate 4.71 against 4.75 mm/s (0.8 %, within the larger spread). Cloud cover is 0.799 against 0.808 (-1.2 %, 2.5 spreads).
+The resolved fluxes differ at the lowest levels (largest difference at 15 m), the same signature as in BOMEX
+(examples/301/RESULTS.md): DALES has SGS TKE sources at its first level from the MO surface-layer shears, uDALES has none
+at `kb`, so more of the surface flux is resolved near the floor.
+
+| quantity | uDALES members | uDALES mean (spread) | DALES members | DALES mean (spread) | diff | ratio (min) | ratio (max) |
+|---|---|---|---|---|---|---|---|
+| LWP [g/m2] | 15.36, 15.28, 16.66 | 15.77 (0.78) | 17.19, 12.99, 15.44 | 15.20 (2.11) | +0.56 | 0.73 | 0.27 |
+| cloud cover | 0.7928, 0.8017, 0.8028 | 0.7991 (0.0055) | 0.8116, 0.8043, 0.8093 | 0.8084 (0.0038) | -0.0093 | 2.49 | 1.70 |
+| u* [m/s] | 0.2468, 0.2462, 0.2464 | 0.2464 (0.0003) | 0.2467, 0.2472, 0.2468 | 0.2469 (0.0003) | -0.0005 | 1.66 | 1.59 |
+| zi, max dthl/dz [m] | 874.2, 874.2, 874.2 | 874.2 (0) | 875.8, 874.2, 874.2 | 874.7 (1.0) | -0.6 | - | 0.58 |
+| zi_qt8 [m] | 858.4, 857.4, 858.0 | 858.0 (0.5) | 858.7, 857.8, 858.4 | 858.3 (0.5) | -0.3 | 0.72 | 0.67 |
+| we [mm/s] (fit 1-4 h) | 4.750, 4.669, 4.707 | 4.709 (0.041) | 4.761, 4.726, 4.760 | 4.749 (0.020) | -0.040 | 1.98 | 0.98 |
+
+| profile (z <= 1200 m) | max abs diff (z) | rms diff | rms spread U / D | rms diff / min rms spread | levels with diff < both spreads |
+|---|---|---|---|---|---|
+| thl [K] | 0.109 (872 m) | 0.015 | 0.034 / 0.031 | 0.49 | 34 % |
+| qt [g/kg] | 0.058 (872 m) | 0.011 | 0.025 / 0.026 | 0.47 | 62 % |
+| ql [g/kg] | 0.0056 (822 m) | 0.0012 | 0.0015 / 0.0042 | 0.79 | 19 % |
+| w'thl' resolved [K m/s] | 0.0025 (15 m) | 0.0009 | 0.0003 / 0.0005 | 2.64 | 33 % |
+| w'qt' resolved [g/kg m/s] | 0.0077 (15 m) | 0.0016 | 0.0010 / 0.0017 | 1.58 | 49 % |
+
+Hourly LWP [g/m2], ensemble mean (spread):
+
+| code | 0-1 h | 1-2 h | 2-3 h | 3-4 h |
+|---|---|---|---|---|
+| uDALES facet floor | 27.28 (0.02) | 13.62 (0.20) | 14.36 (0.95) | 15.77 (0.77) |
+| DALES | 26.85 (0.08) | 14.60 (0.23) | 15.66 (0.29) | 15.20 (2.11) |
+
+Secondary reference, the earlier flat-bottom runs of the next section (`BCbotm = 4`, removed since; kappa 0.40): LWP
++0.32 g/m2 (0.42 spreads), u* -0.0001 m/s (0.35), zi_qt8 -0.2 m (0.47), we -0.02 mm/s (0.39), cloud cover -0.012 (2.3, 1.1
+of the larger spread); thl, qt, ql profiles within the spread (0.49-0.97), resolved fluxes again differ near the floor.
+
+## Earlier close-match validation: flat-bottom Monin-Obukhov route (`BCbotm = 4`, since removed)
+
+**Verdict: very close.** With the configuration that shipped then (uDALES Release build of this change, `examples/303/namoptions.303`
 with the fixed-dt block enabled, kappa = 0.40, `z0 = z0h = 1.445944e-5 m`; DALES dev 075ac4e with the two patches below and
 its native kappa = 0.4, inputs `tools/python/examples/dales_cases/dales_inputs/rf01`), three seeds each over 4 h,
 uDALES and DALES agree within the seed-to-seed spread for LWP, cloud cover, zi, zi_qt8 and (within 0.3 %) u* and the
