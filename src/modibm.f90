@@ -1416,7 +1416,7 @@ module modibm
    subroutine wallfunmom(dir, rhs, bound_info)
      use modglobal, only : ib, ie, ih, jb, je, jh, kb, ke, kh, xf, yf, zf, xh, yh, zh, &
                            dx, dy, dzf, dzh, iwallmom, xhat, yhat, zhat, vec0, nfcts, lwritefac, rk3step, &
-                           lfielddump, iwallmom_mo, lmoist
+                           lfielddump, iwallmom_mo, lmoist, ustin
      use modfields, only : u0, v0, w0, thl0, qt0, tau_x, tau_y, tau_z
      use initfac,   only : facT, facz0, facz0h, facnorm, faca, faclGR
      use modsurface, only : mo_local_update
@@ -1537,10 +1537,10 @@ module modibm
            bound_info%mo_tskin(sec) = Tair
            bound_info%mo_qskin(sec) = qtair
            bound_info%mo_obl(sec)   = -0.1
-           call mo_local_update(Tair, qtair, utan, dist, facz0(fac), facz0h(fac), wthl_up, wqt_up, 0., &
+           call mo_local_update(Tair, qtair, utan, dist, facz0(fac), facz0h(fac), wthl_up, wqt_up, ustin, &
                                 bound_info%mo_obl(sec), bound_info%mo_tskin(sec), bound_info%mo_qskin(sec), ustar)
          end if
-         call mo_local_update(Tair, qtair, utan, dist, facz0(fac), facz0h(fac), wthl_up, wqt_up, 0., &
+         call mo_local_update(Tair, qtair, utan, dist, facz0(fac), facz0h(fac), wthl_up, wqt_up, ustin, &
                               bound_info%mo_obl(sec), bound_info%mo_tskin(sec), bound_info%mo_qskin(sec), ustar)
          bound_info%mo_ustar(sec) = ustar
          stress = ustar**2
@@ -2231,10 +2231,8 @@ module modibm
       !kind of obsolete when road facets are being used
       !vegetated floor not added (could simply be copied from vegetated horizontal facets)
       use modwallfunctions, only:wfuno, wfmneutral
-      use modsurface, only : surface_mo
       use modglobal, only:ib, ie, ih, jh, kb, kh, jb, je, nsv, &
-         dzf, dzfi, ltempeq, lmoist, BCbotT, BCbotq, BCbotm, BCbots, dzh2i, lfielddump, &
-         BCbotm_mo, BCbotm_mo_ustar
+         dzf, dzfi, ltempeq, lmoist, BCbotT, BCbotq, BCbotm, BCbots, dzh2i, lfielddump
       use modfields, only : u0,v0,e120,e12m,thl0,qt0,sv0,up,vp,thlp,qtp,svp,momfluxb,tfluxb,tau_x,tau_y,tau_z,thl_flux
       use modsurfdata, only:wtsurf, wqsurf, thls, z0, z0h
       use modsubgriddata, only:ekh
@@ -2269,8 +2267,6 @@ module modibm
       call wfuno(ih, jh, kh, up, vp, thlp, momfluxb, tfluxb, bcTfluxA, u0, v0, thl0, thls, z0, z0h, 91)
       elseif (BCbotm.eq.3) then
       call wfmneutral(ih, jh, kh, up, vp, momfluxb, u0, v0, z0, 91)
-      elseif ((BCbotm.eq.BCbotm_mo) .or. (BCbotm.eq.BCbotm_mo_ustar)) then
-      call surface_mo   ! stress only; the MO state is set by surface_mo_state before subgrid
       else
       write(0, *) "ERROR: bottom boundary type for momentum undefined"
       stop 1

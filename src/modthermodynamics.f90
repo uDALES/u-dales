@@ -130,13 +130,11 @@ contains
   subroutine calthv
     use modglobal, only : lmoist,ib,ie,jb,je,kb,ke,kh,zf,dzh,rlv,rd,rv,cp,eps1
     use modfields, only : thl0,thl0h,ql0,ql0h,qt0,qt0h,exnf,exnh,thv0h,dthvdz
-    use modsurface, only : lmo_surface, dthldz_mo, dqtdz_mo
 
     implicit none
 
     integer i, j, k
     real    qs
-    real    a_surf, b_surf
     real    dq,dth,dthv,temp
     real    a_dry, b_dry, a_moist, b_moist, c_liquid, epsilon, eps_I, chi_sat, chi
     real    del_thv_sat, del_thv_dry
@@ -200,26 +198,9 @@ contains
           end do
        end do
 
-       ! surface level: DALES dev 075ac4e calthv. Needs MO surface gradients;
-       ! with other bottom BCs dthvdz(kb) keeps its previous (zero) value.
        do j=jb,je
           do i=ib,ie
-             if (ql0(i,j,kb) > 0) then
-                temp = thl0(i,j,kb)*exnf(kb)+(rlv/cp)*ql0(i,j,kb)
-                qs   = qt0(i,j,kb) - ql0(i,j,kb)
-                a_surf = (1.-qt0(i,j,kb)+rv/rd*qs*(1.+rlv/(rv*temp))) &
-                         /(1.+rlv**2*qs/(cp*rv*temp**2))
-                b_surf = a_surf*rlv/(temp*cp)-1.
-             else
-                temp = thl0(i,j,kb)*exnf(kb)
-                a_surf = 1.+(rv/rd-1.)*qt0(i,j,kb)
-                b_surf = rv/rd-1.
-             end if
-             if (lmo_surface()) then
-                dthvdz(i,j,kb) = a_surf*dthldz_mo + b_surf*thl0(i,j,kb)*dqtdz_mo
-             else
-                dthvdz(i,j,kb) = 0.
-             end if
+            dthvdz(i,j,kb)=0.
           end do
        end do
 
@@ -235,7 +216,7 @@ contains
        end do
        do  j=jb,je
           do  i=ib,ie
-            dthvdz(i,j,kb) = merge(dthldz_mo, 0., lmo_surface())
+            dthvdz(i,j,kb)=0.
           end do
        end do
     end if

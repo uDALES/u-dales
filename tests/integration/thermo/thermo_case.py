@@ -47,13 +47,15 @@ def rf01_profiles(zf: np.ndarray, zi: float = 840.0):
 
 def write_case(run_dir: Path, groups: dict | None = None, ktot: int = 64, dz: float = 20.0,
                thl=None, qt=None, u=7.0, v=-5.5, wfls=None, thlpcar=None, sv=None,
-               floor: dict | None = None) -> Path:
+               floor: dict | None = None, ug=None, vg=None) -> Path:
     """Write namoptions/prof.inp/lscale.inp for a flat case. Returns run_dir.
 
     floor: if given, the bottom is a facet floor (udprep.flat_floor) with Monin-Obukhov
     facets (iwallmom = 4) instead of the flat bottom boundary (lbottom). Its keys are the
     keyword arguments of write_flat_floor (z0 and z0h are required); the facet fluxes
-    bctfz/bcqfz go in groups["BC"]. groups are applied after the floor settings."""
+    bctfz/bcqfz go in groups["BC"]. groups are applied after the floor settings.
+    ug, vg: geostrophic wind of lscale.inp (default u, v). Note that uDALES applies the
+    geostrophic pressure gradient (modstartup: dpdxl = om23_gs vg) even with lcoriol off."""
     run_dir.mkdir(parents=True, exist_ok=True)
     nml = {g: dict(kv) for g, kv in BASE.items()}
     if floor is not None:
@@ -84,12 +86,14 @@ def write_case(run_dir: Path, groups: dict | None = None, ktot: int = 64, dz: fl
         f.write("# thermo test case\n# z thl qt u v e12\n")
         for k in range(ktot):
             f.write(f"{zf[k]:.6f} {thl[k]:.6f} {qt[k]:.8e} {u:.4f} {v:.4f} 0.1\n")
+    ugv = u if ug is None else ug
+    vgv = v if vg is None else vg
     wfls = np.zeros(ktot) if wfls is None else wfls
     thlpcar = np.zeros(ktot) if thlpcar is None else thlpcar
     with open(run_dir / f"lscale.inp.{EXPNR}", "w") as f:
         f.write("# thermo test case\n# z ug vg pgx pgy wfls dqtdxls dqtdyls dqtdtls thlpcar\n")
         for k in range(ktot):
-            f.write(f"{zf[k]:.6f} {u:.4f} {v:.4f} 0. 0. {wfls[k]:.6e} 0. 0. 0. {thlpcar[k]:.6e}\n")
+            f.write(f"{zf[k]:.6f} {ugv:.4f} {vgv:.4f} 0. 0. {wfls[k]:.6e} 0. 0. 0. {thlpcar[k]:.6e}\n")
     if sv is not None:
         sv = np.asarray(sv, dtype=float).reshape(ktot, -1)
         with open(run_dir / f"scalar.inp.{EXPNR}", "w") as f:

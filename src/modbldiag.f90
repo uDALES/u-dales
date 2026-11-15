@@ -86,7 +86,6 @@ contains
     use modfields,  only : thl0, qt0, ql0, w0, sv0, rhof, exnf, IIc, IIcs, IIw, IIws, u0av, v0av
     use modsurfdata, only : thls, qts
     use modraddata, only : thlprad, lwu, lwd, iradiation, irad_none
-    use modsurface, only : ustar_mo, obl_mo
     use modibm,     only : mo_facet_means
     use modmpi,     only : myid, comm3d, mpierr, my_real, mpi_sum, mpi_max, avexy_ibm
     use modstat_nc, only : writestat_nc
@@ -139,8 +138,8 @@ contains
       ! Monin-Obukhov facets: area means over their sections (obl = 1/mean(1/L))
       call mo_facet_means(vt(8), vt(9), vt(10), vt(11))
     else
-      vt(8)  = ustar_mo
-      vt(9)  = obl_mo
+      vt(8)  = 0.            ! no Monin-Obukhov surface
+      vt(9)  = 0.
       vt(10) = thls
       vt(11) = qts
     end if

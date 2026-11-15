@@ -75,11 +75,11 @@ module modstartup
                                     BCxm,BCxT,BCxq,BCxs,BCym,BCyT,BCyq,BCys,BCzp,ds, &
                                     BCtopm,BCtopT,BCtopq,BCtops,BCbotm,BCbotT,BCbotq,BCbots, &
                                     idriver,tdriverstart,driverjobnr,dtdriver,driverstore,lchunkread,chunkread_size, &
-                                    lrandomize, prandtlturb, fkar, mo_maxslope, lwritefac, dtfac, tfac, tnextfac, &
+                                    lrandomize, prandtlturb, fkar, mo_maxslope, ustin, lwritefac, dtfac, tfac, tnextfac, &
                                     ltrees,ntrees,Qstar,dQdt,lad,lsize,r_s,cd,dec,ud,ltreedump,itree_mode, &
                                     lpurif,npurif,Qpu,epu, &
                                     lheatpump,lfan_hp,nhppoints,Q_dot_hp,QH_dot_hp
-      use modsurfdata,       only : z0, z0h,  wtsurf, wttop, wqtop, wqsurf, wsvsurf, wsvtop, wsvsurfdum, wsvtopdum, ps, thvs, thls, thl_top, qt_top, qts, ustin
+      use modsurfdata,       only : z0, z0h,  wtsurf, wttop, wqtop, wqsurf, wsvsurf, wsvtop, wsvsurfdum, wsvtopdum, ps, thvs, thls, thl_top, qt_top, qts
       use modfields,         only : initfields, dpdx
       use modpois,           only : initpois
       use modboundary,       only : initboundary, ksp
@@ -138,7 +138,7 @@ module modstartup
          bctfxm, bctfxp, bctfym, bctfyp, bctfz, &
          bcqfxm, bcqfxp, bcqfym, bcqfyp, bcqfz, &
          wttop, thl_top, qt_top, qts, wsvsurfdum, wsvtopdum, &
-         wtsurf, wqsurf, thls, z0, z0h, ustin, BCzp, ds
+         wtsurf, wqsurf, thls, z0, z0h, BCzp, ds
       namelist/INLET/ &
          Uinf, Vinf, di, dti, inletav, linletRA, &
          lstoreplane, lreadminl, lfixinlet, lfixutauin, &
@@ -152,7 +152,7 @@ module modstartup
          nsolpts_u, nsolpts_v, nsolpts_w, nsolpts_c, &
          nbndpts_u, nbndpts_v, nbndpts_w, nbndpts_c, &
          nfctsecs_u, nfctsecs_v, nfctsecs_w, nfctsecs_c, lbottom, lnorec, &
-         prandtlturb, fkar, mo_maxslope, lwritefac, dtfac
+         prandtlturb, fkar, mo_maxslope, ustin, lwritefac, dtfac
       namelist/ENERGYBALANCE/ &
          lEB, lwriteEBfiles, lperiodicEBcorr, sinkbase, lconstW, dtEB, bldT, flrT, wsoil, wgrmax, wwilt, wfc, &
          skyLW, GRLAI, rsmin, nfaclyrs, lfacTlyrs, lvfsparse, nnz, fraction
@@ -507,7 +507,6 @@ module modstartup
       call MPI_BCAST(xtime, 1, MY_REAL, 0, comm3d, mpierr)
       call MPI_BCAST(z0, 1, MY_REAL, 0, comm3d, mpierr)
       call MPI_BCAST(z0h, 1, MY_REAL, 0, comm3d, mpierr)
-      call MPI_BCAST(ustin, 1, MY_REAL, 0, comm3d, mpierr)
       call MPI_BCAST(bctfxm, 1, MY_REAL, 0, comm3d, mpierr)
       call MPI_BCAST(bctfxp, 1, MY_REAL, 0, comm3d, mpierr)
       call MPI_BCAST(bctfym, 1, MY_REAL, 0, comm3d, mpierr)
@@ -596,6 +595,7 @@ module modstartup
       call MPI_BCAST(prandtlturb, 1, MY_REAL, 0, comm3d, mpierr)
       call MPI_BCAST(fkar, 1, MY_REAL, 0, comm3d, mpierr)
       call MPI_BCAST(mo_maxslope, 1, MY_REAL, 0, comm3d, mpierr)
+      call MPI_BCAST(ustin, 1, MY_REAL, 0, comm3d, mpierr)
       call MPI_BCAST(ltrees, 1, MPI_LOGICAL, 0, comm3d, mpierr)
       call MPI_BCAST(ntrees, 1, MPI_INTEGER, 0, comm3d, mpierr)
       call MPI_BCAST(ltreedump, 1, MPI_LOGICAL, 0, comm3d, mpierr)
@@ -715,9 +715,8 @@ module modstartup
       !                                                                 |
       !-----------------------------------------------------------------|
 
-      use modsurfdata, only : ps, thls, qts, thvs, z0, z0h, wtsurf, wqsurf, ustin
-      use modibm,      only : lbottom
-      use modglobal,   only : BCbotm_mo, BCbotm_mo_ustar, BCbotT, BCbotT_flux, BCbotq, BCbotq_flux, itot,ktot,jtot,ylen,xlen,dtmax,runtime, &
+      use modsurfdata, only : ps, thls, qts, thvs
+      use modglobal,   only : itot,ktot,jtot,ylen,xlen,dtmax,runtime, &
                               startfile,lwarmstart,lstratstart,lmoist, lbuoyancy, nsv, rv, rd, &
                               BCxm, BCxT, BCxq, BCxs, BCym, BCyT, BCyq, BCtopm, BCbotm, &
                               BCbotm_wfneutral, BCtopm_pressure, &
@@ -799,28 +798,6 @@ module modstartup
             thvs = thls*(1.+(rv/rd - 1.)*qts)
          end if
       end if
-      if ((BCbotm == BCbotm_mo) .or. (BCbotm == BCbotm_mo_ustar)) then
-         if (.not. lbottom) then
-            if (myid == 0) write(0, *) 'ERROR: BCbotm = 4/5 (Monin-Obukhov) requires lbottom = .true.'
-            call abort_all_ranks(1)
-         end if
-         if ((.not. ltempeq) .or. BCbotT /= BCbotT_flux .or. (z0 <= 0.) .or. (z0h <= 0.)) then
-            if (myid == 0) write(0, *) 'ERROR: BCbotm = 4/5 requires ltempeq, BCbotT = 1 and z0, z0h > 0'
-            call abort_all_ranks(1)
-         end if
-         if (lmoist .and. BCbotq /= BCbotq_flux) then
-            if (myid == 0) write(0, *) 'ERROR: BCbotm = 4/5 with lmoist requires BCbotq = 1 (prescribed wqsurf)'
-            call abort_all_ranks(1)
-         end if
-         if (wtsurf == -1. .or. (lmoist .and. wqsurf == -1.)) then
-            if (myid == 0) write(0, *) 'ERROR: BCbotm = 4/5: wtsurf (and wqsurf if lmoist) still at sentinel -1'
-            call abort_all_ranks(1)
-         end if
-         if ((BCbotm == BCbotm_mo_ustar) .and. (ustin <= 0.)) then
-            if (myid == 0) write(0, *) 'ERROR: BCbotm = 5 requires ustin > 0'
-            call abort_all_ranks(1)
-         end if
-      end if
       ! iwallmom = 4: Monin-Obukhov on the near-horizontal facets, from the prescribed facet
       ! fluxes (bctfz, and bcqfz on facets whose type has lGR = 1)
       if (iwallmom == iwallmom_mo) then
@@ -877,7 +854,7 @@ module modstartup
       if (((ltempeq .eqv. .false.) .or. (iwalltemp==1)) .and. (iwallmom==2)) then
         if (myid==0) write(*,*) "Changing to neutral wall function"
          iwallmom = 3
-         if ((BCbotm /= BCbotm_mo) .and. (BCbotm /= BCbotm_mo_ustar)) BCbotm = BCbotm_wfneutral   ! keep Monin-Obukhov (BCbotm = 4/5)
+         BCbotm = BCbotm_wfneutral
       end if
 
       select case(BCxm)
@@ -1026,7 +1003,6 @@ module modstartup
       use modboundary, only:boundary, tqaver, halos
       use modmpi, only:slabsum, myid, comm3d, mpierr, my_real, avexy_ibm
       use modthermodynamics, only:thermodynamics, calc_halflev
-      use modsurface,        only:lmo_surface, surface_mo_state
       use modinletdata, only:Uinl, Urec, Wrec, u0inletbc, v0inletbc, w0inletbc, ubulk, vbulk, irecy, Utav, Ttav, &
          uminletbc, vminletbc, wminletbc, u0inletbcold, v0inletbcold, w0inletbcold, &
          storeu0inletbc, storev0inletbc, storew0inletbc, nstepread, nfile, Tinl, &
@@ -1670,13 +1646,6 @@ module modstartup
          ! call boundary ! tg3315 17.10.17 having this in startup was causing issues for running with lmoist ! turned of when pot. temp = temp.
          ! SO: can't do this yet because uses u0 and it does not include halo cells
          call thermodynamics ! turned off when pot. temp = temp.
-         ! DALES dev 075ac4e modstartup.f90:readinitfiles (L888-897) calls thermodynamics,
-         ! surface, boundary, thermodynamics, so the first subgrid call already sees the MO
-         ! dthvdz(kb) and the re-diagnosed thls/qts/thvs. Do the same with the MO surface.
-         if (lmo_surface()) then
-            call surface_mo_state
-            call thermodynamics
-         end if
          !
          !    call boundary
          !    call thermodynamics ! turned off when pot. temp = temp.

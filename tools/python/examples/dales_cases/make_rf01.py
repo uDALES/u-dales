@@ -33,7 +33,7 @@ Choices that are not in the references:
  * Latent heat: the qt flux uses uDALES rlv = 2.53e6 J/kg, the DALES value (PyCLES
    divides by its own temperature-dependent L, about 2.5e6, and by rho = 1.22).
  * z0: the drag of RF01 is a constant Cm = 0.0011 (PyCLES u* = sqrt(Cm) U). With
-   BCbotm = 4 uDALES computes Cm = kappa^2 / ln(z1/z0)^2 (neutral) at the first
+   iwallmom = 4 (Monin-Obukhov facets) uDALES computes Cm = kappa^2 / ln(z1/z0)^2 (neutral) at the first
    level z1 = dz/2, so z0 = z1 exp(-kappa / sqrt(Cm)), also used for z0h.
 """
 from __future__ import annotations
@@ -106,8 +106,8 @@ def main(argv=None) -> int:
     print(f"wrote prof.inp.{a.expnr}, lscale.inp.{a.expnr} in {a.out_dir}: ktot = {n}, "
           f"ztop = {n * a.dz:g} m, domain = {a.itot * a.dx:g} m")
     print(f"z0 = z0h = {s['z0']:.6e} m  (neutral Cm at z1 = {0.5 * a.dz:g} m: {s['cm_check']:.6f})")
-    print(f"wtsurf = {s['wtsurf']:.8e} K m/s  (SHF {SHF} W/m2 upward, rho {RHO}, cp {CP:g}; negative = upward)")
-    print(f"wqsurf = {s['wqsurf']:.8e} kg/kg m/s  (LHF {LHF} W/m2 upward, rho {RHO}, rlv {RLV:g})")
+    print(f"bctfz = {s['wtsurf']:.8e} K m/s  (SHF {SHF} W/m2 upward, rho {RHO}, cp {CP:g}; negative = upward)")
+    print(f"bcqfz = {s['wqsurf']:.8e} kg/kg m/s  (LHF {LHF} W/m2 upward, rho {RHO}, rlv {RLV:g})")
     print(f"f = {2 * 7.292e-5 * np.sin(np.radians(31.5)):.4e} 1/s at xlat = 31.5")
     return 0
 

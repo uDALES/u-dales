@@ -168,8 +168,6 @@ module modglobal
    integer, parameter :: BCbotm_freeslip = 1  ! do nothing
    integer, parameter :: BCbotm_wf = 2        ! wall function
    integer, parameter :: BCbotm_wfneutral = 3 ! neutral wall function
-   integer, parameter :: BCbotm_mo = 4        ! Monin-Obukhov (DALES isurf 4)
-   integer, parameter :: BCbotm_mo_ustar = 5  ! Monin-Obukhov with prescribed ustar (DALES isurf 3)
    ! temperature
    integer, parameter :: BCbotT_flux = 1       ! determined by wtsurf
    integer, parameter :: BCbotT_wf = 2         ! wall function
@@ -326,6 +324,7 @@ module modglobal
    integer         :: iwallmom = 2, iwalltemp = 1, iwallmoist = 1, iwallscal = 1
    integer, parameter :: iwallmom_mo = 4 !< iwallmom: Monin-Obukhov surface layer on near-horizontal facets
    real            :: mo_maxslope = 30. !< iwallmom = 4: facets with slope <= mo_maxslope [deg] use Monin-Obukhov
+   real            :: ustin = 0.        !< iwallmom = 4: prescribed friction velocity [m/s] on the Monin-Obukhov facets; 0 = from MO similarity
 
    real, parameter :: rhow = 0.998e3 !<    * Density of water
    real, parameter :: pref0 = 1.e5 !<    *standard pressure used in exner function.

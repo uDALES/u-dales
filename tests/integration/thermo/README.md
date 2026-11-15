@@ -1,6 +1,6 @@
 # Thermo integration tests
 
-Solver tests for the moist thermodynamics, Monin-Obukhov (MO) surface and
+Solver tests for the moist thermodynamics, Monin-Obukhov (MO) facet surface and
 parametrised radiation. Each test writes a small flat case (16 x 16 x 64,
 `thermo_case.py`), runs `u-dales` and compares the netCDF output with an
 independent Python reference. Output is single precision, so tolerances allow
@@ -24,12 +24,15 @@ Run: `python tests/integration/thermo/test_thermo.py -v [TestClass]`.
   without `qts` runs. Reference: the documented start-up checks.
 - `TestSurfaceSign`: a positive `wtsurf`/`wqsurf` is a downward flux (decision D1).
   Reference: sign of the resulting surface-layer tendency.
-- `TestMO`: `ustar` and the Obukhov length from the `BCbotm = 4` surface, and a
-  prescribed `ustar`. Reference: a Python re-implementation of the MO iteration
-  with the Businger-Dyer functions.
-- `TestCalthv`, `TestCalthvGuard`: the Deardorff surface-level `thv` from MO
-  gradients; unsaturated and no-MO cases; a uniform saturated column must not
-  divide by zero. Reference: analytic `thv` from `thl`, `qt`, `ql`.
+- `TestMO`: the Monin-Obukhov facet surface (`iwallmom = 4`) on a flat facet floor
+  (`udprep.flat_floor`) in a laminar homogeneous column: `ustar` and the Obukhov length in an
+  unstable case (against a Python re-implementation of the MO iteration with the Businger-Dyer
+  functions, and against the flux definition of L), the neutral log law, the stress applied in the
+  first step (`u*^2 dt / dzf` along the wind), a prescribed `ustin`, the `iwallmoist` start-up
+  check, and the slope criterion (a 20 degree facet takes MO, a 60 degree facet the wall function).
+  Tolerances 1e-3 relative (float32 records and the drift of the state within a step).
+- `TestCalthv`, `TestCalthvGuard`: `dthvdz` at the surface level is zero; a uniform saturated
+  column must not divide by zero.
 - `TestBldump`: cloudy-column diagnostics (`ql`, `lwp_bar`) and a dry
   column without moist diagnostics. Reference: Python saturation adjustment of
   the RF01 profiles. The record's `ql` is also recomputed from the same record's
@@ -42,20 +45,20 @@ Run: `python tests/integration/thermo/test_thermo.py -v [TestClass]`.
 - `TestCaseHooks`: the `&NAMCASES` registry (unknown names abort, `case_hooks = ''` is a no-op), the
   aborts for required parameters that are not set (including `tstatsdump` with `lbldump`), a namelist read error aborting
   once on all ranks, and the warning for a case group whose hook is not listed
-- `TestDecomposition`: radiation, MO surface and moist SGS in a randomised
+- `TestDecomposition`: radiation, the Monin-Obukhov facet floor and moist SGS in a randomised
   short run (`runtime` 2.5 s, `dtmax` 1 s, about 3 steps) on 1, 2 (x) and 4 (2 x 2) ranks. Reference: the serial run.
 - `TestSGSOneEqn`: the one-equation SGS model through the in-solver
   `runmode = 1008` (`tests.f90:tests_sgs_oneeqn`), serial, on a synthetic
   stratified state. Kh/Km = 1/Prandtl = 3 where `dthvdz <= 0` and
   `ch1 + ch2*zlt/delta` where `dthvdz > 0` (zlt with `grav/thvf`), interior
-  dissipation without the old factor 2, no `e12p(kb)` source without the MO
-  surface (work arrays pre-filled with garbage), and the DALES k = 1 sources with
-  it, and a synthetic fully solid level (`thvf = -999`), which must get the
+  dissipation without the old factor 2, no `e12p(kb)` source (work arrays
+  pre-filled with garbage), and a synthetic fully solid level (`thvf = -999`), which must get the
   neutral length scale and no buoyancy source. Reference: the closed-form
   expressions, constants recomputed independently.
 - `TestMOKernels`: in-solver `runmode = 1012` (`tests.f90:tests_mo_kernels`): `psim`/`psih` against Businger-Dyer
-  and Beljaars-Holtslag reference values, `phim`/`phih`, the `dudz_mo`/`dvdz_mo` formula
-  `u* phim(z1/L) / (kappa z1) * u/|U|`, and the `calc_obl_iter` round trip from the bulk Richardson number of a known `L`.
+  and Beljaars-Holtslag reference values, `phim`/`phih`, the `calc_obl_iter` round trip from the bulk Richardson
+  number of a known `L`, and `mo_local_update` (the per-section surface of `iwallmom = 4`) at its fixed point: neutral
+  `u* = kappa |U| / ln(z1/z0)`, unstable u* with `L = -u*^3 tskin / (kappa g w'thl')`, prescribed `ustin`, the u* floor.
 - `TestThermoLevels`: in-solver `runmode = 1010` (`tests.f90:tests_thermo_levels`):
   after `thermodynamics`, `ql0(k)` and `ql0h(k)` are the saturation adjustment of
   `thl0`/`qt0` and `thl0h`/`qt0h` at the same level, cell by cell (#403).

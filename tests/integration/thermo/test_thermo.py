@@ -75,51 +75,118 @@ class TestSurfaceSign(_SolverTest):
 
 
 class TestMO(_SolverTest):
-    def _mo_case(self, name, bcbotm, extra_bc=None):
-        # upward heat/moisture flux = negative in the uDALES (-z positive) convention
-        bc = {"BCbotm": str(bcbotm), "wtsurf": "-0.05", "wqsurf": "-5.0e-5",
-              "z0": "2.e-4", "z0h": "2.e-4", "thls": "289.0", "qts": "9.0e-3"}
-        bc.update(extra_bc or {})
-        # 20 fixed 1-s steps so the laminar (thls, obl) pair has converged: surface_mo_state
-        # runs every RK substep and re-diagnoses thls each time.
-        d = tc.write_case(self.tmp / name, u=7.0, v=-5.5, groups={
-            "RUN": {"runtime": "19.5"}, "BC": bc,
-            "OUTPUT": {"lbldump": ".true.", "tstatsdump": "1."}})
-        self.run_ok(d)
-        return d
+    """Monin-Obukhov facets (iwallmom = 4) on a flat facet floor, laminar homogeneous column.
 
-    def test_mo_ustar_obl_match_reference(self):
-        d = self._mo_case("mo4", 4)
+    Tolerances are 1e-3 relative: the records are float32 (1e-7) and the remaining
+    differences are the drift of the air state within the last step (the drag slows the
+    wind by ~5e-4 per step, and u*, L are computed from the state of the last RK substep,
+    the recorded u1/v1/thl/qt from the end of the step; see test_stress_applied)."""
+
+    Z0 = 2.e-4
+    Z1 = 10.0
+
+    def _mo_case(self, name, bctfz="-0.05", bcqfz="-5.0e-5", extra=None, runtime="19.5", u=7.0, v=-5.5, geo=True):
+        # upward heat/moisture flux = negative in the uDALES (-z positive) convention.
+        # 20 fixed 1-s steps so the laminar (tskin, L) pair of every section has converged.
+        groups = {"RUN": {"runtime": runtime}, "BC": {"bctfz": bctfz, "bcqfz": bcqfz},
+                  "OUTPUT": {"lbldump": ".true.", "tstatsdump": "1."}}
+        for g, kv in (extra or {}).items():
+            groups.setdefault(g, {}).update(kv)
+        d = tc.write_case(self.tmp / name, u=u, v=v, floor={"z0": self.Z0, "z0h": self.Z0}, groups=groups,
+                          ug=None if geo else 0.0, vg=None if geo else 0.0)
+        res = self.run_ok(d)
+        return d, res.stdout + res.stderr
+
+    @staticmethod
+    def _last(d):
         with Dataset(d / "bldump_t.310.nc") as t, Dataset(d / "bldump_z.310.nc") as z:
-            ustar, obl = float(t["ustar"][-1]), float(t["obl"][-1])
-            thls, qts = float(t["thls"][-1]), float(t["qts"][-1])
-            thl1, qt1 = float(z["thl"][-1, 0]), float(z["qt"][-1, 0])
-            obl_prev = float(t["obl"][-2])
-            u1, v1 = float(t["u1"][-1]), float(t["v1"][-1])   # drag slows the wind slightly
+            r = {v: np.asarray(t[v][:], dtype=float) for v in ("ustar", "obl", "thls", "qts", "u1", "v1")}
+            r["thl1"] = np.asarray(z["thl"][:, 0], dtype=float)
+            r["qt1"] = np.asarray(z["qt"][:, 0], dtype=float)
+        return r
+
+    def test_unstable_ustar_obl_match_reference(self):
+        d, out = self._mo_case("mo_unstable")
+        self.assertIn("iwallmom = 4: 1 facets use Monin-Obukhov", out)
+        r = self._last(d)
+        ustar, obl, thls, qts = r["ustar"][-1], r["obl"][-1], r["thls"][-1], r["qts"][-1]
+        thl1, qt1, u1, v1 = r["thl1"][-1], r["qt1"][-1], r["u1"][-1], r["v1"][-1]
         self.assertGreater(ustar, 0.01)
         self.assertLess(obl, 0.0)                         # upward buoyancy flux -> unstable
         self.assertGreater(thls, thl1)                    # surface warmer than air
-        self.assertAlmostEqual(obl, obl_prev, delta=0.02 * abs(obl))   # converged
-        # Reference: same iteration on the recorded converged state (float32 records).
-        z1 = 10.0
-        L = tc.obl_iter(thl1, qt1, thls, qts, z1, 2e-4, 2e-4, u1, v1, -0.01)
-        self.assertAlmostEqual(obl, L, delta=0.02 * abs(L))
-        cm = tc.FKAR ** 2 / (np.log(z1 / 2e-4) - tc.psim(z1 / L) + tc.psim(2e-4 / L)) ** 2
-        self.assertAlmostEqual(ustar, np.sqrt(cm) * np.hypot(u1, v1), delta=0.02 * ustar)
+        # near-converged: L follows the decelerating wind, about 2e-3 per step
+        self.assertAlmostEqual(obl, r["obl"][-2], delta=5e-3 * abs(obl))
+        # Reference: the same iteration on the recorded converged state (float32 records)
+        L = tc.obl_iter(thl1, qt1, thls, qts, self.Z1, self.Z0, self.Z0, u1, v1, -0.01)
+        self.assertAlmostEqual(obl, L, delta=1e-3 * abs(L))
+        cm = tc.FKAR ** 2 / (np.log(self.Z1 / self.Z0) - tc.psim(self.Z1 / L) + tc.psim(self.Z0 / L)) ** 2
+        self.assertAlmostEqual(ustar, np.sqrt(cm) * np.hypot(u1, v1), delta=1e-3 * ustar)
+        # the flux definition of L closes the loop: L = -u*^3 thv_s / (kappa g w'thv'),
+        # w'thv' = (1 + 0.61 qs) w'thl' + 0.61 thl_s w'qt' (upward-positive fluxes)
+        wthv = (1 + (tc.RV / tc.RD - 1) * qts) * 0.05 + (tc.RV / tc.RD - 1) * thls * 5.0e-5
+        thvs = thls * (1 + (tc.RV / tc.RD - 1) * qts)
+        self.assertAlmostEqual(obl, -ustar ** 3 * thvs / (tc.FKAR * tc.GRAV * wthv), delta=1e-2 * abs(obl))
 
-    def test_mo_with_moisture_requires_flux_bcbotq(self):
-        d = tc.write_case(self.tmp / "mo_bcbotq", u=7.0, v=-5.5, groups={
-            "RUN": {"runtime": "1."},
-            "BC": {"BCbotm": "4", "BCbotq": "2", "wtsurf": "-0.05", "wqsurf": "-5.0e-5",
-                   "z0": "2.e-4", "z0h": "2.e-4", "thls": "289.0", "qts": "9.0e-3"}})
-        res = tc.run(d)
-        self.assertNotEqual(res.returncode, 0)
-        self.assertIn("BCbotq", res.stdout + res.stderr)
+    def test_neutral_ustar_is_log_law(self):
+        d, _ = self._mo_case("mo_neutral", bctfz="0.", bcqfz="0.")
+        r = self._last(d)
+        self.assertEqual(r["obl"][-1], 1.e6)              # Rib = 0: neutral cap
+        expect = tc.FKAR * np.hypot(r["u1"][-1], r["v1"][-1]) / np.log(self.Z1 / self.Z0)
+        self.assertAlmostEqual(r["ustar"][-1], expect, delta=1e-3 * expect)
+
+    def test_stress_applied(self):
+        """First step: the first-level wind loses u*^2 dt / dzf, along the wind (neutral and
+        unstable). One RK step: the u*^2 of the three substeps differ by the drift only.
+        ug = vg = 0, since uDALES applies the geostrophic pressure gradient of lscale.inp
+        (f x ug, default xlat) even with lcoriol off."""
+        for name, bctfz in (("mo_stress_neutral", "0."), ("mo_stress_unstable", "-0.05")):
+            with self.subTest(case=name):
+                d, _ = self._mo_case(name, bctfz=bctfz, bcqfz="0.", runtime="0.5", geo=False,
+                                     extra={"NAMSUBGRID": {"loneeqn": ".false.", "lvreman": ".true."},
+                                            "OUTPUT": {"tstatsdump": "0.5"}})
+                r = self._last(d)
+                du, dv = r["u1"][-1] - 7.0, r["v1"][-1] - (-5.5)
+                tau = r["ustar"][-1] ** 2 * 1.0 / 20.0      # u*^2 dt / dzf
+                self.assertAlmostEqual(np.hypot(du, dv), tau, delta=1e-3 * tau + 1e-6)
+                self.assertAlmostEqual(du / dv, 7.0 / -5.5, delta=1e-3 * 7.0 / 5.5)
 
     def test_prescribed_ustar(self):
-        d = self._mo_case("mo5", 5, {"ustin": "0.28"})
+        d, _ = self._mo_case("mo_ustin", extra={"WALLS": {"ustin": "0.28"}})
+        self.assertAlmostEqual(self._last(d)["ustar"][-1], 0.28, places=6)   # float32 record
+
+    def test_moisture_requires_prescribed_facet_flux(self):
+        d = tc.write_case(self.tmp / "mo_iwallmoist", u=7.0, v=-5.5, floor={"z0": 2e-4, "z0h": 2e-4},
+                          groups={"RUN": {"runtime": "1."}, "WALLS": {"iwallmoist": "2"},
+                                  "BC": {"bctfz": "-0.05", "bcqfz": "-5.0e-5"}})
+        res = tc.run(d)
+        self.assertNotEqual(res.returncode, 0)
+        self.assertIn("iwallmoist", res.stdout + res.stderr)
+
+    def test_slope_selects_mo_or_wall_function(self):
+        """mo_maxslope = 30 deg: a facet tilted by 20 deg takes Monin-Obukhov, one tilted by
+        60 deg the neutral wall function. The floor stays flat in the grid (only the normal,
+        type and section geometry enter the wall functions); the west half is facet 1, the
+        east half facet 2. The bldump u* is the mean over the Monin-Obukhov sections only,
+        so it must be the neutral u* of facet 1 alone."""
+        t20, t60 = np.radians(20.0), np.radians(60.0)
+        normals = [(np.sin(t20), 0.0, np.cos(t20)), (np.sin(t60), 0.0, np.cos(t60))]
+        d = tc.write_case(self.tmp / "mo_slope", u=7.0, v=0.0,
+                          floor={"z0": self.Z0, "z0h": self.Z0, "normals": normals,
+                                 "facet_of": lambda i, j: 1 if i <= 8 else 2},
+                          groups={"RUN": {"runtime": "0.5"}, "BC": {"bctfz": "0.", "bcqfz": "0."},
+                                  "OUTPUT": {"lbldump": ".true.", "tstatsdump": "0.5"}})
+        res = self.run_ok(d)
+        self.assertIn("iwallmom = 4: 1 facets use Monin-Obukhov (slope <=  30.0 deg), 1 use the neutral wall function",
+                      res.stdout + res.stderr)
         with Dataset(d / "bldump_t.310.nc") as t:
-            self.assertAlmostEqual(float(t["ustar"][-1]), 0.28, places=6)   # float32 record
+            ustar = float(t["ustar"][-1])
+        # tangential wind on facet 1: U minus its normal component; L = 1e6 (no flux).
+        # The section reference point is z1 above the floor (the section distance).
+        n1 = np.array(normals[0])
+        uvec = np.array([7.0, 0.0, 0.0])
+        utan = np.linalg.norm(uvec - uvec.dot(n1) * n1)
+        expect = tc.FKAR * utan / np.log(self.Z1 / self.Z0)
+        self.assertAlmostEqual(ustar, expect, delta=2e-3 * expect)   # u1 drifts within the first step
 
 
 RV_RD = 461.5 / 287.04
@@ -138,55 +205,8 @@ def ql_udales(thl, qt, exn):
     return np.maximum(qt - qs, 0.0)
 
 
-def dthvdz_surface(thl, qt, ql, exn, dthldz, dqtdz):
-    """DALES dev 075ac4e calthv, surface level."""
-    if ql > 0:
-        temp = thl * exn + RLV / CP * ql
-        qs = qt - ql
-        a = (1 - qt + RV_RD * qs * (1 + RLV / (461.5 * temp))) / (1 + RLV ** 2 * qs / (CP * 461.5 * temp ** 2))
-        b = a * RLV / (temp * CP) - 1
-    else:
-        a = 1 + (RV_RD - 1) * qt
-        b = RV_RD - 1
-    return a * dthldz + b * thl * dqtdz
-
-
 class TestCalthv(_SolverTest):
-    def test_surface_level_unsaturated(self):
-        d = tc.write_case(self.tmp / "calthv_sfc", u=7.0, v=-5.5, groups={
-            "RUN": {"runtime": "2.5"},
-            "OUTPUT": {"lfielddump": ".true.", "tfielddump": "1.", "fieldvars": "'th,qt,ql,dt'",
-                       "lbldump": ".true.", "tstatsdump": "1."},
-            "BC": {"BCbotm": "4", "wtsurf": "-0.05", "wqsurf": "-5.0e-5", "z0": "2.e-4", "z0h": "2.e-4"}})
-        self.run_ok(d)
-        # Record alignment (approximate). Per RK substep the order is: surface_mo_state
-        # ... tstep_integrate -> fielddump -> boundary -> thermodynamics -> bldump (writes
-        # only at rk3step == 3 when due); calthv runs on EVERY substep. Dump record n holds
-        # end-of-step-n thl/qt. The dthvdz in dump record n+1 was computed by calthv at the
-        # end of RK substep 2 of step n+1, from the substep-2 intermediate fields and the
-        # ustar_mo/obl_mo of that substep. That is closer to bldump record n+1 (substep 3
-        # of step n+1) than to record n, so ustar/obl are taken from record n+1 and thl/qt
-        # from dump record n (ql from n+1, diagnosed from them). The pairing is off by one
-        # RK substep in both state and ustar/obl; it works because the laminar column is
-        # near-steady and the 5e-3 tolerance absorbs it.
-        n = 0
-        with Dataset(d / "fielddump.000.000.310.nc") as f, \
-             Dataset(d / "bldump_t.310.nc") as t, Dataset(d / "bldump_z.310.nc") as z:
-            dthv = np.asarray(f["dthvdz"][n + 1])        # (z, y, x)
-            thl1 = np.asarray(f["thl"][n])[0].mean()
-            qt1 = np.asarray(f["qt"][n])[0].mean()
-            ql1 = np.asarray(f["ql"][n + 1])[0].mean()
-            exn1 = float(z["exnf"][n + 1, 0])
-            ustar, obl = float(t["ustar"][n + 1]), float(t["obl"][n + 1])
-        z1, kap = 10.0, tc.FKAR
-        phih = (1 - 16 * z1 / obl) ** -0.5 if obl < 0 else min(1 + 5 * z1 / obl, 6.0)
-        dthldz = -0.05 / ustar * phih / (kap * z1)        # upward fluxes: +0.05, +5e-5
-        dqtdz = -5.0e-5 / ustar * phih / (kap * z1)
-        ref = dthvdz_surface(thl1, qt1, ql1, exn1, dthldz, dqtdz)
-        self.assertLess(ref, 0.0)                          # unstable surface layer
-        self.assertAlmostEqual(float(dthv[0].mean()), ref, delta=5e-3 * abs(ref))
-
-    def test_no_mo_keeps_surface_level(self):
+    def test_surface_level_is_zero(self):
         d = tc.write_case(self.tmp / "calthv_wf", groups={
             "RUN": {"runtime": "0.5"},
             "OUTPUT": {"lfielddump": ".true.", "tfielddump": "0.5", "fieldvars": "'dt'"}})
@@ -554,12 +574,11 @@ class TestCaseHooks(_SolverTest):
 
 
 class TestDecomposition(_SolverTest):
-    """Radiation + MO surface + moist SGS give the same answer on 1, 2 and 4 ranks."""
+    """Radiation + Monin-Obukhov facet floor + moist SGS give the same answer on 1, 2 and 4 ranks."""
 
     def test_splits_agree(self):
         groups = {"RUN": {"runtime": "2.5", "lrandomize": ".true."},
-                  "BC": {"BCbotm": "4", "wtsurf": "-0.012", "wqsurf": "-4.7e-5",
-                         "z0": "2.e-4", "z0h": "2.e-4"},
+                  "BC": {"bctfz": "-0.012", "bcqfz": "-4.7e-5"},
                   "NAMRADIATION": TestRadiation.RAD,
                   "OUTPUT": {"lbldump": ".true.", "tstatsdump": "1."},
                   **TestRadiation.DYCOMS}
@@ -568,7 +587,8 @@ class TestDecomposition(_SolverTest):
         for label, npx, npy in (("serial", 1, 1), ("x", 2, 1), ("xy", 2, 2)):
             g = {k: dict(v) for k, v in groups.items()}
             g["RUN"].update(nprocx=str(npx), nprocy=str(npy))
-            d = tc.write_case(self.tmp / f"dec_{label}", groups=g, wfls=-3.75e-6 * zf)
+            d = tc.write_case(self.tmp / f"dec_{label}", groups=g, wfls=-3.75e-6 * zf,
+                              floor={"z0": 2.e-4, "z0h": 2.e-4})
             self.run_ok(d, npx * npy)
             with Dataset(d / "bldump_t.310.nc") as t, Dataset(d / "bldump_z.310.nc") as z:
                 out[label] = {v: np.asarray(t[v][:]) for v in ("lwp_bar", "ustar", "obl", "thls")}
@@ -630,7 +650,7 @@ class TestSGSOneEqn(_SolverTest):
     """In-solver test (runmode 1008, tests.f90:tests_sgs_oneeqn) of the one-equation
     SGS model aligned with DALES dev 075ac4e: Kh/Km = 1/Prandtl = 3 in unstable cells and
     ch1 + ch2*zlt/delta in stable ones (zlt with grav/thvf), dissipation without the old
-    factor 2, no TKE source at kb without the MO surface, and the DALES k=1 sources with it."""
+    factor 2, and no TKE source at kb (the wall functions set the near-wall state)."""
 
     def test_closure_and_sources(self):
         d = tc.write_case(self.tmp / "sgs1eq", groups={
@@ -673,8 +693,9 @@ class TestThermoLevels(_SolverTest):
 class TestMOKernels(_SolverTest):
     """In-solver test (runmode 1012, tests.f90:tests_mo_kernels) of the pure Monin-Obukhov kernels:
     psim/psih against Businger-Dyer (unstable) and Beljaars-Holtslag (stable) reference values,
-    phim/phih, the dudz_mo/dvdz_mo formula u* phim/(kappa z1) u/|U| (the first-level shear used by the one-equation SGS sources), and the
-    calc_obl_iter round trip from the bulk Richardson number of a known L."""
+    phim/phih, the calc_obl_iter round trip from the bulk Richardson number of a known L, and the
+    per-section surface update of iwallmom = 4 (mo_local_update) at its fixed point: the neutral log
+    law, the unstable u* with the flux-defined Obukhov length, prescribed u* and the u* floor."""
 
     def test_stability_functions_and_obl_iteration(self):
         d = tc.write_case(self.tmp / "mokernels", groups={"RUN": {"runmode": "1012"}})

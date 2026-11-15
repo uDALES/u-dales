@@ -20,8 +20,9 @@ both models, wfls [m/s], dqtdxls etc. [kg/kg/s], dthlrad = thlpcar [K/s]).
 Namelist values of the DALES case are printed so that they can be transcribed
 into namoptions.<expnr>. Surface fluxes are printed already negated:
 DALES wtsurf/wqsurf are positive upward, uDALES prescribed fluxes are positive
-in -z (decision D1). isurf 3 -> BCbotm 5 (u* = ustin), isurf 4 -> BCbotm 4
-(u* from Monin-Obukhov).
+in -z (decision D1); in uDALES they are the facet fluxes bctfz/bcqfz of a facet
+floor (tools/python/udprep/flat_floor.py). isurf 4 -> iwallmom = 4 (u* from
+Monin-Obukhov), isurf 3 -> iwallmom = 4 with ustin in &WALLS (prescribed u*).
 
 After writing, the output is re-read and compared with the input (row 1 and
 all rows, column for column); the script exits non-zero on a mismatch.
@@ -35,7 +36,7 @@ from pathlib import Path
 
 import numpy as np
 
-ISURF_TO_BCBOTM = {3: 5, 4: 4}
+ISURF_TO_UDALES = {3: "iwallmom = 4 with ustin (&WALLS)", 4: "iwallmom = 4"}
 # Namelist entries to report (DALES name, uDALES name or None)
 REPORT = ["ps", "thls", "wtsurf", "wqsurf", "z0", "z0mav", "z0hav", "ustin", "isurf",
           "itot", "jtot", "kmax", "xsize", "ysize", "runtime", "lcoriol", "lmoist",
@@ -148,13 +149,13 @@ def report_namoptions(case: Path, dales_expnr: str = "001") -> None:
             print(f"  {key:<11} = {nml[key]}")
     if "isurf" in nml:
         isurf = int(fnum(nml["isurf"]))
-        if isurf in ISURF_TO_BCBOTM:
-            print(f"  -> BCbotm = {ISURF_TO_BCBOTM[isurf]}  (DALES isurf = {isurf})")
+        if isurf in ISURF_TO_UDALES:
+            print(f"  -> {ISURF_TO_UDALES[isurf]} on a facet floor  (DALES isurf = {isurf})")
         else:
             print(f"  -> DALES isurf = {isurf} has no uDALES MO equivalent")
-    for key in ("wtsurf", "wqsurf"):
+    for key, ukey in (("wtsurf", "bctfz"), ("wqsurf", "bcqfz")):
         if key in nml:
-            print(f"  -> uDALES {key} = {-fnum(nml[key]):+.6g}  (DALES {nml[key]} is upward; "
+            print(f"  -> uDALES {ukey} = {-fnum(nml[key]):+.6g}  (DALES {key} = {nml[key]} is upward; "
                   "uDALES positive = downward, decision D1)")
     if "xlat" in nml:
         f = 2 * 7.292e-5 * np.sin(np.radians(fnum(nml["xlat"])))

@@ -751,10 +751,9 @@ contains
   !! Serial, on a synthetic stratified state; the closure and sources are called directly.
   !!   (a) closure: Kh/Km (molecular parts removed) is 1/Prandtl = 3 where dthvdz <= 0 and
   !!       ch1 + ch2*zlt/delta where dthvdz > 0, with zlt from grav/thvf(k) (not thvs);
-  !!   (b) sources without the MO surface: no TKE source at kb, set explicitly (the
-  !!       work arrays are pre-filled with garbage), and interior dissipation without
-  !!       the old factor 2, buoyancy with grav/thvf(k);
-  !!   (c) sources with the MO surface: the kb sources use dudz_mo/dvdz_mo and dthvdz(kb);
+  !!   (b) sources: no TKE source at kb, set explicitly (the work arrays are pre-filled
+  !!       with garbage), and interior dissipation without the old factor 2, buoyancy
+  !!       with grav/thvf(k);
   !!   (d) a synthetic fully solid level k0 > kb (IIcs(k0) = 0, thvf(k0) = -999, the
   !!       avexy_ibm fill) with dthvdz > 0: neutral length scale, no buoyancy source,
   !!       everything finite (before the guard: sqrt of a negative number).
@@ -762,13 +761,12 @@ contains
   !! full precision (the default).
   logical function tests_sgs_oneeqn()
     use modglobal,      only : ib, ie, jb, je, kb, ke, runmode, delta, grav, eps1, numol, &
-                               prandtlmoli, pi, BCbotm, BCbotm_mo
+                               prandtlmoli, pi
     use modfields,      only : initfields, u0, v0, w0, e120, e12p, dthvdz, thvf, IIcs
     use modsurfdata,    only : thvs
     use modsubgrid,     only : initsubgrid, closure, sources
     use modsubgriddata, only : ekm, ekh, zlt, sbshr, sbbuo, sbdiss, loneeqn, ldelta, Prandtl, &
                                cn, cf, Rigc, alpha_kolm
-    use modsurface,     only : initsurface_mo, lmo_surface, dudz_mo, dvdz_mo
     use modboundary,    only : initboundary
     use modibm,         only : initibm, createmasks
     use initfac,        only : readfacetfiles
@@ -778,9 +776,8 @@ contains
     implicit none
 
     real, parameter :: tol = 1.e-10
-    real, parameter :: dudz0 = 0.05, dvdz0 = -0.03, dthvdz0 = -0.01
-    real :: kmt, kht, ratio, zexp, cm_l, ceps_l, ce1_l, ce2_l, expd, expb, exps, worst
-    integer :: i, j, k, gi, nstable, nunstable, nlimited, BCbotm_save, k0, IIcs_save
+    real :: kmt, kht, ratio, zexp, cm_l, ceps_l, ce1_l, ce2_l, expd, expb, worst
+    integer :: i, j, k, gi, nstable, nunstable, nlimited, k0, IIcs_save
     real :: thvf_save
     logical :: all_passed
 
@@ -794,7 +791,6 @@ contains
     call initfields
     call initboundary
     call initsubgrid
-    call initsurface_mo
     call readfacetfiles
     call initibm
     call createmasks
@@ -867,18 +863,14 @@ contains
     end if
 
     !----------------------------------------------------------------------
-    ! (b) sources without the MO surface
+    ! (b) sources
     !----------------------------------------------------------------------
-    if (lmo_surface()) then
-      if (myid == 0) write(*,'(A)') 'FAIL namelist must not select the MO surface (BCbotm = 4/5)'
-      all_passed = .false.
-    end if
     sbshr(:,:,kb) = 1.e30; sbbuo(:,:,kb) = -1.e30; sbdiss(:,:,kb) = 1.e30
     e12p = 0.
     call sources
     worst = maxval(abs(e12p(ib:ie,jb:je,kb)))
     if (worst /= 0.) then
-      if (myid == 0) write(*,'(A,ES12.4)') 'FAIL e12p(kb) without MO surface is not zero', worst
+      if (myid == 0) write(*,'(A,ES12.4)') 'FAIL e12p(kb) is not zero', worst
       all_passed = .false.
     end if
     if (maxval(abs(e12p(ib:ie,jb:je,kb+1))) == 0.) then
@@ -905,33 +897,6 @@ contains
     if (myid == 0) write(*,'(A,ES12.4)') 'interior sbdiss/sbbuo worst relative deviation', worst
     if (worst > tol) then
       if (myid == 0) write(*,'(A,ES12.4)') 'FAIL interior sbdiss or sbbuo', worst
-      all_passed = .false.
-    end if
-
-    !----------------------------------------------------------------------
-    ! (c) sources with the MO surface: uniform kb plane, so the only shear is the MO one
-    !----------------------------------------------------------------------
-    BCbotm_save = BCbotm
-    BCbotm = BCbotm_mo
-    u0(:,:,kb) = 3.; v0(:,:,kb) = -2.; w0(:,:,kb) = 0.; w0(:,:,kb+1) = 0.
-    dudz_mo = dudz0; dvdz_mo = dvdz0
-    dthvdz(:,:,kb) = dthvdz0
-    call closure
-    e12p = 0.
-    call sources
-    worst = 0.
-    do j = jb, je
-      do i = ib, ie
-        exps = (ekm(i,j,kb) - numol)*(dudz0**2 + dvdz0**2)/(2.*e120(i,j,kb)) &
-             - (ekh(i,j,kb) - numol*prandtlmoli)*grav/thvf(kb)*dthvdz0/(2.*e120(i,j,kb)) &
-             - (ce1_l + ce2_l*zlt(i,j,kb)/delta(i,kb)) * e120(i,j,kb)**2 / (2.*zlt(i,j,kb))
-        worst = max(worst, abs(e12p(i,j,kb) - exps)/abs(exps))
-      end do
-    end do
-    BCbotm = BCbotm_save
-    if (myid == 0) write(*,'(A,ES12.4)') 'MO kb sources worst relative deviation', worst
-    if (worst > tol) then
-      if (myid == 0) write(*,'(A,ES12.4)') 'FAIL MO kb sources', worst
       all_passed = .false.
     end if
 
@@ -1248,14 +1213,16 @@ contains
   !!    Beljaars-Holtslag 1991 (stable); reference values from the textbook expressions evaluated
   !!    independently in double precision (Python math, exact pi);
   !!  - phim, phih: Businger-Dyer, linear stable branch, cap at zeta >= 1;
-  !!  - mo_wind_gradient = u* phim(z1/L) / (kappa z1) * uc/|U| (DALES calc_surface_gradients), the
-  !!    formula of dudz_mo/dvdz_mo, and that its two components add up to u* phim/(kappa z1);
+  !!  - mo_local_update (the per-section surface of iwallmom = 4) iterated to its fixed point:
+  !!    neutral u* = kappa |U| / ln(z1/z0); unstable u* = kappa |U| / (ln(z1/z0) - psim(z1/L)
+  !!    + psim(z0/L)) with L = -u*^3 tskin / (kappa g w'thl') (dry), the flux-defined Obukhov
+  !!    length; prescribed u* (ustin); the u* >= 0.01 floor;
   !!  - calc_obl_iter: for Ri_b of known L (rib_from_obl) the Newton iteration returns that L
   !!    (to its 1e-4 stopping criterion), neutral Ri_b = 0 gives the 1e6 sentinel, and the sign of
   !!    L follows the sign of Ri_b.
   logical function tests_mo_kernels()
     use modglobal,  only : runmode, fkar, grav
-    use modsurface, only : psim, psih, phim, phih, calc_obl_iter, mo_wind_gradient, rib_from_obl
+    use modsurface, only : psim, psih, phim, phih, calc_obl_iter, rib_from_obl, mo_local_update
     implicit none
 
     real, parameter :: ztab(6)  = (/ -2., -0.5, -0.01, 0.1, 1., 5. /)
@@ -1268,7 +1235,7 @@ contains
     real, parameter :: ltrue(6) = (/ -200., -20., -2., 2., 20., 200. /)
     real, parameter :: z1 = 10., z0 = 1.e-3, z0h = 1.e-4, tskin = 300., ucomp = 5.
     integer :: n
-    real :: e, dthv, thl, ustar, zeta, expect, lnum, rib
+    real :: e, dthv, thl, ustar, expect, lnum, rib, obl, ts, qs
     logical :: all_passed
 
     if (myid == 0) then
@@ -1293,16 +1260,28 @@ contains
     if (myid == 0) write(*, '(A,ES12.4)') 'phim/phih worst deviation from reference', e
     if (e > 1.e-12) call report_fail('phim/phih deviate from the Businger-Dyer values')
 
-    ! dudz_mo / dvdz_mo formula: u* phim(z1/L)/(kappa z1) * uc/|U|
-    ustar = 0.3; zeta = -0.5
-    expect = ustar * 9.**(-0.25) / (fkar * z1) * (3. / 5.)
-    e = abs(mo_wind_gradient(ustar, zeta, z1, 3., 5.) - expect)
-    expect = ustar * 9.**(-0.25) / (fkar * z1)                    ! |(dudz, dvdz)| for uc = 3, vc = 4, |U| = 5
-    e = max(e, abs(hypot2(mo_wind_gradient(ustar, zeta, z1, 3., 5.), mo_wind_gradient(ustar, zeta, z1, 4., 5.)) - expect))
-    ! stable branch (phim = 1 + 5 zeta = 3.5 at zeta = 0.5), component against the mean wind
-    e = max(e, abs(mo_wind_gradient(ustar, 0.5, z1, -0.2, 0.5) - ustar * 3.5 / (fkar * z1) * (-0.2 / 0.5)))
-    if (myid == 0) write(*, '(A,ES12.4)') 'mo_wind_gradient worst deviation', e
-    if (e > 1.e-12) call report_fail('mo_wind_gradient is not u* phim / (kappa z1) * u/|U|')
+    ! mo_local_update at its fixed point (fixed air state, as for a steady laminar first level)
+    ! neutral: zero fluxes, L -> 1e6, u* = kappa |U| / ln(z1/z0) up to psim(z1/1e6) ~ 5e-6
+    call iterate(290., 5.e-3, ucomp, 0., 0., 0.)
+    expect = fkar * ucomp / log(z1 / z0)
+    e = abs(ustar / expect - 1.)
+    if (myid == 0) write(*, '(A,ES12.4,A,ES12.4)') 'mo_local_update neutral: u* rel error', e, ', L', obl
+    if (e > 1.e-5 .or. obl /= 1.e6) call report_fail('mo_local_update neutral u* is not kappa |U| / ln(z1/z0)')
+    ! unstable, dry: w'thl' = 0.1 K m/s upward
+    call iterate(290., 0., ucomp, 0.1, 0., 0.)
+    expect = fkar * ucomp / (log(z1 / z0) - psim(z1 / obl) + psim(z0 / obl))
+    e = abs(ustar / expect - 1.)
+    lnum = -ustar**3 * ts / (fkar * grav * 0.1)
+    if (myid == 0) write(*, '(A,ES12.4,A,ES12.4,A,2ES12.4)') 'mo_local_update unstable: u* rel error', e, &
+                                                     ', L rel error', abs(obl / lnum - 1.), ', L, u*', obl, ustar
+    if (e > 1.e-6) call report_fail('mo_local_update unstable u* is not kappa |U| / (ln - psim(z1/L) + psim(z0/L))')
+    if (obl >= 0. .or. abs(obl / lnum - 1.) > 1.e-3) &
+      call report_fail('mo_local_update unstable L is not the flux Obukhov length -u*^3 thv / (kappa g wthv)')
+    ! prescribed u*, and the floors
+    call iterate(290., 0., ucomp, 0.1, 0., 0.28)
+    if (ustar /= 0.28) call report_fail('mo_local_update: ustin > 0 must prescribe u*')
+    call iterate(290., 0., 0.05, 0., 0., 0.)
+    if (ustar /= 1.e-2) call report_fail('mo_local_update: u* floor of 0.01 m/s')
 
     ! Obukhov length iteration: round trip from the Ri_b of a known L (first guess as in the solver)
     e = 0.
@@ -1341,10 +1320,15 @@ contains
       all_passed = .false.
     end subroutine report_fail
 
-    real function hypot2(a, b)
-      real, intent(in) :: a, b
-      hypot2 = sqrt(a*a + b*b)
-    end function hypot2
+    !> 200 surface calls at a fixed air state (thl, qt, |U|) from the solver's cold start
+    subroutine iterate(thl_a, qt_a, u_a, wthl, wqt, ust)
+      real, intent(in) :: thl_a, qt_a, u_a, wthl, wqt, ust
+      integer :: it
+      obl = -0.1; ts = thl_a; qs = qt_a
+      do it = 1, 200
+        call mo_local_update(thl_a, qt_a, u_a, z1, z0, z0h, wthl, wqt, ust, obl, ts, qs, ustar)
+      end do
+    end subroutine iterate
 
   end function tests_mo_kernels
 
