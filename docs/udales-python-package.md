@@ -15,7 +15,7 @@ simulation output, as a Python-native alternative to the MATLAB tools.
 | --- | --- |
 | `udprep` | Pre-processing: builds a case's input files (grid, IBM, vegetation, radiation, SEB) from `namoptions` and STL geometry via the `UDPrep` class, driving the compiled f2py/Fortran extensions and View3D. |
 | `udbase` | Loading and analysing simulation output: the `UDBase` class reads a case's NetCDF fields, statistics, and facet data, mirroring the MATLAB `udbase` class. |
-| `udgeom` | Geometry handling: the `UDGeom` package for STL mesh checking/repair, building separation, outline calculation, and View3D view-factor computation. |
+| `udgeom` | Geometry handling: the `UDGeom` package for STL mesh checking/repair, building separation, facet-size uniformisation, outline calculation, and View3D view-factor computation. |
 | `udvis` | 3-D visualisation: `UDVis` gives a stable plotting entry point (`sim.vis`) on top of `UDBase`, keeping the rendering backend an internal detail. |
 | `udstats` | Statistics: stateless array-in/array-out helpers (e.g. time averaging, variance/covariance) used internally by `UDBase`. |
 | Supporting modules | `udconfig`, `udgrid`, `udnetcdf`, `udfacet`, and `exceptions` provide namelist parsing, grid-coordinate maths, NetCDF loading, and facet-data helpers used internally by `udbase` and `udprep`. |

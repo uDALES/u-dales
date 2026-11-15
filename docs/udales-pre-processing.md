@@ -140,6 +140,117 @@ overfull facets exceed 5% of total facet area, the correction removes more than
 `UDALES_VIEW_FACTOR_POLICY=strict` before `write_inputs.sh -p` to reject any
 material row-closure violation rather than repair it.
 
+## Facet-size uniformisation
+
+uDALES treats every STL triangle as one facet with a single surface temperature
+and a single set of fluxes. STL files from city models mix triangles of very
+different sizes: a few huge ground or roof triangles next to clusters of sliver
+triangles left behind by CAD operations. Both ends are bad for the surface
+energy balance. A huge facet spreads one temperature over a whole wall, and a
+sliver gets all-or-nothing sun and hardly any view-factor neighbours.
+
+With `lfacetuniform = .true.` under `&INPS`, the Python preprocessing first
+rebuilds the mesh so that facet areas fall within a band around a target area,
+writes the result as a new STL (and a new facet-type file) next to the original,
+and runs every later step on the new geometry. The original files are never
+modified.
+
+### Inputs
+
+The step is driven entirely from `namoptions.<expnr>`. Only the switch is
+required; the geometry variables are the same ones used without uniformisation:
+
+```fortran
+&INPS
+  stl_file          = 'geom.stl'        ! source STL, relative to the case directory
+  read_types        = .true.            ! optional: per-facet types ...
+  types_path        = 'geom_types.txt'  ! ... one integer per face, in face order
+  lfacetuniform     = .true.            ! switch the step on
+  facet_target_edge = 0.0               ! optional tuning, see below
+  facet_size_band   = 4.0
+  facet_allow_split = .true.
+  facet_allow_merge = .true.
+  facet_count_max   = 0
+/
+```
+
+| Variable | Default | Meaning |
+| --- | --- | --- |
+| `lfacetuniform` | `.false.` | Switch. Everything else only matters when this is true. |
+| `facet_target_edge` | `0.0` | Target facet edge length in metres; the target area is that of the equilateral triangle with this edge. `0` keeps the facet count about the same by taking the mean facet area of the input as the target. Set it explicitly when the whole mesh is uniformly too coarse or too fine, which the automatic target cannot correct. |
+| `facet_size_band` | `4.0` | Facets with an area between target/band and target×band are accepted as they are. A larger band touches fewer facets and adds fewer new ones. |
+| `facet_allow_split` | `.true.` | Allow facets above the band to be split. |
+| `facet_allow_merge` | `.true.` | Allow facets below the band to be merged with coplanar neighbours of the same type. |
+| `facet_count_max` | `0` | Abort when the result would have more facets than this. `0` means four times the input facet count. The view-factor and shortwave steps scale with the square of the facet count, so this guards against an unintentionally fine target. |
+
+When `read_types` is true the facet types are read from `types_path` and carried
+over to the new faces; merging never crosses a type boundary. Without types, all
+faces are treated as one type.
+
+### What the step does
+
+- Faces are grouped into coplanar, edge-connected patches of the same facet type.
+- A patch that contains faces below the band is retriangulated as a whole, which
+  merges the tiny faces into their coplanar neighbours.
+- Faces above the band are split.
+- Faces inside the band are copied unchanged, so a mesh that is already uniform
+  passes through untouched and running the step twice changes nothing.
+- The geometry itself is preserved: no vertex moves, creases and type boundaries
+  stay where they are, the mesh stays conforming (no T-junctions) and the output
+  has no unused vertices.
+
+The step prints a summary: facet counts, area percentiles before and after, the
+number of faces merged and split, and the number of faces that remain outside
+the band.
+
+### Outputs and what happens next
+
+The outputs are written next to the input STL and never overwrite anything:
+
+| File | Content |
+| --- | --- |
+| `<stem>_uniform.stl` | the uniformised geometry |
+| `<types stem>_uniform<ext>` | facet types of the new faces (only when `read_types` is true) |
+| `<stem>_uniform_facemap.txt` | 1-based index of the input face each new face comes from, for carrying other per-facet data across |
+| `<stem>_uniform.json` | source file checksums, settings used and the summary |
+
+`stl_file` and `types_path` in `namoptions` are then rewritten in place to point
+at the new files, and the geometry is reloaded. From this point on, the
+preprocessing (IBM, `facets.inp`, view factors, shortwave, SEB) and
+post-processing with `udbase` use only the uniform geometry; the original STL
+and types file are not read again.
+
+### Rerunning and regenerating
+
+Rerunning the preprocessing with the rewritten `namoptions` is a no-op for this
+step: `stl_file` already names a uniformised geometry made with the current
+settings, and nothing is recomputed.
+
+Per-facet input files generated earlier from the original STL are stale. In
+particular an existing `facets.inp.<expnr>` is refused because its facet count
+no longer matches the geometry, and other steps that do not overwrite their
+outputs (for example `Tfacinit.inp`, the View3D view factors) keep the old
+files. Delete those files before enabling uniformisation on an existing case so
+they are regenerated. `factypes.inp` is a material table, not per facet, and
+stays valid.
+
+To regenerate with different settings, set `stl_file` (and `types_path`) back to
+the source files and delete the `_uniform` outputs. The step refuses to
+overwrite an existing `<stem>_uniform.stl` unless its sidecar matches the
+current source and settings, and refuses to continue when `stl_file` names a
+uniformised geometry made with settings different from the current ones.
+
+### Limits
+
+Merging never crosses a crease or a type boundary, and a facet narrower than
+the target (a 1 m wide wall piece, say) stays small whatever the settings,
+because its edges are real geometry; the summary reports how many such faces
+remain. An edge shared with a face that is kept as it is cannot be split, so a
+split facet next to a kept one may stay larger than the target along that edge.
+
+The same operation is available in Python as `udgeom.uniformize_facets(mesh,
+...)` or `UDGeom.uniformize_facets(...)`.
+
 ## Developer's guide
 
 The `u-dales/tools/preprocessing.m` matlab class contains the functionality for preprocessing. The constructor reads the parameters in `namoptions` and stores them as member variables, and defines default variables for those not specified. These are then used in the member functions. In these member functions, additional data structures are also stored as member variables, including those used repeatedly and those eventually written to files, so that one can easily view and manipulate them using the matlab IDE.
@@ -245,6 +356,11 @@ The following parameters are related to the immersed boundary method.
 - `stl_file`: Name of STL file defining the geometry.
 - `read_types`: Switch for reading facet types from file. Default: false (all facets are set to type 1).
 - `types_path`: Name of types file.
+- `lfacetuniform`: Python preprocessing only. Switch for making the STL facet sizes uniform before the geometry is used (see [Facet-size uniformisation](#facet-size-uniformisation)). Default: false.
+- `facet_target_edge`: target facet edge length (m) for `lfacetuniform`; 0 keeps the facet count about the same. Default: 0.
+- `facet_size_band`: facets with an area within a factor `facet_size_band` of the target area are accepted as they are. Default: 4.
+- `facet_allow_split`, `facet_allow_merge`: allow splitting facets above the band / merging coplanar facets of the same type below it. Default: true, true.
+- `facet_count_max`: abort when uniformisation would produce more facets than this; 0 means four times the input facet count. Default: 0.
 - `facT`: if `iwallmom = 2` or  `iwalltemp = 2` then (constant) facet temperature, or if `lEB = .true.` then initial facet temperature. Default: 288.
 - `isolid_bound`: Option for classification of solid/fluid points, including boundary points. 1: In-house Fortran routine (default, fast), 2: equivalent MATLAB routine (useful for debugging), 3: inpolyhedron (MATLAB; provided for when option 1 & 2 are not producing expected results): <https://www.mathworks.com/matlabcentral/fileexchange/37856-inpolyhedron-are-points-inside-a-triangulated-volume>.
 - `ifacsec`: Option for facet section calculation. 1: Fortran (default, fast), 2: MATLAB (useful for debugging).

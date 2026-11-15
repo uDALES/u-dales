@@ -319,6 +319,12 @@ BCs at the bottom (BCbot; only effective if not covered with ground facets): 1 =
 | stl_file | - | `STRING` | Name of STL file defining the geometry. | - |
 | read_types | false | true or false | Switch for reading facet types from file. Default: false (all facets are set to type 1). | - |
 | types_path | - | `STRING` | Name of types file. | - |
+| lfacetuniform | false | true or false | Python preprocessing only. Make the STL facet sizes uniform before anything else is derived from the geometry: facets above the accepted size band are split, coplanar facets of the same type below it are merged, and the result is written to `<stl stem>_uniform.stl` (with a matching types file when `read_types` is true). `stl_file` and `types_path` in `namoptions` are then pointed at the new files. See [Pre-processing](./udales-pre-processing.md#facet-size-uniformisation). | - |
+| facet_target_edge | 0 | `REAL` >= 0 | Target facet edge length for `lfacetuniform` (the target facet area is that of the equilateral triangle with this edge). 0 selects the fixed-count default: the mean facet area of the input STL, so the facet count stays about the same. | [m] |
+| facet_size_band | 4 | `REAL` >= 1 | Facets with an area between target/band and target*band are accepted as they are. | - |
+| facet_allow_split | true | true or false | Allow facets above the band to be split. | - |
+| facet_allow_merge | true | true or false | Allow facets below the band to be merged with coplanar neighbours of the same type. | - |
+| facet_count_max | 0 | `INTEGER` >= 0 | Abort preprocessing when uniformisation would produce more facets than this. 0 means four times the facet count of the input STL. | - |
 | facT | 288 | `REAL` > 0 | If `iwallmom = 2` or  `iwalltemp = 2` then this sets the facet temperature, or if `lEB = .true.` it is the initial facet temperature | [K] |
 | ifacsec | 1 | 1 or 2 | Option for facet section calculation. 1: Fortran (default, fast), 2: MATLAB (useful for debugging | - |
 | ishortwave   | MATLAB: 1; Python: 3 | 1, 2, 3, or 4 | Option for shortwave radiation calculation. 1: scanline rasterization in both toolchains (MATLAB standalone Fortran executable; Python f2py wrapper). 2: MATLAB-only scanline debug implementation. 3: Python-only facsec method. 4: Python-only moller method. MATLAB errors on 3/4; Python errors on 2. | -  |
