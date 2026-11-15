@@ -195,6 +195,17 @@ class TestIBMSection(unittest.TestCase):
         section.copy_geom_outputs = mock.Mock(side_effect=lambda: calls.append(("copy_geom_outputs", None)))
         return section, calls
 
+    def test_write_factypeflux(self):
+        section, _ = self._recording_section()
+        section.write_factypeflux({11: (0.0, -1.5e-5), 1: (0.05, 0.0)})
+        lines = (self.workdir / "factypeflux.inp.321").read_text(encoding="ascii").splitlines()
+        rows = [ln.split() for ln in lines if not ln.startswith("#")]
+        self.assertEqual([int(r[0]) for r in rows], [1, 11])
+        self.assertAlmostEqual(float(rows[0][1]), 0.05)
+        self.assertAlmostEqual(float(rows[1][2]), -1.5e-5)
+        with self.assertRaises(ValueError):
+            section.write_factypeflux({})
+
     def test_run_all_orchestrates_ibm_preprocessing_modes(self):
         with self.subTest("generate geometry and default factypes"):
             section, calls = self._recording_section()
@@ -497,8 +508,8 @@ class TestSEBSection(unittest.TestCase):
         triggers = [
             ("energy_balance", {"lEB": True}),
             ("fixed_wall_temperature", {"iwalltemp": 2}),
-            ("stability_wall_momentum", {"iwallmom": 2, "iwalltemp": 3, "ltempeq": True}),
-            ("fixed_wall_moisture", {"iwallmoist": 2}),
+            ("stability_wall_momentum", {"iwallmom": 2, "iwalltemp": 2, "ltempeq": True}),
+            ("fixed_wall_moisture", {"iwallmoist": 2, "iwalltemp": 2, "ltempeq": True}),
         ]
         for name, overrides in triggers:
             with self.subTest(name=name):
@@ -516,7 +527,7 @@ class TestSEBSection(unittest.TestCase):
     def test_switches_invalid_iwallmom_temperature_combinations_to_neutral(self):
         cases = [
             ("fixed_flux_temperature", {"iwallmom": 2, "iwalltemp": 1, "ltempeq": True}),
-            ("temperature_not_evolved", {"iwallmom": 2, "iwalltemp": 3, "ltempeq": False}),
+            ("temperature_not_evolved", {"iwallmom": 2, "iwalltemp": 1, "ltempeq": False}),
         ]
         for name, overrides in cases:
             with self.subTest(name=name):

@@ -131,6 +131,27 @@ class IBMSection(Section):
                 fields.extend(f"{val:13.8f}" for val in row[offset:offset + k + 1])
                 f.write("  ".join(fields) + "\n")
 
+    def write_factypeflux(self, fluxes=None) -> None:
+        """Write the optional factypeflux.inp file (prescribed flux per facet type).
+
+        ``fluxes`` maps a wall type id to ``(heat flux [K m/s], moisture flux [kg/kg m/s])``;
+        it defaults to ``sim.factypeflux``. The solver uses these fluxes for the listed types
+        when ``iwalltemp = 1`` / ``iwallmoist = 1``, instead of ``bctf*`` / ``bcqf*``. Types not listed
+        (and runs without the file) keep the direction-based ``bctf*`` / ``bcqf*``. The file is separate
+        from factypes.inp so that factypes.inp keeps its format. Not part of ``run_all``: call it explicitly.
+        """
+        sim = self._require_sim()
+        if fluxes is None:
+            fluxes = getattr(sim, "factypeflux", None)
+        if not fluxes:
+            raise ValueError("no prescribed facet-type fluxes given (pass fluxes or set sim.factypeflux)")
+        path = Path(sim.path) / f"factypeflux.inp.{sim.expnr}"
+        with path.open("w", encoding="ascii", newline="\n") as f:
+            f.write("# prescribed flux per facet type (iwalltemp = 1 / iwallmoist = 1), used instead of bctf*/bcqf* for the listed types\n")
+            f.write("# wallid  heat flux [K m/s]  moisture flux [kg/kg m/s]\n")
+            for wallid, (hflux, qflux) in sorted(fluxes.items()):
+                f.write(f"{int(wallid):8d}  {float(hflux):17.8e}  {float(qflux):17.8e}\n")
+
     def write_facets(self) -> None:
         """Write facets.inp from the STL and facet types.
 

@@ -57,6 +57,34 @@ that they are easy to find when upgrading.
 
 ### Fixed
 
+- **Prescribed facet heat and moisture flux (`iwalltemp = 1`, `iwallmoist = 1`).**
+  `wallfunheat` only assigned the prescribed flux (`bctf*`, `bcqf*`) to facets
+  facing exactly `+x`, `-x`, `+y`, `-y` or `+z`; any other facet (sloped, or
+  facing down) was left with the flux of the previously processed section, or
+  an undefined value, which also entered the total heat and moisture flux and
+  the facet energy balance. Such facets now get the flux of their facet type
+  when the new optional `factypeflux.inp.<expnr>` lists it (`wallid`, heat flux
+  [K m/s], moisture flux [kg/kg m/s]; `factypes.inp` is unchanged and still read
+  as before), otherwise `bctf*`/`bcqf*` by direction as before, otherwise zero,
+  and a start-up line reports how many facets have no prescribed flux when a
+  prescribed flux (including `ltimedepsurf`) is nonzero. The heat and moisture
+  fluxes of a section now use separate variables, and the remaining unset paths
+  are defined: with `iwallmoist = 2` the moisture flux is zero where the heat
+  transfer coefficient times the tangential velocity is zero.
+  `iwalltemp` or `iwallmoist` other than 1 or 2, and `iwallmoist = 2` without
+  `ltempeq = .true.` and `iwalltemp = 2`, now stop at start-up. Python
+  pre-processing writes the new file with `IBMSection.write_factypeflux`.
+  Who is affected: (1) runs with non-grid-aligned or downward-facing facets and
+  a nonzero `bctf*`/`bcqf*` change (those facets previously got an arbitrary
+  flux); (2) runs with `iwalltemp = 2`, `lmoist` and the default `iwallmoist = 1`
+  change on green facets that are sloped or face down: they previously received
+  the section's wall-function heat flux as a moisture flux, now zero (or the
+  `bcqf*`/`factypeflux.inp` value); (3) `iwalltemp = 1` with `iwallmoist = 2`
+  no longer lets the moisture flux leak into the heat flux of unmatched facets,
+  and now stops at start-up because `iwallmoist = 2` needs `iwalltemp = 2`;
+  (4) Debug builds that trap uninitialised reals aborted on these facets.
+  Runs with `iwalltemp = 1`, `iwallmoist = 1` (or no moisture) and all
+  prescribed fluxes zero are unchanged. See #409.
 - The SGS statistics no longer read uninitialised data at the top level
   `ke+kh`, and all SGS output arrays are zeroed before use.
 - The 3-D `sv1sgs`–`sv4sgs` output in `tdump` is now masked with `IIw`, so solid

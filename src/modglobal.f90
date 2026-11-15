@@ -83,6 +83,7 @@ module modglobal
    integer, parameter :: TEST_MPI_OPERATORS = 1005
    integer, parameter :: TEST_ZGRID_METRICS = 1006
    integer, parameter :: TEST_SGS_STATS = 1007
+   integer, parameter :: TEST_FACET_FLUX = 1008
    integer :: runmode = RUN_COLDSTART
 
    logical :: lwarmstart = .false. !<   flag for "cold" or "warm" start
