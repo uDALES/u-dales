@@ -27,11 +27,12 @@
 module modstatsdump
 
   use mpi
+  use modbldiag, only : initbldiag, bldiag, exitbldiag
   use modglobal, only : dt,lydump,lytdump,ltkedump,lxydump,lxytdump,ltdump,lmintdump,ifoutput !,nstat
   use modmpi, only : myid
   implicit none
   private
-  PUBLIC :: initstatsdump,statsdump,exitstatsdump,compute_sgs_fluxes
+  PUBLIC :: initstatsdump,statsdump,bldumpstats,exitstatsdump,compute_sgs_fluxes
   save
 
   !NetCDF variables
@@ -488,6 +489,8 @@ contains
     !> Set times to zero so works for warm starts... could have issues with warmstarts here...
     tsamplep = 0.
     tstatsdumpp = 0.
+
+    call initbldiag
 
   end subroutine initstatsdump
 
@@ -2253,7 +2256,20 @@ contains
 !         call exitstat_nc(ncidt)
 !       endif
 
+    call exitbldiag
+
   end subroutine exitstatsdump
+
+  !-------------------------
+  !> Cloud, boundary-layer and radiation diagnostics (bldump files). Called
+  !! after thermodynamics so that ql0, rhof and exnf match thl0 and qt0;
+  !! samples instantaneous fields every tstatsdump from tstatstart on.
+  !-------------------------
+
+  subroutine bldumpstats
+    implicit none
+    call bldiag
+  end subroutine bldumpstats
 
 
 end module modstatsdump

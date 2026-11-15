@@ -178,6 +178,16 @@ groups:
         command:
           - "{python}"
           - "{tests_dir}/integration/fielddump_diagnostics/test_fielddump_diagnostics.py"
+      - label: "supported: moist thermodynamics, MO surface and radiation"
+        class: supported
+        kind: integration
+        component: solver
+        platform: hpc
+        cost: medium
+        env_UDALES_BUILD: "{repo_root}/build/{build_type_lower}/u-dales"
+        command:
+          - "{python}"
+          - "{tests_dir}/integration/thermo/test_thermo.py"
 
   supported-macos:
     includes:

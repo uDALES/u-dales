@@ -55,6 +55,8 @@ lvreman      = .true.
 /
 
 &BC
+thls        = 301.0
+qts         = 0.01
 wtsurf       = 0.
 wqsurf       = 0.
 z0           = 0.01

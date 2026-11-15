@@ -1,0 +1,91 @@
+! DALES dev 075ac4e DYCOMS-II RF01 in the uDALES-compatible configuration of examples/303:
+! fixed dt, no Galilean shift, constant-density base state (ibas_prf = 5), cd2 everywhere,
+! patched moduser.f90 (flux-form free-troposphere term, = uDALES case_dycoms_rf01) and Tetens es (dales-075ac4e-user-es.patch),
+! radpar reachable with iradiation = 10 (dales-075ac4e-iradiation10.patch).
+! Edit irandom per ensemble member; for the adaptive variant set ladaptive = .true. (courant 0.5 as uDALES 303).
+&RUN
+iexpnr     =  001
+lwarmstart =  .false.
+runtime    =  14400
+trestart   =  14400
+ladaptive  = .false.     ! dt = dtmax
+dtmax      =  0.3        ! s, identical to uDALES examples/303 fixed-dt block
+courant    =  0.5        ! used only with ladaptive
+irandom    =  43
+randthl    =  0.1        ! as uDALES 303 / DALES dycoms_rf02
+randqt     =  2.5e-5
+krandumax  =  0          ! no u, v, w noise. The invalid reference (refruns/d303) set krandumax = 168 with the
+                         ! default krandumin = 1, which perturbed w at k = 1 (the surface) and was never reset.
+nsv        =  0
+nprocx     =  8
+nprocy     =  4
+/
+
+&DOMAIN
+itot       =  96
+jtot       =  96
+kmax       =  300
+xsize      =  3360.
+ysize      =  3360.
+xlat       =  31.5
+xlon       =  0.
+xday       =  0.
+xtime      =  0.
+/
+
+&PHYSICS
+iradiation =  10         ! radpar longwave + rad_user (patched moduser: free-troposphere term); needs dales-075ac4e-iradiation10.patch,
+                         ! otherwise DALES switches rad_longw off for iradiation = 10 and radpar never runs
+timerad    =  0
+rad_ls     = .false.
+rad_longw  = .true.
+rad_shortw = .false.
+rad_smoke  = .false.
+rka        = 85.
+dlwtop     = 70.
+dlwbot     = 22.
+lcoriol    =  .true.
+igrw_damp  =  2          ! default, written out: sponge over the top quarter as uDALES
+/
+&NAMSURFACE
+isurf      =  4          ! prescribed fluxes, MO u* (uDALES BCbotm = 4)
+z0mav      =  1.445944e-5
+z0hav      =  1.445944e-5
+thls       =  289.
+wtsurf     =  1.22460976e-2   ! = -uDALES wtsurf (DALES positive upward)
+wqsurf     =  3.72578241e-5   ! = -uDALES wqsurf (LHF 115 W/m2 / (1.22 * 2.53e6))
+ps         =  101780.
+lsmoothflux = .false.
+/
+&DYNAMICS
+llsadv     =  .false.
+cu         =  0.
+cv         =  0.
+ibas_prf   =  5
+iadv_mom   =  2
+iadv_tke   =  2
+iadv_thl   =  2
+iadv_qt    =  2
+iadv_sv    =  2
+/
+&NAMSUBGRID
+ldelta     = .false.
+/
+&NAMCHECKSIM
+tcheck     = 0
+/
+&NAMTIMESTAT
+ltimestat  = .true.
+dtav       = 60
+/
+&NAMGENSTAT
+lstat      = .true.
+dtav       = 60
+timeav     = 600
+/
+&NAMCROSSSECTION
+lcross     = .false.
+/
+&NAMFIELDDUMP
+lfielddump = .false.
+/

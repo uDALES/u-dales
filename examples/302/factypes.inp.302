@@ -1,0 +1,4 @@
+# facet types of a flat floor (udprep.flat_floor)
+# lGR = 1: the facet exchanges moisture (iwallmoist)
+# wallid lGR z0[m] z0h[m] al[-] em[-] d1..d3[m] C1..C3[J/(K m^3)] l1..l3[W/(m K)] k1..k4[W/(m K)]
+      -1    0 1.000000e-01 1.000000e-01 0.50 0.85 0.1 0.1 0.1 1.875e+06 1.875e+06 1.875e+06 0.75 0.75 0.75 4e-07 4e-07 4e-07 4e-07

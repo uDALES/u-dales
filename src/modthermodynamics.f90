@@ -63,7 +63,7 @@ contains
     integer :: k
     if (timee==0) call diagfld
     if (lmoist) then
-       call thermo(thl0,qt0,ql0,presf,exnf)
+       call thermo(thl0,qt0,ql0(:,:,kb:),presf,exnf)   ! ql dummy starts at kb (#403)
     end if
 
     call diagfld
@@ -130,11 +130,13 @@ contains
   subroutine calthv
     use modglobal, only : lmoist,ib,ie,jb,je,kb,ke,kh,zf,dzh,rlv,rd,rv,cp,eps1
     use modfields, only : thl0,thl0h,ql0,ql0h,qt0,qt0h,exnf,exnh,thv0h,dthvdz
+    use modibmdata, only : nmocells, mocell_ijk, mocell_dthldz, mocell_dqtdz
 
     implicit none
 
-    integer i, j, k
+    integer i, j, k, n
     real    qs
+    real    a_surf, b_surf
     real    dq,dth,dthv,temp
     real    a_dry, b_dry, a_moist, b_moist, c_liquid, epsilon, eps_I, chi_sat, chi
     real    del_thv_sat, del_thv_dry
@@ -180,10 +182,15 @@ contains
 
                    del_thv_sat = a_moist * dth + b_moist * dq
 
-                   chi     = 2*chi_half*(zf(k) - zf(k-1))/(dzh(k)+dzh(k+1))
-                   chi_sat = c_liquid * ql0(i,j,k) / (del_thv_dry - del_thv_sat)
+                   ! zero denominator (uniform saturated cell): dry and sat slopes coincide, so dthv = del_thv_sat
+                   if (del_thv_dry - del_thv_sat /= 0.) then
+                      chi     = 2*chi_half*(zf(k) - zf(k-1))/(dzh(k)+dzh(k+1))
+                      chi_sat = c_liquid * ql0(i,j,k) / (del_thv_dry - del_thv_sat)
 
-                   if (chi < chi_sat) then  !mixed parcel is saturated
+                      if (chi < chi_sat) then  !mixed parcel is saturated
+                         dthv = del_thv_sat
+                      end if
+                   else
                       dthv = del_thv_sat
                    end if
                 end if
@@ -197,6 +204,25 @@ contains
           do i=ib,ie
             dthvdz(i,j,kb)=0.
           end do
+       end do
+
+       ! iwallmom = 4: cells above a horizontal Monin-Obukhov facet take the surface-layer
+       ! gradient (DALES dev 075ac4e calthv, surface level; modibm:mo_cells_update)
+       do n = 1, nmocells
+          i = mocell_ijk(n,1)
+          j = mocell_ijk(n,2)
+          k = mocell_ijk(n,3)
+          if (ql0(i,j,k) > 0) then
+             temp = thl0(i,j,k)*exnf(k)+(rlv/cp)*ql0(i,j,k)
+             qs   = qt0(i,j,k) - ql0(i,j,k)
+             a_surf = (1.-qt0(i,j,k)+rv/rd*qs*(1.+rlv/(rv*temp))) &
+                      /(1.+rlv**2*qs/(cp*rv*temp**2))
+             b_surf = a_surf*rlv/(temp*cp)-1.
+          else
+             a_surf = 1.+(rv/rd-1.)*qt0(i,j,k)
+             b_surf = rv/rd-1.
+          end if
+          dthvdz(i,j,k) = a_surf*mocell_dthldz(n) + b_surf*thl0(i,j,k)*mocell_dqtdz(n)
        end do
 
     else
@@ -213,6 +239,9 @@ contains
           do  i=ib,ie
             dthvdz(i,j,kb)=0.
           end do
+       end do
+       do n = 1, nmocells
+          dthvdz(mocell_ijk(n,1),mocell_ijk(n,2),mocell_ijk(n,3)) = mocell_dthldz(n)
        end do
     end if
 
@@ -441,9 +470,12 @@ contains
 
     integer i, j, k
     real tl, es, qs, qsl, b1
-    !  real, intent(in)  :: qt(ib-ih:ie+ih,jb-jh:je+jh,kb:ke+kh),thl(ib-ih:ie+ih,jb-jh:je+jh,kb:ke+kh),exner(kb:ke+kh),pressure(kb:ke+kh)
-    real, intent(in)  :: qt(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh),thl(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh),exner(kb:ke+kh),pressure(kb:ke+kh)
-    real, intent(out) :: ql(ib-ih:ie+ih,jb-jh:je+jh,kb:ke+kh)
+    ! Assumed-shape dummies with the lower bounds of the actual arguments (#403). thl and
+    ! qt are alloc_z fields (kb-kh); ql starts at kb: ql0h is allocated kb:ke+kh and the
+    ! full-level caller passes ql0(:,:,kb:). The former explicit-shape ql(..,kb:ke+kh)
+    ! received ql0 (kb-kh:ke+kh) by sequence association, so ql0(k) held the ql of k+1.
+    real, intent(in)  :: qt(ib-ih:,jb-jh:,kb-kh:), thl(ib-ih:,jb-jh:,kb-kh:), exner(kb:), pressure(kb:)
+    real, intent(out) :: ql(ib-ih:,jb-jh:,kb:)
     real :: Tnr,qsatur,Tnr_old
     integer :: niter,nitert
     if (lqlnr) then
@@ -451,6 +483,7 @@ contains
        !mc      first guess is Tnr=tl
        !mc
        nitert = 0
+       niter  = 0   ! was read uninitialised (#400); diagnostic counter only
        do k=kb,ke+kh
           do j=jb,je
              do i=ib,ie

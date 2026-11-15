@@ -129,8 +129,27 @@
       "uinf",
       "vinf"
     ],
+    "NAMCASES": [
+      "case_hooks"
+    ],
+    "NAMCASE_DYCOMS": [
+      "dycoms_d",
+      "dycoms_qt_thres"
+    ],
     "NAMCHECKSIM": [
       "tcheck"
+    ],
+    "NAMRADIATION": [
+      "dlwbot",
+      "dlwtop",
+      "iradiation",
+      "rad_absorber",
+      "rad_absorber_sv",
+      "rad_longw",
+      "rad_ls",
+      "rad_shortw",
+      "rka",
+      "timerad"
     ],
     "NAMSTATSDUMP": [
       "khigh",
@@ -166,6 +185,7 @@
       "islice",
       "jslice",
       "kslice",
+      "lbldump",
       "lfielddump",
       "lislicedump",
       "ljslicedump",
@@ -180,7 +200,10 @@
       "tfielddump",
       "tsample",
       "tstatsdump",
-      "tstatstart"
+      "tstatstart",
+      "zi_qt_thres",
+      "zi_sv_index",
+      "zi_sv_thres"
     ],
     "PHYSICS": [
       "dpdx",
@@ -282,6 +305,7 @@
       "lbottom",
       "lnorec",
       "lwritefac",
+      "mo_maxslope",
       "nbndpts_c",
       "nbndpts_u",
       "nbndpts_v",
@@ -295,7 +319,8 @@
       "nsolpts_u",
       "nsolpts_v",
       "nsolpts_w",
-      "prandtlturb"
+      "prandtlturb",
+      "ustin"
     ]
   },
   "variables": {
@@ -329,6 +354,7 @@
     "bczp": "BC",
     "bldt": "ENERGYBALANCE",
     "c_vreman": "NAMSUBGRID",
+    "case_hooks": "NAMCASES",
     "cd": "TREES",
     "cf": "NAMSUBGRID",
     "chunkread_size": "DRIVER",
@@ -338,6 +364,8 @@
     "dec": "TREES",
     "di": "INLET",
     "diffnr": "RUN",
+    "dlwbot": "NAMRADIATION",
+    "dlwtop": "NAMRADIATION",
     "dpdx": "PHYSICS",
     "dqdt": "TREES",
     "driverjobnr": "DRIVER",
@@ -349,6 +377,8 @@
     "dti": "INLET",
     "dtin": "INFO",
     "dtmax": "RUN",
+    "dycoms_d": "NAMCASE_DYCOMS",
+    "dycoms_qt_thres": "NAMCASE_DYCOMS",
     "epu": "PURIFS",
     "fieldvars": "OUTPUT",
     "fkar": "WALLS",
@@ -369,6 +399,7 @@
     "inletav": "INLET",
     "iplane": "DRIVER",
     "ipoiss": "DYNAMICS",
+    "iradiation": "NAMRADIATION",
     "irandom": "RUN",
     "islice": "OUTPUT",
     "itot": "DOMAIN",
@@ -390,6 +421,7 @@
     "ktot": "DOMAIN",
     "lad": "TREES",
     "ladaptive": "RUN",
+    "lbldump": "OUTPUT",
     "lbottom": "WALLS",
     "lbuoyancy": "PHYSICS",
     "lbuoycorr": "NAMSUBGRID",
@@ -457,6 +489,7 @@
     "lwarmstart": "RUN",
     "lwriteebfiles": "ENERGYBALANCE",
     "lwritefac": "WALLS",
+    "mo_maxslope": "WALLS",
     "lxydump": "NAMSTATSDUMP",
     "lxytdump": "NAMSTATSDUMP",
     "lydump": "NAMSTATSDUMP",
@@ -501,10 +534,16 @@
     "qt_top": "BC",
     "qts": "BC",
     "r_s": "TREES",
+    "rad_absorber": "NAMRADIATION",
+    "rad_absorber_sv": "NAMRADIATION",
+    "rad_longw": "NAMRADIATION",
+    "rad_ls": "NAMRADIATION",
+    "rad_shortw": "NAMRADIATION",
     "randqt": "RUN",
     "randthl": "RUN",
     "randu": "RUN",
     "rigc": "NAMSUBGRID",
+    "rka": "NAMRADIATION",
     "rsmin": "ENERGYBALANCE",
     "runmode": "RUN",
     "runtime": "RUN",
@@ -516,6 +555,7 @@
     "tfielddump": "OUTPUT",
     "thl_top": "BC",
     "thls": "BC",
+    "timerad": "NAMRADIATION",
     "tnudge": "PHYSICS",
     "totalreadu": "INFO",
     "trestart": "RUN",
@@ -526,6 +566,7 @@
     "ud": "TREES",
     "uflowrate": "PHYSICS",
     "uinf": "INLET",
+    "ustin": "WALLS",
     "vflowrate": "PHYSICS",
     "vinf": "INLET",
     "wfc": "ENERGYBALANCE",
@@ -545,6 +586,9 @@
     "xtime": "DOMAIN",
     "ylen": "DOMAIN",
     "z0": "BC",
-    "z0h": "BC"
+    "z0h": "BC",
+    "zi_qt_thres": "OUTPUT",
+    "zi_sv_index": "OUTPUT",
+    "zi_sv_thres": "OUTPUT"
   }
 }

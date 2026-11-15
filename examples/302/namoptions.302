@@ -1,0 +1,105 @@
+! DALES smoke-cloud case (Bretherton et al. 1999) on uDALES; see README.md for sources.
+&RUN
+iexpnr       = 302
+runtime      = 10800.       ! 3 h (DALES runtime)
+trestart     = 10800.
+ladaptive    = .true.
+dtmax        = 20.          ! DALES default
+courant      = 0.5          ! DALES namoptions (L2 norm there, L1 sum here)
+diffnr       = 0.16         ! = DALES peclet 0.15 x 1.08 (uDALES sums 3 terms)
+libm         = .true.       ! the floor is a facet (README)
+lles         = .true.
+nprocx       = 8
+nprocy       = 2
+lrandomize   = .true.       ! DALES noise: thl only (DALES momentum noise is off)
+irandom      = 43           ! DALES
+randu        = 0.           ! DALES applies no u, v, w noise
+randthl      = 0.1          ! K, DALES randthl
+randqt       = 0.           ! DALES randqt = 2.5e-5 acts on an inert qt (lmoist = .false.)
+krand        = 250          ! = ktot: all levels, as DALES
+/
+
+&OUTPUT
+lfielddump   = .false.
+ltdump       = .false.
+lxytdump     = .false.
+lbldump      = .true.       ! bldump_t and bldump_z: cloud, boundary-layer and radiation diagnostics
+tstatsdump   = 60.
+zi_sv_index  = 1            ! zi_sv: BL height from the smoke = 0.5 crossing
+zi_sv_thres  = 0.5
+/
+
+&DOMAIN
+itot         = 64           ! DALES
+jtot         = 64
+ktot         = 250
+xlen         = 3200.
+ylen         = 3200.
+/
+
+&PHYSICS
+ps           = 100000.      ! DALES
+igrw_damp    = 0            ! DALES igrw_damp = 0
+lmoist       = .false.
+lcoriol      = .false.      ! DALES
+lbuoyancy    = .true.
+ltempeq      = .true.
+/
+
+&DYNAMICS
+lqlnr        = .true.       ! exact ql, the closest option to DALES (inert here, lmoist = .false.)
+iadv_mom     = 2            ! DALES
+iadv_tke     = 2
+iadv_thl     = 7            ! DALES 7 (kappa)
+iadv_qt      = 2            ! DALES 7; uDALES supports only 2 for qt (inert here, lmoist = .false.)
+iadv_sv      = 7            ! DALES 7 (kappa)
+/
+
+&NAMSUBGRID
+loneeqn      = .true.
+lvreman      = .false.
+ldelta       = .false.
+/
+
+&SCALARS
+nsv          = 1
+/
+
+&WALLS
+nfcts        = 1            ! the floor: one horizontal facet (files from tools/python/udprep/flat_floor.py; README)
+nsolpts_u    = 0
+nsolpts_v    = 0
+nsolpts_w    = 4096
+nsolpts_c    = 0
+nbndpts_u    = 4096
+nbndpts_v    = 4096
+nbndpts_w    = 4096
+nbndpts_c    = 4096
+nfctsecs_u   = 4096
+nfctsecs_v   = 4096
+nfctsecs_w   = 0
+nfctsecs_c   = 4096
+lbottom      = .false.
+iwallmom     = 4            ! Monin-Obukhov on the floor facet, u* from MO (DALES isurf = 4, lmostlocal)
+iwalltemp    = 1            ! prescribed facet heat flux bctfz (zero)
+/
+
+&BC
+thls         = 288.         ! DALES; reference surface thl (thvs: base state)
+bctfz        = 0.           ! DALES wtsurf = 0 (floor z0 = z0h = 0.1 m, DALES, in factypes.inp.302)
+/
+
+&NAMRADIATION
+iradiation   = 2
+rad_longw    = .true.
+rad_absorber = 'sv'         ! smoke scalar as the absorber (DALES rad_smoke)
+rad_absorber_sv = 1
+rka          = 0.02         ! DALES
+dlwtop       = 60.          ! DALES
+dlwbot       = 0.
+timerad      = 0.           ! every step (DALES file: 600 s)
+/
+
+&NAMCHECKSIM
+tcheck       = 60.          ! mean dt and Courant number to the log every 60 s
+/

@@ -1,0 +1,11 @@
+--- a/src/modradiation.f90
++++ b/src/modradiation.f90
+@@ -184,7 +184,7 @@
+         rad_smoke  = .true.
+       end select
+     end if
+-    if(iradiation==0 .or. iradiation==10) then
++    if(iradiation==0) then   ! iradiation 10 patch: iradiation 10 keeps rad_longw (radpar + rad_user)
+       rad_shortw = .false.
+       rad_longw  = .false.
+       rad_smoke  = .false.

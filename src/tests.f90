@@ -19,7 +19,8 @@ module tests
 
   implicit none
   save
-  public :: tests_read_sparse_ijk, tests_2decomp_init_exit, tests_mpi_operators, tests_zgrid_metrics, tests_sgs_statistics
+  public :: tests_read_sparse_ijk, tests_2decomp_init_exit, tests_mpi_operators, tests_zgrid_metrics, tests_sgs_statistics, &
+            tests_sgs_oneeqn, tests_lstend, tests_thermo_levels, tests_mo_kernels
 
 contains
 
@@ -745,6 +746,660 @@ contains
     tests_sgs_statistics = all_passed
 
   end function tests_sgs_statistics
+
+  !> One-equation SGS TKE model (aligned with DALES dev 075ac4e modsubgrid.f90).
+  !! Serial, on a synthetic stratified state; the closure and sources are called directly.
+  !!   (a) closure: Kh/Km (molecular parts removed) is 1/Prandtl = 3 where dthvdz <= 0 and
+  !!       ch1 + ch2*zlt/delta where dthvdz > 0, with zlt from grav/thvf(k) (not thvs);
+  !!   (b) sources: no TKE source at kb, set explicitly (the work arrays are pre-filled
+  !!       with garbage), and interior dissipation without the old factor 2, buoyancy
+  !!       with grav/thvf(k);
+  !!   (c) sources in the cells above horizontal Monin-Obukhov facets (iwallmom = 4,
+  !!       modibmdata:mocell_*), set by hand here: a uniform kb plane and one cell above it,
+  !!       so the only shear is the surface-layer one; the DALES first-level form with
+  !!       mocell_dudz/dvdz and dthvdz; cells not in the list keep zero kb sources;
+  !!   (d) a synthetic fully solid level k0 > kb (IIcs(k0) = 0, thvf(k0) = -999, the
+  !!       avexy_ibm fill) with dthvdz > 0: neutral length scale, no buoyancy source,
+  !!       everything finite (before the guard: sqrt of a negative number).
+  !! The namelist must set loneeqn = .true. and ldelta = .false.; Prandtl must be 1/3 to
+  !! full precision (the default).
+  logical function tests_sgs_oneeqn()
+    use modglobal,      only : ib, ie, jb, je, kb, ke, runmode, delta, grav, eps1, numol, &
+                               prandtlmoli, pi
+    use modfields,      only : initfields, u0, v0, w0, e120, e12p, dthvdz, thvf, IIcs
+    use modsurfdata,    only : thvs
+    use modsubgrid,     only : initsubgrid, closure, sources
+    use modsubgriddata, only : ekm, ekh, zlt, sbshr, sbbuo, sbdiss, damp, loneeqn, ldelta, Prandtl, &
+                               cn, cf, Rigc, alpha_kolm
+    use modboundary,    only : initboundary
+    use modibm,         only : initibm, createmasks
+    use modibmdata,     only : nmocells, mocell_ijk, mocell_dudz, mocell_dvdz
+    use initfac,        only : readfacetfiles
+    use decomp_2d,      only : zstart
+    use, intrinsic :: ieee_arithmetic, only : ieee_is_nan
+
+    implicit none
+
+    real, parameter :: tol = 1.e-10
+    real, parameter :: dudz0 = 0.05, dvdz0 = -0.03, dthvdz0 = -0.01
+    real :: kmt, kht, ratio, zexp, cm_l, ceps_l, ce1_l, ce2_l, expd, expb, exps, worst
+    integer :: i, j, k, gi, nstable, nunstable, nlimited, k0, IIcs_save, n, ncell
+    real :: thvf_save
+    logical :: all_passed
+
+    if (myid == 0) then
+      write(*, '(A)') '================================================'
+      write(*, '(A, I8)') 'runmode = ', runmode
+      write(*, '(A)') 'tests_sgs_oneeqn: ONE-EQUATION SGS MODEL TEST'
+      write(*, '(A)') '------------------------------------------------'
+    end if
+
+    call initfields
+    call initboundary
+    call initsubgrid
+    call readfacetfiles
+    call initibm
+    call createmasks
+
+    all_passed = .true.
+    if ((.not. loneeqn) .or. ldelta .or. abs(1./Prandtl - 3.) > 1.e-12) then
+      if (myid == 0) write(*,'(A)') 'FAIL namelist must set loneeqn, .not. ldelta and Prandtl = 1/3'
+      tests_sgs_oneeqn = .false.
+      return
+    end if
+
+    ! Synthetic stratified state. thvs is set far from thvf so a regression to grav/thvs fails.
+    thvs = 250.
+    do k = kb, ke
+      thvf(k) = 300. + 0.01*real(k)
+    end do
+    do k = lbound(e120,3), ubound(e120,3)
+      do j = lbound(e120,2), ubound(e120,2)
+        do i = lbound(e120,1), ubound(e120,1)
+          gi = zstart(1) + i - 1
+          e120(i,j,k) = 0.3 + 0.1*sin(0.7*real(gi) + 1.1*real(j) + 0.3*real(k))
+          u0(i,j,k)   = 2. + 0.5*sin(0.37*real(gi) + 0.21*real(k))
+          v0(i,j,k)   = -1. + 0.4*cos(0.29*real(j) + 0.17*real(k))
+          w0(i,j,k)   = 0.1*sin(0.53*real(gi) - 0.41*real(j) + 0.11*real(k))
+        end do
+      end do
+    end do
+    do k = kb, ke
+      do j = jb, je
+        do i = ib, ie
+          gi = zstart(1) + i - 1
+          dthvdz(i,j,k) = 0.02*sin(1.3*real(gi) + 0.7*real(j) + 0.4*real(k))
+        end do
+      end do
+    end do
+
+    !----------------------------------------------------------------------
+    ! (a) closure: Kh/Km and the stable length scale
+    !----------------------------------------------------------------------
+    call closure
+    nstable = 0; nunstable = 0; nlimited = 0; worst = 0.
+    do k = kb, ke
+      do j = jb, je
+        do i = ib, ie
+          kmt = ekm(i,j,k) - numol
+          kht = ekh(i,j,k) - numol*prandtlmoli
+          ratio = kht / kmt
+          if (dthvdz(i,j,k) <= 0.) then
+            nunstable = nunstable + 1
+            worst = max(worst, abs(zlt(i,j,k) - delta(i,k))/delta(i,k), abs(ratio - 3.))
+          else
+            nstable = nstable + 1
+            zexp = min(delta(i,k), cn*e120(i,j,k)/sqrt(grav/thvf(k)*max(abs(dthvdz(i,j,k)),eps1)))
+            if (zexp < delta(i,k)) nlimited = nlimited + 1
+            worst = max(worst, abs(zlt(i,j,k) - zexp)/zexp, &
+                        abs(ratio - (1. + (3. - 1.)*zlt(i,j,k)/delta(i,k))))
+          end if
+        end do
+      end do
+    end do
+    if (myid == 0) write(*,'(A,3(1X,I0),1X,A,ES12.4)') 'closure cells unstable/stable/limited', &
+         nunstable, nstable, nlimited, 'worst', worst
+    if (worst > tol) then
+      if (myid == 0) write(*,'(A,ES12.4)') 'FAIL closure Kh/Km or zlt, worst deviation', worst
+      all_passed = .false.
+    end if
+    if (nunstable == 0 .or. nstable == 0 .or. nlimited == 0) then
+      if (myid == 0) write(*,'(A)') 'FAIL closure test is vacuous (need unstable, stable and limited cells)'
+      all_passed = .false.
+    end if
+
+    !----------------------------------------------------------------------
+    ! (b) sources
+    !----------------------------------------------------------------------
+    sbshr(:,:,kb) = 1.e30; sbbuo(:,:,kb) = -1.e30; sbdiss(:,:,kb) = 1.e30
+    e12p = 0.
+    call sources
+    worst = maxval(abs(e12p(ib:ie,jb:je,kb)))
+    if (worst /= 0.) then
+      if (myid == 0) write(*,'(A,ES12.4)') 'FAIL e12p(kb) is not zero', worst
+      all_passed = .false.
+    end if
+    if (maxval(abs(e12p(ib:ie,jb:je,kb+1))) == 0.) then
+      if (myid == 0) write(*,'(A)') 'FAIL e12p(kb+1) is zero: sources test is vacuous'
+      all_passed = .false.
+    end if
+
+    ! interior dissipation and buoyancy, constants derived independently of initsubgrid
+    cm_l   = cf / (2. * pi) * (1.5*alpha_kolm)**(-1.5)
+    ceps_l = 2. * pi / cf * (1.5*alpha_kolm)**(-1.5)
+    ce1_l  = cn**2 * (cm_l/Rigc - cm_l)
+    ce2_l  = ceps_l - ce1_l
+    worst = 0.
+    do k = kb+1, ke
+      do j = jb, je
+        do i = ib, ie
+          expd = -(ce1_l + ce2_l*zlt(i,j,k)/delta(i,k)) * e120(i,j,k)**2 / (2.*zlt(i,j,k))
+          expb = -(ekh(i,j,k) - numol*prandtlmoli)*grav/thvf(k)*dthvdz(i,j,k)/(2.*e120(i,j,k))
+          worst = max(worst, abs(sbdiss(i,j,k) - expd)/abs(expd), &
+                      abs(sbbuo(i,j,k) - expb)/max(abs(expb), 1.e-30))
+        end do
+      end do
+    end do
+    if (myid == 0) write(*,'(A,ES12.4)') 'interior sbdiss/sbbuo worst relative deviation', worst
+    if (worst > tol) then
+      if (myid == 0) write(*,'(A,ES12.4)') 'FAIL interior sbdiss or sbbuo', worst
+      all_passed = .false.
+    end if
+
+    !----------------------------------------------------------------------
+    ! (c) cells above horizontal Monin-Obukhov facets: the west half of the kb plane and one
+    !     cell at kb+3 (a roof), uniform state there so the only vertical shear is the MO one
+    !----------------------------------------------------------------------
+    if (nmocells /= 0) then
+      if (myid == 0) write(*,'(A)') 'FAIL the test case must not have Monin-Obukhov facets'
+      all_passed = .false.
+    end if
+    ncell = 0
+    do j = jb, je
+      do i = ib, ie
+        if (i + zstart(1) - 1 <= (ie - ib + 1) / 2) ncell = ncell + 1
+      end do
+    end do
+    ncell = ncell + 1
+    allocate(mocell_ijk(ncell,3), mocell_dudz(ncell), mocell_dvdz(ncell))
+    n = 0
+    do j = jb, je
+      do i = ib, ie
+        if (i + zstart(1) - 1 <= (ie - ib + 1) / 2) then
+          n = n + 1
+          mocell_ijk(n,:) = (/ i, j, kb /)
+        end if
+      end do
+    end do
+    mocell_ijk(ncell,:) = (/ ib + 1, jb + 1, kb + 3 /)
+    nmocells = ncell
+    mocell_dudz = dudz0; mocell_dvdz = dvdz0
+    u0(:,:,kb) = 3.; v0(:,:,kb) = -2.; w0(:,:,kb) = 0.; w0(:,:,kb+1) = 0.
+    u0(:,:,kb+3) = 3.; v0(:,:,kb+3) = -2.; w0(:,:,kb+3) = 0.; w0(:,:,kb+4) = 0.
+    dthvdz(:,:,kb) = dthvdz0
+    dthvdz(:,:,kb+3) = dthvdz0
+    call closure
+    sbshr(:,:,kb) = 1.e30; sbbuo(:,:,kb) = -1.e30; sbdiss(:,:,kb) = 1.e30
+    e12p = 0.
+    call sources
+    worst = 0.
+    do n = 1, nmocells
+      i = mocell_ijk(n,1); j = mocell_ijk(n,2); k = mocell_ijk(n,3)
+      exps = (ekm(i,j,k) - numol)*(dudz0**2 + dvdz0**2)/(2.*e120(i,j,k)) &
+           - (ekh(i,j,k) - numol*prandtlmoli)*grav/thvf(k)*dthvdz0/(2.*e120(i,j,k)) &
+           - (ce1_l + ce2_l*zlt(i,j,k)/delta(i,k)) * e120(i,j,k)**2 / (2.*damp(i,j,k)*zlt(i,j,k))
+      worst = max(worst, abs(e12p(i,j,k) - exps)/abs(exps))
+    end do
+    if (myid == 0) write(*,'(A,ES12.4)') 'MO-cell sources worst relative deviation', worst
+    if (worst > tol) then
+      if (myid == 0) write(*,'(A,ES12.4)') 'FAIL MO-cell sources', worst
+      all_passed = .false.
+    end if
+    ! the east half of kb is not in the list: no source there
+    worst = 0.
+    do j = jb, je
+      do i = ib, ie
+        if (i + zstart(1) - 1 > (ie - ib + 1) / 2) worst = max(worst, abs(e12p(i,j,kb)))
+      end do
+    end do
+    if (worst /= 0.) then
+      if (myid == 0) write(*,'(A,ES12.4)') 'FAIL e12p(kb) outside the MO cells is not zero', worst
+      all_passed = .false.
+    end if
+    nmocells = 0
+    deallocate(mocell_ijk, mocell_dudz, mocell_dvdz)
+
+    !----------------------------------------------------------------------
+    ! (d) fully solid level: the grav/thvf guard
+    !----------------------------------------------------------------------
+    k0 = kb + 2
+    IIcs_save = IIcs(k0); thvf_save = thvf(k0)
+    IIcs(k0) = 0
+    thvf(k0) = -999.
+    dthvdz(:,:,k0) = 0.01
+    call closure
+    e12p = 0.
+    call sources
+    worst = 0.
+    do j = jb, je
+      do i = ib, ie
+        worst = max(worst, abs(zlt(i,j,k0) - delta(i,k0))/delta(i,k0), abs(sbbuo(i,j,k0)))
+        if (ieee_is_nan(zlt(i,j,k0)) .or. ieee_is_nan(ekm(i,j,k0)) .or. ieee_is_nan(ekh(i,j,k0)) &
+            .or. ieee_is_nan(sbshr(i,j,k0)) .or. ieee_is_nan(sbdiss(i,j,k0)) &
+            .or. ieee_is_nan(e12p(i,j,k0))) worst = huge(1.)
+      end do
+    end do
+    IIcs(k0) = IIcs_save; thvf(k0) = thvf_save
+    if (myid == 0) write(*,'(A,ES12.4)') 'fully solid level guard worst deviation', worst
+    if (worst > tol) then
+      if (myid == 0) write(*,'(A,ES12.4)') 'FAIL fully solid level guard', worst
+      all_passed = .false.
+    end if
+
+    if (all_passed .and. myid == 0) then
+      write(*, '(A)') '------------------------------------------------'
+      write(*, '(A)') 'ALL TESTS PASSED: tests_sgs_oneeqn'
+      write(*, '(A)') '================================================'
+    else if ((.not. all_passed) .and. myid == 0) then
+      write(*, '(A)') '------------------------------------------------'
+      write(*, '(A)') 'TESTS FAILED: tests_sgs_oneeqn'
+      write(*, '(A)') '================================================'
+    end if
+
+    tests_sgs_oneeqn = all_passed
+
+  end function tests_sgs_oneeqn
+
+  !> Large-scale subsidence (modforces:lstend) against DALES dev 075ac4e lstend, cell by
+  !! cell. thl0, qt0, sv0(:,:,:,1), u0 and v0 vary in x and z, whls changes sign with
+  !! height, lmomsubs is on and the horizontal large-scale gradients are zero, so the
+  !! tendency is the upwind subsidence term only:
+  !!   whls(k+1) < 0:     -whls(k+1)*(phi(k+1) - phi(k))/dzh(k+1)
+  !!   else, k > kb:      -whls(k)  *(phi(k)   - phi(k-1))/dzh(k)
+  !!   else, k = kb:      0 (mean ascent neglected at the first level)
+  !! Two passes with opposite whls cover both kb rules. A slab-mean stencil fails the
+  !! test, because the fields vary in x. The namelist must set nsv >= 1.
+  logical function tests_lstend()
+    use modglobal, only : ib, ie, jb, je, kb, ke, dzh, nsv, lmomsubs, itot, runmode, pi
+    use modfields, only : initfields, thl0, qt0, sv0, u0, v0, thlp, qtp, svp, up, vp, whls, &
+                          u0av, v0av
+    use modforces, only : lstend
+    use modmpi,    only : mpi_max
+    use decomp_2d, only : zstart
+
+    implicit none
+
+    real, parameter :: tol = 1.e-12
+    integer :: i, j, k, gi, ipass, n, ndown, nup, nkb
+    real :: worst, scale, sgn, e, s, xvar, loc(2), glob(2)
+    logical :: all_passed, lmomsubs_save
+    real, allocatable :: expt(:,:,:,:), got(:,:,:,:), phi(:,:,:,:)
+
+    if (myid == 0) then
+      write(*, '(A)') '================================================'
+      write(*, '(A, I8)') 'runmode = ', runmode
+      write(*, '(A)') 'tests_lstend: LOCAL-FIELD SUBSIDENCE TEST'
+      write(*, '(A)') '------------------------------------------------'
+    end if
+
+    call initfields
+    all_passed = .true.
+    if (nsv < 1) then
+      if (myid == 0) write(*,'(A)') 'FAIL namelist must set nsv >= 1'
+      tests_lstend = .false.
+      return
+    end if
+    lmomsubs_save = lmomsubs
+    lmomsubs = .true.
+    u0av = 0.; v0av = 0.
+
+    do k = lbound(thl0,3), ubound(thl0,3)
+      do j = lbound(thl0,2), ubound(thl0,2)
+        do i = lbound(thl0,1), ubound(thl0,1)
+          gi = zstart(1) + i - 1
+          s = sin(2.*pi*real(gi)/real(itot))
+          thl0(i,j,k) = 290. + 0.004*real(k) + 0.3*s*cos(0.2*real(k)) + 0.01*real(j)
+          qt0(i,j,k)  = 1.e-2 - 2.e-5*real(k) + 1.e-4*s*sin(0.3*real(k))
+          u0(i,j,k)   = 5. + 0.05*real(k) + 0.8*s*cos(0.15*real(k))
+          v0(i,j,k)   = -2. + 0.03*real(k) - 0.6*s*sin(0.25*real(k) + 0.1*real(j))
+        end do
+      end do
+    end do
+    do k = lbound(sv0,3), ubound(sv0,3)
+      do j = lbound(sv0,2), ubound(sv0,2)
+        do i = lbound(sv0,1), ubound(sv0,1)
+          gi = zstart(1) + i - 1
+          s = sin(2.*pi*real(gi)/real(itot))
+          sv0(i,j,k,1) = 1. + 0.02*real(k) + 0.5*s*cos(0.35*real(k))
+        end do
+      end do
+    end do
+
+    allocate(expt(ib:ie,jb:je,kb:ke,5), got(ib:ie,jb:je,kb:ke,5), phi(ib:ie,jb:je,kb-1:ke+1,5))
+    phi(:,:,:,1) = thl0(ib:ie,jb:je,kb-1:ke+1)
+    phi(:,:,:,2) = qt0 (ib:ie,jb:je,kb-1:ke+1)
+    phi(:,:,:,3) = sv0 (ib:ie,jb:je,kb-1:ke+1,1)
+    phi(:,:,:,4) = u0  (ib:ie,jb:je,kb-1:ke+1)
+    phi(:,:,:,5) = v0  (ib:ie,jb:je,kb-1:ke+1)
+
+    ndown = 0; nup = 0; nkb = 0; worst = 0.; xvar = 0.
+    do ipass = 1, 2
+      sgn = merge(1., -1., ipass == 1)
+      ! descent aloft and ascent below (pass 1), the opposite in pass 2; zero at one level
+      do k = lbound(whls,1), ubound(whls,1)
+        whls(k) = sgn * 0.01 * real((kb + ke)/2 - k) / real(ke - kb + 1)
+      end do
+      thlp = 0.; qtp = 0.; svp = 0.; up = 0.; vp = 0.
+      call lstend
+      got(:,:,:,1) = thlp(ib:ie,jb:je,kb:ke)
+      got(:,:,:,2) = qtp (ib:ie,jb:je,kb:ke)
+      got(:,:,:,3) = svp (ib:ie,jb:je,kb:ke,1)
+      got(:,:,:,4) = up  (ib:ie,jb:je,kb:ke)
+      got(:,:,:,5) = vp  (ib:ie,jb:je,kb:ke)
+      do k = kb, ke
+        if (whls(k+1) < 0.) then
+          ndown = ndown + 1
+          expt(:,:,k,:) = -whls(k+1) * (phi(:,:,k+1,:) - phi(:,:,k,:)) / dzh(k+1)
+        else if (k > kb) then
+          nup = nup + 1
+          expt(:,:,k,:) = -whls(k) * (phi(:,:,k,:) - phi(:,:,k-1,:)) / dzh(k)
+        else
+          nkb = nkb + 1
+          expt(:,:,k,:) = 0.
+        end if
+      end do
+      do n = 1, 5
+        scale = max(maxval(abs(expt(:,:,:,n))), tiny(1.))
+        e = maxval(abs(got(:,:,:,n) - expt(:,:,:,n))) / scale
+        worst = max(worst, e)
+        xvar = max(xvar, maxval(abs(got(ie,jb,:,n) - got(ib,jb,:,n))) / scale)
+      end do
+    end do
+    loc = (/worst, xvar/)
+    call MPI_ALLREDUCE(loc, glob, 2, MY_REAL, MPI_MAX, comm3d, mpierr)
+    worst = glob(1); xvar = glob(2)
+    lmomsubs = lmomsubs_save
+    deallocate(expt, got, phi)
+
+    if (myid == 0) write(*,'(A,3(1X,I0),1X,A,ES12.4,1X,A,ES12.4)') &
+         'lstend levels descent/ascent/kb-ascent', ndown, nup, nkb, &
+         'worst relative deviation', worst, 'x variation', xvar
+    if (worst > tol) then
+      if (myid == 0) write(*,'(A,ES12.4)') 'FAIL lstend differs from the DALES upwind formula', worst
+      all_passed = .false.
+    end if
+    if (ndown == 0 .or. nup == 0 .or. nkb == 0 .or. xvar < 1.e-3) then
+      if (myid == 0) write(*,'(A)') 'FAIL lstend test is vacuous (need descent, ascent, kb ascent, x variation)'
+      all_passed = .false.
+    end if
+
+    if (all_passed .and. myid == 0) then
+      write(*, '(A)') '------------------------------------------------'
+      write(*, '(A)') 'ALL TESTS PASSED: tests_lstend'
+      write(*, '(A)') '================================================'
+    else if ((.not. all_passed) .and. myid == 0) then
+      write(*, '(A)') '------------------------------------------------'
+      write(*, '(A)') 'TESTS FAILED: tests_lstend'
+      write(*, '(A)') '================================================'
+    end if
+
+    tests_lstend = all_passed
+
+  end function tests_lstend
+
+  !> Saturation adjustment at full and half levels (#403). thermodynamics is called on a
+  !! saturated state that varies in x and z; then ql0(k) must be the one-step adjustment
+  !! of thl0(k), qt0(k) at the pressure that thermo saw (presf/exnf before the call), and
+  !! ql0h(k) that of thl0h(k), qt0h(k) at presh/exnh (thermo runs after diagfld and
+  !! calc_halflev for the half levels). Before #403 ql0(k) held the ql of level k+1.
+  !! The namelist must set lmoist = .true. and lqlnr = .false. (the default).
+  logical function tests_thermo_levels()
+    use modglobal,  only : ib, ie, jb, je, kb, ke, kh, runmode, lmoist, timee, itot, pi, &
+                           es0, at, bt, rd, rv, rlv, cp, tmelt
+    use modfields,  only : initfields, thl0, qt0, ql0, thl0h, qt0h, ql0h, presf, presh, exnf, exnh
+    use modthermodynamics, only : initthermodynamics, thermodynamics, lqlnr
+    use modmpi,     only : mpi_max, mpi_min
+    use modboundary, only : initboundary
+    use modibm,     only : initibm, createmasks
+    use initfac,    only : readfacetfiles
+    use decomp_2d,  only : zstart
+
+    implicit none
+
+    real, parameter :: tol = 1.e-12
+    integer :: i, j, k, gi, nsat_f, nsat_h
+    real :: s, worst_f, worst_h, qlmax, loc(4), glob(4)
+    real, allocatable :: pf(:), ef(:)
+    logical :: all_passed
+
+    if (myid == 0) then
+      write(*, '(A)') '================================================'
+      write(*, '(A, I8)') 'runmode = ', runmode
+      write(*, '(A)') 'tests_thermo_levels: SATURATION ADJUSTMENT LEVELS'
+      write(*, '(A)') '------------------------------------------------'
+    end if
+
+    call initfields
+    call initboundary
+    call initthermodynamics
+    call readfacetfiles
+    call initibm
+    call createmasks
+
+    all_passed = .true.
+    if ((.not. lmoist) .or. lqlnr) then
+      if (myid == 0) write(*,'(A)') 'FAIL namelist must set lmoist = .true. and lqlnr = .false.'
+      tests_thermo_levels = .false.
+      return
+    end if
+
+    ! saturated mixed layer with a lapse in thl and a dip in qt; varies in x
+    do k = lbound(thl0,3), ubound(thl0,3)
+      do j = lbound(thl0,2), ubound(thl0,2)
+        do i = lbound(thl0,1), ubound(thl0,1)
+          gi = zstart(1) + i - 1
+          s = sin(2.*pi*real(gi)/real(itot))
+          thl0(i,j,k) = 287. + 0.004*real(k) + 0.05*s
+          qt0(i,j,k)  = 1.2e-2 - 1.e-5*real(k) + 2.e-4*s
+        end do
+      end do
+    end do
+
+    timee = 0.
+    call thermodynamics            ! sets presf/exnf (diagfld) for the next call
+    timee = 1.                     ! no extra diagfld before thermo
+    allocate(pf(kb:ke+kh), ef(kb:ke+kh))
+    pf = presf; ef = exnf
+    call thermodynamics
+
+    worst_f = 0.; worst_h = 0.; nsat_f = 0; nsat_h = 0; qlmax = 0.
+    do k = kb, ke
+      do j = jb, je
+        do i = ib, ie
+          s = ql_ref(thl0(i,j,k), qt0(i,j,k), pf(k), ef(k))
+          if (s > 0.) nsat_f = nsat_f + 1
+          qlmax = max(qlmax, s)
+          worst_f = max(worst_f, abs(ql0(i,j,k) - s))
+          if (k > kb) then
+            s = ql_ref(thl0h(i,j,k), qt0h(i,j,k), presh(k), exnh(k))
+            if (s > 0.) nsat_h = nsat_h + 1
+            worst_h = max(worst_h, abs(ql0h(i,j,k) - s))
+          end if
+        end do
+      end do
+    end do
+    loc = (/worst_f, worst_h, qlmax, real(min(nsat_f, nsat_h))/)
+    call MPI_ALLREDUCE(loc(1:3), glob(1:3), 3, MY_REAL, MPI_MAX, comm3d, mpierr)
+    call MPI_ALLREDUCE(loc(4), glob(4), 1, MY_REAL, MPI_MIN, comm3d, mpierr)
+    worst_f = glob(1) / max(glob(3), tiny(1.)); worst_h = glob(2) / max(glob(3), tiny(1.))
+    deallocate(pf, ef)
+
+    if (myid == 0) write(*,'(A,ES12.4,1X,A,ES12.4,1X,A,ES12.4,1X,A,1X,I0)') &
+         'ql0 full-level worst', worst_f, 'ql0h half-level worst', worst_h, 'max ql', glob(3), &
+         'min saturated cells', nint(glob(4))
+    if (worst_f > tol) then
+      if (myid == 0) write(*,'(A,ES12.4)') 'FAIL ql0 does not match thl0/qt0 at the same level', worst_f
+      all_passed = .false.
+    end if
+    if (worst_h > tol) then
+      if (myid == 0) write(*,'(A,ES12.4)') 'FAIL ql0h does not match thl0h/qt0h at the same level', worst_h
+      all_passed = .false.
+    end if
+    if (glob(4) < 1. .or. glob(3) < 1.e-4) then
+      if (myid == 0) write(*,'(A)') 'FAIL thermo levels test is vacuous (state not saturated)'
+      all_passed = .false.
+    end if
+
+    if (all_passed .and. myid == 0) then
+      write(*, '(A)') '------------------------------------------------'
+      write(*, '(A)') 'ALL TESTS PASSED: tests_thermo_levels'
+      write(*, '(A)') '================================================'
+    else if ((.not. all_passed) .and. myid == 0) then
+      write(*, '(A)') '------------------------------------------------'
+      write(*, '(A)') 'TESTS FAILED: tests_thermo_levels'
+      write(*, '(A)') '================================================'
+    end if
+    tests_thermo_levels = all_passed
+
+  contains
+
+    !> uDALES modthermodynamics:thermo, one linearised step (lqlnr = .false.)
+    real function ql_ref(thl, qt, p, exn)
+      real, intent(in) :: thl, qt, p, exn
+      real :: tl, es, qsl, b1, qs
+      tl  = max(thl*exn, 100.)
+      es  = es0*exp(at*(tl-tmelt)/(tl-bt))
+      qsl = rd/rv*es/(p-(1-rd/rv)*es)
+      b1  = rlv**2/(tl**2*cp*rv)
+      qs  = qsl*(1.+b1*qt)/(1.+b1*qsl)
+      ql_ref = max(qt-qs, 0.)
+    end function ql_ref
+
+  end function tests_thermo_levels
+
+  !> Monin-Obukhov surface-layer kernels of modsurface (runmode TEST_MO_KERNELS), no fields needed:
+  !!  - psim, psih at fixed zeta against Businger-Dyer (unstable, with the Paulson integrals) and
+  !!    Beljaars-Holtslag 1991 (stable); reference values from the textbook expressions evaluated
+  !!    independently in double precision (Python math, exact pi);
+  !!  - phim, phih: Businger-Dyer, linear stable branch, cap at zeta >= 1;
+  !!  - mo_local_update (the per-section surface of iwallmom = 4) iterated to its fixed point:
+  !!    neutral u* = kappa |U| / ln(z1/z0); unstable u* = kappa |U| / (ln(z1/z0) - psim(z1/L)
+  !!    + psim(z0/L)) with L = -u*^3 tskin / (kappa g w'thl') (dry), the flux-defined Obukhov
+  !!    length; prescribed u* (ustin); the u* >= 0.01 floor;
+  !!  - calc_obl_iter: for Ri_b of known L (rib_from_obl) the Newton iteration returns that L
+  !!    (to its 1e-4 stopping criterion), neutral Ri_b = 0 gives the 1e6 sentinel, and the sign of
+  !!    L follows the sign of Ri_b.
+  logical function tests_mo_kernels()
+    use modglobal,  only : runmode, fkar, grav
+    use modsurface, only : psim, psih, phim, phih, calc_obl_iter, rib_from_obl, mo_local_update
+    implicit none
+
+    real, parameter :: ztab(6)  = (/ -2., -0.5, -0.01, 0.1, 1., 5. /)
+    real, parameter :: psim_ref(6) = (/ 1.4946911231395577, 0.7933591213265179, 0.038145920788543286, &
+                                        -0.4919411586308229, -4.282286443443776, -13.448066064354387 /)
+    real, parameter :: psih_ref(6) = (/ 2.431178931723096, 1.3862943611198904, 0.07558646787399062, &
+                                        -0.4935897548853774, -4.433943858003452, -16.468618728707632 /)
+    ! psim carries pi to 9 digits as in DALES: 2e-9 offset, which cancels in the differences used
+    real, parameter :: tol_psi = 1.e-7
+    real, parameter :: ltrue(6) = (/ -200., -20., -2., 2., 20., 200. /)
+    real, parameter :: z1 = 10., z0 = 1.e-3, z0h = 1.e-4, tskin = 300., ucomp = 5.
+    integer :: n
+    real :: e, dthv, thl, ustar, expect, lnum, rib, obl, ts, qs
+    logical :: all_passed
+
+    if (myid == 0) then
+      write(*, '(A)') '================================================'
+      write(*, '(A, I8)') 'runmode = ', runmode
+      write(*, '(A)') 'tests_mo_kernels: MONIN-OBUKHOV SURFACE-LAYER KERNELS'
+      write(*, '(A)') '------------------------------------------------'
+    end if
+    all_passed = .true.
+
+    ! stability functions against the reference values
+    e = 0.
+    do n = 1, size(ztab)
+      e = max(e, abs(psim(ztab(n)) - psim_ref(n)), abs(psih(ztab(n)) - psih_ref(n)))
+    end do
+    if (myid == 0) write(*, '(A,ES12.4)') 'psim/psih worst deviation from reference', e
+    if (e > tol_psi) call report_fail('psim/psih deviate from Businger-Dyer / Beljaars-Holtslag')
+
+    ! gradient functions
+    e = max(abs(phim(-1.) - 17.**(-0.25)), abs(phih(-1.) - 17.**(-0.5)), abs(phim(0.) - 1.), abs(phih(0.) - 1.), &
+            abs(phim(0.5) - 3.5), abs(phih(0.5) - 3.5), abs(phim(1.) - 6.), abs(phih(2.) - 6.), abs(phim(7.) - 6.))
+    if (myid == 0) write(*, '(A,ES12.4)') 'phim/phih worst deviation from reference', e
+    if (e > 1.e-12) call report_fail('phim/phih deviate from the Businger-Dyer values')
+
+    ! mo_local_update at its fixed point (fixed air state, as for a steady laminar first level)
+    ! neutral: zero fluxes, L -> 1e6, u* = kappa |U| / ln(z1/z0) up to psim(z1/1e6) ~ 5e-6
+    call iterate(290., 5.e-3, ucomp, 0., 0., 0.)
+    expect = fkar * ucomp / log(z1 / z0)
+    e = abs(ustar / expect - 1.)
+    if (myid == 0) write(*, '(A,ES12.4,A,ES12.4)') 'mo_local_update neutral: u* rel error', e, ', L', obl
+    if (e > 1.e-5 .or. obl /= 1.e6) call report_fail('mo_local_update neutral u* is not kappa |U| / ln(z1/z0)')
+    ! unstable, dry: w'thl' = 0.1 K m/s upward
+    call iterate(290., 0., ucomp, 0.1, 0., 0.)
+    expect = fkar * ucomp / (log(z1 / z0) - psim(z1 / obl) + psim(z0 / obl))
+    e = abs(ustar / expect - 1.)
+    lnum = -ustar**3 * ts / (fkar * grav * 0.1)
+    if (myid == 0) write(*, '(A,ES12.4,A,ES12.4,A,2ES12.4)') 'mo_local_update unstable: u* rel error', e, &
+                                                     ', L rel error', abs(obl / lnum - 1.), ', L, u*', obl, ustar
+    if (e > 1.e-6) call report_fail('mo_local_update unstable u* is not kappa |U| / (ln - psim(z1/L) + psim(z0/L))')
+    if (obl >= 0. .or. abs(obl / lnum - 1.) > 1.e-3) &
+      call report_fail('mo_local_update unstable L is not the flux Obukhov length -u*^3 thv / (kappa g wthv)')
+    ! prescribed u*, and the floors
+    call iterate(290., 0., ucomp, 0.1, 0., 0.28)
+    if (ustar /= 0.28) call report_fail('mo_local_update: ustin > 0 must prescribe u*')
+    call iterate(290., 0., 0.05, 0., 0., 0.)
+    if (ustar /= 1.e-2) call report_fail('mo_local_update: u* floor of 0.01 m/s')
+
+    ! Obukhov length iteration: round trip from the Ri_b of a known L (first guess as in the solver)
+    e = 0.
+    do n = 1, size(ltrue)
+      rib  = rib_from_obl(z1, ltrue(n), z0h, z0)
+      dthv = rib * ucomp**2 * tskin / (grav * z1)
+      lnum = calc_obl_iter(tskin + dthv, 0., tskin, 0., z1, z0, z0h, ucomp, 0., -0.1)
+      e = max(e, abs(lnum / ltrue(n) - 1.))
+    end do
+    if (myid == 0) write(*, '(A,ES12.4)') 'calc_obl_iter worst relative error of L', e
+    if (e > 2.e-3) call report_fail('calc_obl_iter does not recover L from its bulk Richardson number')
+    lnum = calc_obl_iter(tskin, 0., tskin, 0., z1, z0, z0h, ucomp, 0., -0.1)
+    if (lnum /= 1.e6) call report_fail('calc_obl_iter: neutral Ri_b = 0 must give L = 1e6')
+    thl = tskin + 1.
+    lnum = calc_obl_iter(thl, 0., tskin, 0., z1, z0, z0h, ucomp, 0., -0.1)
+    if (lnum <= 0.) call report_fail('calc_obl_iter: warm air over a cold surface must be stable (L > 0)')
+    lnum = calc_obl_iter(tskin - 1., 0., tskin, 0., z1, z0, z0h, ucomp, 0., -0.1)
+    if (lnum >= 0.) call report_fail('calc_obl_iter: cold air over a warm surface must be unstable (L < 0)')
+
+    if (all_passed .and. myid == 0) then
+      write(*, '(A)') '------------------------------------------------'
+      write(*, '(A)') 'ALL TESTS PASSED: tests_mo_kernels'
+      write(*, '(A)') '================================================'
+    else if ((.not. all_passed) .and. myid == 0) then
+      write(*, '(A)') '------------------------------------------------'
+      write(*, '(A)') 'TESTS FAILED: tests_mo_kernels'
+      write(*, '(A)') '================================================'
+    end if
+    tests_mo_kernels = all_passed
+
+  contains
+
+    subroutine report_fail(msg)
+      character(*), intent(in) :: msg
+      if (myid == 0) write(*, '(2A)') 'FAIL ', msg
+      all_passed = .false.
+    end subroutine report_fail
+
+    !> 200 surface calls at a fixed air state (thl, qt, |U|) from the solver's cold start
+    subroutine iterate(thl_a, qt_a, u_a, wthl, wqt, ust)
+      real, intent(in) :: thl_a, qt_a, u_a, wthl, wqt, ust
+      integer :: it
+      obl = -0.1; ts = thl_a; qs = qt_a
+      do it = 1, 200
+        call mo_local_update(thl_a, qt_a, u_a, z1, z0, z0h, wthl, wqt, ust, obl, ts, qs, ustar)
+      end do
+    end subroutine iterate
+
+  end function tests_mo_kernels
 
   !> Shared comparators. Report the largest absolute deviation and where it is.
   logical function compare_real_1d(label, got, exp, tol)

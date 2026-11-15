@@ -1,0 +1,113 @@
+! DYCOMS-II RF01 (Stevens et al. 2005) on uDALES; see README.md for sources.
+&RUN
+iexpnr       = 303
+runtime      = 14400.       ! 4 h
+trestart     = 14400.
+ladaptive    = .true.       ! adaptive is the default; the DALES comparison uses the fixed-dt block below (RESULTS.md)
+dtmax        = 20.          ! DALES default; never reached
+courant      = 0.5          ! as the DALES RF01 reference run; not limiting (diffusion limits the step)
+diffnr       = 0.16         ! = DALES peclet 0.15 x 1.065 (uDALES sums 3 terms); with #405 fixed the step is 0.47-0.50 s vs DALES 0.40-0.43 s (README)
+! Fixed time step (the DALES close-match comparison, RESULTS.md; DALES runs the same dt):
+! ladaptive  = .false.      ! then dt = dtmax; courant and diffnr are ignored; runtime must be a multiple of dtmax
+! dtmax      = 0.3          ! s; below both codes' adaptive dt (DALES hourly means 0.40-0.43 s); 60 s output = 200 steps
+libm         = .true.       ! the floor is a facet (README)
+lles         = .true.
+nprocx       = 8
+nprocy       = 4
+lrandomize   = .true.       ! DALES RF01 noise: thl and qt (DALES momentum noise is off)
+irandom      = 43           ! DALES
+randu        = 0.           ! DALES applies no u, v, w noise
+randthl      = 0.1          ! K, DALES dycoms_rf02 randthl
+randqt       = 2.5e-5       ! kg/kg, DALES dycoms_rf02 randqt
+krand        = 300          ! = ktot: all levels, as DALES
+/
+
+&OUTPUT
+lfielddump   = .false.
+ltdump       = .false.
+lxytdump     = .false.
+lbldump      = .true.       ! bldump_t and bldump_z: cloud, boundary-layer and radiation diagnostics
+tstatsdump   = 60.
+zi_qt_thres  = 8.e-3        ! zi_qt: BL height from the qt = 8 g/kg crossing
+/
+
+&DOMAIN
+itot         = 96           ! Stevens et al. 2005 / task spec: 96 x 96 x 300, dx = 35 m, dz = 5 m
+jtot         = 96
+ktot         = 300
+xlen         = 3360.
+ylen         = 3360.
+xlat         = 31.5         ! f = 0.76e-4 1/s (PyCLES ForcingDyCOMS_RF01)
+/
+
+&PHYSICS
+ps           = 101780.      ! PyCLES RS.Pg = 1017.8 hPa
+igrw_damp    = 2            ! sponge over the top quarter (ksp default)
+lmoist       = .true.
+lcoriol      = .true.
+lbuoyancy    = .true.
+ltempeq      = .true.
+/
+
+&DYNAMICS
+lqlnr        = .true.       ! exact ql (Newton-Raphson); DALES dev: two linearised steps, within 0.2 %
+iadv_mom     = 2
+iadv_tke     = 2
+iadv_thl     = 2
+iadv_qt      = 2
+/
+
+&NAMSUBGRID
+loneeqn      = .true.
+lvreman      = .false.
+ldelta       = .false.
+/
+
+&WALLS
+nfcts        = 1            ! the floor: one horizontal facet (files from tools/python/udprep/flat_floor.py; README)
+nsolpts_u    = 0
+nsolpts_v    = 0
+nsolpts_w    = 9216
+nsolpts_c    = 0
+nbndpts_u    = 9216
+nbndpts_v    = 9216
+nbndpts_w    = 9216
+nbndpts_c    = 9216
+nfctsecs_u   = 9216
+nfctsecs_v   = 9216
+nfctsecs_w   = 0
+nfctsecs_c   = 9216
+lbottom      = .false.
+iwallmom     = 4            ! Monin-Obukhov on the floor facet (DALES isurf 4, lmostlocal)
+iwalltemp    = 1            ! prescribed facet heat flux bctfz
+iwallmoist   = 1            ! prescribed facet moisture flux bcqfz (floor facet type has lGR = 1)
+/
+
+&BC
+thls         = 289.         ! reference surface thl (thvs: base state); the floor facet diagnoses its own
+qts          = 9.0e-3       ! reference surface qt (thvs)
+bctfz        = -1.22460976e-02   ! floor SHF 15 W/m2 upward / (1.22 kg/m3 * 1004 J/kg/K); negative = upward (D1)
+bcqfz        = -3.72578241e-05   ! floor LHF 115 W/m2 upward / (1.22 kg/m3 * 2.53e6 J/kg)
+/
+
+&NAMRADIATION
+iradiation   = 2
+rad_longw    = .true.
+rka          = 85.          ! m2/kg (PyCLES kap)
+dlwtop       = 70.          ! F0
+dlwbot       = 22.          ! F1
+timerad      = 0.
+/
+
+&NAMCASES
+case_hooks   = 'dycoms_rf01'   ! free-troposphere radiation term (src/cases/case_dycoms_rf01.f90)
+/
+
+&NAMCASE_DYCOMS
+dycoms_D        = 3.75e-6   ! large-scale divergence [1/s]
+dycoms_qt_thres = 8.0e-3    ! qt defining the local inversion height [kg/kg]
+/
+
+&NAMCHECKSIM
+tcheck       = 60.          ! mean dt and Courant number to the log every 60 s
+/

@@ -66,7 +66,7 @@ module modstartup
                                     lper2inout, libm, lconservativeibm, lnudge, lnudgevel, tnudge, nnudge, lles, luoutflowr, lvoutflowr, luvolflowr, lvvolflowr, &
                                     uflowrate, vflowrate, lstoreplane, iplane, &
                                     lreadmean, inletav, lreadminl, Uinf, Vinf, linletRA, &
-                                    lscasrc,lscasrcl,lscasrcr,lydump,lytdump,lxydump,lxytdump,ltdump,lmintdump,ltkedump,&
+                                    lscasrc,lscasrcl,lscasrcr,lydump,lytdump,lxydump,lxytdump,ltdump,lmintdump,ltkedump,lbldump,zi_qt_thres,zi_sv_index,zi_sv_thres,&
                                     lkslicedump,lislicedump,ljslicedump,kslice,islice,jslice,&
                                     lbuoyancy, ltempeq, &
                                     lfixinlet, lfixutauin, pi, &
@@ -75,7 +75,7 @@ module modstartup
                                     BCxm,BCxT,BCxq,BCxs,BCym,BCyT,BCyq,BCys,BCzp,ds, &
                                     BCtopm,BCtopT,BCtopq,BCtops,BCbotm,BCbotT,BCbotq,BCbots, &
                                     idriver,tdriverstart,driverjobnr,dtdriver,driverstore,lchunkread,chunkread_size, &
-                                    lrandomize, prandtlturb, fkar, lwritefac, dtfac, tfac, tnextfac, &
+                                    lrandomize, prandtlturb, fkar, mo_maxslope, ustin, lwritefac, dtfac, tfac, tnextfac, &
                                     ltrees,ntrees,Qstar,dQdt,lad,lsize,r_s,cd,dec,ud,ltreedump,itree_mode, &
                                     lpurif,npurif,Qpu,epu, &
                                     lheatpump,lfan_hp,nhppoints,Q_dot_hp,QH_dot_hp
@@ -100,7 +100,8 @@ module modstartup
       use decomp_2d
 
       implicit none
-      integer :: ierr
+      integer :: ierr, ic
+      character(len=256) :: nmlline
 
       !declare namelists
 
@@ -152,7 +153,7 @@ module modstartup
          nsolpts_u, nsolpts_v, nsolpts_w, nsolpts_c, &
          nbndpts_u, nbndpts_v, nbndpts_w, nbndpts_c, &
          nfctsecs_u, nfctsecs_v, nfctsecs_w, nfctsecs_c, lbottom, lnorec, &
-         prandtlturb, fkar, lwritefac, dtfac
+         prandtlturb, fkar, mo_maxslope, ustin, lwritefac, dtfac
       namelist/ENERGYBALANCE/ &
          lEB, lwriteEBfiles, lperiodicEBcorr, sinkbase, lconstW, dtEB, bldT, flrT, wsoil, wgrmax, wwilt, wfc, &
          skyLW, GRLAI, rsmin, nfaclyrs, lfacTlyrs, lvfsparse, nnz, fraction
@@ -165,7 +166,7 @@ module modstartup
          lfielddump, tfielddump, fieldvars, &
          ltdump, lydump, lytdump, lxydump, lxytdump, lmintdump, &
          lkslicedump, kslice, lislicedump, islice, ljslicedump, jslice, ltkedump, tstatsdump, tsample, &
-         tstatstart
+         tstatstart, lbldump, zi_qt_thres, zi_sv_index, zi_sv_thres
       namelist/TREES/ &
          ltrees, ntrees, cd, dec, ud, lad, Qstar, dQdt, lsize, r_s, ltreedump, itree_mode
       namelist/PURIFS/ &
@@ -319,6 +320,24 @@ module modstartup
             stop 1
          endif
          !write (6, OUTPUT)
+         rewind (ifnamopt)
+
+         ! &NAMTHERMOSTAT was replaced by lbldump in &OUTPUT; an old group would be ignored silently
+         do
+            read (ifnamopt, '(a)', iostat=ierr) nmlline
+            if (ierr /= 0) exit
+            nmlline = adjustl(nmlline)
+            if (nmlline(1:1) /= '&') cycle
+            do ic = 1, 14
+               if (nmlline(ic:ic) >= 'A' .and. nmlline(ic:ic) <= 'Z') &
+                  nmlline(ic:ic) = achar(iachar(nmlline(ic:ic)) + 32)
+            end do
+            if (nmlline(1:14) == '&namthermostat') then
+               write(0, *) 'ERROR: namelist group &NAMTHERMOSTAT is no longer read. Set lbldump = .true. and ', &
+                           'tstatsdump in &OUTPUT instead (the diagnostics are written to bldump_t/bldump_z).'
+               stop 1
+            end if
+         end do
          close (ifnamopt)
       end if
 
@@ -478,6 +497,10 @@ module modstartup
       call MPI_BCAST(tsample, 1, MY_REAL, 0, comm3d, mpierr) !tg3315
       call MPI_BCAST(tstatsdump, 1, MY_REAL, 0, comm3d, mpierr) !tg3315
       call MPI_BCAST(tstatstart, 1, MY_REAL, 0, comm3d, mpierr)
+      call MPI_BCAST(lbldump, 1, MPI_LOGICAL, 0, comm3d, mpierr)
+      call MPI_BCAST(zi_qt_thres, 1, MY_REAL, 0, comm3d, mpierr)
+      call MPI_BCAST(zi_sv_index, 1, MPI_INTEGER, 0, comm3d, mpierr)
+      call MPI_BCAST(zi_sv_thres, 1, MY_REAL, 0, comm3d, mpierr)
       call MPI_BCAST(tEB, 1, MY_REAL, 0, comm3d, mpierr)
       tnextEB = dtEB
       call MPI_BCAST(tnextEB, 1, MY_REAL, 0, comm3d, mpierr)
@@ -590,6 +613,8 @@ module modstartup
       call MPI_BCAST(lrandomize, 1, MPI_LOGICAL, 0, comm3d, mpierr)
       call MPI_BCAST(prandtlturb, 1, MY_REAL, 0, comm3d, mpierr)
       call MPI_BCAST(fkar, 1, MY_REAL, 0, comm3d, mpierr)
+      call MPI_BCAST(mo_maxslope, 1, MY_REAL, 0, comm3d, mpierr)
+      call MPI_BCAST(ustin, 1, MY_REAL, 0, comm3d, mpierr)
       call MPI_BCAST(ltrees, 1, MPI_LOGICAL, 0, comm3d, mpierr)
       call MPI_BCAST(ntrees, 1, MPI_INTEGER, 0, comm3d, mpierr)
       call MPI_BCAST(ltreedump, 1, MPI_LOGICAL, 0, comm3d, mpierr)
@@ -632,8 +657,6 @@ module modstartup
       ! ! write (*, *) "done initinlet"
       ! call initdriver  ! added by ae1212: initialise driver inlet
       ! ! write(*,*) "done initdriver"
-      ! call checkinitvalues
-      ! !write (*, *) "done checkinitvalues"
       ! call initpois
       ! !write (*, *) "done initpois"
       ! ! write (6, *) 'Determine masking matrices'
@@ -711,9 +734,9 @@ module modstartup
       !                                                                 |
       !-----------------------------------------------------------------|
 
-      use modsurfdata, only : ps
+      use modsurfdata, only : ps, thls, qts, thvs
       use modglobal,   only : itot,ktot,jtot,ylen,xlen,dtmax,runtime, &
-                              startfile,lwarmstart,lstratstart,lmoist, nsv, &
+                              startfile,lwarmstart,lstratstart,lmoist, lbuoyancy, nsv, rv, rd, &
                               BCxm, BCxT, BCxq, BCxs, BCym, BCyT, BCyq, BCtopm, BCbotm, &
                               BCbotm_wfneutral, BCtopm_pressure, &
                               BCxm_periodic, BCxT_periodic, BCxq_periodic, &
@@ -721,12 +744,12 @@ module modstartup
                               BCxm_driver, BCxT_driver, BCxq_driver, BCxs_driver, &
                               BCym_periodic, BCym_profile, BCyT_periodic, BCyT_profile, &
                               BCyq_periodic, BCyq_profile, &
-                              linoutflow,ltempeq,iwalltemp,iwallmom,&
+                              linoutflow,ltempeq,iwalltemp,iwallmom,iwallmoist,iwallmom_mo,mo_maxslope,ustin,libm,&
                               ipoiss,POISS_FFT2D,&
                               lydump,lytdump,luoutflowr,lvoutflowr,&
                               lhdriver,lqdriver,lsdriver,ltrees,lEB,itree_mode,&
                               TREE_MODE_DRAG_ONLY,TREE_MODE_SVEG,TREE_MODE_LEGACY_SEB
-      use modmpi,      only : myid, comm3d, mpierr, nprocx, nprocy
+      use modmpi,      only : myid, comm3d, mpierr, nprocx, nprocy, abort_all_ranks
       use modglobal,   only : idriver
       implicit none
 
@@ -774,6 +797,49 @@ module modstartup
       if (ps < 0) then
          write(0, *) 'ERROR: psout of range/not set'
          stop 1
+      end if
+
+      ! #375: thls/qts default to the sentinel -1; a negative thvs flips the sign
+      ! of SGS buoyancy production and of the hydrostatic base state.
+      if ((ltempeq .or. lbuoyancy) .and. (thls < 0.)) then
+         if (myid == 0) then
+            write(0, *) 'ERROR: thls not set (sentinel -1) but ltempeq or lbuoyancy is on.'
+            write(0, *) '       Set thls in &BC to the surface liquid water potential temperature [K].'
+         end if
+         call abort_all_ranks(1)
+      end if
+      if (qts < 0.) then
+         if (lmoist) then
+            if (myid == 0) write(0, *) 'ERROR: qts not set (sentinel -1) but lmoist is on. Set qts in &BC [kg/kg].'
+            call abort_all_ranks(1)
+         else
+            qts = 0.   ! dry run: surface humidity is irrelevant but enters thvs
+            thvs = thls*(1.+(rv/rd - 1.)*qts)
+         end if
+      end if
+      if ((iwallmom < 1) .or. (iwallmom > 4)) then
+         if (myid == 0) write(0, *) 'ERROR: iwallmom must be 1, 2, 3 or 4, got ', iwallmom
+         call abort_all_ranks(1)
+      end if
+      ! iwallmom = 4: Monin-Obukhov on the near-horizontal facets, from the prescribed facet
+      ! fluxes (bctfz, and bcqfz on facets whose type has lGR = 1)
+      if (iwallmom == iwallmom_mo) then
+         if ((.not. libm) .or. (.not. ltempeq) .or. (iwalltemp /= 1)) then
+            if (myid == 0) write(0, *) 'ERROR: iwallmom = 4 (Monin-Obukhov facets) requires libm, ltempeq and iwalltemp = 1'
+            call abort_all_ranks(1)
+         end if
+         if (lmoist .and. (iwallmoist /= 1)) then
+            if (myid == 0) write(0, *) 'ERROR: iwallmom = 4 with lmoist requires iwallmoist = 1 (prescribed bcqfz)'
+            call abort_all_ranks(1)
+         end if
+         if ((mo_maxslope < 0.) .or. (mo_maxslope >= 90.)) then
+            if (myid == 0) write(0, *) 'ERROR: mo_maxslope must be in [0, 90) degrees, got ', mo_maxslope
+            call abort_all_ranks(1)
+         end if
+         if (ustin < 0.) then
+            if (myid == 0) write(0, *) 'ERROR: ustin must be >= 0 (0 = u* from Monin-Obukhov similarity), got ', ustin
+            call abort_all_ranks(1)
+         end if
       end if
       if (xlen < 0) then
          write(0, *) 'ERROR: xlen out of range/not set'
@@ -964,6 +1030,8 @@ module modstartup
       use modboundary, only:boundary, tqaver, halos
       use modmpi, only:slabsum, myid, comm3d, mpierr, my_real, avexy_ibm
       use modthermodynamics, only:thermodynamics, calc_halflev
+      use modibm,            only:mo_cells_update
+      use modibmdata,        only:lmocells
       use modinletdata, only:Uinl, Urec, Wrec, u0inletbc, v0inletbc, w0inletbc, ubulk, vbulk, irecy, Utav, Ttav, &
          uminletbc, vminletbc, wminletbc, u0inletbcold, v0inletbcold, w0inletbcold, &
          storeu0inletbc, storev0inletbc, storew0inletbc, nstepread, nfile, Tinl, &
@@ -1216,15 +1284,30 @@ module modstartup
             if (lrandomize) then
               !! add random fluctuations
               krand = min(krand, ke)
+              ! Field tags: 1 = u, 2 = v, 3 = w, 4 = thl, 5 = qt. The m and 0 fields of
+              ! thl and qt get the same deviate (they are equal at start-up).
+              ! DALES dev 075ac4e src/modstartup.f90:randomize_new perturbs qt and thl, m and 0
+              ! (the DALES momentum noise is disabled there); uDALES perturbs u, v, w too.
               do k = kb, krand
-                call randomize_field(um, k, randu, irandom, ih, jh)
+                call randomize_field(um, k, randu, irandom, 1, ih, jh)
+                call randomize_field(vm, k, randu, irandom, 2, ih, jh)
+                call randomize_field(wm, k, randu, irandom, 3, ih, jh)
               end do
-              do k = kb, krand
-                call randomize_field(vm, k, randu, irandom, ih, jh)
-              end do
-              do k = kb, krand
-                call randomize_field(wm, k, randu, irandom, ih, jh)
-              end do
+              if (randthl > 0.) then
+                do k = kb, krand
+                  call randomize_field(thlm, k, randthl, irandom, 4, ih, jh)
+                  call randomize_field(thl0, k, randthl, irandom, 4, ih, jh)
+                end do
+                ! the kappa advection scheme works on the copy thl0c: keep it equal to thl0
+                thl0c(ib:ie, jb:je, kb:krand) = thl0(ib:ie, jb:je, kb:krand)
+              end if
+              if (randqt > 0.) then
+                ! as in DALES the amplitude is capped at qt, so that qt stays >= 0
+                do k = kb, krand
+                  call randomize_field(qtm, k, randqt, irandom, 5, ih, jh, cap_by_field=.true.)
+                  call randomize_field(qt0, k, randqt, irandom, 5, ih, jh, cap_by_field=.true.)
+                end do
+              end if
             end if
 
             !       do k=kb+1,ke-1
@@ -1526,18 +1609,6 @@ module modstartup
 
             end if
 
-            !---------------------------------------------------------------
-            !  1.2 randomize fields
-            !---------------------------------------------------------------
-            !     if (iinletgen /= 2 .and. iinletgen /= 1) then
-            !       write(6,*) 'randomizing temperature!'
-            !       krand  = min(krand,ke)
-            !        do k = kb,ke !edited tg3315 krand --> ke
-            !          call randomize_field(thlm,k,randthl,irandom,ih,jh)
-            !          call randomize_field(thl0,k,randthl,irandom,ih,jh)
-            !        end do
-            !       end if
-
             if (nsv>0) then !tg3315 set these variables here for now and repeat for warmstart
 
               svprof = 0.
@@ -1606,6 +1677,14 @@ module modstartup
          ! call boundary ! tg3315 17.10.17 having this in startup was causing issues for running with lmoist ! turned of when pot. temp = temp.
          ! SO: can't do this yet because uses u0 and it does not include halo cells
          call thermodynamics ! turned off when pot. temp = temp.
+         ! iwallmom = 4: DALES readinitfiles calls its surface and then thermodynamics again, so the
+         ! first subgrid call sees the surface-layer dthvdz above horizontal Monin-Obukhov facets.
+         ! mo_cells_update reads u0, v0 at i+1, j+1, so the halos are filled first.
+         if (lmocells) then             ! collective (halos): the global flag
+            call halos
+            call mo_cells_update(.true.)
+            call thermodynamics
+         end if
          !
          !    call boundary
          !    call thermodynamics ! turned off when pot. temp = temp.
@@ -2496,35 +2575,117 @@ module modstartup
 
    end subroutine exitmodules
 
-   subroutine randomize_field(field, klev, ampl, ir, ihl, jhl)
+   !> Add a uniform random perturbation, amplitude ampl, to level klev of field.
+   !!
+   !! The deviate is a pure function of (ir, tag, iglob, jglob, klev), a counter-based
+   !! hash, so the result does not depend on the MPI decomposition, and different tags
+   !! (fields) get independent noise. It replaces a one-step LCG on a linear index, whose
+   !! output was a sawtooth plane wave (58 % of the variance at one wavenumber, #395).
+   !!
+   !! Hash: the splitmix64 finaliser (Steele, Lea & Flood 2014, OOPSLA; Vigna,
+   !! https://prng.di.unimi.it/splitmix64.c) applied after each key is added to the state,
+   !! with the golden-ratio increment 0x9E3779B97F4A7C15. Fortran has no unsigned integers,
+   !! and signed overflow is undefined (gfortran -O3 exploits it: every tag gave the same
+   !! deviate), so each 64-bit value is held as two 32-bit limbs (hi, lo) in integer(int64)
+   !! and the add, multiply and shift are done limb-wise without overflow. The result is
+   !! bit-identical to the unsigned splitmix64. The top 53 bits give a uniform real in [0,1).
+   !!
+   !! cap_by_field = .true. caps the amplitude pointwise at the value of field itself, taken
+   !! before the perturbation is added (used for qt >= 0). The cap is not a second dummy
+   !! argument, which would alias the inout field.
+   subroutine randomize_field(field, klev, ampl, ir, tag, ihl, jhl, cap_by_field)
 
       use decomp_2d, only: zstart
-      use modglobal, only: ib, ie, jb, je, kb, ke, kh, itot, jtot
-      integer(KIND=selected_int_kind(6)):: imm, ia, ic, ir
-      integer ihl, jhl
-      integer i, j, klev
-      integer iglob, jglob
-      integer(KIND=selected_int_kind(12)) :: linear_id, state
-      real ran, ampl
-      real field(ib - ihl:ie + ihl, jb - jhl:je + jhl, kb - kh:ke + kh)
-      parameter(imm=134456, ia=8121, ic=28411)
+      use modglobal, only: ib, ie, jb, je, kb, ke, kh
+      use iso_fortran_env, only: int64
+      integer, intent(in) :: klev, ir, tag, ihl, jhl
+      real, intent(in) :: ampl
+      real, intent(inout) :: field(ib - ihl:ie + ihl, jb - jhl:je + jhl, kb - kh:ke + kh)
+      logical, intent(in), optional :: cap_by_field
+      integer :: i, j, iglob, jglob
+      integer(int64) :: h(2)
+      integer(int64), parameter :: m32 = 4294967295_int64, m16 = 65535_int64
+      real(8) :: ran
+      real :: a
+
       do j = jb, je
          jglob = j + zstart(2) - 1
          do i = ib, ie
             iglob = i + zstart(1) - 1
-            ! Use the global cell index so the perturbation field is
-            ! identical regardless of the MPI decomposition.
-            linear_id = int(iglob, kind(linear_id)) &
-                        + int(itot, kind(linear_id)) * int(jglob - 1, kind(linear_id)) &
-                        + int(itot, kind(linear_id)) * int(jtot, kind(linear_id)) * int(klev - 1, kind(linear_id))
-            state = mod(int(ir, kind(state)) + linear_id, int(imm, kind(state)))
-            state = mod(state * int(ia, kind(state)) + int(ic, kind(state)), int(imm, kind(state)))
-            ran = real(state)/real(imm)
-            field(i, j, klev) = field(i, j, klev) + (ran - 0.5)*2.0*ampl
+            h = limbs(int(ir, int64))
+            h = mix64(add64(h, limbs(int(tag, int64))))
+            h = mix64(add64(h, limbs(int(iglob, int64))))
+            h = mix64(add64(h, limbs(int(jglob, int64))))
+            h = mix64(add64(h, limbs(int(klev, int64))))
+            ! top 53 bits, h >> 11: [0,1), exact in double
+            ran = (real(h(1), 8)*2._8**21 + real(shiftr(h(2), 11), 8))*(0.5_8**53)
+            a = ampl
+            if (present(cap_by_field)) then
+               if (cap_by_field) a = min(ampl, field(i, j, klev))
+            end if
+            field(i, j, klev) = field(i, j, klev) + real((ran - 0.5_8)*2.0_8*a)
          end do
       end do
 
-      return
+   contains
+
+      !> splitmix64 step: add the golden-ratio increment, then the finaliser.
+      pure function mix64(x) result(z)
+         integer(int64), intent(in) :: x(2)
+         integer(int64) :: z(2)
+         ! 0x9E3779B97F4A7C15, 0xBF58476D1CE4E5B9, 0x94D049BB133111EB as (hi, lo) limbs
+         integer(int64), parameter :: g(2) = [2654435769_int64, 2135587861_int64]
+         integer(int64), parameter :: m1(2) = [3210233709_int64, 484763065_int64]
+         integer(int64), parameter :: m2(2) = [2496678331_int64, 321982955_int64]
+         z = add64(x, g)
+         z = mul64(xorshr(z, 30), m1)
+         z = mul64(xorshr(z, 27), m2)
+         z = xorshr(z, 31)
+      end function mix64
+
+      !> the 64 bits of v (two's complement) as (hi, lo) limbs in [0, 2^32)
+      pure function limbs(v) result(r)
+         integer(int64), intent(in) :: v
+         integer(int64) :: r(2)
+         r = [iand(shiftr(v, 32), m32), iand(v, m32)]
+      end function limbs
+
+      !> a + b mod 2^64
+      pure function add64(a, b) result(r)
+         integer(int64), intent(in) :: a(2), b(2)
+         integer(int64) :: r(2), lo
+         lo = a(2) + b(2)                                   ! < 2^33
+         r = [iand(a(1) + b(1) + shiftr(lo, 32), m32), iand(lo, m32)]
+      end function add64
+
+      !> x*y mod 2^32 for x, y in [0, 2^32): y split in 16-bit halves, products < 2^48
+      pure function mulmod32(x, y) result(r)
+         integer(int64), intent(in) :: x, y
+         integer(int64) :: r
+         r = iand(iand(x*shiftr(y, 16), m16)*65536_int64 + x*iand(y, m16), m32)
+      end function mulmod32
+
+      !> a*b mod 2^64: full lo*lo product from 16-bit pieces, cross terms mod 2^32
+      pure function mul64(a, b) result(r)
+         integer(int64), intent(in) :: a(2), b(2)
+         integer(int64) :: r(2), t0, t1, lo, hi
+         t0 = iand(a(2), m16)*b(2)                          ! < 2^48
+         t1 = shiftr(a(2), 16)*b(2)                         ! < 2^48
+         lo = iand(t0, m32) + iand(t1, m16)*65536_int64     ! < 2^33
+         hi = shiftr(t0, 32) + shiftr(t1, 16) + shiftr(lo, 32) &
+              + mulmod32(a(1), b(2)) + mulmod32(a(2), b(1))
+         r = [iand(hi, m32), iand(lo, m32)]
+      end function mul64
+
+      !> a xor (a >> s), logical shift, 0 < s < 32
+      pure function xorshr(a, s) result(r)
+         integer(int64), intent(in) :: a(2)
+         integer, intent(in) :: s
+         integer(int64) :: r(2)
+         r = [ieor(a(1), shiftr(a(1), s)), &
+              ieor(a(2), ior(shiftr(a(2), s), iand(shiftl(a(1), 32 - s), m32)))]
+      end function xorshr
+
    end subroutine randomize_field
 
 end module modstartup

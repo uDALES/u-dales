@@ -63,10 +63,10 @@ module modfielddump
 contains
  !> Initializing fielddump. Read out the namelist, initializing the variables
   subroutine initfielddump
-    use modmpi,   only   :mpierr,comm3d,mpi_logical,mpi_integer,cmyidx,cmyidy,mpi_character
+    use modmpi,   only   :mpierr,comm3d,mpi_logical,mpi_integer,cmyidx,cmyidy,mpi_character,myid,abort_all_ranks
     use modglobal,only   :cexpnr,kb,ke,fieldvars,ib,ie,jb,je,kb,ke, ih,jh,lfielddump,kh
     use modstat_nc,only  : open_nc, define_nc,ncinfo,writestat_dims_nc
-    use modfields, only  : u0,v0,w0,thl0,sv0,ql0,qt0,pres0,tau_x, tau_y, tau_z, thl_flux
+    use modfields, only  : u0,v0,w0,thl0,sv0,ql0,qt0,pres0,tau_x, tau_y, tau_z, thl_flux, dthvdz
     use modpois,   only  : p, pup, pvp, pwp
     use modibm, only : mask_u, mask_v, mask_w, mask_c
     implicit none
@@ -147,6 +147,9 @@ contains
       case('qt')
         call ncinfo(ncname( n,:),'qt','Total water mixing ratio','1e-5kg/kg','tttt')
         pfields(n)%point => qt0(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh)
+      case('dt')
+        if (myid == 0) write(0, *) 'ERROR: fieldvars code dt is not available with halos'
+        call abort_all_ranks(1)
       case('s1')
         call ncinfo(ncname( n,:),'sca1','scalar 1','M','tttt')
         pfields(n)%point => sv0(ib-ih:ie+ih,jb-jh:je+jh,kb:ke,1)
@@ -214,6 +217,9 @@ contains
         case('qt')
           call ncinfo(ncname( n,:),'qt','Total water mixing ratio','1e-5kg/kg','tttt')
           pfields(n)%point => qt0(ib:ie,jb:je,kb:ke)
+        case('dt')
+          call ncinfo(ncname( n,:),'dthvdz','Vertical gradient of thv','K/m','tttt')
+          pfields(n)%point => dthvdz(ib:ie,jb:je,kb:ke)
         case('s1')
           call ncinfo(ncname( n,:),'sca1','scalar 1','M','tttt')
           pfields(n)%point => sv0(ib:ie,jb:je,kb:ke,1)

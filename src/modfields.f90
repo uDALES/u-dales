@@ -360,7 +360,7 @@ module modfields
   real, allocatable :: dvdyls(:)                     !<   large scale y-gradient of v
   real, allocatable :: wfls  (:)                     !<   large scale y-gradient of v
   real, allocatable :: ql0h(:,:,:)
-  real, allocatable :: dthvdz(:,:,:)                 !<   theta_v at half level
+  real, allocatable, target :: dthvdz(:,:,:)                 !<   theta_v at half level
 
   real, allocatable :: thlprof(:)                    !<   initial thl-profile
   real, allocatable :: qtprof(:)                     !<   initial qt-profile

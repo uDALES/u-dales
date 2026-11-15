@@ -38,6 +38,7 @@ iadv_sv      = 7
 /
 
 &BC
+thls        = 288.0
 wtsurf       = 0.01
 wttop        = -0.01
 bctfz        = 0.01

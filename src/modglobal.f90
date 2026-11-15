@@ -83,6 +83,11 @@ module modglobal
    integer, parameter :: TEST_MPI_OPERATORS = 1005
    integer, parameter :: TEST_ZGRID_METRICS = 1006
    integer, parameter :: TEST_SGS_STATS = 1007
+   integer, parameter :: TEST_SGS_ONEEQN = 1008
+   integer, parameter :: TEST_LSTEND = 1009
+   integer, parameter :: TEST_THERMO_LEVELS = 1010
+   integer, parameter :: TEST_MO_KERNELS = 1012 !< Monin-Obukhov surface-layer kernels (psim, psih, phim, phih, calc_obl_iter)
+   integer, parameter :: RUN_INIT_DUMP = 1011 !< cold start, write the initial fielddump record and stop (tests)
    integer :: runmode = RUN_COLDSTART
 
    logical :: lwarmstart = .false. !<   flag for "cold" or "warm" start
@@ -218,6 +223,10 @@ module modglobal
    logical :: jslicerank    ! cpu that jslice is on
    logical :: ltdump    = .false.      !<  switch to output time-averaged statistics every tstatsdump
    logical :: lmintdump    = .false.      !<  switch to output prognostic statistics every tstatsdump
+   logical :: lbldump     = .false.      !<  switch to output cloud, boundary-layer and radiation diagnostics (bldump_t, bldump_z) every tstatsdump
+   real    :: zi_qt_thres = 0.           !<  bldump: qt threshold for the zi_qt boundary-layer height [kg/kg]; 0 = off
+   integer :: zi_sv_index = 0            !<  bldump: scalar used for the zi_sv boundary-layer height; 0 = off
+   real    :: zi_sv_thres = 0.           !<  bldump: threshold of scalar zi_sv_index for zi_sv; required (> 0) if zi_sv_index > 0
 
    integer, parameter :: TREE_MODE_DRAG_ONLY = 1
    integer, parameter :: TREE_MODE_SVEG = 2
@@ -281,14 +290,14 @@ module modglobal
    real, parameter :: rd = 287.04 !<    *gas constant for dry air.
    real, parameter :: rv = 461.5 !<    *gas constant for water vapor.
    real, parameter :: cp = 1004. !<    *specific heat at constant pressure (dry air).
-   real, parameter :: rlv = 2.26e6 !<    *latent heat for vaporisation.
+   real, parameter :: rlv = 2.53e6 !<    *latent heat for vaporisation [J/kg] (DALES dev 075ac4e value)
    real, parameter :: rlvi = 1/rlv !inverse
    real, parameter :: ep = rd/rv !<    0.622
    real, parameter :: ep2 = rv/rd - 1. !<    0.61
    !< real,parameter :: cv       = cp-rd            !<    716.96
    real, parameter :: rcp = rd/cp !<    0.286
    real, parameter :: cpr = cp/rd !<    3.50
-   real, parameter :: rlvocp = rlv/cp !<    2.49
+   real, parameter :: rlvocp = rlv/cp !<    2520 K
    real, parameter :: mair = 28.967 !< Molar mass of air
    real, parameter :: rhoa = 1.2 !density of air used in some calculations
 
@@ -313,6 +322,9 @@ module modglobal
    real :: prandtlturb = prandtlmol
 
    integer         :: iwallmom = 2, iwalltemp = 1, iwallmoist = 1, iwallscal = 1
+   integer, parameter :: iwallmom_mo = 4 !< iwallmom: Monin-Obukhov surface layer on near-horizontal facets
+   real            :: mo_maxslope = 30. !< iwallmom = 4: facets with slope <= mo_maxslope [deg] use Monin-Obukhov
+   real            :: ustin = 0.        !< iwallmom = 4: prescribed friction velocity [m/s] on the Monin-Obukhov facets; 0 = from MO similarity
 
    real, parameter :: rhow = 0.998e3 !<    * Density of water
    real, parameter :: pref0 = 1.e5 !<    *standard pressure used in exner function.
@@ -323,7 +335,7 @@ module modglobal
    !      real,parameter :: ekmin    = 1.e-6            !<    *minimum value for k-coefficient.
    real, parameter :: ekmin = 1.e-12 !<    *minimum value for k-coefficient.
    real, parameter :: e12min = 5.e-5 !<    *minimum value for TKE.
-   real :: fkar = 0.41 !<   *Von Karman constant
+   real :: fkar = 0.40 !<   *Von Karman constant
    real, parameter :: eps1 = 1.e-10 !<    *very small number*
    real, parameter :: epscloud = 1.e-5 !<    *limit for cloud calculation 0.01 g/kg
    real, parameter :: boltz = 5.67e-8 !<    *Stefan-Boltzmann constant

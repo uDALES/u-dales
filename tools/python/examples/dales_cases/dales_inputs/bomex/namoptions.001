@@ -1,0 +1,77 @@
+! DALES dev 075ac4e BOMEX in the uDALES-compatible configuration of examples/301:
+! fixed dt, no Galilean shift (cu = 0), constant-density base state (ibas_prf = 5), cd2 everywhere.
+! Edit irandom per ensemble member; for the adaptive variant set ladaptive = .true. (courant, peclet defaults).
+&RUN
+iexpnr     =  001
+lwarmstart =  .false.
+runtime    =  21600
+trestart   =  21600
+ladaptive  = .false.     ! dt = dtmax
+dtmax      =  2.0        ! s, identical to uDALES examples/301 fixed-dt block
+irandom    =  43
+randthl    =  0.1
+randqt     =  2.5e-5
+krandumax  =  0          ! no u, v, w noise (default)
+nprocx     =  4
+nprocy     =  4
+/
+
+&DOMAIN
+itot       =  64
+jtot       =  64
+kmax       =  80
+xsize      =  6400.
+ysize      =  6400.
+xlat       =  15.
+xlon       =  0.
+xday       =  0.
+xtime      =  0.
+/
+
+&PHYSICS
+lcoriol    =  .true.
+igrw_damp  =  2          ! default, written out: sponge over the top quarter as uDALES
+/
+&NAMSURFACE
+z0         =  2e-4
+ps         =  101500.00
+thls       =  299.10
+wtsurf     =  8e-3
+wqsurf     =  5.2e-5
+isurf      = 3
+lsmoothflux = .false.
+ustin      = 0.28
+/
+
+&DYNAMICS
+llsadv     =  .false.
+cu         =  0.          ! uDALES has no Galilean shift
+cv         =  0.
+ibas_prf   =  5           ! baseprof.inp.001: constant rhobf, pb from the uDALES hydrostatic integral
+iadv_mom    =  2
+iadv_tke    =  2
+iadv_thl    =  2
+iadv_qt     =  2
+iadv_sv     =  2
+/
+&NAMSUBGRID
+ldelta      = .false.
+/
+&NAMCHECKSIM
+tcheck      = 0
+/
+&NAMTIMESTAT
+ltimestat   = .true.
+dtav        = 60
+/
+&NAMGENSTAT
+lstat       = .true.
+dtav        = 60
+timeav      = 600
+/
+&NAMCROSSSECTION
+lcross      = .false.
+/
+&NAMFIELDDUMP
+lfielddump  = .false.
+/

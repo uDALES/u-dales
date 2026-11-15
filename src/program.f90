@@ -27,7 +27,7 @@ program uDALES
   use mpi
   use modmpi,            only : initmpi,exitmpi,starttimer,myid
   use modglobal,         only : initglobal,rk3step,timeleft
-  use modglobal,         only : runmode,RUN_COLDSTART,RUN_WARMSTART,RUN_DRIVER,RUN_STRATSTART,TEST_SPARSE_IJK,TEST_2DCOMP_INIT_EXIT,TEST_MPI_OPERATORS,TEST_ZGRID_METRICS,TEST_SGS_STATS
+  use modglobal,         only : runmode,RUN_COLDSTART,RUN_WARMSTART,RUN_DRIVER,RUN_STRATSTART,TEST_SPARSE_IJK,TEST_2DCOMP_INIT_EXIT,TEST_MPI_OPERATORS,TEST_ZGRID_METRICS,TEST_SGS_STATS,TEST_SGS_ONEEQN,TEST_LSTEND,TEST_THERMO_LEVELS,TEST_MO_KERNELS,RUN_INIT_DUMP
   use modstartup,        only : readnamelists,init2decomp,checkinitvalues,readinitfiles,exitmodules
   use modfields,         only : initfields
   use modsave,           only : writerestartfiles
@@ -36,7 +36,7 @@ program uDALES
   use modsubgrid,        only : initsubgrid,subgrid
   use modforces,         only : calcfluidvolumes,forces,coriolis,lstend,fixuinf1,fixuinf2,fixthetainf,nudge,masscorr,shiftedPBCs,periodicEBcorr
   use modpois,           only : initpois,poisson
-  use modibm,            only : initibm,createmasks,ibmwallfun,ibmnorm,bottom
+  use modibm,            only : initibm,createmasks,ibmwallfun,ibmnorm,bottom,mo_cells_update
   use vegetation,        only : init_vegetation, vegetation_forcing
   use modpurifiers,      only : createpurifiers,purifiers
   use modheatpump,       only : init_heatpump,heatpump,exit_heatpump
@@ -53,9 +53,11 @@ program uDALES
   use modchecksim,     only : initchecksim,checksim
   use modstat_nc,      only : initstat_nc
   use modfielddump,    only : initfielddump,fielddump,exitfielddump
-  use modstatsdump,    only : initstatsdump,statsdump,exitstatsdump    !tg3315
+  use modstatsdump,    only : initstatsdump,statsdump,bldumpstats,exitstatsdump    !tg3315
+  use modradiation,    only : initradiation,radiation,exitradiation
+  use modcases,        only : initcases,call_hooks_init,call_hooks_forcing,call_hooks_stats
   use modtimedep,      only : inittimedep,timedep
-  use tests,           only : tests_read_sparse_ijk,tests_2decomp_init_exit,tests_mpi_operators,tests_zgrid_metrics,tests_sgs_statistics
+  use tests,           only : tests_read_sparse_ijk,tests_2decomp_init_exit,tests_mpi_operators,tests_zgrid_metrics,tests_sgs_statistics,tests_sgs_oneeqn,tests_lstend,tests_thermo_levels,tests_mo_kernels
   implicit none
 
   real    :: stime
@@ -83,6 +85,8 @@ program uDALES
   call initboundary
 
   call initthermodynamics
+  call initradiation
+  call initcases        ! read &NAMCASES, register the case hooks
 
   call initsubgrid
 
@@ -127,7 +131,17 @@ program uDALES
 
   call init_heatpump
 
+  call call_hooks_init  ! case hooks: after startup, cold and warm start
+
   !call fielddump
+
+  if (runmode == RUN_INIT_DUMP) then
+    ! Test hook: write the initial fields (rk3step == 0) to the fielddump and stop.
+    call fielddump
+    call exitfielddump
+    call exitmpi
+    stop 0
+  end if
 
   call print_time('After initialization')
 
@@ -149,6 +163,8 @@ program uDALES
 
     call shiftedPBCs
 
+    call mo_cells_update(.false.) ! iwallmom = 4: surface-layer gradients above horizontal MO facets, before subgrid (DALES order)
+
     call subgrid
 
 !-----------------------------------------------------
@@ -166,6 +182,10 @@ program uDALES
     call forces         !remaining terms of ns equation
 
     call lstend         !large scale forcings
+
+    call call_hooks_forcing ! case hooks (no-op without &NAMCASES)
+
+    call radiation      ! parametrised longwave radiation (iradiation = 2)
 
     call nudge          ! nudge top cells of fields to enforce steady-state
 
@@ -219,6 +239,11 @@ program uDALES
 !-----------------------------------------------------
     call thermodynamics
 
+    ! after thermodynamics, so that ql0, rhof and exnf match thl0/qt0 (as DALES timestat)
+    call bldumpstats
+
+    call call_hooks_stats ! case-specific diagnostics (no-op without &NAMCASES)
+
 !-----------------------------------------------------
 !   3.7  WRITE RESTARTFILES AND DO STATISTICS
 !------------------------------------------------------
@@ -235,6 +260,7 @@ program uDALES
 !-------------------------------------------------------
   call exitfielddump
   call exitstatsdump     !tg3315
+  call exitradiation
   call exit_heatpump
   !call exitmodules
   !call exittest
@@ -264,7 +290,7 @@ contains
     test_failed = .false.
     invalid_runmode = .false.
     select case (runmode)
-      case (RUN_COLDSTART, RUN_WARMSTART, RUN_DRIVER, RUN_STRATSTART)
+      case (RUN_COLDSTART, RUN_WARMSTART, RUN_DRIVER, RUN_STRATSTART, RUN_INIT_DUMP)
         return
         ! Normal execution mode, do nothing special here
       case (TEST_SPARSE_IJK)
@@ -276,6 +302,14 @@ contains
         test_failed = .not. tests_zgrid_metrics()
       case (TEST_SGS_STATS)
         test_failed = .not. tests_sgs_statistics()
+      case (TEST_SGS_ONEEQN)
+        test_failed = .not. tests_sgs_oneeqn()
+      case (TEST_LSTEND)
+        test_failed = .not. tests_lstend()
+      case (TEST_THERMO_LEVELS)
+        test_failed = .not. tests_thermo_levels()
+      case (TEST_MO_KERNELS)
+        test_failed = .not. tests_mo_kernels()
       case (TEST_2DCOMP_INIT_EXIT)
         call tests_2decomp_init_exit
       case default

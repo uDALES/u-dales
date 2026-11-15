@@ -31,7 +31,7 @@ module modibm
              nsolpts_u, nsolpts_v, nsolpts_w, nsolpts_c, &
              nbndpts_u, nbndpts_v, nbndpts_w, nbndpts_c, &
              nfctsecs_u, nfctsecs_v, nfctsecs_w, nfctsecs_c, &
-             mask_u, mask_v, mask_w, mask_c
+             mask_u, mask_v, mask_w, mask_c, mo_facet_means, mo_cells_update
 
     abstract interface
       function interp_velocity(i,j,k)
@@ -44,6 +44,14 @@ module modibm
       real function interp_temperature(i,j,k)
         integer, intent(in) :: i, j, k
       end function interp_temperature
+    end interface
+
+    abstract interface
+      real function interp_scalar(var,i,j,k)
+        use modglobal, only : ib, ie, ih, jb, je, jh, kb, ke, kh
+        real, intent(in) :: var(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh)
+        integer, intent(in) :: i, j, k
+      end function interp_scalar
     end interface
 
    logical :: lbottom = .false.
@@ -102,9 +110,21 @@ module modibm
      integer, allocatable :: recids_c_loc(:,:)
      logical, allocatable :: lcomprec_loc(:)
      logical, allocatable :: lskipsec_loc(:)
+     ! iwallmom = 4: local Monin-Obukhov state per section on this rank. mo_obl = 0 marks a
+     ! section not visited yet (L is never 0); mo_tskin/mo_qskin are the diagnosed surface values.
+     real   , allocatable :: mo_obl(:), mo_tskin(:), mo_qskin(:), mo_ustar(:)
    end TYPE bound_info_type
 
    type(bound_info_type) :: bound_info_u, bound_info_v, bound_info_w, bound_info_c
+
+   !> iwallmom = 4: facet n uses Monin-Obukhov if facnorm(n,3) >= cos(mo_maxslope)
+   logical, allocatable :: lfacmo(:)
+   !> iwallmom = 4: the c-grid sections of horizontal Monin-Obukhov facets on this rank
+   !> (indices into bound_info_c) and the first-level cell (modibmdata:mocell_*) of each
+   integer :: nmosecs_c = 0
+   integer, allocatable :: mosec_c(:), mosec_cell(:)
+   !> a facet is horizontal if facnorm(n,3) >= 1 - mo_horizontal_tol (round-off of the normal)
+   real, parameter :: mo_horizontal_tol = 1.e-6
 
    integer :: nstatfac=7, ncidfac, nrecfac=0
    character(80), allocatable :: ncstatfac(:,:)
@@ -131,7 +151,7 @@ module modibm
    subroutine initibm
      use modglobal, only : libm, xhat, yhat, zhat, vec0, &
                            ib, ie, ih, jb, je, jh, kb, ke, kh, nsv, &
-                           iwallmom, lmoist, ltempeq, cexpnr, nfcts, lwritefac
+                           iwallmom, lmoist, ltempeq, cexpnr, nfcts, lwritefac, iwallmom_mo
      use decomp_2d, only : exchange_halo_z
      use modmpi,    only : myid
      use modstat_nc,only: open_nc, define_nc, ncinfo, writestat_dims_nc
@@ -176,6 +196,7 @@ module modibm
        call initibmwallfun('fluid_boundary_u.txt', 'facet_sections_u.txt', xhat, bound_info_u)
        call initibmwallfun('fluid_boundary_v.txt', 'facet_sections_v.txt', yhat, bound_info_v)
        call initibmwallfun('fluid_boundary_w.txt', 'facet_sections_w.txt', zhat, bound_info_w)
+       if (iwallmom == iwallmom_mo) call initibm_mo
      end if
 
      if (ltempeq .or. lmoist .or. nsv>0 .or. lwritefac) then
@@ -191,6 +212,7 @@ module modibm
        call solid(solid_info_c, mask_c, rhs, 0., ih, jh, kh)
        call exchange_halo_z(mask_c)!, opt_zlevel=(/ih,jh,0/))
      end if
+     if (iwallmom == iwallmom_mo) call initibm_mocells   ! needs the c-grid sections
 
      deallocate(rhs)
 
@@ -249,6 +271,157 @@ module modibm
    end subroutine initibm
 
 
+   !> iwallmom = 4: select the Monin-Obukhov facets by the slope of their normal, check
+   !> their roughness lengths and allocate the per-section MO state.
+   subroutine initibm_mo
+     use modglobal, only : nfcts, mo_maxslope, pi
+     use initfac,   only : facnorm, facz0, facz0h
+     use modmpi,    only : myid, mpierr
+     integer :: n, nmo
+
+     allocate(lfacmo(nfcts))
+     do n = 1, nfcts
+       lfacmo(n) = (facnorm(n,3) >= cos(mo_maxslope * pi / 180.))
+       if (lfacmo(n) .and. ((facz0(n) <= 0.) .or. (facz0h(n) <= 0.))) then
+         if (myid == 0) write(0, *) 'ERROR: iwallmom = 4: Monin-Obukhov facet ', n, &
+                                    ' needs z0 > 0 and z0h > 0 (factypes columns 3 and 4)'
+         call MPI_ABORT(MPI_COMM_WORLD, 1, mpierr)
+       end if
+     end do
+     nmo = count(lfacmo)
+     if (myid == 0) write(*, '(a,i0,a,f5.1,a,i0,a)') ' iwallmom = 4: ', nmo, &
+       ' facets use Monin-Obukhov (slope <= ', mo_maxslope, ' deg), ', nfcts - nmo, &
+       ' use the neutral wall function'
+     call alloc_mo_state(bound_info_u)
+     call alloc_mo_state(bound_info_v)
+     call alloc_mo_state(bound_info_w)
+   end subroutine initibm_mo
+
+   !> iwallmom = 4: list the fluid cells that own a c-grid section of a horizontal
+   !> Monin-Obukhov facet (normal +z), on this rank (at a roof edge this can be a cell beside
+   !> the roof). In these cells the one-equation SGS TKE sources and dthvdz use the Monin-Obukhov
+   !> surface-layer gradients, as DALES does at its first level (mo_cells_update).
+   !> Sections with log(dist/max(z0,z0h)) <= 1 are left out, as in wallfunmom. Sloped Monin-Obukhov facets and all other walls get no such treatment.
+   subroutine initibm_mocells
+     use modglobal, only : ib, ie, jb, je, kb, ke, nfcts
+     use initfac,   only : facnorm, facz0, facz0h
+     use decomp_2d, only : zstart
+     use modmpi,    only : myid, comm3d, mpierr, mpi_sum
+     integer, allocatable :: cellid(:,:,:)
+     integer :: sec, fac, i, j, k, nloc(1), nglob(1), nrej
+
+     allocate(cellid(ib:ie,jb:je,kb:ke)); cellid = 0
+     allocate(mosec_c(bound_info_c%nfctsecsrank), mosec_cell(bound_info_c%nfctsecsrank))
+     nmosecs_c = 0
+     nmocells = 0
+     do sec = 1, bound_info_c%nfctsecsrank
+       fac = bound_info_c%secfacids_loc(sec)
+       if (.not. lfacmo(fac)) cycle
+       if (facnorm(fac,3) < 1. - mo_horizontal_tol) cycle
+       if (bound_info_c%lskipsec_loc(sec)) cycle
+       if (log(bound_info_c%bnddst_loc(sec)/max(facz0(fac), facz0h(fac))) <= 1.) cycle
+       i = bound_info_c%secbndpts_loc(sec,1) - zstart(1) + 1
+       j = bound_info_c%secbndpts_loc(sec,2) - zstart(2) + 1
+       k = bound_info_c%secbndpts_loc(sec,3) - zstart(3) + 1
+       if (cellid(i,j,k) == 0) then
+         nmocells = nmocells + 1
+         cellid(i,j,k) = nmocells
+       end if
+       nmosecs_c = nmosecs_c + 1
+       mosec_c(nmosecs_c) = sec
+       mosec_cell(nmosecs_c) = cellid(i,j,k)
+     end do
+
+     allocate(mocell_ijk(nmocells,3), mocell_dudz(nmocells), mocell_dvdz(nmocells), &
+              mocell_dthldz(nmocells), mocell_dqtdz(nmocells), mocell_wsum(nmocells))
+     mocell_dudz = 0.; mocell_dvdz = 0.; mocell_dthldz = 0.; mocell_dqtdz = 0.
+     ! total section area of each cell, constant: the divisor of the area-weighted means
+     mocell_wsum = 0.
+     do sec = 1, nmosecs_c
+       mocell_wsum(mosec_cell(sec)) = mocell_wsum(mosec_cell(sec)) + bound_info_c%secareas_loc(mosec_c(sec))
+     end do
+     do k = kb, ke
+       do j = jb, je
+         do i = ib, ie
+           if (cellid(i,j,k) > 0) mocell_ijk(cellid(i,j,k),:) = (/ i, j, k /)
+         end do
+       end do
+     end do
+     deallocate(cellid)
+     call alloc_mo_state(bound_info_c)
+
+     nloc(1) = nmocells
+     call MPI_ALLREDUCE(nloc, nglob, 1, MPI_INTEGER, MPI_SUM, comm3d, mpierr)
+     lmocells = (nglob(1) > 0)
+     ! facets that are almost, but not within mo_horizontal_tol, horizontal get no first-level treatment
+     nrej = 0
+     do fac = 1, nfcts
+       if (lfacmo(fac) .and. (facnorm(fac,3) >= 1. - 1.e-3) .and. (facnorm(fac,3) < 1. - mo_horizontal_tol)) nrej = nrej + 1
+     end do
+     if ((myid == 0) .and. (nrej > 0)) write(0, '(a,i0,a,es8.1,a)') &
+       ' WARNING: iwallmom = 4: ', nrej, ' Monin-Obukhov facets are within 1e-3 of horizontal but not within ', &
+       mo_horizontal_tol, '; they get no first-level SGS treatment'
+     if (myid == 0) write(*, '(a,i0,a)') ' iwallmom = 4: ', nglob(1), &
+       ' cells above horizontal Monin-Obukhov facets use the surface-layer SGS treatment'
+   end subroutine initibm_mocells
+
+   subroutine alloc_mo_state(bound_info)
+     type(bound_info_type), intent(inout) :: bound_info
+     integer :: n
+     n = bound_info%nfctsecsrank
+     allocate(bound_info%mo_obl(n), bound_info%mo_tskin(n), bound_info%mo_qskin(n), bound_info%mo_ustar(n))
+     bound_info%mo_obl = 0.
+     bound_info%mo_tskin = 0.
+     bound_info%mo_qskin = 0.
+     bound_info%mo_ustar = 0.
+   end subroutine alloc_mo_state
+
+   !> Area means over the Monin-Obukhov facet sections of the u, v and w grids (bldump):
+   !> friction velocity, Obukhov length as 1/mean(1/L), and the diagnosed surface thl and qt.
+   !> Zero when no section has been visited. Collective: call on all ranks.
+   subroutine mo_facet_means(ustar, obl, tskin, qskin)
+     use modmpi, only : comm3d, mpierr, my_real, mpi_sum
+     real, intent(out) :: ustar, obl, tskin, qskin
+     real :: loc(5), glob(5)
+
+     loc = 0.
+     call add_sections(bound_info_u)
+     call add_sections(bound_info_v)
+     call add_sections(bound_info_w)
+     call MPI_ALLREDUCE(loc, glob, 5, MY_REAL, MPI_SUM, comm3d, mpierr)
+     if (glob(5) > 0.) then
+       ustar = glob(1) / glob(5)
+       if (glob(2) /= 0.) then
+         obl = glob(5) / glob(2)
+       else
+         obl = 1.e6               ! mean stability exactly neutral: |L| cap of calc_obl_iter
+       end if
+       tskin = glob(3) / glob(5)
+       qskin = glob(4) / glob(5)
+     else
+       ustar = 0.; obl = 0.; tskin = 0.; qskin = 0.
+     end if
+
+   contains
+
+     subroutine add_sections(bound_info)
+       type(bound_info_type), intent(in) :: bound_info
+       integer :: sec
+       real :: a
+       if (.not. allocated(bound_info%mo_obl)) return
+       do sec = 1, bound_info%nfctsecsrank
+         if (bound_info%mo_obl(sec) == 0.) cycle
+         a = bound_info%secareas_loc(sec)
+         loc(1) = loc(1) + a * bound_info%mo_ustar(sec)
+         loc(2) = loc(2) + a / bound_info%mo_obl(sec)
+         loc(3) = loc(3) + a * bound_info%mo_tskin(sec)
+         loc(4) = loc(4) + a * bound_info%mo_qskin(sec)
+         loc(5) = loc(5) + a
+       end do
+     end subroutine add_sections
+   end subroutine mo_facet_means
+
+
    subroutine initibmnorm(fname, solid_info)
      use readinput, only : read_sparse_ijk
 
@@ -274,7 +447,7 @@ module modibm
      use modglobal, only : ifinput, ib, itot, ih, jb, jtot, jh, kb, ke, ktot, kh, &
                            xf, yf, zf, xh, yh, zh, dx, dy, xhat, yhat, zhat, eps1
      use modmpi,    only : myid, comm3d, MY_REAL, mpierr
-     use initfac,   only : facnorm, facz0
+     use initfac,   only : facnorm, facz0, facz0h
      use decomp_2d, only : zstart, zend
      use readinput, only : read_sparse_ijk
 
@@ -1315,12 +1488,82 @@ module modibm
    end subroutine ibmwallfun
 
 
+   !> iwallmom = 4: Monin-Obukhov state of the cells above horizontal Monin-Obukhov facets
+   !> (initibm_mocells) and their surface-layer gradients, the DALES dev 075ac4e first level:
+   !> per c-grid section the per-column surface of lmostlocal (mo_local_update) on the cell-centre
+   !> thl, qt and horizontal wind, with the section distance as z1, then calc_surface_gradients
+   !>   du/dz = u* phim(z1/L) / (kappa z1) * uc/|U|,  dthl/dz = -w'thl' / u* phih(z1/L) / (kappa z1)
+   !> (uc the cell-centre component, |U| floored at 0.1 m/s, fluxes upward-positive), area-averaged
+   !> over the sections of a cell. Used by modsubgrid:sources (one-equation TKE sources) and
+   !> modthermodynamics:calthv (dthvdz). Called before subgrid, as DALES calls its surface before
+   !> subgrid, and once at a cold start before the start-up thermodynamics (DALES readinitfiles).
+   !> lstart: the start-up call. A section's first visit is the DALES cold start (tskin = thl,
+   !> qskin = qt, L = -0.1, one surface call); outside the start-up call (warm start) it is followed
+   !> by the regular call, as in wallfunmom.
+   subroutine mo_cells_update(lstart)
+     use modglobal,  only : lmoist, ustin, fkar
+     use modfields,  only : u0, v0, thl0, qt0
+     use initfac,    only : facz0, facz0h, faclGR
+     use modsurface, only : mo_local_update, phim, phih, min_horv
+     logical, intent(in) :: lstart
+     integer :: m, sec, fac, c, i, j, k
+     real :: upcu, vpcv, horv, horvf, dist, wthl_up, wqt_up, ustar, a, scaling
+
+     if (nmocells == 0) return
+     mocell_dudz = 0.; mocell_dvdz = 0.; mocell_dthldz = 0.; mocell_dqtdz = 0.
+     do m = 1, nmosecs_c
+       sec = mosec_c(m)
+       c   = mosec_cell(m)
+       fac = bound_info_c%secfacids_loc(sec)
+       i = mocell_ijk(c,1); j = mocell_ijk(c,2); k = mocell_ijk(c,3)
+       dist = bound_info_c%bnddst_loc(sec)
+       upcu = 0.5 * (u0(i,j,k) + u0(i+1,j,k))
+       vpcv = 0.5 * (v0(i,j,k) + v0(i,j+1,k))
+       horv = sqrt(upcu**2 + vpcv**2)
+       ! prescribed facet fluxes, positive into the surface (as in wallfunmom)
+       wthl_up = -bctfz
+       wqt_up  = 0.
+       if (lmoist .and. faclGR(fac)) wqt_up = -bcqfz
+       if (bound_info_c%mo_obl(sec) == 0.) then
+         bound_info_c%mo_tskin(sec) = thl0(i,j,k)
+         bound_info_c%mo_qskin(sec) = qt0(i,j,k)
+         bound_info_c%mo_obl(sec)   = -0.1
+         call cell_surface
+         if (.not. lstart) call cell_surface   ! warm start: the regular call of this substep
+       else
+         call cell_surface
+       end if
+       horvf = max(horv, min_horv)
+       scaling = 1. / (fkar * dist)
+       a = bound_info_c%secareas_loc(sec)
+       mocell_dudz(c)   = mocell_dudz(c)   + a * ustar * phim(dist / bound_info_c%mo_obl(sec)) * scaling * upcu / horvf
+       mocell_dvdz(c)   = mocell_dvdz(c)   + a * ustar * phim(dist / bound_info_c%mo_obl(sec)) * scaling * vpcv / horvf
+       mocell_dthldz(c) = mocell_dthldz(c) - a * wthl_up / ustar * phih(dist / bound_info_c%mo_obl(sec)) * scaling
+       mocell_dqtdz(c)  = mocell_dqtdz(c)  - a * wqt_up  / ustar * phih(dist / bound_info_c%mo_obl(sec)) * scaling
+     end do
+     mocell_dudz   = mocell_dudz   / mocell_wsum
+     mocell_dvdz   = mocell_dvdz   / mocell_wsum
+     mocell_dthldz = mocell_dthldz / mocell_wsum
+     mocell_dqtdz  = mocell_dqtdz  / mocell_wsum
+
+   contains
+
+     subroutine cell_surface
+       call mo_local_update(thl0(i,j,k), qt0(i,j,k), horv, dist, facz0(fac), facz0h(fac), wthl_up, wqt_up, &
+                            ustin, bound_info_c%mo_obl(sec), bound_info_c%mo_tskin(sec), &
+                            bound_info_c%mo_qskin(sec), ustar)
+       bound_info_c%mo_ustar(sec) = ustar
+     end subroutine cell_surface
+   end subroutine mo_cells_update
+
+
    subroutine wallfunmom(dir, rhs, bound_info)
      use modglobal, only : ib, ie, ih, jb, je, jh, kb, ke, kh, xf, yf, zf, xh, yh, zh, &
                            dx, dy, dzf, dzh, iwallmom, xhat, yhat, zhat, vec0, nfcts, lwritefac, rk3step, &
-                           lfielddump
-     use modfields, only : u0, v0, w0, thl0, tau_x, tau_y, tau_z
-     use initfac,   only : facT, facz0, facz0h, facnorm, faca
+                           lfielddump, iwallmom_mo, lmoist, ustin
+     use modfields, only : u0, v0, w0, thl0, qt0, tau_x, tau_y, tau_z
+     use initfac,   only : facT, facz0, facz0h, facnorm, faca, faclGR
+     use modsurface, only : mo_local_update
      use decomp_2d, only : zstart
      use modmpi,    only : comm3d, mpi_sum, mpierr, my_real
 
@@ -1329,29 +1572,35 @@ module modibm
      type(bound_info_type) :: bound_info
 
      integer i, j, k, sec, fac
-     real dist, stress, stress_dir, area, vol, momvol, Tair, &
-          utan, ctm, a, a_is, a_xn, a_yn, a_zn, stress_ix, stress_iy, stress_iz, xrec, yrec, zrec
+     real dist, stress, stress_dir, area, vol, momvol, Tair, qtair, &
+          utan, ctm, a, a_is, a_xn, a_yn, a_zn, stress_ix, stress_iy, stress_iz, xrec, yrec, zrec, &
+          wthl_up, wqt_up, ustar
      real, dimension(3) :: uvec, norm, strm, span, stressvec
-     logical :: valid, lwgrid
+     logical :: valid, lwgrid, lmosec
+     real    :: z0guard
      real, dimension(:,:,:), pointer :: tau
      real, dimension(1:nfcts) :: fac_tau_loc, fac_tau
      !real, dimension(:), allocatable :: fac_tau, fac_pres
 
      procedure(interp_velocity), pointer :: interp_velocity_ptr => null()
      procedure(interp_temperature), pointer :: interp_temperature_ptr => null()
+     procedure(interp_scalar), pointer :: interp_scalar_ptr => null()
 
      select case(alignment(dir))
      case(1)
        interp_velocity_ptr => interp_velocity_u
        interp_temperature_ptr => interp_temperature_u
+       interp_scalar_ptr => interp_scalar_u
        tau => tau_x
      case(2)
        interp_velocity_ptr => interp_velocity_v
        interp_temperature_ptr => interp_temperature_v
+       interp_scalar_ptr => interp_scalar_v
        tau => tau_y
      case(3)
        interp_velocity_ptr => interp_velocity_w
        interp_temperature_ptr => interp_temperature_w
+       interp_scalar_ptr => interp_scalar_w
        tau => tau_z
      end select
 
@@ -1369,6 +1618,8 @@ module modibm
 
        if (bound_info%lskipsec_loc(sec)) cycle
        !if (facz0(fac) < eps1) cycle
+       lmosec = .false.
+       if (iwallmom == iwallmom_mo) lmosec = lfacmo(fac)
 
        ! i = bound_info%bndpts(n,1) - zstart(1) + 1
        ! j = bound_info%bndpts(n,2) - zstart(2) + 1
@@ -1387,6 +1638,10 @@ module modibm
          if (iwallmom == 2) then
            Tair = interp_temperature_ptr(i, j, k)
          end if
+         if (lmosec) then
+           Tair  = interp_temperature_ptr(i, j, k)
+           qtair = interp_scalar_ptr(qt0, i, j, k)
+         end if
          dist = bound_info%bnddst_loc(sec)
        else
          xrec = bound_info%recpts_loc(sec,1)
@@ -1395,13 +1650,17 @@ module modibm
          uvec(1) = trilinear_interp_var(u0, bound_info%recids_u_loc(sec,:), xh, yf, zf, xrec, yrec, zrec)
          uvec(2) = trilinear_interp_var(v0, bound_info%recids_v_loc(sec,:), xf, yh, zf, xrec, yrec, zrec)
          uvec(3) = trilinear_interp_var(w0, bound_info%recids_w_loc(sec,:), xf, yf, zh, xrec, yrec, zrec)
-         if (iwallmom == 2) Tair  = trilinear_interp_var(thl0, bound_info%recids_c_loc(sec,:), xf, yf, zf, xrec, yrec, zrec)
+         if (iwallmom == 2 .or. lmosec) Tair  = trilinear_interp_var(thl0, bound_info%recids_c_loc(sec,:), xf, yf, zf, xrec, yrec, zrec)
+         if (lmosec) qtair = trilinear_interp_var(qt0, bound_info%recids_c_loc(sec,:), xf, yf, zf, xrec, yrec, zrec)
          dist = bound_info%bnddst_loc(sec) + norm2((/xrec - xf(bound_info%secbndpts_loc(sec,1)), &
                                                      yrec - yf(bound_info%secbndpts_loc(sec,2)), &
                                                      zrec - zf(bound_info%secbndpts_loc(sec,3))/))
        end if
 
-       if (log(dist/facz0(fac)) <= 1.) then
+       ! Monin-Obukhov sections also divide by log(dist/z0h), so z0h enters the same guard
+       z0guard = facz0(fac)
+       if (lmosec) z0guard = max(facz0(fac), facz0h(fac))
+       if (log(dist/z0guard) <= 1.) then
           cycle ! ideally would set a value for dist that gives a resonable (large) flux
           !dist = facz0(fac)+facz0h(fac)
        end if
@@ -1414,15 +1673,36 @@ module modibm
        utan = dot_product(uvec, strm)
        !utan = max(0.01, utan) ! uDALES 1
 
-       ! calcualate momentum transfer coefficient
-       ! make into interface somehow? because iwallmom doesn't change in the loop
-       if (iwallmom == 2) then ! stability included
-         ctm = mom_transfer_coef_stability(utan, dist, facz0(fac), facz0h(fac), Tair, facT(fac,1))
-       else if (iwallmom == 3) then ! neutral
-         ctm = mom_transfer_coef_neutral(dist, facz0(fac))
-       end if
+       if (lmosec) then
+         ! iwallmom = 4: local Monin-Obukhov (DALES isurf 4, or 3 with ustin; lmostlocal), stress u*^2,
+         ! from the prescribed facet fluxes (positive into the surface, so negated to upward-positive)
+         wthl_up = -bctfz
+         wqt_up  = 0.
+         if (lmoist .and. faclGR(fac)) wqt_up = -bcqfz
+         if (bound_info%mo_obl(sec) == 0.) then
+           ! first visit: the DALES cold start (modstartup readinitfiles, isurf 3/4): surface values
+           ! from the first level, L = -0.1, and one surface call before the first time step
+           bound_info%mo_tskin(sec) = Tair
+           bound_info%mo_qskin(sec) = qtair
+           bound_info%mo_obl(sec)   = -0.1
+           call mo_local_update(Tair, qtair, utan, dist, facz0(fac), facz0h(fac), wthl_up, wqt_up, ustin, &
+                                bound_info%mo_obl(sec), bound_info%mo_tskin(sec), bound_info%mo_qskin(sec), ustar)
+         end if
+         call mo_local_update(Tair, qtair, utan, dist, facz0(fac), facz0h(fac), wthl_up, wqt_up, ustin, &
+                              bound_info%mo_obl(sec), bound_info%mo_tskin(sec), bound_info%mo_qskin(sec), ustar)
+         bound_info%mo_ustar(sec) = ustar
+         stress = ustar**2
+       else
+         ! calcualate momentum transfer coefficient
+         ! make into interface somehow? because iwallmom doesn't change in the loop
+         if (iwallmom == 2) then ! stability included
+           ctm = mom_transfer_coef_stability(utan, dist, facz0(fac), facz0h(fac), Tair, facT(fac,1))
+         else ! neutral: iwallmom = 3, and the steep facets of iwallmom = 4 (which requires iwalltemp = 1)
+           ctm = mom_transfer_coef_neutral(dist, facz0(fac))
+         end if
 
-       stress = ctm * utan**2
+         stress = ctm * utan**2
+       end if
 
        if (bound_info%lcomprec_loc(sec)) then
          a = dot_product(dir, strm)
@@ -1481,7 +1761,7 @@ module modibm
    subroutine wallfunheat
      use modglobal, only : ib, ie, jb, je, xf, yf, zf, xh, yh, zh, dx, dy, dzf, &
                            xhat, yhat, zhat, vec0, ltempeq, lmoist, iwalltemp, iwallmoist, lEB, lwritefac, nfcts, rk3step, totheatflux, totqflux, &
-                           lfielddump
+                           lfielddump, iwallmom, iwallmom_mo
      use modfields, only : u0, v0, w0, thl0, thlp, qt0, qtp, pres0, thl_flux
      use initfac,   only : facT, facz0, facz0h, facnorm, fachf, facef, facqsat, fachurel, facf, faclGR, faca
      use modmpi,    only : comm3d, mpi_sum, mpierr, my_real
@@ -1492,7 +1772,8 @@ module modibm
      real :: dist, flux, area, Tair, utan, cth, htc, cveg, hurel, qtair, qwall, resa, resc, ress, xrec, yrec, zrec
      real, dimension(3) :: uvec, norm, span, strm
      real, dimension(1:nfcts) :: fac_htc_loc, fac_cth_loc, fac_pres_loc, fac_pres2_loc
-     logical :: valid
+     logical :: valid, lmofac
+     real    :: z0guard
 
      fac_htc_loc = 0.
      fac_cth_loc = 0.
@@ -1523,6 +1804,10 @@ module modibm
 
        if (bound_info_c%lskipsec_loc(sec)) cycle
        !if (facz0(fac) < eps1) cycle
+       ! iwallmom = 4: a Monin-Obukhov facet takes bctfz (and bcqfz) whatever its slope, the
+       ! fluxes its surface layer assumes; the other facets keep the per-direction values
+       lmofac = .false.
+       if (iwallmom == iwallmom_mo) lmofac = lfacmo(fac)
 
        if (bound_info_c%lcomprec_loc(sec) .or. lnorec) then ! section aligned with grid - use this cell's velocity
          uvec = interp_velocity_c(i, j, k)
@@ -1548,7 +1833,9 @@ module modibm
 
        end if
 
-       if (log(dist/facz0(fac)) <= 1.) then
+       z0guard = facz0(fac)
+       if (lmofac) z0guard = max(facz0(fac), facz0h(fac))   ! as in wallfunmom
+       if (log(dist/z0guard) <= 1.) then
           cycle
           !dist = facz0(fac)+facz0h(fac)
        end if
@@ -1564,7 +1851,9 @@ module modibm
        if (ltempeq) then
          if (iwalltemp == 1) then ! probably remove this eventually, only relevant to grid-aligned facets
            !if     (all(abs(norm - xhat) < eps1)) then
-           if     (is_equal(norm, xhat)) then
+           if     (lmofac) then
+             flux = bctfz
+           elseif (is_equal(norm, xhat)) then
              flux = bctfxp
            !elseif (all(abs(norm + xhat) < eps1)) then
            elseif (is_equal(norm, -xhat)) then
@@ -1603,7 +1892,9 @@ module modibm
        ! Latent heat
        if (lmoist .and. faclGR(fac)) then
          if (iwallmoist == 1) then ! probably remove this eventually, only relevant to grid-aligned facets
-           if     (is_equal(norm, xhat)) then
+           if     (lmofac) then
+             flux = bcqfz
+           elseif (is_equal(norm, xhat)) then
              flux = bcqfxp
            elseif (is_equal(norm, -xhat)) then
              flux = bcqfxm
@@ -1849,11 +2140,7 @@ module modibm
      use modfields, only :  thl0
      integer, intent(in) :: i, j, k
 
-     !interp_temperature_u = 0.5 * (thl0(i,j,k) + thl0(i-1,j,k))
-     interp_temperature_u = 0.5 * (thl0(i  ,j,k)*mask_c(i  ,j,k)*(2.-mask_c(i-1,j,k)) &
-                                +  thl0(i-1,j,k)*mask_c(i-1,j,k)*(2.-mask_c(i  ,j,k)))
-
-     return
+     interp_temperature_u = interp_scalar_u(thl0, i, j, k)
    end function interp_temperature_u
 
 
@@ -1862,18 +2149,51 @@ module modibm
      use modfields, only :  thl0
      integer, intent(in) :: i, j, k
 
-     !interp_temperature_v = 0.5 * (thl0(i,j,k) + thl0(i,j-1,k))
-     interp_temperature_v = 0.5 * (thl0(i,j  ,k)*mask_c(i,j  ,k)*(2.-mask_c(i,j-1,k)) &
-                                 + thl0(i,j-1,k)*mask_c(i,j-1,k)*(2.-mask_c(i,j  ,k)))
-
-     return
+     interp_temperature_v = interp_scalar_v(thl0, i, j, k)
    end function interp_temperature_v
 
 
    real function interp_temperature_w(i, j, k)
      ! interpolates the temperature at w-grid location i,j,k
-     use modglobal, only :  dzf
      use modfields, only :  thl0
+     integer, intent(in) :: i, j, k
+
+     interp_temperature_w = interp_scalar_w(thl0, i, j, k)
+   end function interp_temperature_w
+
+
+   real function interp_scalar_u(var, i, j, k)
+     ! interpolates a cell-centred scalar at u-grid location i,j,k
+     use modglobal, only : ib, ie, ih, jb, je, jh, kb, ke, kh
+     real, intent(in) :: var(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh)
+     integer, intent(in) :: i, j, k
+
+     !interp_scalar_u = 0.5 * (var(i,j,k) + var(i-1,j,k))
+     interp_scalar_u = 0.5 * (var(i  ,j,k)*mask_c(i  ,j,k)*(2.-mask_c(i-1,j,k)) &
+                           +  var(i-1,j,k)*mask_c(i-1,j,k)*(2.-mask_c(i  ,j,k)))
+
+     return
+   end function interp_scalar_u
+
+
+   real function interp_scalar_v(var, i, j, k)
+     ! interpolates a cell-centred scalar at v-grid location i,j,k
+     use modglobal, only : ib, ie, ih, jb, je, jh, kb, ke, kh
+     real, intent(in) :: var(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh)
+     integer, intent(in) :: i, j, k
+
+     !interp_scalar_v = 0.5 * (var(i,j,k) + var(i,j-1,k))
+     interp_scalar_v = 0.5 * (var(i,j  ,k)*mask_c(i,j  ,k)*(2.-mask_c(i,j-1,k)) &
+                            + var(i,j-1,k)*mask_c(i,j-1,k)*(2.-mask_c(i,j  ,k)))
+
+     return
+   end function interp_scalar_v
+
+
+   real function interp_scalar_w(var, i, j, k)
+     ! interpolates a cell-centred scalar at w-grid location i,j,k
+     use modglobal, only : ib, ie, ih, jb, je, jh, kb, ke, kh, dzf
+     real, intent(in) :: var(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh)
      integer, intent(in) :: i, j, k
      real :: wk, wkm
 
@@ -1883,13 +2203,13 @@ module modibm
      wk  = dzf(k-1)*mask_c(i,j,k  )
      wkm = dzf(k  )*mask_c(i,j,k-1)
      if (wk + wkm > 0.) then
-       interp_temperature_w = (thl0(i,j,k)*wk + thl0(i,j,k-1)*wkm) / (wk + wkm)
+       interp_scalar_w = (var(i,j,k)*wk + var(i,j,k-1)*wkm) / (wk + wkm)
      else
-       interp_temperature_w = 0.
+       interp_scalar_w = 0.
      end if
 
      return
-   end function interp_temperature_w
+   end function interp_scalar_w
 
 
    subroutine local_coords(uvec, norm, span, strm, valid)
@@ -2104,6 +2424,7 @@ module modibm
       end if
 
 
+      ! wtsurf, wqsurf (like wttop, wqtop, bctf*): prescribed fluxes, positive in -z (downward)
       if (ltempeq) then
          if (BCbotT.eq.1) then !neumann/fixed flux bc for temperature
             do j = jb, je
@@ -2133,7 +2454,7 @@ module modibm
                                   0.5*(dzf(kb - 1)*ekh(i, j, kb) + dzf(kb)*ekh(i, j, kb - 1)) &
                                   *(qt0(i, j, kb) - qt0(i, j, kb - 1)) &
                                   *dzh2i(kb) &
-                                  + wqsurf &
+                                  - wqsurf &
                                   )*dzfi(kb)
                end do
             end do

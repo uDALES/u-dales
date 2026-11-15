@@ -42,6 +42,8 @@ module modsubgrid
   ! exposed so the in-solver SGS statistics test (tests.f90) can compare the
   ! statistics' SGS fluxes against the tendencies the solver actually applies
   public :: diffu, diffv, diffw, diffc
+  ! exposed for the in-solver one-equation SGS test (tests.f90:tests_sgs_oneeqn)
+  public :: closure, sources
 
 contains
   subroutine initsubgrid
@@ -64,9 +66,16 @@ contains
     allocate(damp(ib:ie,jb:je,kb:ke))
 
 
+    ! Initialise variables to avoid problems when not using the subgrid scheme
+    ! (DALES dev 075ac4e modsubgrid.f90:initsubgrid). zlt, sbdiss, sbshr and sbbuo
+    ! are only set by the one-equation model.
+    ekm = 0.; ekh = 0.; zlt = 0.; sbdiss = 0.; sbshr = 0.; sbbuo = 0.
+
     damp = 1.
     cm = cf / (2. * pi) * (1.5*alpha_kolm)**(-1.5)
-    ch   = prandtl
+    ! DALES dev 075ac4e modsubgrid.f90:initsubgrid. Kh/Km = ch1 + ch2*zlt/delta goes
+    ! from 1/Prandtl (zlt = delta: unstable, neutral or ldelta) to ch1 = 1 as zlt -> 0.
+    ch   = 1.0/Prandtl
     ch2  = ch-ch1
 
     ceps = 2. * pi / cf * (1.5*alpha_kolm)**(-1.5)
@@ -195,9 +204,8 @@ contains
 
     use modglobal,   only : ib,ie,jb,je,kb,ke,delta,grav,&
          dxi,dxiq,dx2,dy2,dyi,dyiq,dzf,dzf2,dzfi,dzhi, &
-         numol,prandtlmoli,dzfiq,lbuoyancy,dzh
-    use modfields,   only : dthvdz,e120,u0,v0,w0,thl0
-    use modsurfdata, only : thvs
+         numol,prandtlmoli,dzfiq,lbuoyancy,dzh,eps1
+    use modfields,   only : dthvdz,e120,u0,v0,w0,thl0,thvf,IIcs
     use modmpi,    only : excjs,slabsumi
     use modboundary, only : closurebc
     implicit none
@@ -381,15 +389,21 @@ contains
                 !else
                 damp(i,j,k) = 1.
                 !end if
-                if ((ldelta) .or. (dthvdz(i,j,k)<=0)) then
+                ! A fully solid slab above kb (IIcs(k) == 0) has thvf(k) = -999 (the
+                ! avexy_ibm fill), so grav/thvf(k) is meaningless there: use the neutral
+                ! length scale (before: a NaN). The values change in solid cells only, but
+                ! diffe has no IBM mask, so the fluid cells next to the slab see the change
+                ! through e12 diffusion. kb never carries the fill (avexy_ibm averages over
+                ! all cells there), so it is left as it was.
+                if ((ldelta) .or. (dthvdz(i,j,k)<=0) .or. (IIcs(k)==0 .and. k>kb)) then
                    zlt(i,j,k) = delta(i,k)
                    ekm(i,j,k) = cm * zlt(i,j,k) *damp(i,j,k)* e120(i,j,k) !* 0.5! LES with near-wall damping !!! added factor 0.5 for shear-driven flow
-                   ekh(i,j,k) = (ch1 + ch2) * ekm(i,j,k)               ! maybe ekh should be calculated from (molecular) Prandtl number
+                   ekh(i,j,k) = (ch1 + ch2) * ekm(i,j,k)               ! = ekm/Prandtl
                    ekm(i,j,k) = ekm(i,j,k) + numol                     ! add molecular viscosity
                    ekh(i,j,k) = ekh(i,j,k) + numol*prandtlmoli         ! add molecular diffusivity
                 else
-                   !            zlt(i,j,k) = min(delta(i,k),cn*e120(i,j,k)/sqrt(grav/thvs*abs(dthvdz(i,j,k))))
-                   zlt(i,j,k) = min(delta(i,k),cn*e120(i,j,k)/sqrt(grav/thvs*abs(dthvdz(i,j,k))))   !thls is used
+                   ! DALES dev 075ac4e: grav/thvf(k); the eps1 floor guards dthvdz -> 0+ (#375)
+                   zlt(i,j,k) = min(delta(i,k),cn*e120(i,j,k)/sqrt(grav/thvf(k)*max(abs(dthvdz(i,j,k)),eps1)))
                    ekm(i,j,k) = cm * zlt(i,j,k) *damp(i,j,k)* e120(i,j,k) !* 0.5     ! LES with near-wall damping !!! added factor 0.5 for shear-driven flow
                    ekh(i,j,k) = (ch1 + ch2 * zlt(i,j,k)/delta(i,k)) * ekm(i,j,k) !  needed in LES!
                    ekm(i,j,k) = ekm(i,j,k) + numol                     ! add molecular viscosity
@@ -439,15 +453,13 @@ contains
     !                                                                 |
     !-----------------------------------------------------------------|
 
-    use modglobal,   only : ib,ie,jb,je,kb,ke,dxi,delta,dyi,dzfi,dzhi,grav,numol,prandtlmol,&
-         delta
-    use modfields,   only : u0,v0,w0,e120,e12p,dthvdz
-    use modsurfdata,  only : thvs
-!    use modmpi,       only : myid
+    use modglobal,   only : ib,ie,jb,je,kb,ke,dxi,delta,dyi,dzfi,dzhi,grav,numol,prandtlmol
+    use modfields,   only : u0,v0,w0,e120,e12p,dthvdz,thvf,IIcs
+    use modibmdata,  only : nmocells, mocell_ijk, mocell_dudz, mocell_dvdz
     implicit none
 
     real    tdef2,prandtlmoli
-    integer i,j,k,im,ip,jm,jp,km,kp
+    integer i,j,k,im,ip,jm,jp,km,kp,n
 
     prandtlmoli = 1./prandtlmol
 
@@ -484,55 +496,64 @@ contains
                    + ((v0(i,jp,k )-v0(i,jp,km)) * dzhi(k ) + (w0(i,jp,k )-w0(i,j ,k )) * dyi)**2 &
                    + ((v0(i,jp,kp)-v0(i,jp,k )) * dzhi(kp) + (w0(i,jp,kp)-w0(i,j ,kp)) * dyi)**2 )
 
-             !    sbshr(i,j,k)  = ekm(i,j,k)*tdef2/ ( 2*e120(i,j,k))
-             !    sbbuo(i,j,k)  = -ekh(i,j,k)*grav/thvs*dthvdz(i,j,k)/ ( 2*e120(i,j,k))
-             !    sbdiss(i,j,k) = - (ce1 + ce2*zlt(i,j,k)/delta(i,k)) * e120(i,j,k)**2 /(2.*zlt(i,j,k))
-             sbshr(i,j,k)  = (ekm(i,j,k)-numol)*tdef2/ ( 2*e120(i,j,k))                                   ! subtract molecular viscosity
-             !    sbbuo(i,j,k)  = -(ekh(i,j,k)-numol*prandtlmoli)*grav/thvs*dthvdz(i,j,k)/ ( 2*e120(i,j,k))     ! subtract molecular diffusivity
-             sbbuo(i,j,k)  = -(ekh(i,j,k)-numol*prandtlmoli)*grav/thvs*dthvdz(i,j,k)/ ( 2*e120(i,j,k))     ! subtract molecular diffusivity and use thls instead of thvs (not defined)
-             !    sbdiss(i,j,k) = - (ce1 + ce2*zlt(i,j,k)/delta(i,k)) * e120(i,j,k)**2 /(2.*damp*zlt(i,j,k))   ! add near-wall damping function
-             ! added factor 2. for shear-driven flow
-             sbdiss(i,j,k) = - 2. * (ce1 + ce2*zlt(i,j,k)/delta(i,k)) * e120(i,j,k)**2 /(2.*damp(i,j,k)*zlt(i,j,k))   ! add near-wall damping function !! added f
+             ! DALES dev 075ac4e modsubgrid.f90:sources, with the molecular parts of
+             ! ekm/ekh subtracted (uDALES adds numol in closure) and the near-wall damp
+             ! (uDALES; 1 away from walls) in the dissipation
+             sbshr(i,j,k)  = (ekm(i,j,k)-numol)*tdef2/ ( 2*e120(i,j,k))
+             ! no buoyancy source in a fully solid slab: thvf(k) holds the -999 fill there
+             if (IIcs(k) > 0) then
+                sbbuo(i,j,k)  = -(ekh(i,j,k)-numol*prandtlmoli)*grav/thvf(k)*dthvdz(i,j,k)/ ( 2*e120(i,j,k))
+             else
+                sbbuo(i,j,k)  = 0.
+             end if
+             sbdiss(i,j,k) = - (ce1 + ce2*zlt(i,j,k)/delta(i,k)) * e120(i,j,k)**2 /(2.*damp(i,j,k)*zlt(i,j,k))
           end do
        end do
     end do
     !     ----------------------------------------------end i,j,k-loop
-    !    special treatment for lowest level
-    ! Don't do this - wall function at bottom
+    !--------------------------------------------
+    ! special treatment for the lowest full level: k = kb
+    !--------------------------------------------
+    ! Wall-function bottom (and IBM): the wall function sets the near-wall state, so
+    ! there are no TKE sources at kb. Set explicitly; never rely on the allocation.
+    sbshr(ib:ie,jb:je,kb)  = 0.
+    sbbuo(ib:ie,jb:je,kb)  = 0.
+    sbdiss(ib:ie,jb:je,kb) = 0.
 
-    ! do j=jb,je
-    !    do i=ib,ie
-    !       jp=j+1
-    !       jm=j-1
-    !       ip=i+1
-    !       im=i-1
-    !
-    !       tdef2 = 2. * ( &
-    !               ((u0(ip,j,kb) - u0(i,j,kb))*dxi)**2 &
-    !             + ((v0(i,jp,kb) - v0(i,j,kb))*dyi)**2 &
-    !             + ((w0(i,j,kb+1) -w0(i,j,kb))*dzfi(kb))**2 &
-    !               )
-    !
-    !       tdef2 = tdef2 + ( 0.25*(w0(i+1,j,kb+1)-w0(i-1,j,kb+1))*dxfi(i) + dudz(i,j))**2
-    !
-    !       tdef2 = tdef2 + 0.25 * ( &
-    !               ((u0(i ,jp,kb) - u0(i ,j ,kb)) * dyi + (v0(i ,jp,kb) - v0(im,jp,kb)) * dxi)**2 &
-    !             + ((u0(i ,j ,kb) - u0(i ,jm,kb)) * dyi + (v0(i ,j ,kb) - v0(im,j ,kb)) * dxi)**2 &
-    !             + ((u0(ip,j ,kb) - u0(ip,jm,kb)) * dyi + (v0(ip,j ,kb) - v0(i ,j ,kb)) * dxi)**2 &
-    !             + ((u0(ip,jp,kb) - u0(ip,j ,kb)) * dyi + (v0(ip,jp,kb) - v0(i ,jp,kb)) * dxi)**2 &
-    !             )
-    !
-    !       tdef2 = tdef2 + ( 0.25 * (w0(i,jp,kb+1) - w0(i,jm,kb+1)) * dyi + dvdz(i,j))**2
-    !
-    !       ! **  Include shear and buoyancy production terms and dissipation **
-    !
-    !       sbshr(i,j,kb)  = ekm(i,j,kb)*tdef2/ ( 2*e120(i,j,kb))
-    !       sbbuo(i,j,kb)  = -ekh(i,j,kb)*grav/thvf(kb)*dthvdz(i,j,kb)/ ( 2*e120(i,j,kb))
-    !       sbdiss(i,j,kb) = - (ce1 + ce2*zlt(i,j,kb)/delta(i,kb)) * e120(i,j,kb)**2 /(2.*zlt(i,j,kb))
-    !    end do
-    ! end do
+    ! iwallmom = 4: cells owning a c-section of a horizontal Monin-Obukhov facet (modibm:mo_cells_update).
+    ! DALES dev 075ac4e modsubgrid.f90:sources, "special treatment for lowest full level"
+    ! (sgs_surface_fix = .false.): the vertical shears are the surface-layer gradients du/dz,
+    ! dv/dz, and dthvdz there holds the surface-layer gradient (calthv). Molecular parts and
+    ! damp as in the interior loop.
+    do n = 1, nmocells
+       i  = mocell_ijk(n,1)
+       j  = mocell_ijk(n,2)
+       k  = mocell_ijk(n,3)
+       kp = k+1
+       jp = j+1
+       jm = j-1
+       ip = i+1
+       im = i-1
 
-    !    ------------------------------------------------
+       tdef2 = 2. * ( &
+               ((u0(ip,j,k)-u0(i,j,k)) * dxi     )**2 &
+             + ((v0(i,jp,k)-v0(i,j,k)) * dyi     )**2 &
+             + ((w0(i,j,kp)-w0(i,j,k)) * dzfi(k) )**2 )
+
+       tdef2 = tdef2 + ( 0.25*(w0(ip,j,kp)-w0(im,j,kp))*dxi + mocell_dudz(n) )**2
+
+       tdef2 = tdef2 + 0.25 * ( &
+               ((u0(i ,jp,k)-u0(i ,j ,k)) * dyi + (v0(i ,jp,k)-v0(im,jp,k)) * dxi)**2 &
+             + ((u0(i ,j ,k)-u0(i ,jm,k)) * dyi + (v0(i ,j ,k)-v0(im,j ,k)) * dxi)**2 &
+             + ((u0(ip,j ,k)-u0(ip,jm,k)) * dyi + (v0(ip,j ,k)-v0(i ,j ,k)) * dxi)**2 &
+             + ((u0(ip,jp,k)-u0(ip,j ,k)) * dyi + (v0(ip,jp,k)-v0(i ,jp,k)) * dxi)**2 )
+
+       tdef2 = tdef2 + ( 0.25*(w0(i,jp,kp)-w0(i,jm,kp))*dyi + mocell_dvdz(n) )**2
+
+       sbshr(i,j,k)  = (ekm(i,j,k)-numol)*tdef2/ ( 2*e120(i,j,k))
+       sbbuo(i,j,k)  = -(ekh(i,j,k)-numol*prandtlmoli)*grav/thvf(k)*dthvdz(i,j,k)/ ( 2*e120(i,j,k))
+       sbdiss(i,j,k) = - (ce1 + ce2*zlt(i,j,k)/delta(i,k)) * e120(i,j,k)**2 /(2.*damp(i,j,k)*zlt(i,j,k))
+    end do
 
     e12p(ib:ie,jb:je,kb:ke) = e12p(ib:ie,jb:je,kb:ke)+ &
          sbshr(ib:ie,jb:je,kb:ke)+sbbuo(ib:ie,jb:je,kb:ke)+sbdiss(ib:ie,jb:je,kb:ke)

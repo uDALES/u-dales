@@ -17,21 +17,20 @@ This list refers to the original code-base [DALES](https://github.com/dalesteam/
 | lreadfacT | .true. | .true. or .false. | On a warm start, read the facet state (wall temperatures, soil moisture, humidity, energy-balance interval) from the matching `initf<ntrun>.<expnr>` restart file; `Tfacinit.inp.<expnr>` is then not read, and a missing or mismatched file aborts the run. Set to .false. to re-seed the facet temperatures from `Tfacinit.inp.<expnr>` (or `Tfacinit_layers.inp.<expnr>` with `lfacTlyrs`) instead. | - |
 | runtime | 300 | > 0 | Simulation time. | [s] |
 | trestart | 10000. | 0 < trestart < runtime | Time at which restart files are written, trestart > runtime will prevent restart files being written.  | [s] |
-| dtmax | 20 | > 0 | Maximum allowed numerical integration timestep. | [s] |
+| dtmax | 20 | > 0 | Maximum allowed numerical integration timestep. With `ladaptive = .false.` it is the fixed time step; `runtime` should then be a multiple of it. | [s] |
 | ladaptive | .false. | .true. or .false. | Switch for adaptive time-stepping, .true. recommended. | - |
-| courant | 1.5 | 1 <= courant <=2 | Courant number, default sets it to 1.5 or 1.1 (if Kappa or upwind scheme is used). | - |
+| courant | -1 (set at start-up: 1.5 for `iadv_mom = 2`, otherwise 1.4; reduced to 1.1 when kappa or upwind advection is used) | > 0 | Courant number limit of the adaptive time step. uDALES measures it as the L1 sum `(|u|/dx + |v|/dy + |w|/dz) dt`, DALES as the L2 norm `sqrt((u dt/dx)^2 + ...)` with default 1.0 (0.7 for kappa and sixth-order advection), so the same number gives a shorter step in uDALES, and DALES's Galilean shift (`cu`, `cv`) has no uDALES equivalent: the same case needs a smaller uDALES `courant` to get the DALES step. The DALES-validation cases 301-303 set it explicitly (see their READMEs). | - |
+| diffnr | 0.25 | > 0 | Diffusion number limit of the adaptive time step: `max(ekm, ekh) (1/dz^2 + 1/dx^2 + 1/dy^2) dt <= diffnr`. DALES's `peclet` (default 0.15) uses `ekm dt / min(dx, dy, dz)^2`, i.e. a sum of three terms in uDALES against one in DALES. | - |
 | lrandomize | .true. | .true. or .false. | Switch that determines whether initial field is randomised.| - |
-| irandom | 43 | `INTEGER` > 0 | Seed for random number generation. | - |
-| randu | 0.01 |`REAL` > 0 | Amplitude of velocity field randomisation. | [m/s] |
+| irandom | 43 | `INTEGER` > 0 | Seed for the initial perturbations. The noise is a hash of (seed, field, global i, j, k), so it does not depend on the MPI decomposition. | - |
+| randu | 0.01 |`REAL` > 0 | Amplitude of velocity field randomisation (u, v, w, independent noise, uniform in +-randu). | [m/s] |
+| randthl | 0.0 | `REAL` >= 0 | Amplitude of temperature (thl) randomisation, uniform in +-randthl, independent of the velocity noise. 0 switches it off. | [K] |
+| randqt | 0.0 | `REAL` >= 0 | Amplitude of moisture (qt) randomisation, uniform in +-randqt, capped pointwise at the local qt so that qt stays non-negative. 0 switches it off. | [kg/kg] |
+| krand | `huge(0)` (clipped to `ktot`) | `INTEGER` > 0 | Highest level (counted from the ground) to which randu, randthl and randqt are applied. The default is the largest integer, which the code clips to the top level, so all levels are perturbed. | - |
 | libm | .true. | .true. or .false. | Switch that determines whether the Immersed Boundary Method is turned on. | - |
 | lles | .true. | .true. or .false. | Switch that determines whether the subgrid model is turned on or constant ekm and ekh are used (DNS). | - |
 | nprocx | -  | `INTEGER` > 0 | Number of pencils in the x-direction (see 2decomp documentation [https://2decomp-fft.github.io/]), must be a divisor of itot. | - |
 | nprocy | -  | `INTEGER` > 0 | Number of pencils in the y-direction (see 2decomp documentation [https://2decomp-fft.github.io/]), must be a divisor of jtot and ktot. | - |
-
-<!---
-| randthl | 0.0 | `REAL` > 0 | Amplitude of temperature field randomisation. | [K] |
-| randqt | 0.0 | `REAL` > 0 | Amplitude of moisture field randomisation. | [kg/kg] |
---->
 
 ## Namelist DOMAIN
 
@@ -91,13 +90,13 @@ Possible advection schemes:
 
 | Name | Default | Possible values | Description | Unit |
 | ---- | ------- | --------------- | ----------- | ---- |
-| lqlnr | .false. | .true. or .false. | Logical for calculation of liquid water concentration. | - |
+| lqlnr | .false. | .true. or .false. | Calculate the liquid water by Newton-Raphson iteration (.true.) instead of the linearised solve (.false.). DALES dev uses two linearised steps (within about 0.2 % of the exact solution; its `lqlnr` is ignored) and DALES 4.4.2 iterates by default, so the DALES-validation cases 301-303 set .true., the closest option (see [uDALES and DALES numerics](udales-dales-numerics.md)). | - |
 | ipoiss | 0 | 0 | Poisson solver. 0 = using 2D Fast Fourier Transform. | - |
 | iadv_mom | 2 | 2 | Advection scheme for momentum. | - |
 | iadv_tke | 2 | 2 | Advection scheme for TKE. Only used if `loneeqn = True`. | - |
-| iadv_thl | 2 | 2 | Advection scheme for temperature. | - |
+| iadv_thl | 2 | 2, 7 | Advection scheme for temperature: 2 (central differences) or 7 (kappa). | - |
 | iadv_qt | 2 | 2 | Advection scheme for moisture. | - |
-| iadv_sv | 7 | 1, 2, 7 | Advection scheme for scalars. | - |
+| iadv_sv | 7 | 1, 2, 7 | Advection scheme for scalars. Currently overwritten at start-up: every scalar uses 7 (kappa), whatever is set (`modglobal:initglobal`). | - |
 
 ## Namelist BC
 
@@ -135,15 +134,15 @@ BCs at the bottom (BCbot; only effective if not covered with ground facets): 1 =
 | bcqfz | 0 | `REAL` | Moisture flux on facets with surface normal in +z direction. | [m/s] |
 | thl_top | -1. | `REAL` >= 0 | Temperature at the top boundary. | [K] |
 | qt_top | -1. | `REAL` >= 0| Humidity at the top boundary. | [kg/kg] |
-| wttop | 0. | `REAL` | Temperature flux at the top boundary. | [Km/s] |
+| wttop | 0. | `REAL` | Kinematic heat flux at the top boundary, positive downward (into the domain). | [Km/s] |
 | BCbotm | 2 | 1,2,3 | Boundary condition for momentum at domain bottom (if `lbottom = .true.`). | - |
 | BCbotT | 1 | 1,2 | Boundary condition for temperature at domain bottom (if `lbottom = .true.`). | - |
 | BCbotq | 1 | 1 | Boundary condition for humidity at domain bottom (if `lbottom = .true.`). | - |
 | BCbots | 1 | 1 | Boundary condition for scalars at domain bottom (if `lbottom = .true.`). | - |
-| wtsurf | -1. |`REAL` | Temperature flux at domain bottom (if `lbottom = .true.`). | [Km/s] |
-| wqsurf | -1. | `REAL`| Moisture flux at domain bottom (if `lbottom = .true.`).  | [m/s] |
-| thls | -1. |  `REAL`| Temperature at domain bottom (if `lbottom = .true.`).  | [K] |
-| qts | -1. | `REAL` | Moisture at domain bottom (if `lbottom = .true.`). Used in modthermodynamics to get a BC for the moisture profile. | [kg/kg] |
+| wtsurf | -1. |`REAL` | Kinematic heat flux at domain bottom, positive downward (into the surface) (if `lbottom = .true.`). | [Km/s] |
+| wqsurf | -1. | `REAL`| Kinematic moisture flux at domain bottom, positive downward (into the surface) (if `lbottom = .true.`).  | [m/s] |
+| thls | -1. (unset) |  `REAL` > 0 | Temperature at domain bottom (if `lbottom = .true.`). Required (> 0) with `ltempeq` or `lbuoyancy`; the run aborts if it is unset. | [K] |
+| qts | -1. (unset) | `REAL` >= 0 | Moisture at domain bottom (if `lbottom = .true.`). Used in modthermodynamics to get a BC for the moisture profile. Required with `lmoist` (the run aborts if it is unset); dry runs use 0. | [kg/kg] |
 | z0 | -1. |  `REAL`| Momentum roughness length of the domain bottom (if `lbottom = .true.`).  | [m] |
 | z0h | -1. |  `REAL`| Heat roughness length of the domain bottom (if `lbottom = .true.`).| [m] |
 
@@ -166,8 +165,8 @@ BCs at the bottom (BCbot; only effective if not covered with ground facets): 1 =
 | cf | 2.5 | `REAL` > 0 | Filter constant. | - |
 | cn | 0.76 | `REAL` > 0 | Subfilter scale parameter. | - |
 | Rigc | 0.25 | `REAL` > 0 | Critical Richardson number. | - |
+| Prandtl | 1./3. |`REAL` > 0 | Turbulent Prandtl number Km/Kh: Kh = Km/Prandtl in the Smagorinsky, Vreman and one-equation models (for the one-equation model in neutral/unstable cells; Kh goes to Km in strongly stable cells). | - |
 <!---
-| Prandtl | 0.333 |`REAL` > 0 | Prandtl number. | - |
 | lsmagorinsky | .false . | .true. or .false. | Switch for Smagorinsky subgrid scheme. | - |
 | cs | -1 | > 0 | Smagorinsky constant. | - |
 | nmason | 2 | > 0 | Exponent in Mason correction function.| - |
@@ -178,8 +177,42 @@ BCs at the bottom (BCbot; only effective if not covered with ground facets): 1 =
 
 | Name | Default | Possible values | Description | Unit |
 | ---- | ------- | --------------- | ----------- | ---- |
-| tcheck | 0 | > 0 |  Time interval between checks of velocity divergence and Courant numbers.| [s] |
+| tcheck | 0 | > 0 | Time interval of the run checks written to the log: the mean time step over the interval, the Courant and diffusion numbers, and the velocity divergence. | [s] |
 --->
+
+## Namelist NAMRADIATION
+
+Parametrised longwave radiation (Stevens et al. 2005; DALES `radpar`). Off by default. Requires `ltempeq = .true.`; the liquid-water absorber (default) also requires `lmoist = .true.`. The tendency is added to `thlp` every Runge-Kutta substep and recomputed at the first substep of each update. With `iradiation = 2`, `rka` and one of `dlwtop`/`dlwbot` must be set (no defaults; a negative `timerad`, `dlwtop` or `dlwbot` aborts); with `iradiation = 0`, any other setting of this group is ignored with a warning.
+
+| Name | Default | Possible values | Description | Unit |
+| ---- | ------- | --------------- | ----------- | ---- |
+| iradiation | 0 | 0, 2 | Radiation scheme: 0 none, 2 parametrised longwave (`radpar`). | - |
+| timerad | 0. | `REAL` >= 0 | Update interval of the radiative tendency; 0 updates every time step. The adaptive time step is not limited to land on the radiation time, so the update may overshoot by up to one step. The schedule is not in the restart files, so after a warm start the tendency is recomputed at the first step. | [s] |
+| rad_longw | .true. | .true. or .false. | Longwave radiation on. | - |
+| rad_shortw | .false. | .false. | Shortwave radiation is not supported; `.true.` aborts. | - |
+| rad_absorber | 'ql' | 'ql' or 'sv' | Absorber of the longwave scheme: cloud liquid water `ql` (requires `lmoist`), or scalar `rad_absorber_sv` (e.g. smoke). Both use `rka`, `dlwtop` and `dlwbot`. Any other value aborts. | - |
+| rad_absorber_sv | 0 (unset) | 1 to `nsv` | Index of the absorbing scalar. Required with `rad_absorber = 'sv'`; the run aborts if it is not set, and also if it is set with `rad_absorber = 'ql'`. | - |
+| rka | 0. (unset) | `REAL` > 0 | Extinction coefficient kappa. Required when `iradiation = 2`. | [m2/kg] |
+| dlwtop | 0. (unset) | `REAL` >= 0 | Downward longwave flux at the top, F0. Required when `iradiation = 2`, unless `dlwbot` > 0 (at least one of the two must be > 0). | [W/m2] |
+| dlwbot | 0. | `REAL` >= 0 | Upward longwave flux at the bottom, F1. 0 switches it off. Required (> 0) only if `dlwtop` is 0. | [W/m2] |
+| rad_ls | .false. | .true. or .false. | DALES compatibility only: ignored with a warning; the `thlpcar` column of `lscale.inp` is always applied. | - |
+
+## Namelist NAMCASES
+
+Case hooks: case-specific physics kept out of the core modules, in `src/cases/` (see [Adding case-specific physics with hooks](udales-case-hooks.md)). Off by default.
+
+| Name | Default | Possible values | Description | Unit |
+| ---- | ------- | --------------- | ----------- | ---- |
+| case_hooks | '' | comma-separated list of hook names | Hooks to switch on. Valid names: `dycoms_rf01`. An unknown or repeated name aborts. A case group in namoptions (e.g. `&NAMCASE_DYCOMS`) whose hook is not listed is ignored, with a warning on rank 0. | - |
+
+### Namelist NAMCASE_DYCOMS
+
+Parameters of the `dycoms_rf01` hook: the free-troposphere term of the DYCOMS-II RF01 radiation (Stevens et al. 2005), `F(z) = rho_i cp D alpha_z [(z-zi)^(4/3)/4 + zi (z-zi)^(1/3)]` with `D = dycoms_D` above the local inversion height `zi`. It is added to the radiative `thl` tendency as `-(F(zh(k+1)) - F(zh(k))) / (rho_i cp dzf(k))`, the divergence of `F` between cell faces normalised by `rho_i cp` as in DALES, not by the local `rhof cp exnf`. `zi` is the highest downward crossing of `qt = dycoms_qt_thres` in each column; a column with `qt > dycoms_qt_thres` at the top level has no inversion and gets no term. The hook requires `iradiation = 2` and `lmoist`; both parameters must be set, or the run aborts at startup. Case parameters carry the case prefix because `tools/python/namelists.json` maps variable names to groups globally.
+
+| Name | Default | Possible values | Description | Unit |
+| ---- | ------- | --------------- | ----------- | ---- |
+| dycoms_D | 0. (unset) | `REAL` > 0 | Large-scale divergence (RF01: 3.75e-6). | [1/s] |
+| dycoms_qt_thres | 0. (unset) | `REAL` > 0 | `qt` value defining the local inversion height (RF01: 8e-3). | [kg/kg] |
 
 ## Namelist WALLS
 
@@ -192,11 +225,14 @@ BCs at the bottom (BCbot; only effective if not covered with ground facets): 1 =
 | Name | Default | Possible values | Description | Unit |
 | ---- | ------- | --------------- | ----------- | ---- |
 | nfcts | -1 | `INTEGER` | Number of facets specified in `facets.inp`. | - |
-| iwallmom | 2 | 1, 2, 3 (1 means zero flux) | Building wall momentum flux. | - |
+| iwallmom | 2 | 1, 2, 3, 4 (1 means zero flux) | Facet momentum flux: 2 wall function with stability (becomes 3 with `iwalltemp = 1`), 3 neutral wall function, 4 Monin-Obukhov surface layer on facets within `mo_maxslope` of horizontal and the neutral wall function on the others (see [boundary conditions](udales-boundary-conditions.md)). | - |
 | iwalltemp | 1 | 1, 2 |  Building wall temperature flux. | - |
 | iwallmoist | 1 | 1, 2 |  Building wall moisture flux. | - |
 | iwallscal | 1 | 1, 2 | Building wall scalar flux | - |
 | lbottom | .false. | .true., .false. | Switch for using wall function as bottom BC. *Used only if no ground facets.* | - |
+| mo_maxslope | 30. | `REAL` in [0, 90) | `iwallmom = 4`: facets whose normal is at most `mo_maxslope` from the vertical use Monin-Obukhov. | [deg] |
+| ustin | 0. | `REAL` >= 0 | `iwallmom = 4`: prescribed friction velocity on the Monin-Obukhov facets (DALES `isurf = 3`); 0 computes it from Monin-Obukhov similarity. | [m/s] |
+| fkar | 0.40 | `REAL` > 0 | von Karman constant of the wall functions and the Monin-Obukhov surface (the DALES, PALM and WRF value). Was 0.41 before; set `fkar = 0.41` to keep the old wall stresses (see the CHANGELOG). The inlet generator keeps its own 0.41. | - |
 | nsolpts_u | 0 | `INTEGER` | Number of solid points on u-grid. | - |
 | nsolpts_v | 0 | `INTEGER` | Number of solid points on v-grid. | - |
 | nsolpts_w | 0 | `INTEGER` | Number of solid points on w-grid. | - |
@@ -263,7 +299,7 @@ BCs at the bottom (BCbot; only effective if not covered with ground facets): 1 =
 | ---- | ------- | --------------- | ----------- | ---- |
 | lfielddump | .false. | .true. or .false. | Switch for instantaneous field output. | - |
 | tfielddump | 10000. | | Output time for fields. | [s] |
-| fieldvars | '' | Comma-separated two-letter codes, at most 17: u0,v0,w0,th,ql,qt,p0,s1,s2,s3,s4,s5 (prognostic fields); tx,ty,tz,hf (IBM wall stresses and heat flux); mu,mv,mw,mc (IBM masks); di,ux,vy,wz (divergence of the corrected velocity and its three terms); pd,pu,pv,pw (pressure correction and predicted velocities of the last substep); rs,du,dv,dw (right-hand side of the Poisson equation and its three terms). The di/ux/vy/wz/rs/du/dv/dw fields are computed at output time only. | Variable names of fields. | - |
+| fieldvars | '' | Comma-separated two-letter codes, at most 17: u0,v0,w0,th,ql,qt,p0,s1,s2,s3,s4,s5 (prognostic fields); dt (vertical gradient of thv, no halos); tx,ty,tz,hf (IBM wall stresses and heat flux); mu,mv,mw,mc (IBM masks); di,ux,vy,wz (divergence of the corrected velocity and its three terms); pd,pu,pv,pw (pressure correction and predicted velocities of the last substep); rs,du,dv,dw (right-hand side of the Poisson equation and its three terms). The di/ux/vy/wz/rs/du/dv/dw fields are computed at output time only. | Variable names of fields. | - |
 | tsample | 5. | `REAL` | Sample time for statistics. | [s] |
 | tstatsdump | 10000. | `REAL` | Output time for statistics. | [s] |
 | tstatstart | 0. | `REAL` | Time from which statistics computation or data sampling starts. | [s] |
@@ -272,9 +308,51 @@ BCs at the bottom (BCbot; only effective if not covered with ground facets): 1 =
 | lytdump | .false. | .true. or .false. | Switch to output y- and time- averaged statistics. *Only functional if x-direction is not parallelised.* | - |
 | lxydump | .false. | .true. or .false. | Switch to output x- and y- averaged statistics. | - |
 | lxytdump | .false. | .true. or .false. | Switch to output x-, y- and time-averaged statistics. | - |
+| lbldump | .false. | .true. or .false. | Write `bldump_t.<expnr>.nc` and `bldump_z.<expnr>.nc`: cloud, boundary-layer and radiation diagnostics for boundary-layer cases (BOMEX, smoke, DYCOMS). Instantaneous samples every `tstatsdump`, the first one `tstatsdump` after the later of the start time and `tstatstart`, after the thermodynamics of the time step. Files and variables: see below. | - |
+| zi_qt_thres | 0. (off) | `REAL` >= 0 | `bldump`: `qt` threshold whose highest downward crossing is written as `zi_qt`. 0 writes no `zi_qt`; > 0 requires `lmoist`. | [kg/kg] |
+| zi_sv_index | 0 (off) | 0 to `nsv` | `bldump`: scalar whose highest downward crossing of `zi_sv_thres` is written as `zi_sv`. 0 writes no `zi_sv`. | - |
+| zi_sv_thres | 0. (unset) | `REAL` > 0 | `bldump`: threshold of the `zi_sv` diagnostic. Required with `zi_sv_index > 0`; the run aborts if it is not set. | scalar unit |
 <!---
 | ltkedump | .false. | .true. or .false. | *Not supported in the current version.* | - |
 --->
+
+### bldump files
+
+Time-series and profile diagnostics for boundary-layer cases. Off by default. Variable names follow DALES where an equivalent exists (`modtimestat`, `modgenstat`). Invalid `zi_*` settings abort, as does `lbldump = .true.` with `tstatsdump <= 0`; `zi_sv_thres` without `zi_sv_index`, and `zi_*` settings with `lbldump = .false.`, are ignored with a warning. Both files are written by rank 0 in single precision. Averages are over fluid cells only. Fluxes are resolved fluxes only (no SGS contribution).
+
+`bldump_t.<expnr>.nc` (time series, dimension `time`):
+
+| Variable | Description | Unit |
+| -------- | ----------- | ---- |
+| lwp_bar | Liquid water path, mean over fluid columns | kg/m^2 |
+| cfrac | Cloud cover: fraction of columns with `ql > 0` anywhere | - |
+| zi | Boundary-layer height: mean over columns of the half level of maximum `dthl/dz` | m |
+| zi_qt | Boundary-layer height: highest downward crossing of `qt = zi_qt_thres` (0 if none). Written only with `zi_qt_thres > 0` | m |
+| zi_sv | Boundary-layer height: highest downward crossing of `zi_sv_thres` by scalar `zi_sv_index` (0 if none). Written only with `zi_sv_index > 0` | m |
+| wmax | Maximum vertical velocity | m/s |
+| qlmax | Maximum liquid water | kg/kg |
+| ustar | Friction velocity | m/s |
+| obl | Obukhov length | m |
+| thls | Surface thl | K |
+| qts | Surface qt | kg/kg |
+| u1 | Slab-mean u at first level | m/s |
+| v1 | Slab-mean v at first level | m/s |
+
+`bldump_z.<expnr>.nc` (slab-mean profiles, dimensions `time` and height; `tt` = full levels, `mt` = half levels):
+
+| Variable | Description | Unit | Levels |
+| -------- | ----------- | ---- | ------ |
+| thl | Liquid water potential temperature | K | full |
+| qt | Total water | kg/kg | full |
+| ql | Liquid water | kg/kg | full |
+| cfracz | Cloud fraction | - | full |
+| rhof | Density | kg/m^3 | full |
+| exnf | Exner function | - | full |
+| thlprad | Radiative thl tendency (0 without radiation) | K/s | full |
+| wthl | Resolved w thl flux | K m/s | half |
+| wqt | Resolved w qt flux | m/s | half |
+| lwu | Longwave flux, F1 term (0 without radiation) | W/m^2 | half |
+| lwd | Longwave flux, F0 term (0 without radiation) | W/m^2 | half |
 
 ## Namelist INPS
 

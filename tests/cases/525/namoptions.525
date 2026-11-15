@@ -47,6 +47,8 @@ lvreman      = .true.
 /
 
 &BC
+thls        = 288.0
+qts         = 0.
 BCxm         = 3
 BCtopm       = 3
 z0           = 0.01
