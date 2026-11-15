@@ -13,16 +13,6 @@ that they are easy to find when upgrading.
 
 ### Breaking changes
 
-- **`&NAMTHERMOSTAT` is removed; the diagnostics are `lbldump` in `&OUTPUT`.** The cloud,
-  boundary-layer and radiation time series and profiles are now part of the statistics
-  machinery (`modstatsdump`, helper `modbldiag`) and written to `bldump_t.<expnr>.nc` and
-  `bldump_z.<expnr>.nc` (were `thermostat_t`/`thermostat_z`); variables, units and
-  definitions are unchanged. `lthermostat` becomes `lbldump` (default `.false.`) and
-  `tthermostat` is replaced by `tstatsdump` (samples every `tstatsdump` from `tstatstart` on,
-  at the same point of the time loop); `zi_qt_thres`, `zi_sv_index` and `zi_sv_thres`
-  move to `&OUTPUT` with the same defaults and checks. An old `&NAMTHERMOSTAT` group in
-  `namoptions` aborts at start-up with a message pointing to `lbldump`: replace it by
-  `lbldump = .true.` and `tstatsdump` in `&OUTPUT`.
 - **The von Karman constant default `fkar` is 0.40 instead of 0.41.** It is now the value used by DALES
   (`fkar = 0.4`), PALM (`kappa = 0.4`) and WRF; the 2.3 % u* gap between uDALES and DALES in the RF01 comparison
   was entirely this constant. `fkar` remains a `&WALLS` input. The inlet generator (`modinlet`) keeps its own
@@ -91,8 +81,8 @@ that they are easy to find when upgrading.
   the same `thl` and `qt`, cloud liquid water is about 10-15 % lower than before
   (more in warmer clouds).
   Who is affected: runs with `lmoist = .true.` that form cloud, moist runs with
-  trees, and energy-balance runs with green roofs. Dry runs are unchanged. Case 303
-  (DYCOMS RF01) now prescribes `wqsurf = -3.72578241e-5` (115 W/m2 / (1.22 x 2.53e6)).
+  trees, and energy-balance runs with green roofs. Dry runs are unchanged. Example 303 (new)
+  prescribes `bcqfz = -3.72578241e-5` on its floor facet (115 W/m2 / (1.22 x 2.53e6)).
 - **One-equation SGS model (`loneeqn`) aligned with DALES.** Four changes to
   `modsubgrid.f90`, following DALES dev 075ac4e (#401). Who is affected: only runs with
   `loneeqn = .true.` (Vreman and Smagorinsky runs change only through the new
@@ -208,9 +198,14 @@ that they are easy to find when upgrading.
   line counts the Monin-Obukhov and wall-function facets. `bldump` writes the area means over the
   Monin-Obukhov sections (`ustar`, `obl` as `1/mean(1/L)`, the diagnosed surface `thls`, `qts`). The
   per-section state is not in the restart files (cold-started again on a warm start). In the cells directly
-  above horizontal Monin-Obukhov facets (normal +z) the one-equation SGS TKE sources and `dthvdz` use the
+  above horizontal Monin-Obukhov facets (normal +z; strictly: the cells that own a section of such a
+  facet) the one-equation SGS TKE sources and `dthvdz` use the
   Monin-Obukhov surface-layer gradients, the DALES first-level treatment (`modibm:mo_cells_update`, evaluated
   before `subgrid` as in DALES); sloped Monin-Obukhov facets and all other walls keep no TKE source at `kb`.
+  `dthvdz` in these cells is the surface-layer gradient for every SGS model, so it also enters the Vreman
+  `lbuoycorr` correction and the `dt` field dump. Start-up checks: `iwallmom` must be 1 to 4, `ustin >= 0`;
+  Monin-Obukhov sections with `log(dist/max(z0, z0h)) <= 1` are skipped; a rank-0 warning reports
+  Monin-Obukhov facets that are within 1e-3 of horizontal but not within 1e-6 (they get no first-level treatment).
   Off by default (`iwallmom = 2`); other runs are bit-identical. `tools/python/udprep/flat_floor.py` writes the IBM
   inputs of a flat floor made of facets.
 - **Parametrised longwave radiation** (`&NAMRADIATION`, `iradiation = 2`; `modradiation`,
@@ -232,6 +227,9 @@ that they are easy to find when upgrading.
   `thermodynamics`, so `ql`, `rhof`, `exnf` and the slab means belong to the same state as
   `thl`, `qt` and `w`. The tracer boundary-layer heights `zi_sv` (`zi_sv_index`, `zi_sv_thres`) and
   `zi_qt` (`zi_qt_thres`) are written only when set. Off by default; the solution itself is unaffected.
+  `bldump` replaces the `&NAMTHERMOSTAT` diagnostics of earlier development versions of this branch
+  (`lthermostat`, `tthermostat`; the group was never in a release): a leftover `&NAMTHERMOSTAT` group in
+  `namoptions` aborts at start-up with a message pointing to `lbldump` and `tstatsdump`.
 - `fieldvars = 'dt'` writes `dthvdz` to the field dump.
 - **Initial `thl` and `qt` noise** (`randthl`, `randqt`; see Breaking changes, issue #395).
 - **Examples 301 (BOMEX), 302 (smoke cloud, scalar radiation absorber) and 303 (DYCOMS-II RF01)**, on a
