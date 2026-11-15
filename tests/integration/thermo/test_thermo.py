@@ -299,9 +299,19 @@ class TestBldump(_SolverTest):
             times = np.asarray(t["time"][:], dtype=float)
         print(f"\n[bldump] record times {times}")
         np.testing.assert_allclose(np.diff(times), 2.0, atol=1e-3)
-        self.assertGreaterEqual(times[0], 5.0)
-        self.assertLessEqual(times[0], 7.0 + 1e-3)
+        self.assertEqual(times[0], 7.0)       # tstatstart + tstatsdump
         self.assertGreaterEqual(len(times), 2)
+
+    def test_time_step_longer_than_tstatsdump_writes_once_per_step(self):
+        # dt = 1 s > tstatsdump = 0.4 s: one record per step, none duplicated. (With a constant
+        # dt the catch-up of tnext does not change the records; it keeps tnext on the grid.)
+        d = tc.write_case(self.tmp / "dtlong", groups={
+            "RUN": {"runtime": "4.5", "ladaptive": ".false.", "dtmax": "1."},
+            "OUTPUT": {"lbldump": ".true.", "tstatsdump": "0.4"}})
+        self.run_ok(d)
+        with Dataset(d / "bldump_t.310.nc") as t:
+            times = np.asarray(t["time"][:], dtype=float)
+        np.testing.assert_array_equal(times, [1.0, 2.0, 3.0, 4.0, 5.0])  # runtime 4.5 ends with the 5th step
 
     def test_dry_column_has_no_moist_diagnostics(self):
         d = tc.write_case(self.tmp / "drystat", groups={
@@ -490,21 +500,29 @@ class TestRadiation(_SolverTest):
         with Dataset(a / "bldump_z.310.nc") as za, Dataset(b / "bldump_z.310.nc") as zb:
             dthl_both = np.asarray(za["thl"][-1], dtype=float) - tc.rf01_profiles(zf)[0]
             dthl_subs = np.asarray(zb["thl"][-1], dtype=float) - tc.rf01_profiles(zf)[0]
-        # The top cell is excluded: there the subsidence stencil is one-sided/boundary-
-        # dominated (subs run: -1.9e-3 K, cooling), while the FT term keeps cooling it
-        # (-1.0e-2 K), so it measures the top boundary, not the balance.
-        ft = (zf > 840.0 + 150.0) & (zf < zf[-1])
+        # The top three cells are excluded: the top boundary reaches into them (thl of the
+        # last cell: FT term -1.3e-2 K against subsidence -4e-3 K; second last: ratio 0.07),
+        # so they measure the boundary, not the balance. Below that the two terms cancel to
+        # a few 1e-3 of the subsidence signal, which is one float32 step of thl (3e-5 K at
+        # 297 K) over the signal (1.2e-2 K).
+        dz = zf[1] - zf[0]
+        ft = (zf > 840.0 + 150.0) & (zf <= zf[-4])
         ratio = np.abs(dthl_both[ft]).max() / np.abs(dthl_subs[ft]).max()
         print(f"\n[balance] max|dthl_both|/max|dthl_subs| in FT = {ratio:.4f}")
-        # The FT term cancels the subsidence tendency w dthl/dz up to the error of the
-        # one-sided (upwind) difference. thl = thl_i + (z - zi)^(1/3) above the inversion,
-        # so that error is relative dz |thl''| / (2 thl') = dz / (3 (z - zi)), largest at
-        # the lowest level of the window: 20/(3*157.3) = 0.042. 1.5 times that covers the
-        # flux-form cell mean (<1e-3) and the 7 m offset between the 840 m inversion and
-        # zi = 832.7 m. A sign error gives a ratio of ~2, a missing term 1.
+        # The FT term is D/3 z (z - zi)^(-2/3) (flux form, cell mean); the subsidence term is the
+        # upwind difference w (thl_{k+1} - thl_k)/dz of the initial profile
+        # thl_i + (z - 840 m)^(1/3). Their difference, evaluated here for the window, is the
+        # truncation error of the stencil plus the 7 m offset between the 840 m inversion and
+        # zi = 832.7 m (about 1 % at the lowest level). Twice that, in addition to the float32
+        # step, is the bound. A sign error gives a ratio of ~2, a missing term 1.
         zi = self._ft_term()[1]
-        bound = 1.5 * 20.0 / (3.0 * (zf[ft].min() - zi))
-        self.assertLess(ratio, bound)
+        thl_i = tc.rf01_profiles(zf)[0]
+        sub = np.zeros_like(zf)
+        sub[:-1] = self.D * zf[:-1] * (thl_i[1:] - thl_i[:-1]) / dz
+        ft_term = self.D / 3 * zf * np.maximum(zf - zi, 1e-9) ** (-2 / 3)
+        model = np.abs(ft_term - sub)[ft].max() / np.abs(sub)[ft].max()
+        print(f"[balance] stencil model {model:.4f}")
+        self.assertLess(ratio, 2 * model)
 
 
 class TestCaseHooks(_SolverTest):
