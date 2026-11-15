@@ -19,7 +19,7 @@ module tests
 
   implicit none
   save
-  public :: tests_read_sparse_ijk, tests_2decomp_init_exit, tests_mpi_operators, tests_zgrid_metrics, tests_sgs_statistics
+  public :: tests_read_sparse_ijk, tests_2decomp_init_exit, tests_mpi_operators, tests_zgrid_metrics, tests_sgs_statistics, tests_facet_flux
 
 contains
 
@@ -763,6 +763,112 @@ contains
            'FAIL', trim(label), max_abs, 'idx', imax(1), 'got', got(imax(1)), 'exp', exp(imax(1))
     end if
   end function compare_real_1d
+
+  !> Prescribed facet fluxes (iwalltemp = iwallmoist = 1) on non-grid-aligned facets (#409).
+  !! Uses case 100 (grid-aligned blocks). Facet normals are overwritten to make some roofs
+  !! sloped, nonzero prescribed fluxes are set, and wallfunheat is called directly. Sloped
+  !! facets must receive no prescribed flux, so with totals T_all (no sloped roof),
+  !! T_none (all roofs sloped, only the x+ flux remains) and T_odd/T_even (odd/even-numbered
+  !! roofs sloped): T_odd + T_even = T_all + T_none, T_none < T_all. Before the fix, sloped sections
+  !! inherited the flux of the previously processed section, which violates both.
+  !! The totals are printed so that the driver script can compare decompositions.
+  logical function tests_facet_flux()
+    use modglobal,  only : ib, ie, ih, jb, je, jh, kb, ke, kh, runmode, nfcts, totheatflux, totqflux
+    use modfields,  only : initfields, u0, v0, w0, thlp, qtp
+    use modibm,     only : initibm, createmasks, wallfunheat
+    use modibmdata, only : bctfxp, bctfz, bcqfxp, bcqfz
+    use initfac,    only : readfacetfiles, facnorm, faclGR
+    use mpi
+
+    implicit none
+
+    real, parameter :: slope(3) = (/0.6, 0., 0.8/)
+    real, allocatable :: norm0(:,:)
+    logical, allocatable :: roof(:)
+    real :: th(4), qt(4), tol
+    integer :: n, nroof, nfail
+
+    if (myid == 0) then
+      write(*, '(A)') '================================================'
+      write(*, '(A, I8)') 'runmode = ', runmode
+      write(*, '(A)') 'tests_facet_flux: PRESCRIBED FACET FLUX ON SLOPED FACETS TEST'
+      write(*, '(A)') '------------------------------------------------'
+    end if
+
+    call initfields
+    call readfacetfiles
+
+    u0 = 1.; v0 = 0.5; w0 = 0.2
+    bctfxp = 2.; bctfz = 1.5
+    bcqfxp = 1.; bcqfz = 0.5
+    faclGR = .true.
+
+    allocate(norm0(nfcts,3), roof(nfcts))
+    norm0 = facnorm
+    roof = (abs(norm0(:,3) - 1.) < 1.e-6)
+    nroof = count(roof)
+
+    ! initibm reports the facets without prescribed flux (start-up line) given nonzero fluxes
+    call slope_roofs(1)
+    call initibm
+    facnorm = norm0
+    call createmasks
+
+    nfail = 0
+    if (nroof < 2) then
+      nfail = nfail + 1
+      if (myid == 0) write(*,'(A,I0)') 'FAIL: need at least 2 roof facets, found ', nroof
+    end if
+
+    ! 1: odd-numbered roofs sloped, 2: all roofs sloped, 3: none sloped, 4: even-numbered roofs sloped
+    do n = 1, 4
+      facnorm = norm0
+      call slope_roofs(n)
+      call total_flux(th(n), qt(n))
+    end do
+    facnorm = norm0
+
+    tol = 1.e-10 * max(abs(th(3)), abs(qt(3)))
+    if (abs(th(1) + th(4) - th(3) - th(2)) > tol .or. th(3) - th(2) <= 1.e-3 * th(3)) nfail = nfail + 1
+    if (abs(qt(1) + qt(4) - qt(3) - qt(2)) > tol .or. qt(3) - qt(2) <= 1.e-3 * qt(3)) nfail = nfail + 1
+
+    if (myid == 0) then
+      write(*,'(A,4(1X,ES24.16))') 'FACETFLUX heat  (odd, all, none, even):', th(1), th(2), th(3), th(4)
+      write(*,'(A,4(1X,ES24.16))') 'FACETFLUX moist (odd, all, none, even):', qt(1), qt(2), qt(3), qt(4)
+      if (nfail == 0) then
+        write(*,'(A)') 'ALL TESTS PASSED: tests_facet_flux'
+      else
+        write(*,'(A)') 'FAIL tests_facet_flux: sloped facets received a prescribed flux'
+      end if
+    end if
+
+    tests_facet_flux = (nfail == 0)
+
+  contains
+
+    subroutine slope_roofs(mode)
+      integer, intent(in) :: mode
+      integer :: f, r
+      r = 0
+      do f = 1, nfcts
+        if (.not. roof(f)) cycle
+        r = r + 1
+        if (mode == 2 .or. (mode == 1 .and. mod(r,2) == 1) .or. (mode == 4 .and. mod(r,2) == 0)) facnorm(f,:) = slope
+      end do
+    end subroutine slope_roofs
+
+    subroutine total_flux(th_tot, qt_tot)
+      real, intent(out) :: th_tot, qt_tot
+      real :: loc(2), glob(2)
+      thlp = 0.; qtp = 0.
+      totheatflux = 0.; totqflux = 0.
+      call wallfunheat
+      loc = (/totheatflux, totqflux/)
+      call MPI_ALLREDUCE(loc, glob, 2, my_real, MPI_SUM, comm3d, mpierr)
+      th_tot = glob(1); qt_tot = glob(2)
+    end subroutine total_flux
+
+  end function tests_facet_flux
 
   logical function compare_real_2d(label, got, exp, tol)
     implicit none

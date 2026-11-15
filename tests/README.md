@@ -175,6 +175,8 @@ between multiple components rather than one isolated API.
   #269 on the energy-balance case `064`
 - `stretched_grid/`: preprocessing and a short solver run of the energy-balance
   case `064` on an exponentially stretched vertical grid
+- `facet_flux/`: prescribed facet heat/moisture flux on sloped facets (#409) for
+  `runmode = 1008` on case `100` across `1x1`, `2x1`, `1x2` and `2x2`
 - `sgs_statistics/`: SGS statistics validation for `runmode = 1007` on the
   stretched-grid case `300` across `1x1`, `2x1`, `1x2` and `2x2`
 - `udbase_against_matlab/`: Python-vs-MATLAB parity checks on committed cases

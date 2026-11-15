@@ -20,6 +20,8 @@ Current contents:
 - `ibm_sparse_input/` for MPI validation of the sparse IBM input reader on committed case `101`
 - `execute_output_dir/` for the run wrappers' refusal to run into an existing
   output directory (and `copy_inputs.sh` not creating one); solver and MPI are stubbed
+- `facet_flux/` for the prescribed facet heat/moisture flux on non-grid-aligned
+  facets (`runmode = 1008`, case `100`), checked on four decompositions
 - `mpi_operators/` for direct MPI validation of `avexy_ibm`, `avey_ibm`,
   `sumx_ibm`, and `sumy_ibm` on committed case `100`
 - `processor_boundaries/` for MPI decomposition parity diagnostics
