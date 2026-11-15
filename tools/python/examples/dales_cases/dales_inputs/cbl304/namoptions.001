@@ -1,0 +1,83 @@
+! DALES dev 075ac4e counterpart of uDALES examples/304: dry convective boundary layer over a surface of
+! fixed temperature (isurf = 2), uDALES-compatible numerics as the BOMEX/RF01 inputs: fixed dt, no Galilean
+! shift, constant-density base state (ibas_prf = 5, baseprof.inp.001 from make_dales_baseprof.py), cd2 everywhere.
+! Dry: lmoist stays on with qt = 0 and a dry surface (rsisurf2 = 1e10 s/m: qskin = qt, no moisture flux),
+! because DALES isurf = 2 sets qskin only in qtsurf (lmoist); with lmoist = .false. qskin is never initialised.
+! Edit irandom per ensemble member (43, 44, 45).
+&RUN
+iexpnr     =  001
+lwarmstart =  .false.
+runtime    =  14400
+trestart   =  14400
+ladaptive  = .false.     ! dt = dtmax
+dtmax      =  1.0        ! s, identical to uDALES examples/304
+irandom    =  43
+randthl    =  0.1
+randqt     =  0.
+krandumax  =  0          ! no u, v, w noise
+nsv        =  0
+nprocx     =  4
+nprocy     =  4
+/
+
+&DOMAIN
+itot       =  96
+jtot       =  96
+kmax       =  80
+xsize      =  4800.
+ysize      =  4800.
+xlat       =  45.
+xlon       =  0.
+xday       =  0.
+xtime      =  0.
+/
+
+&PHYSICS
+lcoriol    =  .true.
+igrw_damp  =  2          ! default, written out: sponge over the top quarter as uDALES
+iradiation =  0
+/
+&NAMSURFACE
+isurf      =  2          ! prescribed surface temperature thls, fluxes from MO (uDALES iwallmom = 4, iwalltemp = 2)
+z0mav      =  0.1
+z0hav      =  0.01
+thls       =  302.
+ps         =  100000.
+rsisurf2   =  1.e10      ! dry surface (see header)
+lsmoothflux = .false.
+/
+&thermodynamics
+lmoist     = .true.
+/
+&DYNAMICS
+llsadv     =  .false.
+cu         =  0.
+cv         =  0.
+ibas_prf   =  5
+iadv_mom   =  2
+iadv_tke   =  2
+iadv_thl   =  2
+iadv_qt    =  2
+iadv_sv    =  2
+/
+&NAMSUBGRID
+ldelta     = .false.
+/
+&NAMCHECKSIM
+tcheck     = 0
+/
+&NAMTIMESTAT
+ltimestat  = .true.
+dtav       = 60
+/
+&NAMGENSTAT
+lstat      = .true.
+dtav       = 60
+timeav     = 600
+/
+&NAMCROSSSECTION
+lcross     = .false.
+/
+&NAMFIELDDUMP
+lfielddump = .false.
+/

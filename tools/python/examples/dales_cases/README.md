@@ -1,7 +1,7 @@
 # DALES validation cases for the moist-thermodynamics port
 
-Tooling for the tier-2 validation cases `examples/301` (BOMEX), `examples/302` (smoke) and
-`examples/303` (DYCOMS-II RF01). Python environment: `module purge; module load tools/prod
+Tooling for the tier-2 validation cases `examples/301` (BOMEX), `examples/302` (smoke),
+`examples/303` (DYCOMS-II RF01) and `examples/304` (dry CBL over a floor of fixed temperature). Python environment: `module purge; module load tools/prod
 Python/3.9.6-GCCcore-11.2.0; source ~/udales/.venv/bin/activate` (numpy, matplotlib, netCDF4).
 
 | script | purpose |
@@ -9,6 +9,7 @@ Python/3.9.6-GCCcore-11.2.0; source ~/udales/.venv/bin/activate` (numpy, matplot
 | `convert_dales_case.py <dales_case_dir> <expnr> <out_dir>` | converts DALES `prof.inp.001`, `lscale.inp.001` (8 columns to the 10-column uDALES layout, `pgx = pgy = 0`, `dthlrad` to `thlpcar`) and `scalar.inp.001`; prints the namoptions values to transcribe, with `wtsurf`/`wqsurf` negated into the facet fluxes `bctfz`/`bcqfz` (decision D1: uDALES fluxes are positive downward) and `isurf 3/4` mapped to the Monin-Obukhov facet floor (`iwallmom = 4`, with `ustin` for `isurf = 3`; floor files from `python -m udprep.flat_floor`); re-reads its output and checks row 1 and all rows against the input |
 | `make_rf01.py <out_dir> [--dz 5 --ktot 300 --itot 96 --dx 35]` | writes the RF01 `prof.inp.303`/`lscale.inp.303` and prints the surface values (`z0`, `wtsurf`, `wqsurf`) |
 | `compare_dales.py <case> <out_dir> --udales U1 [U2 ...] [--dales D1 ...]` | seed ensembles of both codes: per-run window means, ensemble means, spreads and the ratio \|mean diff\| / spread for LWP, cloud cover, zi, u* and the thl/qt/ql/w'thl'/w'qt' profiles; `timeseries.png`, `profiles.png`, `summary.md`, `summary.json`. The one-pair form `compare_dales.py <case> <udales_run_dir> <dales_dir\|none> <out_dir>` still works |
+| `make_cbl304.py <udales_dir> <dales_dir>` | writes the inputs of `examples/304` (dry CBL over a floor of fixed temperature, `iwalltemp = 2`): uDALES `prof.inp.304`, `lscale.inp.304`, flat-floor IBM files with `Tfacinit.inp.304`, and the DALES `prof.inp.001`, `lscale.inp.001`, `baseprof.inp.001` (`dales_inputs/cbl304`, DALES `isurf = 2`) |
 | `make_dales_baseprof.py <prof.inp.001> <ps> <thls> <qts> <baseprof.inp.001>` | constant-density DALES `baseprof.inp` (`ibas_prf = 5`) with `pb` from the uDALES hydrostatic integral, for Boussinesq-equivalent DALES runs |
 
 Case inputs were produced with
@@ -28,7 +29,7 @@ not re-checked. Override with `--t0/--t1/--fit0/--fit1`.
 
 ## DALES versus uDALES variables
 
-DALES `tmser.001.nc`: `lwp_bar` [kg/m2], `cfrac`, `zi`, `ustar`, `we`. DALES `profiles.001.nc`: `thl`, `qt`,
+DALES `tmser.001.nc`: `lwp_bar` [kg/m2], `cfrac`, `zi`, `ustar`, `we`, `wtheta` (surface heat flux; uDALES bldump `wtheta` with `iwallmom = 4`). DALES `profiles.001.nc`: `thl`, `qt`,
 `ql`, `wthlr`/`wqtr` (resolved fluxes). uDALES `bldump_t`/`bldump_z`: see `lbldump` in the OUTPUT namelist overview.
 The `zi` diagnostics of the two codes differ (DALES tmser: thv gradient on a 4-column composite by default;
 uDALES bldump: column-wise max `dthl/dz`), so `compare_dales.py` recomputes zi for both codes from the

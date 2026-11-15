@@ -6,7 +6,7 @@ Usage:
                             [--t0 H --t1 H] [--fit0 H --fit1 H] [--block S]
     python compare_dales.py <case> <udales_run_dir> <dales_results_dir|none> <out_dir> [options]  (one pair)
 
-case        301 (BOMEX), 302 (smoke) or 303 (DYCOMS-II RF01)
+case        301 (BOMEX), 302 (smoke), 303 (DYCOMS-II RF01) or 304 (dry CBL, fixed surface temperature)
 --udales    uDALES run directories holding bldump_t.<case>.nc and bldump_z.<case>.nc
 --dales     DALES run directories holding tmser.001.nc and profiles.001.nc
 out_dir     PNGs, summary.md and summary.json are written here
@@ -74,15 +74,16 @@ import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt  # noqa: E402
 
-CASE_NAMES = {"301": "BOMEX", "302": "smoke", "303": "DYCOMS-II RF01"}
+CASE_NAMES = {"301": "BOMEX", "302": "smoke", "303": "DYCOMS-II RF01", "304": "dry CBL, fixed surface temperature"}
 PUBLISHED: dict[tuple[str, str], tuple[float, float, float, float, str]] = {}
-WINDOWS = {"301": (3.0, 6.0), "302": (2.0, 3.0), "303": (3.0, 4.0)}      # hours
+WINDOWS = {"301": (3.0, 6.0), "302": (2.0, 3.0), "303": (3.0, 4.0), "304": (2.0, 4.0)}      # hours
 FIT_WINDOWS = {"302": (1.0, 3.0), "303": (1.0, 4.0)}                      # hours
 DIVERGENCE = {"302": 0.0, "303": 3.75e-6}                                 # D [1/s] for we
 QT_THRES = {"303": 8.0e-3}                                                # zi_qt8 threshold [kg/kg]
-PROFILE_ZMAX = {"301": 2500.0, "302": 1250.0, "303": 1200.0}              # m, below the sponge
+PROFILE_ZMAX = {"301": 2500.0, "302": 1250.0, "303": 1200.0, "304": 1450.0}  # m, below the sponge
 TS_VARS = [("lwp_bar", "LWP", "g/m2", 1e3), ("cfrac", "cloud cover", "-", 1.0),
-           ("ustar", "u*", "m/s", 1.0)]
+           ("ustar", "u*", "m/s", 1.0),
+           ("wtheta", "surface heat flux", "K m/s", 1.0)]   # uDALES bldump wtheta (iwallmom = 4), DALES tmser wtheta
 ZI_VARS = [("zi", "zi (max dthl/dz)", "m"), ("zi_qt8", "zi_qt8 (qt = 8 g/kg)", "m")]
 PROF_VARS = [("thl", "thl", "zt", 1.0, "K"), ("qt", "qt", "zt", 1e3, "g/kg"),
              ("ql", "ql", "zt", 1e3, "g/kg"), ("wthl", "w'thl' (resolved)", "zm", 1.0, "K m/s"),

@@ -1,0 +1,89 @@
+! Dry convective boundary layer over a floor of fixed temperature (iwallmom = 4, iwalltemp = 2:
+! the DALES isurf = 2 analogue); see README.md for the source of every value.
+&RUN
+iexpnr       = 304
+runtime      = 14400.       ! 4 h
+trestart     = 14400.
+ladaptive    = .false.      ! fixed step, identical to the DALES comparison runs (RESULTS.md)
+dtmax        = 1.0          ! s; runtime is a multiple of dtmax
+libm         = .true.       ! the floor is a facet (README)
+lles         = .true.
+nprocx       = 4
+nprocy       = 4
+lrandomize   = .true.       ! thl noise only, as the DALES runs
+irandom      = 43
+randu        = 0.           ! no u, v, w noise (DALES krandumax = 0)
+randthl      = 0.1          ! K, as DALES randthl
+randqt       = 0.
+krand        = 80           ! = ktot: all levels, as DALES
+/
+
+&OUTPUT
+lfielddump   = .false.
+ltdump       = .false.
+lxytdump     = .false.
+lbldump      = .true.       ! bldump_t (u*, L, wtheta, zi) and bldump_z (thl, w'thl')
+tstatsdump   = 60.
+/
+
+&DOMAIN
+itot         = 96
+jtot         = 96
+ktot         = 80           ! dz = 25 m from prof.inp.304 (z up to 2000 m)
+xlen         = 4800.
+ylen         = 4800.
+xlat         = 45.          ! f = 1.03e-4 1/s
+/
+
+&PHYSICS
+ps           = 100000.
+igrw_damp    = 2            ! sponge over the top quarter (ksp default, as DALES)
+lmoist       = .false.      ! dry (DALES: lmoist with qt = 0 and a dry surface, README)
+lcoriol      = .true.
+lbuoyancy    = .true.
+ltempeq      = .true.
+/
+
+&DYNAMICS
+iadv_mom     = 2
+iadv_tke     = 2
+iadv_thl     = 2
+iadv_qt      = 2
+/
+
+&NAMSUBGRID
+loneeqn      = .true.
+lvreman      = .false.
+ldelta       = .false.
+/
+
+&WALLS
+nfcts        = 1            ! the floor: one horizontal facet (tools/python/udprep/flat_floor.py; README)
+nsolpts_u    = 0
+nsolpts_v    = 0
+nsolpts_w    = 9216
+nsolpts_c    = 0
+nbndpts_u    = 9216
+nbndpts_v    = 9216
+nbndpts_w    = 9216
+nbndpts_c    = 9216
+nfctsecs_u   = 9216
+nfctsecs_v   = 9216
+nfctsecs_w   = 0
+nfctsecs_c   = 9216
+lbottom      = .false.
+iwallmom     = 4            ! Monin-Obukhov on the floor facet
+iwalltemp    = 2            ! from the facet temperature (Tfacinit.inp.304, 302 K; fixed: lEB off) = DALES isurf 2
+/
+
+&BC
+thls         = 302.         ! reference surface thl (thvs: base state) = the facet temperature, as DALES thls
+/
+
+&ENERGYBALANCE
+lEB          = .false.      ! the facet temperature stays at Tfacinit
+/
+
+&NAMCHECKSIM
+tcheck       = 60.
+/

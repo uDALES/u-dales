@@ -15,7 +15,7 @@ stays flat (only the normal, the type and the section geometry enter the wall fu
 Usage (prints the &WALLS counts to copy into namoptions)::
 
     python -m udprep.flat_floor <run_dir> <expnr> --itot 64 --jtot 64 --dx 100 --dy 100 \
-        --z1 20 --z0 2e-4 --z0h 2e-4
+        --z1 20 --z0 2e-4 --z0h 2e-4 [--no-lgr] [--tfacinit 302]
 """
 from __future__ import annotations
 
@@ -126,9 +126,11 @@ def main(argv=None):
     p.add_argument("--z0", type=float, required=True)
     p.add_argument("--z0h", type=float, required=True)
     p.add_argument("--no-lgr", action="store_true", help="floor does not exchange moisture")
+    p.add_argument("--tfacinit", type=float, default=None,
+                   help="also write Tfacinit.inp with this facet temperature [K] (iwalltemp = 2, lEB)")
     a = p.parse_args(argv)
     counts = write_flat_floor(a.run_dir, a.expnr, a.itot, a.jtot, a.dx, a.dy, a.z1, a.z0, a.z0h,
-                              lgr=not a.no_lgr)
+                              lgr=not a.no_lgr, tfacinit=a.tfacinit)
     for k, v in counts.items():
         print(f"{k:<12} = {v}")
 
