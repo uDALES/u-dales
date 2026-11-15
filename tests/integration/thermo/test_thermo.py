@@ -288,6 +288,21 @@ class TestBldump(_SolverTest):
             for name in ("thlprad", "lwu", "lwd"):
                 self.assertTrue(np.all(z[name][-1, :] == 0.0))
 
+    def test_samples_are_spaced_by_tstatsdump_after_tstatstart(self):
+        # tstatstart > tstatsdump: the first sample is tstatsdump after tstatstart and the
+        # records are tstatsdump apart (no burst of per-step samples when tstatstart is reached)
+        d = tc.write_case(self.tmp / "tstatstart", groups={
+            "RUN": {"runtime": "9.5", "ladaptive": ".false.", "dtmax": "0.5"},
+            "OUTPUT": {"lbldump": ".true.", "tstatsdump": "2.", "tstatstart": "5."}})
+        self.run_ok(d)
+        with Dataset(d / "bldump_t.310.nc") as t:
+            times = np.asarray(t["time"][:], dtype=float)
+        print(f"\n[bldump] record times {times}")
+        np.testing.assert_allclose(np.diff(times), 2.0, atol=1e-3)
+        self.assertGreaterEqual(times[0], 5.0)
+        self.assertLessEqual(times[0], 7.0 + 1e-3)
+        self.assertGreaterEqual(len(times), 2)
+
     def test_dry_column_has_no_moist_diagnostics(self):
         d = tc.write_case(self.tmp / "drystat", groups={
             "RUN": {"runtime": "1.5"},
@@ -481,9 +496,15 @@ class TestRadiation(_SolverTest):
         ft = (zf > 840.0 + 150.0) & (zf < zf[-1])
         ratio = np.abs(dthl_both[ft]).max() / np.abs(dthl_subs[ft]).max()
         print(f"\n[balance] max|dthl_both|/max|dthl_subs| in FT = {ratio:.4f}")
-        # Residual sources: one-sided subsidence differences, O(dz/(z-zi)), and the
-        # 832.7 vs 840 m zi offset. A sign error gives a ratio of ~2.
-        self.assertLess(np.abs(dthl_both[ft]).max(), 0.25 * np.abs(dthl_subs[ft]).max())
+        # The FT term cancels the subsidence tendency w dthl/dz up to the error of the
+        # one-sided (upwind) difference. thl = thl_i + (z - zi)^(1/3) above the inversion,
+        # so that error is relative dz |thl''| / (2 thl') = dz / (3 (z - zi)), largest at
+        # the lowest level of the window: 20/(3*157.3) = 0.042. 1.5 times that covers the
+        # flux-form cell mean (<1e-3) and the 7 m offset between the 840 m inversion and
+        # zi = 832.7 m. A sign error gives a ratio of ~2, a missing term 1.
+        zi = self._ft_term()[1]
+        bound = 1.5 * 20.0 / (3.0 * (zf[ft].min() - zi))
+        self.assertLess(ratio, bound)
 
 
 class TestCaseHooks(_SolverTest):
@@ -568,6 +589,11 @@ class TestCaseHooks(_SolverTest):
                                      "OUTPUT": {"lbldump": ".true.", "zi_sv_index": "1"}},
                     "zi_sv_index > 0 requires", sv=np.ones((64, 1)))
 
+    def test_leftover_namthermostat_aborts(self):
+        # the group was replaced by lbldump in &OUTPUT; ignoring it would silently drop the output
+        self._abort("namthermostat", {"NAMTHERMOSTAT": {"lthermostat": ".true.", "tthermostat": "60."}},
+                    "lbldump")
+
     def test_bldump_without_interval_aborts(self):
         self._abort("bld_noint", {"OUTPUT": {"lbldump": ".true.", "tstatsdump": "0."}},
                     "requires tstatsdump > 0")
@@ -642,15 +668,15 @@ class TestDecomposition(_SolverTest):
                 diff = np.abs(out[label][v] - ref)
                 print(f"\n[decomp] {label}:{v} max abs diff={diff.max():.3e} "
                       f"max rel={(diff / np.maximum(np.abs(ref), 1e-30)).max():.3e}")
-                # Reduction order (allreduce slab means) differs between splits; the round-off
-                # is amplified by the turbulent spin-up, most at the inversion. A decomposition
-                # or halo bug would give O(1) differences from the first step, so 1e-5 relative
-                # (and 1e-6 of the field maximum absolute) is still orders of magnitude below it.
-                # Resolved fluxes (wthl, wqt) are near-cancelling means of w*thl terms (~290|w|), so
-                # their round-off scales with the terms, not the result; a halo bug would be O(1).
-                atol_frac = 1e-4 if v in ("wthl", "wqt") else 1e-6
+                # Only the reduction order of the allreduce slab means differs between splits.
+                # Measured over this run: identical to the last bit except the resolved flux
+                # (a near-cancelling mean of w*thl terms), 1e-7 relative. A decomposition or
+                # halo bug gives O(1) differences from the first step, so 1e-6 relative (and
+                # 1e-6 of the field maximum absolute) leaves 10x over the round-off and 6
+                # orders below a bug.
+                atol_frac = 1e-6
                 with self.subTest(split=label, var=v):
-                    np.testing.assert_allclose(out[label][v], ref, rtol=1e-5, atol=atol_frac * max(np.abs(ref).max(), 1e-30),
+                    np.testing.assert_allclose(out[label][v], ref, rtol=1e-6, atol=atol_frac * max(np.abs(ref).max(), 1e-30),
                                                err_msg=f"{label}:{v}")
 
 
