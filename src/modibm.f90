@@ -112,7 +112,10 @@ module modibm
      logical, allocatable :: lskipsec_loc(:)
      ! iwallmom = 4: local Monin-Obukhov state per section on this rank. mo_obl = 0 marks a
      ! section not visited yet (L is never 0); mo_tskin/mo_qskin are the diagnosed surface values.
+     ! With iwalltemp = 2 (mo_section_tskin) also the transfer coefficient Cs, csu = Cs max(|U|, 0.1)
+     ! (= 1/ra) and the upward-positive fluxes w'thl', w'qt' of the last update.
      real   , allocatable :: mo_obl(:), mo_tskin(:), mo_qskin(:), mo_ustar(:)
+     real   , allocatable :: mo_cs(:), mo_csu(:), mo_wthl(:), mo_wqt(:)
    end TYPE bound_info_type
 
    type(bound_info_type) :: bound_info_u, bound_info_v, bound_info_w, bound_info_c
@@ -125,6 +128,14 @@ module modibm
    integer, allocatable :: mosec_c(:), mosec_cell(:)
    !> a facet is horizontal if facnorm(n,3) >= 1 - mo_horizontal_tol (round-off of the normal)
    real, parameter :: mo_horizontal_tol = 1.e-6
+   !> iwallmom = 4: lmocsec(sec) marks the c-grid sections in mosec_c, whose Monin-Obukhov state
+   !> mo_cells_update computes before subgrid; with iwalltemp = 2 wallfunheat applies their fluxes
+   logical, allocatable :: lmocsec(:)
+   !> iwallmom = 4: area sums over the Monin-Obukhov c-grid sections of the last wallfunheat call,
+   !> (w'thl' A, w'qt' A, A) with upward-positive fluxes; bldump wtheta, wq (mo_facet_means)
+   real :: mo_flux_loc(3) = 0.
+   !> vegetation fraction of the iwallmoist = 2 resistance law (moist_flux)
+   real, parameter :: cveg_gr = 0.8
 
    integer :: nstatfac=7, ncidfac, nrecfac=0
    character(80), allocatable :: ncstatfac(:,:)
@@ -274,10 +285,11 @@ module modibm
    !> iwallmom = 4: select the Monin-Obukhov facets by the slope of their normal, check
    !> their roughness lengths and allocate the per-section MO state.
    subroutine initibm_mo
-     use modglobal, only : nfcts, mo_maxslope, pi
+     use modglobal, only : nfcts, mo_maxslope, pi, iwalltemp
      use initfac,   only : facnorm, facz0, facz0h
      use modmpi,    only : myid, mpierr
      integer :: n, nmo
+     character(len=40) :: wf
 
      allocate(lfacmo(nfcts))
      do n = 1, nfcts
@@ -289,9 +301,12 @@ module modibm
        end if
      end do
      nmo = count(lfacmo)
-     if (myid == 0) write(*, '(a,i0,a,f5.1,a,i0,a)') ' iwallmom = 4: ', nmo, &
+     ! the other facets: wfuno with its stability correction if the facet temperature is known
+     wf = 'the neutral wall function'
+     if (iwalltemp == 2) wf = 'the stability-corrected wall function'
+     if (myid == 0) write(*, '(a,i0,a,f5.1,a,i0,a,a)') ' iwallmom = 4: ', nmo, &
        ' facets use Monin-Obukhov (slope <= ', mo_maxslope, ' deg), ', nfcts - nmo, &
-       ' use the neutral wall function'
+       ' use ', trim(wf)
      call alloc_mo_state(bound_info_u)
      call alloc_mo_state(bound_info_v)
      call alloc_mo_state(bound_info_w)
@@ -312,6 +327,7 @@ module modibm
 
      allocate(cellid(ib:ie,jb:je,kb:ke)); cellid = 0
      allocate(mosec_c(bound_info_c%nfctsecsrank), mosec_cell(bound_info_c%nfctsecsrank))
+     allocate(lmocsec(bound_info_c%nfctsecsrank)); lmocsec = .false.
      nmosecs_c = 0
      nmocells = 0
      do sec = 1, bound_info_c%nfctsecsrank
@@ -329,6 +345,7 @@ module modibm
        end if
        nmosecs_c = nmosecs_c + 1
        mosec_c(nmosecs_c) = sec
+       lmocsec(sec) = .true.
        mosec_cell(nmosecs_c) = cellid(i,j,k)
      end do
 
@@ -370,25 +387,39 @@ module modibm
      integer :: n
      n = bound_info%nfctsecsrank
      allocate(bound_info%mo_obl(n), bound_info%mo_tskin(n), bound_info%mo_qskin(n), bound_info%mo_ustar(n))
+     allocate(bound_info%mo_cs(n), bound_info%mo_csu(n), bound_info%mo_wthl(n), bound_info%mo_wqt(n))
      bound_info%mo_obl = 0.
      bound_info%mo_tskin = 0.
      bound_info%mo_qskin = 0.
      bound_info%mo_ustar = 0.
+     bound_info%mo_cs = 0.
+     bound_info%mo_csu = 0.
+     bound_info%mo_wthl = 0.
+     bound_info%mo_wqt = 0.
    end subroutine alloc_mo_state
 
    !> Area means over the Monin-Obukhov facet sections of the u, v and w grids (bldump):
    !> friction velocity, Obukhov length as 1/mean(1/L), and the diagnosed surface thl and qt.
-   !> Zero when no section has been visited. Collective: call on all ranks.
-   subroutine mo_facet_means(ustar, obl, tskin, qskin)
+   !> Zero when no section has been visited. Also the area means of the heat and moisture
+   !> fluxes applied on the Monin-Obukhov c-grid sections by the last wallfunheat call
+   !> (upward-positive kinematic fluxes, the DALES tmser wtheta and wq). Collective: call on all ranks.
+   subroutine mo_facet_means(ustar, obl, tskin, qskin, wtheta, wq)
      use modmpi, only : comm3d, mpierr, my_real, mpi_sum
-     real, intent(out) :: ustar, obl, tskin, qskin
-     real :: loc(5), glob(5)
+     real, intent(out) :: ustar, obl, tskin, qskin, wtheta, wq
+     real :: loc(8), glob(8)
 
      loc = 0.
      call add_sections(bound_info_u)
      call add_sections(bound_info_v)
      call add_sections(bound_info_w)
-     call MPI_ALLREDUCE(loc, glob, 5, MY_REAL, MPI_SUM, comm3d, mpierr)
+     loc(6:8) = mo_flux_loc
+     call MPI_ALLREDUCE(loc, glob, 8, MY_REAL, MPI_SUM, comm3d, mpierr)
+     if (glob(8) > 0.) then
+       wtheta = glob(6) / glob(8)
+       wq     = glob(7) / glob(8)
+     else
+       wtheta = 0.; wq = 0.
+     end if
      if (glob(5) > 0.) then
        ustar = glob(1) / glob(5)
        if (glob(2) /= 0.) then
@@ -1488,6 +1519,68 @@ module modibm
    end subroutine ibmwallfun
 
 
+   !> iwallmom = 4 with iwalltemp = 2: Monin-Obukhov update of one facet section with the facet
+   !> temperature facT(fac,1) as the surface temperature, the DALES dev 075ac4e isurf = 2 sequence
+   !> (modsurface:mo_presc_tskin_update), and its fluxes as DALES calc_surface_flux (upward positive):
+   !>   w'thl' = Cs U (Tfacet - Tair),   U = max(|U|, 0.1), 1/ra = Cs U
+   !>   w'qt'  = -bcqfz (iwallmoist = 1) or -moist_flux(resa = 1/(Cs U)) (iwallmoist = 2), on facets
+   !>            with lGR = 1 when lmoist; 0 otherwise.
+   !> qskin of the Richardson number: on moisture-exchanging facets the value diagnosed from the
+   !> previous moisture flux, qskin = qt + w'qt'/(Cs U) (bounded as DALES calc_surface_scalars; DALES
+   !> isurf 2 likewise uses the qskin of its previous qtsurf call), on the others the air qt (no flux).
+   !> Tair, qtair, horv and dist are the air state at the section reference point and its distance.
+   !> First visit (mo_obl = 0): the DALES cold start, L = -0.1 and qskin = qtair, then one update;
+   !> lextra adds the regular update of this call (as wallfunmom does for iwalltemp = 1).
+   subroutine mo_section_tskin(bound_info, sec, fac, Tair, qtair, horv, dist, lextra)
+     use modglobal,  only : lmoist, iwallmoist, ustin
+     use initfac,    only : facT, facz0, facz0h, faclGR, facqsat, fachurel, facf
+     use modsurface, only : mo_presc_tskin_update, dqskin_max
+     type(bound_info_type), intent(inout) :: bound_info
+     integer, intent(in) :: sec, fac
+     real,    intent(in) :: Tair, qtair, horv, dist
+     logical, intent(in) :: lextra
+     logical :: lqfac
+
+     lqfac = lmoist .and. faclGR(fac)
+     if (bound_info%mo_obl(sec) == 0.) then
+       bound_info%mo_obl(sec)   = -0.1
+       bound_info%mo_qskin(sec) = qtair
+       call section_update
+       if (lextra) call section_update
+     else
+       call section_update
+     end if
+
+   contains
+
+     subroutine section_update
+       real :: tskin, qskin, ustar, cs, csu, wthl_up, wqt_up
+       tskin = facT(fac,1)
+       qskin = qtair
+       if (lqfac) qskin = bound_info%mo_qskin(sec)
+       call mo_presc_tskin_update(Tair, qtair, horv, dist, facz0(fac), facz0h(fac), tskin, qskin, ustin, &
+                                  bound_info%mo_obl(sec), ustar, cs, csu)
+       wthl_up = csu * (tskin - Tair)
+       wqt_up  = 0.
+       if (lqfac) then
+         if (iwallmoist == 2) then
+           wqt_up = -moist_flux(cveg_gr, 1./csu, qtair, facqsat(fac), fachurel(fac), facf(fac,4), facf(fac,5))
+         else
+           wqt_up = -bcqfz
+         end if
+         qskin = min(max(wqt_up / csu, -dqskin_max), dqskin_max) + qtair
+       end if
+       bound_info%mo_tskin(sec) = tskin
+       bound_info%mo_qskin(sec) = qskin
+       bound_info%mo_ustar(sec) = ustar
+       bound_info%mo_cs(sec)    = cs
+       bound_info%mo_csu(sec)   = csu
+       bound_info%mo_wthl(sec)  = wthl_up
+       bound_info%mo_wqt(sec)   = wqt_up
+     end subroutine section_update
+   end subroutine mo_section_tskin
+
+
    !> iwallmom = 4: Monin-Obukhov state of the cells above horizontal Monin-Obukhov facets
    !> (initibm_mocells) and their surface-layer gradients, the DALES dev 075ac4e first level:
    !> per c-grid section the per-column surface of lmostlocal (mo_local_update) on the cell-centre
@@ -1500,8 +1593,11 @@ module modibm
    !> lstart: the start-up call. A section's first visit is the DALES cold start (tskin = thl,
    !> qskin = qt, L = -0.1, one surface call); outside the start-up call (warm start) it is followed
    !> by the regular call, as in wallfunmom.
+   !> iwalltemp = 1: prescribed facet fluxes (mo_local_update, DALES isurf 3/4). iwalltemp = 2: the
+   !> facet temperature (mo_section_tskin, DALES isurf 2); wallfunheat then applies the fluxes of
+   !> this state on these sections (lmocsec), so the heat flux and the gradients come from one update.
    subroutine mo_cells_update(lstart)
-     use modglobal,  only : lmoist, ustin, fkar
+     use modglobal,  only : lmoist, ustin, fkar, iwalltemp
      use modfields,  only : u0, v0, thl0, qt0
      use initfac,    only : facz0, facz0h, faclGR
      use modsurface, only : mo_local_update, phim, phih, min_horv
@@ -1520,18 +1616,26 @@ module modibm
        upcu = 0.5 * (u0(i,j,k) + u0(i+1,j,k))
        vpcv = 0.5 * (v0(i,j,k) + v0(i,j+1,k))
        horv = sqrt(upcu**2 + vpcv**2)
-       ! prescribed facet fluxes, positive into the surface (as in wallfunmom)
-       wthl_up = -bctfz
-       wqt_up  = 0.
-       if (lmoist .and. faclGR(fac)) wqt_up = -bcqfz
-       if (bound_info_c%mo_obl(sec) == 0.) then
-         bound_info_c%mo_tskin(sec) = thl0(i,j,k)
-         bound_info_c%mo_qskin(sec) = qt0(i,j,k)
-         bound_info_c%mo_obl(sec)   = -0.1
-         call cell_surface
-         if (.not. lstart) call cell_surface   ! warm start: the regular call of this substep
+       if (iwalltemp == 2) then
+         ! facet temperature: DALES isurf 2; fluxes from the Monin-Obukhov state
+         call mo_section_tskin(bound_info_c, sec, fac, thl0(i,j,k), qt0(i,j,k), horv, dist, .not. lstart)
+         ustar   = bound_info_c%mo_ustar(sec)
+         wthl_up = bound_info_c%mo_wthl(sec)
+         wqt_up  = bound_info_c%mo_wqt(sec)
        else
-         call cell_surface
+         ! prescribed facet fluxes, positive into the surface (as in wallfunmom)
+         wthl_up = -bctfz
+         wqt_up  = 0.
+         if (lmoist .and. faclGR(fac)) wqt_up = -bcqfz
+         if (bound_info_c%mo_obl(sec) == 0.) then
+           bound_info_c%mo_tskin(sec) = thl0(i,j,k)
+           bound_info_c%mo_qskin(sec) = qt0(i,j,k)
+           bound_info_c%mo_obl(sec)   = -0.1
+           call cell_surface
+           if (.not. lstart) call cell_surface   ! warm start: the regular call of this substep
+         else
+           call cell_surface
+         end if
        end if
        horvf = max(horv, min_horv)
        scaling = 1. / (fkar * dist)
@@ -1560,7 +1664,7 @@ module modibm
    subroutine wallfunmom(dir, rhs, bound_info)
      use modglobal, only : ib, ie, ih, jb, je, jh, kb, ke, kh, xf, yf, zf, xh, yh, zh, &
                            dx, dy, dzf, dzh, iwallmom, xhat, yhat, zhat, vec0, nfcts, lwritefac, rk3step, &
-                           lfielddump, iwallmom_mo, lmoist, ustin
+                           lfielddump, iwallmom_mo, lmoist, ustin, iwalltemp
      use modfields, only : u0, v0, w0, thl0, qt0, tau_x, tau_y, tau_z
      use initfac,   only : facT, facz0, facz0h, facnorm, faca, faclGR
      use modsurface, only : mo_local_update
@@ -1576,7 +1680,7 @@ module modibm
           utan, ctm, a, a_is, a_xn, a_yn, a_zn, stress_ix, stress_iy, stress_iz, xrec, yrec, zrec, &
           wthl_up, wqt_up, ustar
      real, dimension(3) :: uvec, norm, strm, span, stressvec
-     logical :: valid, lwgrid, lmosec
+     logical :: valid, lwgrid, lmosec, lstab
      real    :: z0guard
      real, dimension(:,:,:), pointer :: tau
      real, dimension(1:nfcts) :: fac_tau_loc, fac_tau
@@ -1606,6 +1710,10 @@ module modibm
 
      ! w lives on zh(k), so its control volume is dzh(k) thick; u and v live on zf(k) (dzf(k)).
      lwgrid = (alignment(dir) == 3)
+     ! the stability-corrected wall function (wfuno): iwallmom = 2, and the facets of iwallmom = 4
+     ! steeper than mo_maxslope when the facet temperature is known (iwalltemp = 2); with
+     ! iwalltemp = 1 those stay neutral, as master turns iwallmom = 2 into 3 there (modstartup)
+     lstab = (iwallmom == 2) .or. ((iwallmom == iwallmom_mo) .and. (iwalltemp == 2))
 
      fac_tau_loc = 0.
 
@@ -1635,7 +1743,7 @@ module modibm
 
        if (bound_info%lcomprec_loc(sec) .or. lnorec) then
          uvec = interp_velocity_ptr(i, j, k)
-         if (iwallmom == 2) then
+         if (lstab) then
            Tair = interp_temperature_ptr(i, j, k)
          end if
          if (lmosec) then
@@ -1650,7 +1758,7 @@ module modibm
          uvec(1) = trilinear_interp_var(u0, bound_info%recids_u_loc(sec,:), xh, yf, zf, xrec, yrec, zrec)
          uvec(2) = trilinear_interp_var(v0, bound_info%recids_v_loc(sec,:), xf, yh, zf, xrec, yrec, zrec)
          uvec(3) = trilinear_interp_var(w0, bound_info%recids_w_loc(sec,:), xf, yf, zh, xrec, yrec, zrec)
-         if (iwallmom == 2 .or. lmosec) Tair  = trilinear_interp_var(thl0, bound_info%recids_c_loc(sec,:), xf, yf, zf, xrec, yrec, zrec)
+         if (lstab .or. lmosec) Tair  = trilinear_interp_var(thl0, bound_info%recids_c_loc(sec,:), xf, yf, zf, xrec, yrec, zrec)
          if (lmosec) qtair = trilinear_interp_var(qt0, bound_info%recids_c_loc(sec,:), xf, yf, zf, xrec, yrec, zrec)
          dist = bound_info%bnddst_loc(sec) + norm2((/xrec - xf(bound_info%secbndpts_loc(sec,1)), &
                                                      yrec - yf(bound_info%secbndpts_loc(sec,2)), &
@@ -1673,7 +1781,13 @@ module modibm
        utan = dot_product(uvec, strm)
        !utan = max(0.01, utan) ! uDALES 1
 
-       if (lmosec) then
+       if (lmosec .and. (iwalltemp == 2)) then
+         ! iwallmom = 4, iwalltemp = 2: local Monin-Obukhov from the facet temperature (DALES isurf 2;
+         ! lmostlocal), stress u*^2. The fluxes of this state are not applied here (wallfunheat does
+         ! that on the c-grid sections); first visit: the cold start and one extra update, as below.
+         call mo_section_tskin(bound_info, sec, fac, Tair, qtair, utan, dist, .true.)
+         stress = bound_info%mo_ustar(sec)**2
+       elseif (lmosec) then
          ! iwallmom = 4: local Monin-Obukhov (DALES isurf 4, or 3 with ustin; lmostlocal), stress u*^2,
          ! from the prescribed facet fluxes (positive into the surface, so negated to upward-positive)
          wthl_up = -bctfz
@@ -1695,9 +1809,9 @@ module modibm
        else
          ! calcualate momentum transfer coefficient
          ! make into interface somehow? because iwallmom doesn't change in the loop
-         if (iwallmom == 2) then ! stability included
+         if (lstab) then ! stability included: iwallmom = 2, and the steep facets of iwallmom = 4 with iwalltemp = 2
            ctm = mom_transfer_coef_stability(utan, dist, facz0(fac), facz0h(fac), Tair, facT(fac,1))
-         else ! neutral: iwallmom = 3, and the steep facets of iwallmom = 4 (which requires iwalltemp = 1)
+         else ! neutral: iwallmom = 3, and the steep facets of iwallmom = 4 with iwalltemp = 1
            ctm = mom_transfer_coef_neutral(dist, facz0(fac))
          end if
 
@@ -1779,6 +1893,7 @@ module modibm
      fac_cth_loc = 0.
      fac_pres_loc = 0.
      fac_pres2_loc = 0.
+     mo_flux_loc = 0.
 
      do sec = 1,bound_info_c%nfctsecsrank
        ! sec = bound_info_c%fctsecsrank(m) ! index of section
@@ -1804,8 +1919,9 @@ module modibm
 
        if (bound_info_c%lskipsec_loc(sec)) cycle
        !if (facz0(fac) < eps1) cycle
-       ! iwallmom = 4: a Monin-Obukhov facet takes bctfz (and bcqfz) whatever its slope, the
-       ! fluxes its surface layer assumes; the other facets keep the per-direction values
+       ! iwallmom = 4: with iwalltemp = 1 a Monin-Obukhov facet takes bctfz (and bcqfz) whatever its
+       ! slope, the fluxes its surface layer assumes; the other facets keep the per-direction values.
+       ! With iwalltemp = 2 it takes the fluxes of its Monin-Obukhov state (mo_section_tskin).
        lmofac = .false.
        if (iwallmom == iwallmom_mo) lmofac = lfacmo(fac)
 
@@ -1870,9 +1986,24 @@ module modibm
            end if
 
          elseif (iwalltemp == 2) then
-           call heat_transfer_coef_flux(utan, dist, facz0(fac), facz0h(fac), Tair, facT(fac, 1), cth, flux, htc)
+           if (lmofac) then
+             ! Monin-Obukhov (DALES isurf 2): flux = Cs U (Tair - Tfacet), positive into the surface.
+             ! The sections of horizontal facets (lmocsec) were updated by mo_cells_update in this
+             ! substep (same u0, thl0); the others are updated here.
+             if (.not. lmocsec(sec)) call mo_section_tskin(bound_info_c, sec, fac, Tair, qtair, utan, dist, .true.)
+             flux = -bound_info_c%mo_wthl(sec)
+             ! cth: the Monin-Obukhov Cs; htc = flux / (|utan| dT) as for wfuno, = Cs max(|U|, 0.1)/|utan|
+             cth = bound_info_c%mo_cs(sec)
+             htc = bound_info_c%mo_csu(sec) / max(abs(utan), tiny(1.))
+           else
+             call heat_transfer_coef_flux(utan, dist, facz0(fac), facz0h(fac), Tair, facT(fac, 1), cth, flux, htc)
+           end if
            fac_cth_loc(fac) = fac_cth_loc(fac) + cth * area ! output heat transfer coefficients on facets
            fac_htc_loc(fac) = fac_htc_loc(fac) + htc * area ! output heat transfer coefficients on facets
+         end if
+         if (lmofac) then
+           mo_flux_loc(1) = mo_flux_loc(1) - flux * area   ! bldump wtheta (upward positive)
+           mo_flux_loc(3) = mo_flux_loc(3) + area
          end if
 
          ! flux [Km/s]
@@ -1891,7 +2022,10 @@ module modibm
 
        ! Latent heat
        if (lmoist .and. faclGR(fac)) then
-         if (iwallmoist == 1) then ! probably remove this eventually, only relevant to grid-aligned facets
+         if (lmofac .and. (iwalltemp == 2)) then
+           ! Monin-Obukhov state: -bcqfz (iwallmoist = 1) or moist_flux with resa = 1/(Cs U) (iwallmoist = 2)
+           flux = -bound_info_c%mo_wqt(sec)
+         elseif (iwallmoist == 1) then ! probably remove this eventually, only relevant to grid-aligned facets
            if     (lmofac) then
              flux = bcqfz
            elseif (is_equal(norm, xhat)) then
@@ -1913,7 +2047,7 @@ module modibm
                resa = 1./(htc*abs(utan)) ! aerodynamic resistance
                resc = facf(fac,4) ! canopy resistance
                ress = facf(fac,5) ! soil resistance
-               cveg = 0.8 ! vegetation fraction
+               cveg = cveg_gr ! vegetation fraction
                flux = moist_flux(cveg, resa, qtair, qwall, hurel, resc, ress)
             end if
          end if
@@ -1922,6 +2056,7 @@ module modibm
          ! fluid volumetric latent heat source/sink = flux * area / volume [kg/kg / s]
          ! facet latent heat flux = volumetric heat capacity of air * flux * sectionarea / facetarea [W/m^2]
          totqflux = totqflux + flux*area ! [Km^3s^-1] This sums the flux over all facets
+         if (lmofac) mo_flux_loc(2) = mo_flux_loc(2) - flux * area   ! bldump wq (upward positive)
          qtp(i,j,k) = qtp(i,j,k) - flux * area / (dx*dy*dzf(k))
 
          if (lEB) then

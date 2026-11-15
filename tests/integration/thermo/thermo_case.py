@@ -234,3 +234,21 @@ def obl_iter(thl, qt, tskin, qskin, z, z0m, z0h, u, v, L):
         if abs(L) > 1e6:
             L = np.sign(L) * 1e6
     return L
+
+
+def drag_coefficients(z, L, z0m, z0h):
+    """Cm, Cs of DALES dev 075ac4e calc_drag_coefficients (modsurface:mo_presc_tskin_update)."""
+    lm = np.log(z / z0m) - psim(z / L) + psim(z0m / L)
+    lh = np.log(z / z0h) - psih(z / L) + psih(z0h / L)
+    return FKAR ** 2 / lm ** 2, FKAR ** 2 / (lm * lh)
+
+
+def qsat_facet(T):
+    """initfac:qsat, the facet saturation humidity (Bolton 1980) [kg/kg]."""
+    gres = 611.00 * np.exp(17.27 * (T - 273.15) / (T - 35.85))
+    return 0.62198 * 0.01 * gres / (1000 - 0.01 * gres)
+
+
+def moist_flux(resa, qtair, qwall, hurel, resc=200.0, ress=50.0, cveg=0.8):
+    """modibm:moist_flux, positive into the surface (evaporation only)."""
+    return min(0.0, cveg * (qtair - qwall) / (resa + resc) + (1 - cveg) * (qtair - qwall * hurel) / (resa + ress))

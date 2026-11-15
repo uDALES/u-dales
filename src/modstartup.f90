@@ -822,14 +822,19 @@ module modstartup
          call abort_all_ranks(1)
       end if
       ! iwallmom = 4: Monin-Obukhov on the near-horizontal facets, from the prescribed facet
-      ! fluxes (bctfz, and bcqfz on facets whose type has lGR = 1)
+      ! fluxes (iwalltemp = 1: bctfz, and bcqfz on facets whose type has lGR = 1) or from the
+      ! facet temperature (iwalltemp = 2; moisture: bcqfz, or the resistance law with iwallmoist = 2)
       if (iwallmom == iwallmom_mo) then
-         if ((.not. libm) .or. (.not. ltempeq) .or. (iwalltemp /= 1)) then
-            if (myid == 0) write(0, *) 'ERROR: iwallmom = 4 (Monin-Obukhov facets) requires libm, ltempeq and iwalltemp = 1'
+         if ((.not. libm) .or. (.not. ltempeq) .or. ((iwalltemp /= 1) .and. (iwalltemp /= 2))) then
+            if (myid == 0) write(0, '(a)') 'ERROR: iwallmom = 4 (Monin-Obukhov facets) requires libm, ltempeq and iwalltemp = 1 or 2'
             call abort_all_ranks(1)
          end if
-         if (lmoist .and. (iwallmoist /= 1)) then
-            if (myid == 0) write(0, *) 'ERROR: iwallmom = 4 with lmoist requires iwallmoist = 1 (prescribed bcqfz)'
+         if (lmoist .and. (iwallmoist /= 1) .and. (iwallmoist /= 2)) then
+            if (myid == 0) write(0, '(a,i0)') 'ERROR: iwallmom = 4 with lmoist requires iwallmoist = 1 or 2, got ', iwallmoist
+            call abort_all_ranks(1)
+         end if
+         if (lmoist .and. (iwallmoist == 2) .and. (iwalltemp /= 2)) then
+            if (myid == 0) write(0, '(a)') 'ERROR: iwallmom = 4 with lmoist and iwallmoist = 2 (resistance law) requires iwalltemp = 2'
             call abort_all_ranks(1)
          end if
          if ((mo_maxslope < 0.) .or. (mo_maxslope >= 90.)) then
@@ -878,6 +883,8 @@ module modstartup
       end if
 
       ! Call neutral wall function when air temperature not evolved or if constant heat flux.
+      ! Only iwallmom = 2: under iwallmom = 4 the facets steeper than mo_maxslope choose the
+      ! stability-corrected or the neutral wall function from iwalltemp themselves (modibm:wallfunmom).
       if (((ltempeq .eqv. .false.) .or. (iwalltemp==1)) .and. (iwallmom==2)) then
         if (myid==0) write(*,*) "Changing to neutral wall function"
          iwallmom = 3

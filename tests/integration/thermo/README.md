@@ -39,6 +39,15 @@ Run: `python tests/integration/thermo/test_thermo.py -v [TestClass]`.
   without it), then 3 steps with `iwallmom = 4` on 1 and 2 ranks: `ustar` finite and equal across the
   decompositions (rtol 1e-6), the start-up line counts 4 Monin-Obukhov facets, and the air gains
   `bctfz` x facet area x time (tolerance 3e-3, derivation in the test).
+- `TestMOFacetTemperature`: Monin-Obukhov facets with the facet temperature (`iwallmom = 4`,
+  `iwalltemp = 2`, the DALES `isurf = 2` analogue) on a flat floor 2 K warmer than the air (fixed,
+  `lEB` off), laminar column: L, `wtheta = Cs U (Tfacet - thl)` and `u* = sqrt(Cm) U` against the
+  Python iteration on the air state of the last RK substep (mean of the last two records; rtol 1e-4,
+  derivation in the class docstring); `iwallmoist = 2` on the green floor (`wq = -moist_flux` with
+  `resa = 1/(Cs U)`, `qts = qt + wq/(Cs U)`); a 60 degree facet runs the `iwallmom = 2` wall function
+  bit for bit (and differs from the neutral one); the slope split (20 degree facet MO, 60 degree facet
+  wfuno); `lEB` (the facEB `hf` is `-rhoa cp wtheta`, the next MO step uses the EB facet temperature);
+  the ridge on 1 and 2 ranks (rtol 1e-6, skips without `gfortran`); the start-up checks of `iwalltemp`/`iwallmoist`.
 - `TestCalthv`, `TestCalthvGuard`: `dthvdz` at the surface level is zero; a uniform saturated
   column must not divide by zero.
 - `TestBldump`: cloudy-column diagnostics (`ql`, `lwp_bar`) and a dry
@@ -68,7 +77,10 @@ Run: `python tests/integration/thermo/test_thermo.py -v [TestClass]`.
 - `TestMOKernels`: in-solver `runmode = 1012` (`tests.f90:tests_mo_kernels`): `psim`/`psih` against Businger-Dyer
   and Beljaars-Holtslag reference values, `phim`/`phih`, the `calc_obl_iter` round trip from the bulk Richardson
   number of a known `L`, and `mo_local_update` (the per-section surface of `iwallmom = 4`) at its fixed point: neutral
-  `u* = kappa |U| / ln(z1/z0)`, unstable u* with `L = -u*^3 tskin / (kappa g w'thl')`, prescribed `ustin`, the u* floor.
+  `u* = kappa |U| / ln(z1/z0)`, unstable u* with `L = -u*^3 tskin / (kappa g w'thl')`, prescribed `ustin`, the u* floor;
+  and `mo_presc_tskin_update` (`iwalltemp = 2`, DALES `isurf = 2`): L recovered from the Richardson number of a known L
+  in one update, Cs and u* the drag coefficients of that L, the fluxes closing the flux definition of L, neutral,
+  the |U| floor in `Cs U`, `ustin`.
 - `TestThermoLevels`: in-solver `runmode = 1010` (`tests.f90:tests_thermo_levels`):
   after `thermodynamics`, `ql0(k)` and `ql0h(k)` are the saturation adjustment of
   `thl0`/`qt0` and `thl0h`/`qt0h` at the same level, cell by cell (#403).

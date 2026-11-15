@@ -12,7 +12,7 @@ module modbldiag
 
   real    :: tnext = 0.
   integer :: ncidt, ncidz, nrect = 0, nrecz = 0
-  integer, parameter :: nvtmax = 13, nvz = 11, ivt_zi_qt = 4, ivt_zi_sv = 5
+  integer, parameter :: nvtmax = 15, nvz = 11, ivt_zi_qt = 4, ivt_zi_sv = 5
   integer :: nvt = 0               !< number of time series written
   integer :: ivt(nvtmax)           !< indices into vt/nct of the time series written
   character(80) :: fnamet = 'bldump_t.xxx.nc', fnamez = 'bldump_z.xxx.nc'
@@ -50,6 +50,8 @@ contains
     call ncinfo(nct(11,:), 'qts',      'Surface qt',                    'kg/kg',  'time')
     call ncinfo(nct(12,:), 'u1',       'Slab-mean u at first level',    'm/s',    'time')
     call ncinfo(nct(13,:), 'v1',       'Slab-mean v at first level',    'm/s',    'time')
+    call ncinfo(nct(14,:), 'wtheta',   'Surface kinematic heat flux (upward, Monin-Obukhov facets)', 'K m/s', 'time')
+    call ncinfo(nct(15,:), 'wq',       'Surface kinematic moisture flux (upward, Monin-Obukhov facets)', 'm/s', 'time')
     nvt = 0
     do n = 1, nvtmax
       if (n == ivt_zi_qt .and. zi_qt_thres == 0.) cycle   ! zi_qt only when configured
@@ -139,12 +141,14 @@ contains
     vt(6:7) = glob(6:7)
     if (iwallmom == iwallmom_mo) then
       ! Monin-Obukhov facets: area means over their sections (obl = 1/mean(1/L))
-      call mo_facet_means(vt(8), vt(9), vt(10), vt(11))
+      call mo_facet_means(vt(8), vt(9), vt(10), vt(11), vt(14), vt(15))
     else
       vt(8)  = 0.            ! no Monin-Obukhov surface
       vt(9)  = 0.
       vt(10) = thls
       vt(11) = qts
+      vt(14) = 0.
+      vt(15) = 0.
     end if
     vt(12) = u0av(kb)
     vt(13) = v0av(kb)

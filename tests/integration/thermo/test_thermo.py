@@ -234,6 +234,209 @@ class TestMO(_SolverTest):
         self.assertTrue(np.all(np.abs(dthvdz[:, 8:]) <= 2e-10))      # float32(eps1) floor of calthv
 
 
+
+class TestMOFacetTemperature(_SolverTest):
+    """Monin-Obukhov facets with a facet temperature (iwallmom = 4, iwalltemp = 2; the DALES
+    isurf = 2 analogue): laminar homogeneous column over a flat facet floor whose temperature is
+    fixed (lEB off), facet 2 K warmer than the air. Records every 1-s step.
+
+    The reference air state is the mean of the last two records: the fluxes, u* and L recorded
+    at the end of a step come from the state of its last RK3 substep, which starts at t + dt/2,
+    so the record mean is that state to second order (the first-order drift is ~1e-3 per step
+    here: heating Cs U dt / dzf of dT, deceleration u*^2 dt / dzf; against the end-of-step
+    record the flux differs by 5.6e-4). L is re-iterated to convergence on that state in every
+    update. Residuals: float32 records (3e-5 K ulp at 289 K on a 2 K dT: 1.5e-5 per record),
+    the 1e-4 stopping tolerance of the L iteration (Cs and u* depend on L only through
+    psi(z/L), |dCs/Cs| < 0.1 |dL/L| here), the second-order drift (~1e-6). Measured: 5e-6.
+    Bound: 1e-4."""
+
+    Z0, Z0H, Z1, TFAC = 2.e-4, 2.e-5, 10.0, 291.0
+    RTOL = 1e-4
+
+    def _case(self, name, extra=None, runtime="9.5", lgr=True, nprocs=1, tfac=None, vwind=-5.5, **kw):
+        groups = {"RUN": {"runtime": runtime}, "BC": {"bctfz": "0.", "bcqfz": "0."},
+                  "WALLS": {"iwalltemp": "2"},
+                  "OUTPUT": {"lbldump": ".true.", "tstatsdump": "1."}}
+        for g, kv in (extra or {}).items():
+            groups.setdefault(g, {}).update(kv)
+        floor = {"z0": self.Z0, "z0h": self.Z0H, "tfacinit": self.TFAC if tfac is None else tfac, "lgr": lgr}
+        floor.update(kw.pop("floor", {}))
+        d = tc.write_case(self.tmp / name, u=7.0, v=vwind, floor=floor, groups=groups, **kw)
+        res = self.run_ok(d, nprocs)
+        return d, res.stdout + res.stderr
+
+    @staticmethod
+    def _records(d):
+        with Dataset(d / "bldump_t.310.nc") as t, Dataset(d / "bldump_z.310.nc") as z:
+            r = {v: np.asarray(t[v][:], dtype=float) for v in ("ustar", "obl", "thls", "qts", "u1", "v1", "wtheta", "wq")}
+            r["thl1"] = np.asarray(z["thl"][:, 0], dtype=float)
+            r["qt1"] = np.asarray(z["qt"][:, 0], dtype=float)
+        return r
+
+    def _mid(self, r):
+        """the outputs of the last step and the air state of its last substep (record mean)"""
+        m = {k: v[-1] for k, v in r.items()}
+        m.update({k: 0.5 * (r[k][-1] + r[k][-2]) for k in ("u1", "v1", "thl1", "qt1")})
+        m["U"] = np.hypot(m["u1"], m["v1"])
+        return m
+
+    def test_heat_flux_is_cs_u_dT(self):
+        d, out = self._case("mot_heat")
+        self.assertIn("iwallmom = 4: 1 facets use Monin-Obukhov (slope <=  30.0 deg), 0 use the stability-corrected wall function", out)
+        self.assertIn("iwallmom = 4: 256 cells above horizontal Monin-Obukhov facets", out)
+        r = self._records(d)
+        np.testing.assert_allclose(r["thls"], self.TFAC, rtol=1e-7)     # the facet temperature, fixed without lEB
+        m = self._mid(r)
+        # bcqfz = 0 on the green floor: no moisture flux, qskin = qt of the air
+        self.assertEqual(np.max(np.abs(r["wq"])), 0.)
+        L = tc.obl_iter(m["thl1"], m["qt1"], self.TFAC, m["qt1"], self.Z1, self.Z0, self.Z0H, m["u1"], m["v1"], -0.1)
+        cm, cs = tc.drag_coefficients(self.Z1, L, self.Z0, self.Z0H)
+        wtheta = cs * m["U"] * (self.TFAC - m["thl1"])
+        print(f"\n[mo tskin] L {m['obl']:.5g} ref {L:.5g}; wtheta {m['wtheta']:.6g} ref {wtheta:.6g}; "
+              f"u* {m['ustar']:.6g} ref {np.sqrt(cm) * m['U']:.6g}")
+        self.assertLess(L, 0.)                                          # warm facet: unstable
+        self.assertGreater(wtheta, 0.)                                  # upward
+        np.testing.assert_allclose(m["obl"], L, rtol=self.RTOL)
+        np.testing.assert_allclose(m["wtheta"], wtheta, rtol=self.RTOL)
+        np.testing.assert_allclose(m["ustar"], np.sqrt(cm) * m["U"], rtol=self.RTOL)
+        self.assertGreater(r["thl1"][-1], r["thl1"][0])                 # the air is heated
+
+    def test_green_facet_resistance_law(self):
+        """iwallmoist = 2 on a green Monin-Obukhov facet: w'qt' = -moist_flux(resa = 1/(Cs U)) with
+        the facet saturation humidity qsat(Tfacet) and hurel = 1 (wsoil = wfc). The qskin of the
+        Richardson number is diagnosed from the previous flux: the recorded qts (u/v sections)."""
+        d, _ = self._case("mot_moist", extra={"WALLS": {"iwallmoist": "2"}, "ENERGYBALANCE": {"wsoil": "313.", "wfc": "313."}})
+        r = self._records(d)
+        m = self._mid(r)
+        L = tc.obl_iter(m["thl1"], m["qt1"], self.TFAC, m["qts"], self.Z1, self.Z0, self.Z0H, m["u1"], m["v1"], -0.1)
+        _, cs = tc.drag_coefficients(self.Z1, L, self.Z0, self.Z0H)
+        resa = 1.0 / (cs * m["U"])
+        wq = -tc.moist_flux(resa, m["qt1"], tc.qsat_facet(self.TFAC), 1.0)
+        print(f"\n[mo tskin moist] wq {m['wq']:.6g} ref {wq:.6g}; qts {m['qts']:.6g} = qt + wq/(Cs U) "
+              f"{m['qt1'] + wq * resa:.6g}")
+        self.assertGreater(wq, 0.)                                      # evaporation
+        np.testing.assert_allclose(m["wq"], wq, rtol=self.RTOL)
+        np.testing.assert_allclose(m["qts"], m["qt1"] + wq * resa, rtol=self.RTOL)
+        np.testing.assert_allclose(m["wtheta"], cs * m["U"] * (self.TFAC - m["thl1"]), rtol=self.RTOL)
+
+    def test_steep_facet_uses_stability_corrected_wall_function(self):
+        """A floor facet declared at 60 deg (steeper than mo_maxslope) under iwallmom = 4,
+        iwalltemp = 2 runs the iwallmom = 2 wall function (wfuno with stability): the fields equal
+        those of an iwallmom = 2 run bit for bit, and differ from the neutral iwallmom = 3 run."""
+        t60 = np.radians(60.0)
+        fields = {}
+        for name, iwm in (("steep_mo", "4"), ("steep_wfuno", "2"), ("steep_neutral", "3")):
+            d, out = self._case(name, runtime="2.5", floor={"normals": [(np.sin(t60), 0.0, np.cos(t60))]},
+                                extra={"WALLS": {"iwallmom": iwm},
+                                       "OUTPUT": {"lfielddump": ".true.", "tfielddump": "2.5", "fieldvars": "'u0,v0,w0,th'"}})
+            if iwm == "4":
+                self.assertIn("0 facets use Monin-Obukhov (slope <=  30.0 deg), 1 use the stability-corrected wall function", out)
+            with Dataset(d / "fielddump.000.000.310.nc") as f:
+                fields[name] = {v: np.asarray(f[v][-1], dtype=float) for v in ("u", "v", "w", "thl")}
+        for v in ("u", "v", "w", "thl"):
+            np.testing.assert_array_equal(fields["steep_mo"][v], fields["steep_wfuno"][v], err_msg=v)
+        self.assertGreater(np.max(np.abs(fields["steep_mo"]["u"] - fields["steep_neutral"]["u"])), 1e-6)
+
+    def test_slope_split(self):
+        """West half 20 deg (Monin-Obukhov), east half 60 deg (stability-corrected wall function).
+        The bldump u* is the mean over the Monin-Obukhov sections only: the MO u* of facet 1 at
+        its tangential wind, with L from the facet temperature (first step; drift 2e-3)."""
+        t20, t60 = np.radians(20.0), np.radians(60.0)
+        normals = [(np.sin(t20), 0.0, np.cos(t20)), (np.sin(t60), 0.0, np.cos(t60))]
+        d, out = self._case("mot_split", runtime="0.5", vwind=0.0,
+                            floor={"normals": normals, "facet_of": lambda i, j: 1 if i <= 8 else 2},
+                            extra={"OUTPUT": {"tstatsdump": "0.5"}})
+        self.assertIn("iwallmom = 4: 1 facets use Monin-Obukhov (slope <=  30.0 deg), 1 use the stability-corrected wall function", out)
+        with Dataset(d / "bldump_t.310.nc") as t:
+            ustar, wtheta = float(t["ustar"][-1]), float(t["wtheta"][-1])
+        n1 = np.array(normals[0])
+        uvec = np.array([7.0, 0.0, 0.0])
+        utan = np.linalg.norm(uvec - uvec.dot(n1) * n1)
+        thl1 = 289.0
+        L = tc.obl_iter(thl1, 9.0e-3, self.TFAC, 9.0e-3, self.Z1, self.Z0, self.Z0H, utan, 0.0, -0.1)
+        cm, cs = tc.drag_coefficients(self.Z1, L, self.Z0, self.Z0H)
+        self.assertAlmostEqual(ustar, np.sqrt(cm) * utan, delta=2e-3 * ustar)
+        self.assertAlmostEqual(wtheta, cs * utan * (self.TFAC - thl1), delta=2e-3 * wtheta)
+
+    def test_energy_balance_receives_the_flux(self):
+        """lEB = .true. (dtEB = dt = 1 s, no radiation: netsw = 0, svf = 1, skyLW = 0): the facet
+        sensible heat flux of the energy balance (facEB hf, W/m2, positive into the facet) is the
+        Monin-Obukhov flux of the last substep, -rhoa cp wtheta, and the next step's Monin-Obukhov
+        surface temperature is the facet temperature the energy balance computed (facT layer 1)."""
+        d = self.tmp / "mot_eb"
+        d.mkdir()
+        for name, txt in (("svf", "1.0"), ("netsw", "0.0")):
+            (d / f"{name}.inp.310").write_text(f"# {name}\n{txt}\n")
+        (d / "vfsparse.inp.310").write_text("")
+        d, _ = self._case("mot_eb", runtime="4.5", lgr=False,
+                          extra={"ENERGYBALANCE": {"lEB": ".true.", "lwriteEBfiles": ".true.", "dtEB": "1.",
+                                                   "lvfsparse": ".true.", "nnz": "0", "skyLW": "0."}})
+        r = self._records(d)
+        with Dataset(d / "facEB.310.nc") as f:
+            hf = np.asarray(f["hf"][:], dtype=float).reshape(-1)
+        with Dataset(d / "facT.310.nc") as f:
+            T1 = np.asarray(f["T"][:], dtype=float).reshape(len(hf), -1)[:, 0]
+        print(f"\n[mo EB] hf {hf}; -rhoa cp wtheta {-1.2 * 1004. * r['wtheta']}; facT1 {T1}; thls {r['thls']}")
+        n = min(len(hf), len(r["wtheta"]))
+        self.assertGreaterEqual(n, 3)
+        np.testing.assert_allclose(hf[:n], -1.2 * CP * r["wtheta"][:n], rtol=1e-5)
+        self.assertTrue(np.all(np.diff(T1) < 0.))                       # the facet loses heat (H up, LW out)
+        np.testing.assert_allclose(r["thls"][1:n], T1[:n - 1], rtol=1e-7)   # MO uses the EB facet temperature
+
+    def test_decomposition_on_ridge(self):
+        """1 vs 2 ranks on the sloped ridge (TestMOSlopedFacet geometry) with the facet temperature:
+        the c-grid sections of sloped Monin-Obukhov facets carry their own state (mo_section_tskin in
+        wallfunheat); only the order of the area-weighted bldump sums differs between the splits."""
+        if not tc.ibm_preprocessor_available():
+            self.skipTest("no gfortran for the udprep legacy IBM preprocessor")
+        try:
+            prep = tc.prepare_ridge(self.tmp / "prep", 20.0, self.Z0)
+        except ImportError as exc:
+            self.skipTest(f"udprep dependencies missing: {exc}")
+        out = {}
+        for npx in (1, 2):
+            dd = tc.write_ridge_run(prep, self.tmp / f"ridge_t2_{npx}", u=7.0, v=0.0, thl=np.full(64, 289.0),
+                                    qt=np.full(64, 5.0e-3), groups={
+                "RUN": {"runtime": "3.0", "nprocx": str(npx)}, "WALLS": {"iwalltemp": "2"},
+                "BC": {"bctfz": "0.", "bcqfz": "0."},
+                "OUTPUT": {"lbldump": ".true.", "tstatsdump": "1.", "lfielddump": ".true.",
+                           "tfielddump": "3.0", "fieldvars": "'u0,th'"}})
+            nf = len((dd / "facets.inp.310").read_text().splitlines()) - 1
+            (dd / "Tfacinit.inp.310").write_text("# initial facet temperature [K]\n" + f"{self.TFAC:.6f}\n" * nf)
+            res = self.run_ok(dd, nprocs=npx)
+            self.assertIn("iwallmom = 4: 4 facets use Monin-Obukhov", res.stdout + res.stderr)
+            with Dataset(dd / "bldump_t.310.nc") as t:
+                out[npx] = {v: np.asarray(t[v][:], dtype=float) for v in ("ustar", "obl", "wtheta")}
+            if npx == 1:
+                with Dataset(dd / "fielddump.000.000.310.nc") as f:
+                    thl = np.asarray(f["thl"][-1], dtype=float)
+        for v in ("ustar", "obl", "wtheta"):
+            self.assertTrue(np.all(np.isfinite(out[1][v])))
+            np.testing.assert_allclose(out[2][v], out[1][v], rtol=1e-6, err_msg=v)
+        self.assertTrue(np.all(out[1]["wtheta"] > 0.))                  # warm facets heat the air
+        self.assertGreater(thl.max(), 289.0)
+
+    def test_startup_checks(self):
+        """Start-up checks: iwallmom = 4 accepts iwalltemp 1 and 2, rejects 3; with lmoist
+        iwallmoist = 2 needs iwalltemp = 2, and iwallmoist must be 1 or 2."""
+        for name, walls, ok, msg in (
+                ("chk_t3", {"iwalltemp": "3"}, False, "iwalltemp = 1 or 2"),
+                ("chk_m3", {"iwalltemp": "2", "iwallmoist": "3"}, False, "iwallmoist = 1 or 2"),
+                ("chk_m2_t1", {"iwalltemp": "1", "iwallmoist": "2"}, False, "requires iwalltemp = 2"),
+                ("chk_m2_t2", {"iwalltemp": "2", "iwallmoist": "2"}, True, None),
+                ("chk_t1", {"iwalltemp": "1"}, True, None)):
+            with self.subTest(case=name):
+                dd = tc.write_case(self.tmp / name, floor={"z0": self.Z0, "z0h": self.Z0H, "tfacinit": self.TFAC},
+                                   groups={"RUN": {"runtime": "1."}, "WALLS": walls,
+                                           "BC": {"bctfz": "0.", "bcqfz": "0."}})
+                res = tc.run(dd)
+                if ok:
+                    self.assertEqual(res.returncode, 0, (res.stdout + res.stderr)[-2000:])
+                else:
+                    self.assertNotEqual(res.returncode, 0)
+                    self.assertIn(msg, res.stdout + res.stderr)
+
+
 RV_RD = 461.5 / 287.04
 RLV, CP = 2.53e6, 1004.0   # check modglobal: rlv, cp
 
