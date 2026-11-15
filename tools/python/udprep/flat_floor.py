@@ -37,6 +37,15 @@ def _factypes_row(wallid: int, lgr: bool, z0: float, z0h: float) -> str:
     return " ".join(cols)
 
 
+def write_floor_factypes(run_dir: Path, expnr: str, z0: float, z0h: float, lgr: bool = True) -> None:
+    """Write factypes.inp with the single floor type (also used for STL floors in tests)."""
+    with open(Path(run_dir) / f"factypes.inp.{expnr}", "w") as f:
+        f.write("# facet types of a floor (udprep.flat_floor)\n"
+                "# lGR = 1: the facet exchanges moisture (iwallmoist)\n"
+                "# wallid lGR z0[m] z0h[m] al[-] em[-] d1..d3[m] C1..C3[J/(K m^3)] l1..l3[W/(m K)] k1..k4[W/(m K)]\n")
+        f.write(_factypes_row(FLOOR_TYPE, lgr, z0, z0h) + "\n")
+
+
 def write_flat_floor(run_dir: Path, expnr: str, itot: int, jtot: int, dx: float, dy: float,
                      z1: float, z0: float, z0h: float, lgr: bool = True,
                      normals: Sequence[Sequence[float]] | None = None,
@@ -93,11 +102,7 @@ def write_flat_floor(run_dir: Path, expnr: str, itot: int, jtot: int, dx: float,
           [f"{FLOOR_TYPE:5d} {n[0]:.6f} {n[1]:.6f} {n[2]:.6f}" for n in normals])
     write(f"facetarea.inp.{expnr}", "# area of facets",
           [f"{fac.count(n + 1) * area:.6f}" for n in range(nfcts)])
-    write(f"factypes.inp.{expnr}",
-          "# facet types of a flat floor (udprep.flat_floor)\n"
-          "# lGR = 1: the facet exchanges moisture (iwallmoist)\n"
-          "# wallid lGR z0[m] z0h[m] al[-] em[-] d1..d3[m] C1..C3[J/(K m^3)] l1..l3[W/(m K)] k1..k4[W/(m K)]",
-          [_factypes_row(FLOOR_TYPE, lgr, z0, z0h)])
+    write_floor_factypes(run_dir, expnr, z0, z0h, lgr)
     if tfacinit is not None:
         write(f"Tfacinit.inp.{expnr}", "# initial facet temperature [K]",
               [f"{tfacinit:.6f}"] * nfcts)

@@ -34,6 +34,11 @@ Run: `python tests/integration/thermo/test_thermo.py -v [TestClass]`.
   gradient (from the recorded u*, L and the prescribed fluxes), and on a floor that is half
   horizontal, half 20 degrees only the horizontal half gets it (the start-up line counts the cells).
   Tolerances 1e-3 relative (float32 records and the drift of the state within a step).
+- `TestMOSlopedFacet`: Monin-Obukhov on geometrically sloped facets. A periodic 20 degree ridge STL
+  goes through the Python IBM preprocessing (`udprep`, legacy backend; needs `gfortran`, the test skips
+  without it), then 3 steps with `iwallmom = 4` on 1 and 2 ranks: `ustar` finite and equal across the
+  decompositions (rtol 1e-6), the start-up line counts 4 Monin-Obukhov facets, and the air gains
+  `bctfz` x facet area x time (tolerance 3e-3, derivation in the test).
 - `TestCalthv`, `TestCalthvGuard`: `dthvdz` at the surface level is zero; a uniform saturated
   column must not divide by zero.
 - `TestBldump`: cloudy-column diagnostics (`ql`, `lwp_bar`) and a dry

@@ -778,6 +778,73 @@ class TestThermoLevels(_SolverTest):
         self.assertIn("ALL TESTS PASSED: tests_thermo_levels", out)
 
 
+class TestMOSlopedFacet(_SolverTest):
+    """Monin-Obukhov on geometrically sloped facets: a periodic 20 degree ridge STL (below
+    mo_maxslope = 30) through the Python IBM preprocessing (udprep, legacy backend), run with
+    iwallmom = 4, iwalltemp = 1 on 1 and 2 ranks. Unlike the declared-normal tests above, the
+    sections here are not grid-aligned: reconstruction point (trilinear thl, qt), section
+    distance, rotated stress, w-grid sections and bctfz on sloped sections are all exercised."""
+
+    ANGLE = 20.0
+    Z0 = 2.e-4
+    BCTFZ = -0.2          # K m/s, upward (negative = into the air)
+    RUNTIME = 3.0         # three 1-s steps
+
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+        if not tc.ibm_preprocessor_available():
+            raise unittest.SkipTest("no gfortran for the udprep legacy IBM preprocessor")
+        cls.prep = tc.prepare_ridge(cls.tmp / "prep", cls.ANGLE, cls.Z0)
+
+    def _run(self, name, nprocx):
+        # uniform, unsaturated thl and qt: the heat budget below needs a known initial integral
+        d = tc.write_ridge_run(self.prep, self.tmp / name, u=7.0, v=0.0, thl=np.full(64, 289.0),
+                               qt=np.full(64, 5.0e-3), groups={
+            "RUN": {"runtime": str(self.RUNTIME), "nprocx": str(nprocx)},
+            "BC": {"bctfz": str(self.BCTFZ), "bcqfz": "0."},
+            "OUTPUT": {"lbldump": ".true.", "tstatsdump": "1.", "lfielddump": ".true.",
+                       "tfielddump": str(self.RUNTIME), "fieldvars": "'th'"}})
+        res = self.run_ok(d, nprocs=nprocx)
+        return d, res.stdout + res.stderr
+
+    def test_sloped_mo_facets(self):
+        d1, out1 = self._run("ridge_1", 1)
+        d2, out2 = self._run("ridge_2", 2)
+        for out in (out1, out2):
+            self.assertIn("iwallmom = 4: 4 facets use Monin-Obukhov (slope <=  30.0 deg), 0 use the neutral wall function", out)
+            self.assertIn("iwallmom = 4: 0 cells above horizontal Monin-Obukhov facets", out)
+        us = []
+        for d in (d1, d2):
+            with Dataset(d / "bldump_t.310.nc") as t:
+                us.append(np.asarray(t["ustar"][:], dtype=float))
+        for u in us:
+            self.assertEqual(len(u), 3)
+            self.assertTrue(np.all(np.isfinite(u)))
+            self.assertTrue(np.all(u > 0.01))
+        # the same sections and arithmetic: only the order of the area-weighted sum differs
+        np.testing.assert_allclose(us[0], us[1], rtol=1e-6)
+        # heat input: the air gains bctfz x facet area per unit time (thl was uniform, so the
+        # integral over the fluid cells changes only through the facet flux; every section
+        # applies flux * section area / (dx dy dzf)).
+        dx = dy = 560.0 / 16
+        dz = 20.0
+        solid = np.zeros((16, 16, 64), dtype=bool)
+        for l in (d1 / "solid_c.txt").read_text().splitlines():
+            if l.strip() and not l.lstrip().startswith("#"):
+                i, j, k = (int(x) for x in l.split()[:3])
+                solid[i - 1, j - 1, k - 1] = True
+        with Dataset(d1 / "fielddump.000.000.310.nc") as f:
+            thl = np.asarray(f["thl"][-1], dtype=float)        # (k, j, i)
+        gain = np.sum((thl.transpose(2, 1, 0) - 289.0)[~solid]) * dx * dy * dz
+        area = np.sum(np.loadtxt(d1 / "facetarea.inp.310", skiprows=1))
+        expect = -self.BCTFZ * area * self.RUNTIME
+        # Tolerance 3e-3: the float32 thl record (ulp 3e-5 K at 289 K) gives a sum error of about
+        # 1.3e-4 of the signal (random rounding over ~15000 cells), the rest is the conservation
+        # error of the IBM advection and diffusion corrections near the ridge; measured 9e-4.
+        self.assertAlmostEqual(gain / expect, 1.0, delta=3e-3)
+
+
 class TestMOKernels(_SolverTest):
     """In-solver test (runmode 1012, tests.f90:tests_mo_kernels) of the pure Monin-Obukhov kernels:
     psim/psih against Businger-Dyer (unstable) and Beljaars-Holtslag (stable) reference values,
