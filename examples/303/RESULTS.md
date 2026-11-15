@@ -1,9 +1,66 @@
 # Tier-2 validation results: 303 DYCOMS-II RF01
 
-## Facet floor with the Monin-Obukhov facet surface (shipped configuration)
+## Facet floor with the Monin-Obukhov facet surface and the first-level SGS treatment (shipped configuration)
 
-The shipped `namoptions.303` has a floor made of one facet with `iwallmom = 4` (local Monin-Obukhov per facet section,
-u* from MO, fluxes `bctfz`, `bcqfz`), kappa = 0.40, `z0 = z0h = 1.445944e-5 m` in the floor facet type. Runs: Release
+The shipped `namoptions.303`: a floor made of one horizontal facet with `iwallmom = 4` (local Monin-Obukhov per facet
+section, u* from MO, fluxes `bctfz`, `bcqfz`), kappa = 0.40, `z0 = z0h = 1.445944e-5 m`, and in the 9216 first-level
+cells above the facet the DALES first-level treatment of the one-equation SGS model (TKE shear and buoyancy sources and
+`dthvdz` from the Monin-Obukhov surface-layer gradients, evaluated before `subgrid`). Runs: Release build, FFTW planner
+`FFTW_ESTIMATE`, fixed dt = 0.3 s, 32 ranks (8 x 4), seeds 43-45, 4 h. DALES: the runs of the sections below. Window
+3-4 h, 600 s blocks; entrainment fit 1-4 h.
+
+**Verdict.** The near-floor difference of the section below is gone: at 15 m the resolved w'thl' is 5.34e-3 against
+5.36e-3 K m/s in DALES and w'qt' 1.78e-5 against 1.80e-5 kg/kg m/s (within 1 %; without the treatment 7.86e-3 and
+2.56e-5). All five profiles meet the bar (rms difference 0.19-0.69 of the smaller rms spread; resolved fluxes were 2.64
+and 1.58). LWP, zi and u* agree within the spread (u* 0.2466 against 0.2469 m/s, within the larger spread). zi_qt8 (+0.8 m)
+and the entrainment rate (4.82 against 4.75 mm/s, +1.5 %) are within the larger spread, the uDALES spread being the
+larger. Cloud cover is now 1.2 % above DALES (0.818 against 0.808, 2.7 of the smaller and 1.0 of the larger spread);
+without the treatment it was 1.2 % below (0.799), so the treatment moves it by +0.019, more than either spread.
+
+| quantity | uDALES members | uDALES mean (spread) | DALES members | DALES mean (spread) | diff | ratio (min) | ratio (max) |
+|---|---|---|---|---|---|---|---|
+| LWP [g/m2] | 15.75, 16.28, 14.71 | 15.58 (0.80) | 17.19, 12.99, 15.44 | 15.20 (2.11) | +0.38 | 0.47 | 0.18 |
+| cloud cover | 0.8099, 0.8288, 0.8164 | 0.8184 (0.0096) | 0.8116, 0.8043, 0.8093 | 0.8084 (0.0038) | +0.0100 | 2.66 | 1.04 |
+| u* [m/s] | 0.2463, 0.2470, 0.2464 | 0.2466 (0.0004) | 0.2467, 0.2472, 0.2468 | 0.2469 (0.0003) | -0.0003 | 1.15 | 0.78 |
+| zi, max dthl/dz [m] | 875.0, 875.0, 874.2 | 874.7 (0.5) | 875.8, 874.2, 874.2 | 874.7 (1.0) | 0.0 | 0.00 | 0.00 |
+| zi_qt8 [m] | 859.2, 859.8, 858.2 | 859.1 (0.8) | 858.7, 857.8, 858.4 | 858.3 (0.5) | +0.8 | 1.61 | 0.94 |
+| we [mm/s] (fit 1-4 h) | 4.858, 4.923, 4.680 | 4.821 (0.126) | 4.761, 4.726, 4.760 | 4.749 (0.020) | +0.072 | 3.57 | 0.57 |
+
+| profile (z <= 1200 m) | max abs diff (z) | rms diff | rms spread U / D | rms diff / min rms spread | levels with diff < both spreads |
+|---|---|---|---|---|---|
+| thl [K] | 0.146 (868 m) | 0.015 | 0.034 / 0.031 | 0.50 | 82 % |
+| qt [g/kg] | 0.102 (868 m) | 0.013 | 0.025 / 0.026 | 0.52 | 78 % |
+| ql [g/kg] | 0.0054 (848 m) | 0.0011 | 0.0021 / 0.0042 | 0.54 | 35 % |
+| w'thl' resolved [K m/s] | 0.0014 (865 m) | 0.0003 | 0.0004 / 0.0005 | 0.69 | 73 % |
+| w'qt' resolved [g/kg m/s] | 0.0009 (865 m) | 0.0003 | 0.0017 / 0.0017 | 0.19 | 89 % |
+
+Near-floor resolved fluxes, window 3-4 h, ensemble mean (spread), zm = 5, 10, 15 m:
+
+| run | w'thl' [K m/s] | w'qt' [kg/kg m/s] |
+|---|---|---|
+| facet floor with the first-level treatment | 1.74e-3 (1e-5), 3.54e-3 (2e-5), 5.34e-3 (2e-5) | 5.81e-6 (4e-8), 1.18e-5 (7e-8), 1.78e-5 (8e-8) |
+| facet floor without it (section below) | 3.12e-3 (1e-5), 5.93e-3 (2e-5), 7.86e-3 (2e-5) | 1.01e-5 (7e-8), 1.92e-5 (1.3e-7), 2.56e-5 (1.5e-7) |
+| DALES | 1.75e-3 (1e-5), 3.57e-3 (2e-5), 5.36e-3 (3e-5) | 5.88e-6 (2e-8), 1.20e-5 (4e-8), 1.80e-5 (4e-8) |
+
+Hourly LWP [g/m2], ensemble mean (spread):
+
+| code | 0-1 h | 1-2 h | 2-3 h | 3-4 h |
+|---|---|---|---|---|
+| uDALES, first-level treatment | 27.38 (0.19) | 14.02 (0.26) | 15.72 (0.55) | 15.58 (0.80) |
+| DALES | 26.85 (0.08) | 14.60 (0.23) | 15.66 (0.29) | 15.20 (2.11) |
+
+Against the facet-floor runs without the treatment (section below; 60 s blocks): LWP -0.19 g/m2 (0.24 spreads), u*
++0.0001 m/s (0.49), cloud cover +0.019 (3.5 / 2.0 spreads), zi +0.6 m, zi_qt8 +1.0 m (2.0 / 1.3), we +0.09 mm/s
+(1.8 / 0.7); thl, qt, ql profiles 0.42-0.76 of the smaller rms spread; resolved w'thl', w'qt' 2.17 and 1.57 (the
+near-floor change).
+
+## Facet floor without the first-level SGS treatment (earlier runs)
+
+These runs predate the first-level SGS treatment above horizontal Monin-Obukhov facets; otherwise the configuration
+is the shipped one.
+
+The floor is one facet with `iwallmom = 4` (local Monin-Obukhov per facet section, u* from MO, fluxes `bctfz`,
+`bcqfz`), without TKE sources at `kb`, kappa = 0.40, `z0 = z0h = 1.445944e-5 m` in the floor facet type. Runs: Release
 build, FFTW planner `FFTW_ESTIMATE`, fixed dt = 0.3 s, 32 ranks (8 x 4), seeds 43-45, 4 h. DALES: the runs of the next
 section (DALES dev 075ac4e with both patches, `lmostlocal = .true.` by default). Window 3-4 h, 600 s blocks; entrainment
 fit 1-4 h.
