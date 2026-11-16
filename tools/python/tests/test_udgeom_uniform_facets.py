@@ -246,6 +246,51 @@ class TestMerge(unittest.TestCase):
         self.assertEqual(len(result.mesh.faces), 10)
 
 
+class TestWorkers(unittest.TestCase):
+    """Worker processes must give exactly the serial result."""
+
+    @staticmethod
+    def _assert_same(a, b):
+        np.testing.assert_array_equal(a.mesh.vertices, b.mesh.vertices)
+        np.testing.assert_array_equal(a.mesh.faces, b.mesh.faces)
+        np.testing.assert_array_equal(a.face_map, b.face_map)
+        if a.face_types is not None:
+            np.testing.assert_array_equal(a.face_types, b.face_types)
+        for key in ("n_faces_out", "n_patches_remeshed", "n_patches_kept", "n_boundary_points_remeshed"):
+            assert a.report[key] == b.report[key], key
+
+    def test_workers_give_the_serial_result_on_a_small_mesh(self):
+        import udgeom.uniform_facets as impl
+
+        mesh, types = _wall_with_slivers()
+        serial = uniformize_facets(mesh, face_types=types, target_edge=10.0)
+        saved = impl._MIN_PATCHES_PER_WORKER
+        impl._MIN_PATCHES_PER_WORKER = 1  # two patches: make the pool run anyway
+        try:
+            parallel = uniformize_facets(mesh, face_types=types, target_edge=10.0, workers=2)
+        finally:
+            impl._MIN_PATCHES_PER_WORKER = saved
+        self._assert_same(parallel, serial)
+
+    def test_workers_give_the_serial_result_on_many_patches(self):
+        import udgeom.uniform_facets as impl
+
+        mesh = create_cubes(240.0, 180.0, 30.0, 30.0, 30.0, 30.0, 30.0, "AC", 10.0).stl
+        serial = uniformize_facets(mesh, target_edge=10.0)
+        self.assertGreater(serial.report["n_patches_remeshed"], 16)
+        saved = impl._MIN_PATCHES_PER_WORKER
+        impl._MIN_PATCHES_PER_WORKER = 8  # enough patches for two workers
+        try:
+            parallel = uniformize_facets(mesh, target_edge=10.0, workers=2)
+        finally:
+            impl._MIN_PATCHES_PER_WORKER = saved
+        self._assert_same(parallel, serial)
+
+    def test_invalid_workers_raise(self):
+        with self.assertRaises(ValueError):
+            uniformize_facets(_box(0.0, 0.0, 10.0, 10.0, 10.0), workers=0)
+
+
 class TestRealisticGeometry(unittest.TestCase):
     def test_cube_array_with_ground_stays_valid(self):
         geom = create_cubes(240.0, 180.0, 30.0, 30.0, 30.0, 30.0, 30.0, "AC", 10.0)

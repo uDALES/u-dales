@@ -219,6 +219,10 @@ The step prints a summary: facet counts, area percentiles before and after, the
 number of faces merged and split, and the number of faces that remain outside
 the band.
 
+The per-patch work (checking and retriangulating the patches) runs in up to
+`nompthreads` worker processes; fewer are started when there are not enough
+patches to keep them busy, and the result does not depend on that number.
+
 ### Outputs and what happens next
 
 The outputs are written next to the input STL and never overwrite anything:
@@ -265,7 +269,8 @@ remain. An edge shared with a face that is kept as it is cannot be split, so a
 split facet next to a kept one may stay larger than the target along that edge.
 
 The same operation is available in Python as `udgeom.uniformize_facets(mesh,
-...)` or `UDGeom.uniformize_facets(...)`.
+...)` or `UDGeom.uniformize_facets(...)`; `workers=` sets the maximum number of
+worker processes there (default 1).
 
 ## Developer's guide
 
