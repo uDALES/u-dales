@@ -63,11 +63,13 @@ that they are easy to find when upgrading.
   `-fdefault-real-8`. Geometry, grid coordinates and facet sections were
   therefore computed with about seven significant digits. Facet sections
   lying exactly on a cell face could be assigned to either neighbouring cell
-  depending on compiler rounding, and, more seriously, the first cell edge
-  (`xt(1) - dx/2`) could come out a few 1e-8 above zero in single precision,
-  so facets touching the `x = 0` or `y = 0` domain boundary were rejected as
-  out of bounds and received no facet sections at all (in the `997`/`988`
-  test geometry, 105 ground facets covering 5% of the surface). Both modules
+  depending on compiler rounding, small sections near cell faces were lost
+  to the 1e-5 m^2 area threshold, and, more seriously, the first cell edge
+  (`xt(1) - dx/2`) evaluated in single precision exceeded the 1e-8 bounding-box
+  tolerance, so facets touching the `x = 0` or `y = 0` domain boundary were
+  rejected as out of bounds and received no facet sections at all (in the
+  `997`/`988` test geometry, 105 ground facets covering 5% of the surface).
+  Both modules
   are now built with
   `-fdefault-real-8 -fdefault-double-8`, their signatures declare
   `real(kind=8)`, and the Python callers pass float64 arrays. Rebuild the
