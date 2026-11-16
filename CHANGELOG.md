@@ -78,6 +78,17 @@ that they are easy to find when upgrading.
 
 ### Added
 
+- **Preprocessing on ECMWF HPC2020, and a test suite that survives the
+  terminal.** `tools/write_inputs.sh` takes a fourth argument, the system
+  (`common`, `icl` or `ecmwf`), and a new start mode `f` that runs the
+  preprocessing in the foreground and returns its exit code. With `c ecmwf` it
+  submits a Slurm job (`PREPROC_ACCOUNT`, `PREPROC_QOS`, `PREPROC_WALLTIME`,
+  `PREPROC_MEM`), next to the existing PBS job for `icl`.
+  `tests/system/ud_test_preprocess.sh` accepts `--system ecmwf` (or the bare
+  system word): on `common`/`icl` it now detaches from the terminal and writes
+  its console output to `logdir/test_inputs.console.log` (`--foreground` to
+  opt out); on `ecmwf` it submits the whole suite as one Slurm job. Each case is
+  preprocessed in the foreground, so failures are detected from the exit code.
 - **Facet-size uniformisation in the Python preprocessing.** With
   `lfacetuniform = .true.` (namelist `&INPS`), `udprep` first rebuilds the STL
   so that facet areas fall within a band around a target area: facets above the

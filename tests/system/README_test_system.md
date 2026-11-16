@@ -41,7 +41,7 @@ tools/                        # (repo root)
 ### Step 1 — Set up the Python virtual environment (once)
 
 `ud_compare_outputs.py` and `ud_compare_inputs.py` require `netCDF4` and `numpy`, and the preprocessing tests use the same Python tooling environment. Run `tools/python/setup_venv.sh common` once to create an isolated virtual environment with all required dependencies.
-Use `icl` instead of `common` on the Imperial HPC cluster.
+Use `icl` instead of `common` on the Imperial HPC cluster and `ecmwf` on the ECMWF Atos HPC2020.
 
 #### Requirements
 
@@ -55,6 +55,9 @@ bash tools/python/setup_venv.sh common
 
 # For the Imperial HPC machine
 bash tools/python/setup_venv.sh icl
+
+# For the ECMWF Atos HPC2020
+bash tools/python/setup_venv.sh ecmwf
 ```
 
 The script will:
@@ -77,6 +80,9 @@ bash tools/python/setup_venv.sh common
 
 # For the Imperial HPC machine
 bash tools/python/setup_venv.sh icl
+
+# For the ECMWF Atos HPC2020
+bash tools/python/setup_venv.sh ecmwf
 ```
 
 #### Notes
@@ -136,11 +142,22 @@ Progress and results are written to `logdir/test_common.log` or `logdir/test_gpu
 
 # Custom tolerance for numeric files
 ./ud_test_preprocess.sh -m 224 ref_data/ --tolerance 1e-8
+
+# On the Imperial HPC cluster (loads the icl modules for the build)
+./ud_test_preprocess.sh -p 990 991 ref_data/ --system icl
+
+# On the ECMWF Atos HPC2020: the whole suite is submitted as one Slurm job
+./ud_test_preprocess.sh -p 990 991 /path/to/ref_data ecmwf
 ```
 
-When specific cases are supplied, place them before `ref_data/`. The last positional argument is always the reference data path.
+When specific cases are supplied, place them before `ref_data/`. The last positional argument is always the reference data path. The system can be given as `--system <common|icl|ecmwf>` or as the bare word, as for `build_executable.sh`; the default is `common`.
 
-Progress and results are written to `test_inputs.log`.
+How the suite runs depends on the system:
+
+- `common` and `icl`: the suite detaches from the terminal, so it keeps running when the terminal is closed. Everything that would have appeared on the terminal goes to `logdir/test_inputs.console.log` (follow it with `tail -f`); the detailed log is `logdir/test_inputs.log`. Pass `--foreground` to run in the current shell instead. When the output is already redirected (not a terminal) the suite runs in place.
+- `ecmwf`: the suite is submitted as one Slurm job on `qos nf` that builds the preprocessing tools, writes the inputs of every case and compares them. The job output is `logdir/test_inputs.console.log`. The job uses `PREPROC_ACCOUNT` (default `spnlthee`), `PREPROC_QOS` (`nf`), `PREPROC_WALLTIME` (`04:00:00`) and `PREPROC_MEM` (`32gb`) from the environment, and asks for as many CPUs as the largest `nompthreads` among the selected cases (at least 8). Only the Python route is available on ECMWF.
+
+Within the suite each case is preprocessed with `write_inputs.sh ... f <system>` (foreground), so a failure is detected from the exit code as well as from the log.
 
 ---
 
@@ -165,7 +182,7 @@ The script exits with code `0` (all passed) or `1` (any failure).
 
 | Phase | What happens |
 |-------|-------------|
-| **1 — Write inputs** | Cleans the experiment directory (keeping geometry, `namoptions`, `config`, `trees.inp`, `heatpump.inp`, and `scalarsource*`), then regenerates all other input files by calling `tools/write_inputs.sh -m experiments/<case>` when `ud_test_preprocess.sh -m ...` is used or `tools/write_inputs.sh -p experiments/<case>` when `ud_test_preprocess.sh -p ...` is used |
+| **1 — Write inputs** | Cleans the experiment directory (keeping geometry, `namoptions`, `config`, `trees.inp`, `heatpump.inp`, and `scalarsource*`), then regenerates all other input files by calling `tools/write_inputs.sh -m experiments/<case> f <system>` when `ud_test_preprocess.sh -m ...` is used or `tools/write_inputs.sh -p experiments/<case> f <system>` when `ud_test_preprocess.sh -p ...` is used; `f` runs the preprocessing in the foreground so its exit code is checked |
 | **2 — Compare inputs** | Calls `tools/ud_compare_inputs.py <case> experiments/ <ref_data_path>`, comparing all generated input files against the reference |
 
 The script exits with code `0` (all passed) or `1` (any failure).
