@@ -573,11 +573,14 @@ class TestMOWarmStart(_SolverTest):
     re-diagnoses the thermodynamic fields (presf, exnf, rhof, thv0h, dthvdz) from the restored ones.
     The checkpoint at N is the one a cold run of N steps writes (the same binary and arithmetic).
 
+    The warm start also restores the cold-start values of the thl0, qt0 ghost level kb - 1 (set once
+    at a cold start, not in the restart files), which enter at round-off through the floor boundary
+    condition of the diffusion (visible in a turbulent case, e.g. example 301 on 8 ranks).
     The SGS model is Vreman with lbuoycorr, which reads dthvdz, so the restored surface-layer dthvdz
     above the floor is exercised. The one-equation closure is tested to a bound instead
     (test_one_equation_closure): its e12 ghost plane kb - 1, which subgrid reads before
-    modibm:bottom resets it, is not in the restart files. That loss is not in the Monin-Obukhov path;
-    a flat lbottom case loses it the same way."""
+    modibm:bottom resets it from the previous substep, is not in the restart files and cannot be
+    re-diagnosed. That loss is not in the Monin-Obukhov path; a flat lbottom case loses it the same way."""
 
     N = 5
     VREMAN = {"loneeqn": ".false.", "lvreman": ".true.", "lbuoycorr": ".true."}

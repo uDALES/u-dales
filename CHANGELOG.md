@@ -218,7 +218,8 @@ that they are easy to find when upgrading.
   the per-section state (L, `tskin`, `qskin`, u*, the transfer coefficients and fluxes) and the surface-layer
   gradients of the first-level cells are in per-rank `initm<ntrun>_<px>_<py>.<expnr>` restart files, written
   only with `iwallmom = 4` (the other restart files are unchanged), and the thermodynamic fields the restart files
-  do not hold (`presf`, `exnf`, `rhof`, `thv0h`, `dthvdz`, ...) are re-diagnosed from the restored fields. A warm
+  do not hold (`presf`, `exnf`, `rhof`, `thv0h`, `dthvdz`, ...) are re-diagnosed from the restored fields, and
+  the `thl0`, `qt0` ghost level below the first level gets its cold-start values back. A warm
   start from a restart without `initm` files (written with another `iwallmom`) starts the Monin-Obukhov state as a
   cold start does, with a warning; an incomplete set aborts. With the one-equation SGS closure a round-off
   difference remains, from the TKE ghost level below the first level, which no restart file holds (for any wall

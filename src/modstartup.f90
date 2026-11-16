@@ -1883,7 +1883,14 @@ module modstartup
             ! cold start, with the start-up mo_cells_update (halos were exchanged above).
             ! Other configurations keep the approximate thv profiles above, so that their warm
             ! starts are unchanged.
+            ! The ghost level kb - 1 below the first level is not in the restart files either. A cold
+            ! start sets it once (thl0 to the first level of prof.inp, qt0 left at 0) and nothing
+            ! updates it, but it enters at round-off (the diffusive flux through the floor that the
+            ! facet or bottom boundary condition replaces), so the cold-start values are restored
+            ! instead of the copy of the first level made above.
             if ((iwallmom == iwallmom_mo) .or. (iradiation /= irad_none)) then
+               thl0(:, :, kb - 1) = thlprof(kb)
+               qt0(:, :, kb - 1)  = 0.
                if ((iwallmom == iwallmom_mo) .and. (.not. lmorestored) .and. lmocells) call mo_cells_update(.true.)
                call thermodynamics(lrestart=.true.)
             end if
