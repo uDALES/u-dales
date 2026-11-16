@@ -119,11 +119,14 @@ contains
     use modcases,  only : call_hooks_radiation
     implicit none
     if (iradiation == irad_none) return
-    if (rk3step == 1 .and. timee >= tnextrad) then
-      ! the next update on the timerad grid after timee: a warm start (tnextrad = 0) updates at its
-      ! first step, thlprad not being in the restart files, and then rejoins the grid of the run it
-      ! continues instead of updating at every step until tnextrad has caught up with timee
-      if (timerad > 0.) tnextrad = tnextrad + timerad * (1. + floor((timee - tnextrad) / timerad))
+    ! timee accumulates dt, so it can fall an ulp short of a grid time k timerad: both the test
+    ! and the grid index allow a relative tolerance (1e-6 of timerad; 0 for timerad = 0, every step)
+    if (rk3step == 1 .and. timee >= tnextrad - 1.e-6 * timerad) then
+      ! the next update on the timerad grid (multiples of timerad) after timee: a warm start
+      ! (tnextrad = 0) updates at its first step, thlprad not being in the restart files, and then
+      ! rejoins the grid of the run it continues instead of updating at every step until tnextrad
+      ! has caught up with timee
+      if (timerad > 0.) tnextrad = timerad * (1. + floor(timee / timerad + 1.e-6))
       thlprad = 0.
       if (rad_longw) call radpar
       call call_hooks_radiation

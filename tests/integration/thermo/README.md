@@ -57,9 +57,8 @@ Run: `python tests/integration/thermo/test_thermo.py -v [TestClass]`.
   5 steps from its own checkpoint at step 5 (`initd`, `initf`, the per-rank `initm`): every bldump record and every
   restart file at step 10 identical, for `iwalltemp = 1` (moist, prescribed fluxes, with the longwave scheme) and
   `iwalltemp = 2` (green floor evaporating, `iwallmoist = 2`), on 1 and 2 ranks, with the Vreman SGS model and
-  `lbuoycorr`. Without the `initm` files the run warns and differs; an incomplete set aborts. With the one-equation
-  closure the bldump Monin-Obukhov diagnostics are identical (its TKE ghost level below the first level is not in the
-  restart files, a round-off difference that also occurs without Monin-Obukhov facets).
+  `lbuoycorr`, and with the one-equation closure (`iwalltemp = 1` on 1 rank, `iwalltemp = 2` on 2 ranks; its TKE ghost
+  planes are in the `initm` files). Without the `initm` files the run warns and differs; an incomplete set aborts.
 - `TestCalthv`, `TestCalthvGuard`: `dthvdz` at the surface level is zero; a uniform saturated
   column must not divide by zero.
 - `TestBldump`: cloudy-column diagnostics (`ql`, `lwp_bar`) and a dry
@@ -71,7 +70,8 @@ Run: `python tests/integration/thermo/test_thermo.py -v [TestClass]`.
   recorded reference `smoke_reference.txt`, see below), `zi_sv`, and the DYCOMS free-troposphere
   term of the `dycoms_rf01` case hook (flux form vs pointwise form, column integral, subsidence balance),
   against the closed-form longwave expressions. A warm start (restart at 5 s, `timerad = 4` s) runs (it
-  re-diagnoses `rhof`, `exnf`), updates at its first step and then at 8 s, holding `thlprad` in between.
+  re-diagnoses `rhof`, `exnf`), updates at its first step and then at 8 s, holding `thlprad` in between; an
+  `lstratstart` run with the longwave scheme runs and cools the cloud top.
 - `TestCaseHooks`: the `&NAMCASES` registry (unknown names abort, `case_hooks = ''` is a no-op), the
   aborts for required parameters that are not set (including `tstatsdump` with `lbldump`), a namelist read error aborting
   once on all ranks, and the warning for a case group whose hook is not listed

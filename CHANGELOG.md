@@ -214,16 +214,19 @@ that they are easy to find when upgrading.
   a start-up line counts the Monin-Obukhov and wall-function facets. `bldump` writes the area means over the
   Monin-Obukhov sections (`ustar`, `obl` as `1/mean(1/L)`, the diagnosed surface `thls`, `qts`, and the applied
   surface fluxes `wtheta`, `wq`, upward positive). A
-  warm start continues the run it restarts from bit for bit ([issue #415](https://github.com/uDALES/u-dales/issues/415)):
-  the per-section state (L, `tskin`, `qskin`, u*, the transfer coefficients and fluxes) and the surface-layer
-  gradients of the first-level cells are in per-rank `initm<ntrun>_<px>_<py>.<expnr>` restart files, written
-  only with `iwallmom = 4` (the other restart files are unchanged), and the thermodynamic fields the restart files
-  do not hold (`presf`, `exnf`, `rhof`, `thv0h`, `dthvdz`, ...) are re-diagnosed from the restored fields, and
-  the `thl0`, `qt0` ghost level below the first level gets its cold-start values back. A warm
-  start from a restart without `initm` files (written with another `iwallmom`) starts the Monin-Obukhov state as a
-  cold start does, with a warning; an incomplete set aborts. With the one-equation SGS closure a round-off
-  difference remains, from the TKE ghost level below the first level, which no restart file holds (for any wall
-  model). In the cells directly
+  warm start with a fixed time step continues the run it restarts from bit for bit
+  ([issue #415](https://github.com/uDALES/u-dales/issues/415)), provided `prof.inp` is unchanged:
+  the per-section state (L, `tskin`, `qskin`, u*, the transfer coefficients and fluxes), the surface-layer
+  gradients of the first-level cells and, with the one-equation closure, the TKE ghost planes below the first
+  level are in per-rank `initm<ntrun>_<px>_<py>.<expnr>` restart files, written only with `iwallmom = 4` (the
+  other restart files are unchanged); the thermodynamic fields the restart files do not hold (`presf`, `exnf`,
+  `rhof`, `thv0h`, `dthvdz`, ...) are re-diagnosed from the restored fields, and the `thl0`, `qt0` ghost level
+  below the first level gets its cold-start values (first `prof.inp` level, 0) back. With `ladaptive` the warm
+  start still resets `ekm`/`ekh`, which the time-step limit reads, so the time step can differ (a limit shared with
+  every warm start, [issue #421](https://github.com/uDALES/u-dales/issues/421)). A warm start from a restart
+  without `initm` files (written with another `iwallmom`) starts the Monin-Obukhov state as a cold start does,
+  with a warning; an incomplete set aborts. `lstratstart` does not read the `initm` files: the Monin-Obukhov state
+  starts as on a cold start. In the cells directly
   above horizontal Monin-Obukhov facets (normal +z; strictly: the cells that own a section of such a
   facet) the one-equation SGS TKE sources and `dthvdz` use the
   Monin-Obukhov surface-layer gradients, the DALES first-level treatment (`modibm:mo_cells_update`, evaluated
@@ -240,9 +243,10 @@ that they are easy to find when upgrading.
   `modraddata`), DALES `radpar`: cloud-water absorber `rad_absorber = 'ql' | 'sv'`
   (`rad_absorber_sv`), optics `rka`, `dlwtop`, `dlwbot` and `timerad`. `rka` and `dlwtop` (or `dlwbot`)
   have no defaults (0) and `iradiation = 2` aborts without them. Off by default (`iradiation = 0`).
-  A warm start re-diagnoses `rhof` and `exnf` before the first update (`modthermodynamics:thermodynamics`
-  with `lrestart`), updates the tendency at its first step (`thlprad` is not in the restart files) and then
-  follows the `timerad` grid of the run it continues.
+  A warm start or `lstratstart` re-diagnoses `rhof` and `exnf` before the first update
+  (`modthermodynamics:thermodynamics` with `lrestart`), updates the tendency at its first step (`thlprad` is not
+  in the restart files) and then follows the `timerad` grid (multiples of `timerad`, with a relative tolerance of
+  1e-6 for the accumulated time) of the run it continues.
 - **Case hooks** (`src/modcases.f90`, `&NAMCASES case_hooks`): case-specific physics
   lives in `src/cases/` and is switched on by name at run time instead of by switches in
   the core modules; see `docs/udales-case-hooks.md`. Hook points: init, radiation,

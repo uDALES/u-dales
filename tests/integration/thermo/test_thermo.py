@@ -569,21 +569,23 @@ class TestMOWarmStart(_SolverTest):
     """Warm start with Monin-Obukhov facets (iwallmom = 4, #415): a cold run of 2N fixed steps equals
     a warm start of N steps from its own checkpoint at step N, bit for bit (bldump and the restart
     files at 2N), on 1 and 2 ranks. The warm start restores the per-rank initm files (the
-    per-section L, tskin, qskin, u*, Cs, csu, fluxes and the mocell surface-layer gradients) and
-    re-diagnoses the thermodynamic fields (presf, exnf, rhof, thv0h, dthvdz) from the restored ones.
+    per-section L, tskin, qskin, u*, Cs, csu, fluxes, the mocell surface-layer gradients and, with
+    the one-equation closure, the e120/e12m ghost planes kb - 1, which modibm:bottom sets from the
+    previous substep after subgrid has read them) and re-diagnoses the thermodynamic fields (presf,
+    exnf, rhof, thv0h, dthvdz) from the restored ones. It also restores the cold-start values of the
+    thl0, qt0 ghost level kb - 1 (set once at a cold start from prof.inp, which must not change
+    between the runs), which enter at round-off through the floor boundary condition of the
+    diffusion (visible in a turbulent case, e.g. example 301 on 8 ranks). Fixed time step only: with
+    ladaptive the warm start resets ekm/ekh, which the time-step limit reads (#421).
     The checkpoint at N is the one a cold run of N steps writes (the same binary and arithmetic).
-
-    The warm start also restores the cold-start values of the thl0, qt0 ghost level kb - 1 (set once
-    at a cold start, not in the restart files), which enter at round-off through the floor boundary
-    condition of the diffusion (visible in a turbulent case, e.g. example 301 on 8 ranks).
-    The SGS model is Vreman with lbuoycorr, which reads dthvdz, so the restored surface-layer dthvdz
-    above the floor is exercised. The one-equation closure is tested to a bound instead
-    (test_one_equation_closure): its e12 ghost plane kb - 1, which subgrid reads before
-    modibm:bottom resets it from the previous substep, is not in the restart files and cannot be
-    re-diagnosed. That loss is not in the Monin-Obukhov path; a flat lbottom case loses it the same way."""
+    Vreman with lbuoycorr (reads dthvdz, so the restored surface-layer dthvdz is exercised) and the
+    one-equation closure. Exact equality also needs reproducible FFTW plans; the solver plans with
+    FFTW_MEASURE, which may in principle choose differently between runs (#399); repeated runs of
+    these cases have been identical."""
 
     N = 5
     VREMAN = {"loneeqn": ".false.", "lvreman": ".true.", "lbuoycorr": ".true."}
+    ONEEQN = {"loneeqn": ".true.", "lvreman": ".false."}
     RAD = {"iradiation": "2", "rad_longw": ".true.", "rka": "85.", "dlwtop": "70.", "dlwbot": "22."}
 
     def _cold(self, name, case, nprocx, sgs=None):
@@ -621,9 +623,10 @@ class TestMOWarmStart(_SolverTest):
             with self.subTest(restart=p.name):
                 self.assertEqual((warm / p.name).read_bytes(), p.read_bytes())
 
-    def _chain(self, case, nprocx):
-        cold = self._cold(f"ws_{case}_{nprocx}", case, nprocx)
-        warm, res = self._warm(cold, f"ws_{case}_{nprocx}_warm", nprocx)
+    def _chain(self, case, nprocx, sgs=None):
+        tag = f"{case}_{nprocx}" + ("_1eq" if sgs else "")
+        cold = self._cold(f"ws_{tag}", case, nprocx, sgs=sgs)
+        warm, res = self._warm(cold, f"ws_{tag}_warm", nprocx)
         self.assertEqual(res.returncode, 0, (res.stdout + res.stderr)[-3000:])
         self.assertIn("iwallmom = 4: restored the Monin-Obukhov state", res.stdout)
         self._assert_continues(cold, warm)
@@ -660,18 +663,13 @@ class TestMOWarmStart(_SolverTest):
         self.assertNotEqual(res.returncode, 0)
         self.assertIn("initm00000005_001_000.310 not found, but other ranks have theirs", res.stdout + res.stderr)
 
-    def test_one_equation_closure(self):
-        """One-equation SGS: the warm start misses only the e12 ghost plane kb - 1 (see the class
-        docstring), a round-off difference in the TKE next to the floor (measured: 4e-13 relative in
-        e120, 3e-16 in u). The float32 bldump Monin-Obukhov diagnostics are therefore identical; a
-        warm start that lost the Monin-Obukhov state differs there by ~1e-3 (test above)."""
-        cold = self._cold("ws_oneeqn", "t1", 1, sgs={"loneeqn": ".true.", "lvreman": ".false."})
-        warm, res = self._warm(cold, "ws_oneeqn_warm", 1)
-        self.assertEqual(res.returncode, 0, (res.stdout + res.stderr)[-3000:])
-        with Dataset(cold / "bldump_t.310.nc") as c, Dataset(warm / "bldump_t.310.nc") as w:
-            for v in ("ustar", "obl", "thls", "qts", "wtheta", "wq", "u1", "v1"):
-                with self.subTest(var=v):
-                    np.testing.assert_array_equal(np.asarray(w[v][:]), np.asarray(c[v][self.N:]))
+    def test_one_equation_closure_1_rank(self):
+        """One-equation SGS: the initm files also hold the e12 ghost planes kb - 1 (see the class
+        docstring), so this configuration continues bit for bit as well."""
+        self._chain("t1", 1, sgs=self.ONEEQN)
+
+    def test_one_equation_closure_facet_temperature_2_ranks(self):
+        self._chain("t2", 2, sgs=self.ONEEQN)
 
 
 def ql_udales(thl, qt, exn):
@@ -885,6 +883,23 @@ class TestRadiation(_SolverTest):
         np.testing.assert_array_equal(q[1], q[0])            # held: no update at 7 s
         self.assertFalse(np.array_equal(q[2], q[1]))         # update at 8 s
         np.testing.assert_array_equal(q[3], q[2])            # held at 9 s
+
+    def test_stratified_start(self):
+        """lstratstart reads the flow fields and overwrites thl, qt from prof.inp; the thermodynamic
+        fields (rhof, exnf) are diagnosed before the first longwave update (they were zero, a
+        floating-point exception)."""
+        d = self._run("rad_strat_cold", self.RAD, groups={"RUN": {"runtime": "3.", "trestart": "2."},
+                                                        "OUTPUT": {"lbldump": ".true.", "tstatsdump": "1."}})
+        w = tc.stage_warm_start(d, self.tmp / "rad_strat", 2, 1.0)
+        nml = w / "namoptions.310"
+        nml.write_text(nml.read_text().replace("lwarmstart   = .true.", "lstratstart  = .true."))
+        self.run_ok(w)
+        with Dataset(w / "bldump_z.310.nc") as z:
+            q = np.asarray(z["thlprad"][:], dtype=float)
+            rho = np.asarray(z["rhof"][:], dtype=float)
+        self.assertTrue(np.all(np.isfinite(q)))
+        self.assertLess(q.min(), -1e-4)                      # cloud-top cooling present
+        self.assertTrue(np.all(rho > 0.5))
 
     def test_zi_sv_written_only_when_configured(self):
         d, _ = self._smoke_run("zi_sv_off")

@@ -1038,7 +1038,7 @@ module modstartup
       use modboundary, only:boundary, tqaver, halos
       use modmpi, only:slabsum, myid, comm3d, mpierr, my_real, avexy_ibm
       use modthermodynamics, only:thermodynamics, calc_halflev
-      use modibm,            only:mo_cells_update
+      use modibm,            only:mo_cells_update, lmoe12ghost, mo_e12ghost
       use modibmdata,        only:lmocells
       use modraddata,        only:iradiation, irad_none
       use modinletdata, only:Uinl, Urec, Wrec, u0inletbc, v0inletbc, w0inletbc, ubulk, vbulk, irecy, Utav, Ttav, &
@@ -1163,6 +1163,13 @@ module modstartup
          call avexy_ibm(thvf(kb:ke+kh),thv0(ib:ie,jb:je,kb:ke+kh),ib,ie,jb,je,kb,ke,kh,IIc(ib:ie,jb:je,kb:ke+kh),IIcs(kb:ke+kh),.false.)
          ! call slabsum(thvf,kb,ke,thv0,ib-ih,ie+ih,jb-jh,je+jh,kb-kh,ke+kh,ib,ie,jb,je,kb,ke)
          ! thvf = thvf/rslabs
+
+         ! iradiation /= 0: the longwave scheme needs rhof and exnf before the first update; the
+         ! restart files do not hold them, so diagnose them (and the other thermodynamic fields)
+         ! from the restored and overwritten fields, as the warm start does. With iwallmom = 4 the
+         ! Monin-Obukhov state is not read (initm): it starts as on a cold start at the first visit
+         ! of each section, the thermodynamic profiles having been replaced.
+         if (iradiation /= irad_none) call thermodynamics(lrestart=.true.)
 
       else !if not lstratstart
 
@@ -1881,8 +1888,8 @@ module modstartup
             ! (from the restored mocell gradients) and the rhof, exnf of the longwave scheme, which
             ! would otherwise be zero. Without the initm files the Monin-Obukhov state starts as at a
             ! cold start, with the start-up mo_cells_update (halos were exchanged above).
-            ! Other configurations keep the approximate thv profiles above, so that their warm
-            ! starts are unchanged.
+            ! Other configurations are left as they were (issue #421): their first substep runs
+            ! without these fields (a moist warm start computes its first ql0 at zero pressure).
             ! The ghost level kb - 1 below the first level is not in the restart files either. A cold
             ! start sets it once (thl0 to the first level of prof.inp, qt0 left at 0) and nothing
             ! updates it, but it enters at round-off (the diffusive flux through the floor that the
@@ -1891,6 +1898,11 @@ module modstartup
             if ((iwallmom == iwallmom_mo) .or. (iradiation /= irad_none)) then
                thl0(:, :, kb - 1) = thlprof(kb)
                qt0(:, :, kb - 1)  = 0.
+               ! one-equation closure: the e12 ghost planes from the initm files (modibm:mo_read_restart)
+               if (lmoe12ghost) then
+                  e120(:, :, kb - 1) = mo_e12ghost(:, :, 1)
+                  e12m(:, :, kb - 1) = mo_e12ghost(:, :, 2)
+               end if
                if ((iwallmom == iwallmom_mo) .and. (.not. lmorestored) .and. lmocells) call mo_cells_update(.true.)
                call thermodynamics(lrestart=.true.)
             end if

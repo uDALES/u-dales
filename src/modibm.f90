@@ -138,6 +138,10 @@ module modibm
    real, parameter :: cveg_gr = 0.8
    !> iwallmom = 4: format version of the initm restart files (mo_write_restart)
    integer, parameter :: imorestartversion = 1
+   !> iwallmom = 4 with loneeqn: the e120, e12m ghost planes kb - 1 read from the initm files
+   !> (mo_read_restart), applied by modstartup:readinitfiles once the warm start has set the fields
+   logical :: lmoe12ghost = .false.
+   real, allocatable :: mo_e12ghost(:,:,:)
 
    integer :: nstatfac=7, ncidfac, nrecfac=0
    character(80), allocatable :: ncstatfac(:,:)
@@ -465,18 +469,30 @@ module modibm
    !> surface-layer gradients of the cells above horizontal Monin-Obukhov facets: calthv reads
    !> mocell_dthldz and mocell_dqtdz of the last substep, whose air state the end-of-step fields no
    !> longer hold, so they are stored rather than re-diagnosed (DALES writes dthldz, dqtdz too).
+   !> With the one-equation closure also the e120, e12m ghost planes kb - 1 (with their halos):
+   !> modibm:bottom sets them from the previous substep after subgrid has read them, so they are
+   !> state that the end-of-step fields cannot reproduce. Header: version, the numbers of u, v, w, c
+   !> sections and of first-level cells on the rank, and 1 if the e12 planes follow (else 0).
    subroutine mo_write_restart(name)
-     use modglobal, only : ifoutput, timee
+     use modglobal, only : ifoutput, timee, ib, ie, ih, jb, je, jh, kb
+     use modfields, only : e120, e12m
+     use modsubgriddata, only : loneeqn
      character(*), intent(in) :: name
+     integer :: le12
 
+     le12 = 0
+     if (loneeqn) le12 = 1
      open(ifoutput, file=name, form='unformatted', status='replace')
      write(ifoutput) imorestartversion, bound_info_u%nfctsecsrank, bound_info_v%nfctsecsrank, &
-                     bound_info_w%nfctsecsrank, bound_info_c%nfctsecsrank, nmocells
+                     bound_info_w%nfctsecsrank, bound_info_c%nfctsecsrank, nmocells, le12
      call write_sections(bound_info_u)
      call write_sections(bound_info_v)
      call write_sections(bound_info_w)
      call write_sections(bound_info_c)
      write(ifoutput) mocell_dudz, mocell_dvdz, mocell_dthldz, mocell_dqtdz
+     if (loneeqn) then
+       write(ifoutput) e120(ib-ih:ie+ih, jb-jh:je+jh, kb-1), e12m(ib-ih:ie+ih, jb-jh:je+jh, kb-1)
+     end if
      write(ifoutput) timee
      close(ifoutput)
 
@@ -491,13 +507,17 @@ module modibm
 
    !> iwallmom = 4: read the Monin-Obukhov state of this rank from the initm restart file name
    !> (mo_write_restart). A file of another format version, or for another set of sections or cells
-   !> (other geometry or decomposition), or a truncated file aborts the run. Each rank reads its own
-   !> file and aborts itself, as for initd.
+   !> (other geometry or decomposition), a truncated file, or one written at another time than the
+   !> initd file aborts the run. Each rank reads its own file and aborts itself, as for initd.
+   !> The e12 ghost planes are kept (lmoe12ghost) when the file holds them and this run uses the
+   !> one-equation closure; a file without them (written with another closure) leaves the planes as
+   !> the warm start sets them.
    subroutine mo_read_restart(name)
-     use modglobal, only : ifinput
+     use modglobal, only : ifinput, timee, ib, ie, ih, jb, je, jh
      use modmpi,    only : mpierr
+     use modsubgriddata, only : loneeqn
      character(*), intent(in) :: name
-     integer :: hdr(6), ios
+     integer :: hdr(7), ios
      real :: timeefile
 
      open(ifinput, file=name, form='unformatted', status='old', iostat=ios)
@@ -512,9 +532,15 @@ module modibm
      call read_sections(bound_info_w)
      call read_sections(bound_info_c)
      if (ios == 0) read(ifinput, iostat=ios) mocell_dudz, mocell_dvdz, mocell_dthldz, mocell_dqtdz
+     if ((ios == 0) .and. (hdr(7) == 1)) then
+       allocate(mo_e12ghost(ib-ih:ie+ih, jb-jh:je+jh, 2))
+       read(ifinput, iostat=ios) mo_e12ghost(:,:,1), mo_e12ghost(:,:,2)
+       lmoe12ghost = loneeqn
+     end if
      if (ios == 0) read(ifinput, iostat=ios) timeefile
      if (ios /= 0) call fail('is truncated or corrupt')
      close(ifinput)
+     if (timeefile /= timee) call fail('was written at another time than the initd file')
 
    contains
 
