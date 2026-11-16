@@ -1284,13 +1284,13 @@ class DirectShortwaveSolver:
 
         if self.method == "scanline_f2py":
             self._scanline_facet_points_f2py = np.asfortranarray(
-                self._scanline_facet_points, dtype=np.float32
+                self._scanline_facet_points, dtype=np.float64
             )
             self._scanline_face_normals_f2py = np.asfortranarray(
-                self._scanline_face_normals, dtype=np.float32
+                self._scanline_face_normals, dtype=np.float64
             )
             self._scanline_vertices_f2py = np.asfortranarray(
-                self._scanline_vertices, dtype=np.float32
+                self._scanline_vertices, dtype=np.float64
             )
 
         if self.method == "moller":

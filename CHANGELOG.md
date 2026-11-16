@@ -57,6 +57,22 @@ that they are easy to find when upgrading.
 
 ### Fixed
 
+- **The f2py preprocessing modules run in double precision.** The IBM
+  (`ibm_preproc_f2py`) and direct-shortwave (`directshortwave_f2py`) extension
+  modules were compiled with default 4-byte reals while the solver uses
+  `-fdefault-real-8`. Geometry, grid coordinates and facet sections were
+  therefore computed with about seven significant digits. Facet sections
+  lying exactly on a cell face could be assigned to either neighbouring cell
+  depending on compiler rounding, and, more seriously, the first cell edge
+  (`xt(1) - dx/2`) could come out a few 1e-8 above zero in single precision,
+  so facets touching the `x = 0` or `y = 0` domain boundary were rejected as
+  out of bounds and received no facet sections at all (in the `997`/`988`
+  test geometry, 105 ground facets covering 5% of the surface). Both modules
+  are now built with
+  `-fdefault-real-8 -fdefault-double-8`, their signatures declare
+  `real(kind=8)`, and the Python callers pass float64 arrays. Rebuild the
+  preprocessing tools (`tools/build_preprocessing.sh <system> preprocessing_tools`)
+  after updating.
 - **Preprocessing x/y grids are built by index, like the solver.** `udprep`
   built `xm`, `xt`, `ym`, `yt` with `np.arange` and a float step, which returns
   `itot+1` points for some `xlen/itot` pairs (for example 120 cells over 5.5 m)
