@@ -5,8 +5,8 @@ Validated binary: commit f19067f8 (Release, Intel 2021a, FFTW planner `FFTW_ESTI
 (output only) has a new wind floor. DALES: dev 075ac4e unpatched (Intel 2021a build), inputs
 `tools/python/examples/dales_cases/dales_inputs/cbl304` (`isurf = 2`, `lmostlocal` default). Both codes: the shipped
 namoptions, fixed dt = 1.0 s, 16 ranks (4 x 4), 4 h, seeds 43-48 (first 43-45, then 46-48). Window 2-4 h, 600 s
-profile blocks (`compare_dales.py 304`). Run directories (CX3): `/rds/general/user/mvr/ephemeral/t24/{u304,d304}/f4{3..8}`;
-analyses `t24/an304` (3 seeds), `t24/an304_6` (6 seeds), per-run normalised values `t24/norm304.py`.
+profile blocks (`compare_dales.py 304`). The run output was not kept; the runs reproduce from the shipped inputs and
+these settings (the per-run normalised values below come from the same `compare_dales.py` window means).
 
 Ratios are |mean difference| / spread, with the smaller (min) and the larger (max) of the two ensemble spreads
 (sample standard deviation of the members' window means). The bar is ratio (min) < 1.
@@ -39,7 +39,7 @@ What the runs show about the cause:
 - One candidate is the u* stress stencil: uDALES applies `Cm(L_u) max(|U_u|, 0.1)^2` at the u point
   (src/modibm.f90:1886-1891, and the iwalltemp = 1 branch below it), DALES the square of the centre u* averaged to the u
   point (DALES modsubgrid.f90:942-951). Both stencils were applied to the same saved uDALES first-level fields (seed 43,
-  8 snapshots 0.5-4 h; `t24/stencil304.py`, run `t24/u304fd`). The uDALES stencil gives a 0.04-0.06 % larger mean stress
+  8 snapshots 0.5-4 h, from a field-dump rerun of that seed). The uDALES stencil gives a 0.04-0.06 % larger mean stress
   than the DALES stencil. That has the sign of the lower wind, but it is about an order of magnitude smaller than the
   wind difference, so it does not account for it by itself on this evidence.
 - The near-floor deficit of the resolved w'thl' (-1.9 % at 25 m, -0.9 % at 50 m) does **not** appear in the control (-0.4 %
@@ -92,7 +92,7 @@ DALES SGS w'thl' at 25 m is 1.46e-2 of a total 2.16e-2 K m/s, so the resolved pa
 Case 304 with the surface heat flux prescribed at 0.02246 K m/s upward in both codes. That is the 2-4 h mean of the
 facet-temperature runs, constant in time, so the boundary layer is shallower (zi 709 m against 736 m). uDALES
 `iwalltemp = 1`, `bctfz = -0.02246`, the same release binary; DALES `isurf = 4`, `wtsurf = 0.02246`, `wqsurf = 0`.
-Otherwise everything as above, seeds 43-48. Runs `t24/{u304c,d304c}/f4{3..8}`, analysis `t24/an304c`, set-up `t24/setup_ctl.sh`.
+Otherwise everything as above, seeds 43-48.
 
 | quantity, 6 seeds | uDALES mean (spread) | DALES mean (spread) | diff | ratio min / max |
 |---|---|---|---|---|
