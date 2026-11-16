@@ -557,12 +557,14 @@ class IBMSection(Section):
 
     @staticmethod
     def _as_fortran_real_input(values: Any) -> np.ndarray:
-        # Match the old text-file path: Python wrote %.10f, then Fortran read default real.
-        return np.asfortranarray(np.round(np.asarray(values, dtype=np.float64), 10).astype(np.float32))
+        # The f2py module is built with -fdefault-real-8 (see tools/preprocessing),
+        # so Fortran "real" is float64. Values are rounded to 10 decimals as the
+        # old text-file path did (Python wrote %.10f).
+        return np.asfortranarray(np.round(np.asarray(values, dtype=np.float64), 10))
 
     @staticmethod
     def _as_fortran_real_scalar(value: Any) -> float:
-        return float(np.float32(round(float(value), 10)))
+        return float(round(float(value), 10))
 
     def _ray_direction(self, name: str) -> np.ndarray:
         value = getattr(self, name)

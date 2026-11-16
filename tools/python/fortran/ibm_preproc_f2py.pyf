@@ -6,16 +6,16 @@ python module ibm_preproc_f2py
                                         stl_ground, diag_neighbs, periodic_x, periodic_y, &
                                         n_threads, tol, counts)
             integer, intent(in)                      :: n_vert, n_fcts
-            real   , intent(in), dimension(n_vert,3) :: vertices
+            real(kind=8), intent(in), dimension(n_vert,3) :: vertices
             integer, intent(in), dimension(n_fcts,3) :: facets
-            real   , intent(in), dimension(n_fcts,3) :: incenters, faceNormals
-            real   , intent(in)                      :: dx, dy
+            real(kind=8), intent(in), dimension(n_fcts,3) :: incenters, faceNormals
+            real(kind=8), intent(in)                      :: dx, dy
             integer, intent(in)                      :: itot, jtot, ktot
-            real   , intent(in), dimension(ktot)     :: zt, zm
-            real   , intent(in), dimension(3)        :: Ray_dir_u, Ray_dir_v, Ray_dir_w, Ray_dir_c
+            real(kind=8), intent(in), dimension(ktot)     :: zt, zm
+            real(kind=8), intent(in), dimension(3)        :: Ray_dir_u, Ray_dir_v, Ray_dir_w, Ray_dir_c
             logical, intent(in)                      :: stl_ground, diag_neighbs, periodic_x, periodic_y
             integer, intent(in)                      :: n_threads
-            real   , intent(in)                      :: tol
+            real(kind=8), intent(in)                      :: tol
 
             integer, intent(out), dimension(13)      :: counts
         end subroutine run_ibm_preproc_f2py

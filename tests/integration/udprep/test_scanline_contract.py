@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import hashlib
 import importlib
 import tempfile
 import unittest
@@ -93,27 +92,42 @@ class TestScanlineContract(unittest.TestCase):
         np.testing.assert_allclose(faces, self.solver._scanline_face_rows(inputs))
         self.assertEqual(info_lines, self.solver._scanline_info_lines(inputs))
 
-    def test_optimized_extension_is_bitwise_stable(self) -> None:
+    _REFERENCE_SUN_POSITIONS = (
+        (0.0, 0.0),
+        (15.0, 20.0),
+        (45.0, 123.0),
+        (81.5, 189.0),
+    )
+    _REFERENCE_SDIR = Path(__file__).resolve().parent / "data" / "scanline_contract_sdir_064.txt"
+
+    def _reference_fields(self) -> np.ndarray:
         fields = []
-        for zenith, azimuth in (
-            (0.0, 0.0),
-            (15.0, 20.0),
-            (45.0, 123.0),
-            (81.5, 189.0),
-        ):
+        for zenith, azimuth in self._REFERENCE_SUN_POSITIONS:
             sdir, _, _ = self.solver.compute(
                 nsun=nsun_from_angles(zenith, azimuth),
                 irradiance=800.0,
                 resolution=0.1,
             )
             fields.append(sdir)
+        return np.stack(fields, axis=1)
 
-        # Captured after enforcing the local plane-incidence flux bound.
-        digest = hashlib.sha256(np.stack(fields).tobytes(order="C")).hexdigest()
-        self.assertEqual(
-            digest,
-            "2e24403317b174311dd19354bd39995acb491430d5bdca73b1d58eb33426c486",
-        )
+    def test_optimized_extension_is_deterministic(self) -> None:
+        first = self._reference_fields()
+        second = self._reference_fields()
+        np.testing.assert_array_equal(first, second)
+
+    def test_optimized_extension_matches_committed_reference(self) -> None:
+        # Reference captured after enforcing the local plane-incidence flux
+        # bound. The extension runs in double precision, so the last bits
+        # differ between compilers and platforms; compare with a tolerance
+        # far below any physical change (fluxes are O(100) W m-2) instead of
+        # a byte-level digest. To regenerate the file after an intended
+        # change, run self._reference_fields() and save it with
+        # np.savetxt(..., fmt="%.17g") keeping the header.
+        expected = np.loadtxt(self._REFERENCE_SDIR, comments="#")
+        actual = self._reference_fields()
+        self.assertEqual(actual.shape, expected.shape)
+        np.testing.assert_allclose(actual, expected, rtol=0.0, atol=1.0e-6)
 
     def test_scanline_flux_respects_local_plane_incidence_bound(self) -> None:
         for zenith, azimuth in ((0.0, 0.0), (45.0, 123.0), (81.5, 189.0)):

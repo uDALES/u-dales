@@ -24,7 +24,7 @@ tools/
 
 `ud_compare_inputs.py` and `ud_compare_outputs.py` require `netCDF4` and `numpy`.
 Run `tools/python/setup_venv.sh common` once to create an isolated virtual environment with all required dependencies.
-Use `icl` instead of `common` on the Imperial HPC cluster.
+Use `icl` instead of `common` on the Imperial HPC cluster and `ecmwf` on the ECMWF Atos HPC2020.
 
 ### Requirements
 
@@ -38,6 +38,9 @@ bash tools/python/setup_venv.sh common
 
 # For the Imperial HPC machine
 bash tools/python/setup_venv.sh icl
+
+# For the ECMWF Atos HPC2020
+bash tools/python/setup_venv.sh ecmwf
 ```
 
 The script will:
@@ -60,6 +63,9 @@ bash tools/python/setup_venv.sh common
 
 # For the Imperial HPC machine
 bash tools/python/setup_venv.sh icl
+
+# For the ECMWF Atos HPC2020
+bash tools/python/setup_venv.sh ecmwf
 ```
 
 ---

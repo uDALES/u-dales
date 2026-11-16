@@ -57,6 +57,27 @@ that they are easy to find when upgrading.
 
 ### Fixed
 
+- **The f2py preprocessing modules run in double precision.** The IBM
+  (`ibm_preproc_f2py`) and direct-shortwave (`directshortwave_f2py`) extension
+  modules were compiled with default 4-byte reals while the solver uses
+  `-fdefault-real-8`. Geometry, grid coordinates and facet sections were
+  therefore computed with about seven significant digits. Facet sections
+  lying exactly on a cell face could be assigned to either neighbouring cell
+  depending on compiler rounding, small sections near cell faces were lost
+  to the 1e-5 m^2 area threshold, and, more seriously, the first cell edge
+  (`xt(1) - dx/2`) evaluated in single precision exceeded the 1e-8 bounding-box
+  tolerance, so facets touching the `x = 0` or `y = 0` domain boundary were
+  rejected as out of bounds and received no facet sections at all (in the
+  `997`/`988` test geometry, 105 ground facets covering 5% of the surface).
+  Both modules are now built with `-fdefault-real-8 -fdefault-double-8`, their
+  signatures declare `real(kind=8)`, and the Python callers pass float64 arrays.
+  The flux-point selection in `matchFacetsCells` now treats candidate scores
+  that agree to within a relative 1e-6 as tied and takes the first, as the
+  MATLAB implementation's `max()` does; in double precision, mirror-image
+  candidates (the cells above and below a section on a horizontal cell face)
+  otherwise differ in the last bit and the choice was decided by round-off.
+  Rebuild the preprocessing tools
+  (`tools/build_preprocessing.sh <system> preprocessing_tools`) after updating.
 - **Preprocessing x/y grids are built by index, like the solver.** `udprep`
   built `xm`, `xt`, `ym`, `yt` with `np.arange` and a float step, which returns
   `itot+1` points for some `xlen/itot` pairs (for example 120 cells over 5.5 m)
@@ -78,6 +99,17 @@ that they are easy to find when upgrading.
 
 ### Added
 
+- **Preprocessing on ECMWF HPC2020, and a test suite that survives the
+  terminal.** `tools/write_inputs.sh` takes a fourth argument, the system
+  (`common`, `icl` or `ecmwf`), and a new start mode `f` that runs the
+  preprocessing in the foreground and returns its exit code. With `c ecmwf` it
+  submits a Slurm job (`PREPROC_ACCOUNT`, `PREPROC_QOS`, `PREPROC_WALLTIME`,
+  `PREPROC_MEM`), next to the existing PBS job for `icl`.
+  `tests/system/ud_test_preprocess.sh` accepts `--system ecmwf` (or the bare
+  system word): on `common`/`icl` it now detaches from the terminal and writes
+  its console output to `logdir/test_inputs.console.log` (`--foreground` to
+  opt out); on `ecmwf` it submits the whole suite as one Slurm job. Each case is
+  preprocessed in the foreground, so failures are detected from the exit code.
 - **Facet-size uniformisation in the Python preprocessing.** With
   `lfacetuniform = .true.` (namelist `&INPS`), `udprep` first rebuilds the STL
   so that facet areas fall within a band around a target area: facets above the
