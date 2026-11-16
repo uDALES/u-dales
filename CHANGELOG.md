@@ -120,7 +120,8 @@ that they are easy to find when upgrading.
   original STL is left untouched. Options `facet_target_edge`,
   `facet_size_band`, `facet_allow_split`, `facet_allow_merge` and
   `facet_count_max`; the default target keeps the facet count about the same.
-  Also available as `udgeom.uniformize_facets`. See
+  The per-patch work runs in up to `nompthreads` worker processes.
+  Also available as `udgeom.uniformize_facets` (`workers=`). See
   [Pre-processing](docs/udales-pre-processing.md#facet-size-uniformisation).
 - `udprep` now refuses an existing `facets.inp` whose facet count does not
   match the geometry instead of silently reusing it, and `Section.save_param`

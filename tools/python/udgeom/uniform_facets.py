@@ -37,11 +37,13 @@ Licensed under GNU General Public License v3.0
 
 from __future__ import annotations
 
+from concurrent.futures import ProcessPoolExecutor
 from dataclasses import dataclass
 import logging
 import math
+import multiprocessing
 import time
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Callable, Dict, List, Optional, Tuple
 
 import numpy as np
 
@@ -210,13 +212,14 @@ def _adjacent_face_pairs(edge_face_ptr: np.ndarray, edge_face_idx: np.ndarray) -
     return np.concatenate(pairs_i), np.concatenate(pairs_j)
 
 
-def _plane_basis(normal: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
-    """Orthonormal in-plane basis (u, v) with u x v = normal."""
-    helper = np.zeros(3)
-    helper[int(np.argmin(np.abs(normal)))] = 1.0
-    u = np.cross(normal, helper)
-    u /= np.linalg.norm(u)
-    v = np.cross(normal, u)
+def _plane_bases(normals: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
+    """Orthonormal in-plane bases (u, v) with u x v = normal, one per row of ``normals``."""
+    normals = np.atleast_2d(np.asarray(normals, dtype=float))
+    helper = np.zeros_like(normals)
+    helper[np.arange(len(normals)), np.argmin(np.abs(normals), axis=1)] = 1.0
+    u = np.cross(normals, helper)
+    u /= np.sqrt(np.einsum("ij,ij->i", u, u))[:, None]
+    v = np.cross(normals, u)
     return u, v
 
 
@@ -352,6 +355,135 @@ def _percentiles(values: np.ndarray) -> List[float]:
 
 
 # -----------------------------------------------------------------------------#
+# Per-patch tasks
+# -----------------------------------------------------------------------------#
+# The pre-screen and the retriangulation treat every patch on its own, given
+# the read-only tables that uniformize_facets builds once (vertices, faces,
+# edges, the per-patch CSR tables, the plane bases). The tables are published
+# to the tasks through this module-level dictionary: set directly on the serial
+# path, by the pool initializer in worker processes (inherited for free with the
+# fork start method). A task takes a patch id and returns small arrays, and the
+# results are consumed in patch order, so the output does not depend on the
+# number of workers.
+_STATE: Dict[str, Any] = {}
+
+# Each worker process must have at least this many patches to do: starting a
+# process costs about as much as a few dozen patches, so beyond this point more
+# workers only add start-up time (on a 380k-face city, 32 workers run the
+# per-patch phases as fast as 128).
+_MIN_PATCHES_PER_WORKER = 512
+
+
+def _set_state(state: Dict[str, Any]) -> None:
+    _STATE.clear()
+    _STATE.update(state)
+
+
+def _map_patches(task: Callable[[int], Any], ids, state: Dict[str, Any], workers: int) -> List[Any]:
+    """``[task(p) for p in ids]`` with ``state`` published to the task, run in
+    the calling process or in up to ``workers`` processes; the results come
+    back in the order of ``ids`` either way."""
+    ids = [int(p) for p in ids]
+    workers = max(1, min(int(workers), len(ids) // _MIN_PATCHES_PER_WORKER))
+    if workers <= 1:
+        _set_state(state)
+        try:
+            return [task(p) for p in ids]
+        finally:
+            _STATE.clear()
+    methods = multiprocessing.get_all_start_methods()
+    ctx = multiprocessing.get_context("fork") if "fork" in methods else multiprocessing.get_context()
+    chunksize = max(1, len(ids) // (16 * workers))
+    with ProcessPoolExecutor(max_workers=workers, mp_context=ctx, initializer=_set_state, initargs=(state,)) as pool:
+        return list(pool.map(task, ids, chunksize=chunksize))
+
+
+def _prescreen_task(p: int) -> Optional[str]:
+    """Pre-screen one scheduled patch; see :func:`_prescreen_patch`."""
+    s = _STATE
+    edges = s["edges"]
+    pe = s["pce_idx"][s["pce_ptr"][p]:s["pce_ptr"][p + 1]]
+    pv = s["pv_idx"][s["pv_ptr"][p]:s["pv_ptr"][p + 1]]
+    point_ids = np.unique(np.concatenate([edges[pe].reshape(-1), pv[s["vertex_shared"][pv]]]))
+    rel = s["vertices"][point_ids] - s["patch_centre"][p]
+    pts2 = np.column_stack([rel @ s["patch_u"][p], rel @ s["patch_v"][p]])
+    seg2 = np.searchsorted(point_ids, edges[pe]) if pe.size else np.empty((0, 2), dtype=int)
+    return _prescreen_patch(pts2[~s["removable"][point_ids]], pts2, seg2, float(s["patch_area"][p]), s["plane_tol"])
+
+
+def _remesh_task(p: int) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, Optional[np.ndarray], bool]:
+    """Retriangulate one scheduled patch.
+
+    Returns ``(point_ids, triangles, steiner, face_map, segment_lengths,
+    overlap)``: the global ids of the boundary points; the new triangles as
+    indices into the boundary points followed by the new (Steiner) vertices;
+    those vertices in 3-D; the index within the patch of the input face every
+    triangle comes from; the lengths of the constraint segments (None when
+    there are none); and the overlap flag of :func:`_remesh_patch`.
+    """
+    s = _STATE
+    pf = s["face_order"][s["face_ptr"][p]:s["face_ptr"][p + 1]]
+    u, v, centre = s["patch_u"][p], s["patch_v"][p], s["patch_centre"][p]
+
+    # Constraint chains of this patch, with their split vertices.
+    pe = s["pce_idx"][s["pce_ptr"][p]:s["pce_ptr"][p + 1]]
+    chain_ends = s["chain_ends"]
+    chain_split_vertices = s["chain_split_vertices"]
+    seg_list: List[np.ndarray] = []
+    for c in np.unique(s["chain_of_edge"][pe]):
+        a, b = chain_ends[c]
+        mids = chain_split_vertices.get(int(c))
+        if mids is None:
+            seg_list.append(np.array([[a, b]]))
+        else:
+            chain = np.concatenate([[a], mids, [b]])
+            seg_list.append(np.column_stack([chain[:-1], chain[1:]]))
+    segments_global = np.concatenate(seg_list, axis=0) if seg_list else np.empty((0, 2), dtype=int)
+    pv = s["pv_idx"][s["pv_ptr"][p]:s["pv_ptr"][p + 1]]
+    fixed = pv[s["vertex_shared"][pv]]
+    point_ids = np.unique(np.concatenate([segments_global.reshape(-1), fixed]))
+    segments_local = np.searchsorted(point_ids, segments_global) if segments_global.size else np.empty((0, 2), dtype=int)
+    rel = s["base_vertices"][point_ids] - centre
+    pts2 = np.column_stack([rel @ u, rel @ v])
+
+    # Original faces in plane coordinates; region markers are the 2-D
+    # centroids of the largest face of every sub-region.
+    faces = s["faces"]
+    areas = s["areas"]
+    region_of_face = s["region_of_face"]
+    orig_rel = s["vertices"][faces[pf]] - centre
+    orig2 = np.stack([orig_rel @ u, orig_rel @ v], axis=-1)       # (m, 3, 2)
+    regions = []
+    for r in np.unique(region_of_face[pf]):
+        local = np.flatnonzero(region_of_face[pf] == r)
+        f0 = local[np.argmax(areas[pf[local]])]
+        cx, cy = orig2[f0].mean(axis=0)
+        regions.append([float(cx), float(cy), 1.0, float(s["max_area"])])
+    regions_arr = np.asarray(regions, dtype=float)
+
+    lengths = None
+    if segments_local.size:
+        lengths = np.linalg.norm(pts2[segments_local[:, 0]] - pts2[segments_local[:, 1]], axis=1)
+    tris, rverts, overlap = _remesh_patch(int(p), pts2, segments_local, regions_arr, orig2,
+                                          float(s["patch_area"][p]), s["plane_tol"], s["min_angle"])
+
+    # Lift new (Steiner) vertices back to 3-D on the patch plane.
+    n_pts = len(point_ids)
+    steiner = centre + rverts[n_pts:, 0:1] * u + rverts[n_pts:, 1:2] * v
+
+    # Face map: input face containing each new centroid (2-D search).
+    tree = STRtree(shapely_polygons(orig2))
+    cents = shapely_points(rverts[tris].mean(axis=1))
+    q_in, q_tree = tree.query(cents, predicate="within")
+    fmap_local = np.full(len(tris), -1, dtype=int)
+    fmap_local[q_in] = q_tree
+    missing = fmap_local < 0
+    if missing.any():
+        fmap_local[missing] = tree.nearest(cents[missing])
+    return point_ids, tris, steiner, fmap_local, lengths, overlap
+
+
+# -----------------------------------------------------------------------------#
 # Main routine
 # -----------------------------------------------------------------------------#
 
@@ -367,6 +499,7 @@ def uniformize_facets(
     plane_tol: Optional[float] = None,
     min_angle: float = 0.0,
     weld_digits: int = 6,
+    workers: Optional[int] = None,
     _debug: Optional[Dict[str, Any]] = None,
 ) -> UniformFacetsResult:
     """Split large facets and merge tiny coplanar facets of a triangle mesh.
@@ -407,6 +540,12 @@ def uniformize_facets(
         boundary edges at the price of more of them.
     weld_digits : int, default 6
         Decimal digits used to weld coincident input vertices.
+    workers : int, optional
+        Maximum number of worker processes for the per-patch work
+        (pre-screening and retriangulating the patches); fewer are started
+        when there are not enough patches to keep them busy. ``None`` or 1
+        does everything in the calling process. The result does not depend
+        on this setting.
 
     Returns
     -------
@@ -424,6 +563,9 @@ def uniformize_facets(
         raise ValueError("size_band must be >= 1")
     if not (allow_split or allow_merge):
         raise ValueError("at least one of allow_split and allow_merge must be true")
+    workers = 1 if workers is None else int(workers)
+    if workers < 1:
+        raise ValueError("workers must be >= 1")
 
     # --- 0. weld, drop degenerate faces -------------------------------------
     work = trimesh.Trimesh(
@@ -652,31 +794,45 @@ def uniformize_facets(
             douglas_peucker(run)
         return owned, cand, rem
 
+    # Per-patch tables, built once and shared by the per-patch tasks: the
+    # faces, vertices and constraint edges of every patch (CSR, sorted within
+    # a patch), the patches of every vertex, and the in-plane bases.
+    face_order = np.argsort(patch_of_face, kind="stable")
+    face_ptr = np.concatenate([[0], np.cumsum(patch_count)])
+    vpat_ptr = np.concatenate([[0], np.cumsum(np.bincount(vp[:, 0], minlength=len(vertices)))])
+    vpat_idx = vp[:, 1]
+    order = np.lexsort((vp[:, 0], vp[:, 1]))
+    pv_idx = vp[order, 0]
+    pv_ptr = np.concatenate([[0], np.cumsum(np.bincount(vp[order, 1], minlength=n_patches))])
+    pe_key = np.unique(np.repeat(patch_of_face, 3).astype(np.int64) * n_edges + face_edge_ids.reshape(-1))
+    pe_patch, pe_edge = np.divmod(pe_key, n_edges)
+    keep_pe = ~edge_interior[pe_edge]
+    pce_idx = pe_edge[keep_pe]
+    pce_ptr = np.concatenate([[0], np.cumsum(np.bincount(pe_patch[keep_pe], minlength=n_patches))])
+    with np.errstate(divide="ignore", invalid="ignore"):
+        patch_u, patch_v = _plane_bases(patch_normal)
+    tables = dict(
+        vertices=vertices, faces=faces, edges=edges, areas=areas, plane_tol=plane_tol,
+        face_order=face_order, face_ptr=face_ptr, pv_ptr=pv_ptr, pv_idx=pv_idx,
+        pce_ptr=pce_ptr, pce_idx=pce_idx, patch_centre=patch_centre, patch_area=patch_area,
+        patch_u=patch_u, patch_v=patch_v,
+    )
+
     # Pre-screen: a scheduled patch whose boundary Triangle cannot be trusted
     # with (a needle of slivers, a self-overlapping boundary, too few points
     # once collinear boundary vertices are dropped, ...) is taken off the
     # schedule here, before any edge is touched, so that its untouched faces
     # stay conforming with their neighbours. Taking a patch off the schedule
     # changes which vertices are owned, so iterate until nothing changes.
-    face_order = np.argsort(patch_of_face, kind="stable")
-    face_ptr = np.concatenate([[0], np.cumsum(patch_count)])
     skipped: Dict[str, int] = {}
     to_check = set(int(p) for p in np.flatnonzero(scheduled_patch))
     while to_check:
         scheduled_face = scheduled_patch[patch_of_face]
         vertex_owned, candidate, removable = _removable_vertices(scheduled_face)
+        ids = sorted(to_check)
+        reasons = _map_patches(_prescreen_task, ids, dict(tables, vertex_shared=vertex_shared, removable=removable), workers)
         unscheduled_now: List[int] = []
-        for p in sorted(to_check):
-            pf = face_order[face_ptr[p]:face_ptr[p + 1]]
-            pe = np.unique(face_edge_ids[pf].reshape(-1))
-            pe = pe[~edge_interior[pe]]
-            pv = np.unique(faces[pf].reshape(-1))
-            point_ids = np.unique(np.concatenate([edges[pe].reshape(-1), pv[vertex_shared[pv]]]))
-            u, v = _plane_basis(patch_normal[p])
-            rel = vertices[point_ids] - patch_centre[p]
-            pts2 = np.column_stack([rel @ u, rel @ v])
-            seg2 = np.searchsorted(point_ids, edges[pe]) if pe.size else np.empty((0, 2), dtype=int)
-            reason = _prescreen_patch(pts2[~removable[point_ids]], pts2, seg2, float(patch_area[p]), plane_tol)
+        for p, reason in zip(ids, reasons):
             if reason is not None:
                 scheduled_patch[p] = False
                 unscheduled_now.append(p)
@@ -688,9 +844,8 @@ def uniformize_facets(
         # vertices; re-check them (and only them).
         affected = np.zeros(n_patches, dtype=bool)
         for p in unscheduled_now:
-            pf = face_order[face_ptr[p]:face_ptr[p + 1]]
-            pv = np.unique(faces[pf].reshape(-1))
-            affected[np.unique(vp[np.isin(vp[:, 0], pv), 1])] = True
+            for vtx in pv_idx[pv_ptr[p]:pv_ptr[p + 1]]:
+                affected[vpat_idx[vpat_ptr[vtx]:vpat_ptr[vtx + 1]]] = True
         to_check = set(int(p) for p in np.flatnonzero(affected & scheduled_patch))
 
     scheduled_face = scheduled_patch[patch_of_face]
@@ -827,70 +982,27 @@ def uniformize_facets(
         region_graph = coo_matrix((np.ones(ie.size), (first_face[ie], second_face[ie])), shape=(n, n))
         _, region_of_face = connected_components(region_graph, directed=False)
 
-        for p in sched_ids:
+        results = _map_patches(
+            _remesh_task, sched_ids,
+            dict(tables, vertex_shared=vertex_shared, base_vertices=base_vertices,
+                 chain_of_edge=chain_of_edge, chain_ends=chain_ends_arr,
+                 chain_split_vertices=chain_split_vertices, region_of_face=region_of_face,
+                 max_area=max_area, min_angle=min_angle),
+            workers,
+        )
+        for p, (point_ids, tris, steiner, fmap_local, lengths, overlap) in zip(sched_ids, results):
             pf = face_order[face_ptr[p]:face_ptr[p + 1]]
-            u, v = _plane_basis(patch_normal[p])
-            centre = patch_centre[p]
-
-            # Constraint chains of this patch, with their split vertices.
-            pe = np.unique(face_edge_ids[pf].reshape(-1))
-            pe = pe[~edge_interior[pe]]
-            seg_list: List[np.ndarray] = []
-            for c in np.unique(chain_of_edge[pe]):
-                a, b = chain_ends_arr[c]
-                mids = chain_split_vertices.get(int(c))
-                if mids is None:
-                    seg_list.append(np.array([[a, b]]))
-                else:
-                    chain = np.concatenate([[a], mids, [b]])
-                    seg_list.append(np.column_stack([chain[:-1], chain[1:]]))
-            segments_global = np.concatenate(seg_list, axis=0) if seg_list else np.empty((0, 2), dtype=int)
-            pv = np.unique(faces[pf].reshape(-1))
-            fixed = pv[vertex_shared[pv]]
-            point_ids = np.unique(np.concatenate([segments_global.reshape(-1), fixed]))
-            segments_local = np.searchsorted(point_ids, segments_global) if segments_global.size else np.empty((0, 2), dtype=int)
-            rel = base_vertices[point_ids] - centre
-            pts2 = np.column_stack([rel @ u, rel @ v])
-
-            # Original faces in plane coordinates; region markers are the 2-D
-            # centroids of the largest face of every sub-region.
-            orig_rel = vertices[faces[pf]] - centre
-            orig2 = np.stack([orig_rel @ u, orig_rel @ v], axis=-1)       # (m, 3, 2)
-            regions = []
-            for r in np.unique(region_of_face[pf]):
-                local = np.flatnonzero(region_of_face[pf] == r)
-                f0 = local[np.argmax(areas[pf[local]])]
-                cx, cy = orig2[f0].mean(axis=0)
-                regions.append([float(cx), float(cy), 1.0, float(max_area)])
-            regions_arr = np.asarray(regions, dtype=float)
-
             n_boundary_points += len(point_ids)
-            if segments_local.size:
-                segment_lengths.append(np.linalg.norm(pts2[segments_local[:, 0]] - pts2[segments_local[:, 1]], axis=1))
-            tris, rverts, overlap = _remesh_patch(int(p), pts2, segments_local, regions_arr, orig2,
-                                                  float(patch_area[p]), plane_tol, min_angle)
+            if lengths is not None:
+                segment_lengths.append(lengths)
             n_overlap_patches += int(overlap)
-
-            # Lift new (Steiner) vertices back to 3-D on the patch plane.
-            n_pts = len(point_ids)
-            n_new = len(rverts) - n_pts
+            # Steiner vertices are numbered in patch order, after the chain-split vertices.
+            n_new = len(steiner)
             global_ids = np.concatenate([point_ids, np.arange(n_vertices_now, n_vertices_now + n_new)])
             if n_new > 0:
-                steiner_vertices.append(centre + rverts[n_pts:, 0:1] * u + rverts[n_pts:, 1:2] * v)
+                steiner_vertices.append(steiner)
                 n_vertices_now += n_new
-            new_faces = global_ids[tris]
-
-            # Face map: input face containing each new centroid (2-D search).
-            p2 = rverts[tris]
-            tree = STRtree(shapely_polygons(orig2))
-            cents = shapely_points(p2.mean(axis=1))
-            q_in, q_tree = tree.query(cents, predicate="within")
-            fmap_local = np.full(len(tris), -1, dtype=int)
-            fmap_local[q_in] = q_tree
-            missing = fmap_local < 0
-            if missing.any():
-                fmap_local[missing] = tree.nearest(cents[missing])
-            out_faces.append(new_faces)
+            out_faces.append(global_ids[tris])
             out_types.append(np.full(len(tris), types[pf[0]], dtype=int))
             out_map.append(keep_index[pf[fmap_local]])
             out_from_patch_count += len(tris)

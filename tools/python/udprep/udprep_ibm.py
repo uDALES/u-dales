@@ -271,6 +271,7 @@ class IBMSection(Section):
                     allow_split=bool(self.facet_allow_split),
                     allow_merge=bool(self.facet_allow_merge),
                     max_faces=max_faces,
+                    workers=int(self.nompthreads),
                 )
             except FacetCountError as exc:
                 raise FacetCountError(
