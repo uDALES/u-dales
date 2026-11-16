@@ -69,12 +69,15 @@ that they are easy to find when upgrading.
   tolerance, so facets touching the `x = 0` or `y = 0` domain boundary were
   rejected as out of bounds and received no facet sections at all (in the
   `997`/`988` test geometry, 105 ground facets covering 5% of the surface).
-  Both modules
-  are now built with
-  `-fdefault-real-8 -fdefault-double-8`, their signatures declare
-  `real(kind=8)`, and the Python callers pass float64 arrays. Rebuild the
-  preprocessing tools (`tools/build_preprocessing.sh <system> preprocessing_tools`)
-  after updating.
+  Both modules are now built with `-fdefault-real-8 -fdefault-double-8`, their
+  signatures declare `real(kind=8)`, and the Python callers pass float64 arrays.
+  The flux-point selection in `matchFacetsCells` now treats candidate scores
+  that agree to within a relative 1e-6 as tied and takes the first, as the
+  MATLAB implementation's `max()` does; in double precision, mirror-image
+  candidates (the cells above and below a section on a horizontal cell face)
+  otherwise differ in the last bit and the choice was decided by round-off.
+  Rebuild the preprocessing tools
+  (`tools/build_preprocessing.sh <system> preprocessing_tools`) after updating.
 - **Preprocessing x/y grids are built by index, like the solver.** `udprep`
   built `xm`, `xt`, `ym`, `yt` with `np.arange` and a float step, which returns
   `itot+1` points for some `xlen/itot` pairs (for example 120 cells over 5.5 m)
