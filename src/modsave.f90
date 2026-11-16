@@ -31,6 +31,16 @@ implicit none
 ! public :: writerestartfiles, writedatafiles
 save
 
+  abstract interface
+    subroutine restart_writer(name)
+      character(*), intent(in) :: name
+    end subroutine restart_writer
+  end interface
+  !> iwallmom = 4: writer of the initm restart file, modibm:mo_write_restart (associated by
+  !> modibm:initibm_mo). A procedure pointer because modsave cannot use modibm, which depends on
+  !> modsave through modboundary and moddriver.
+  procedure(restart_writer), pointer :: write_mo_restart => null()
+
 contains
 
 
@@ -122,6 +132,17 @@ contains
         write(ifoutput)  timee
 
         close (ifoutput)
+      end if
+
+      ! iwallmom = 4: the Monin-Obukhov state of the facet sections (modibm:mo_write_restart).
+      ! The sections are rank-local, so every rank writes its own file, named like initd.
+      if (associated(write_mo_restart)) then
+        name  = 'initm        _   _   .'
+        write (name(6:13) ,'(i8.8)') ntrun
+        name(15:17) = cmyidx
+        name(19:21) = cmyidy
+        name(23:25) = cexpnr
+        call write_mo_restart(name)
       end if
 
       ! Facet state (surface energy balance). The facet arrays are global rather than

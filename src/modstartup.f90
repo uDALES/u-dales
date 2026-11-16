@@ -44,6 +44,7 @@ module modstartup
    real :: randu = 0.01, randthl = 0.0, randqt = 0.0 !    * uvw,thl and qt amplitude of randomization
    logical :: lEBclockrestored = .false. ! readrestartfiles restored tEB/tnextEB from the initf file;
                                          ! readinitfiles must then not re-anchor them at btime
+   logical :: lmorestored = .false.      ! readrestartfiles restored the iwallmom = 4 state (initm files)
 
    contains
 
@@ -1030,7 +1031,7 @@ module modstartup
          ltempeq, prandtlmoli, &
          tnextfielddump, tfielddump, startfile, lprofforc,&
          idriver,dtdriver,driverstore,tdriverstart,tdriverstart_cold,tdriverdump,lchunkread,ibrank,lrandomize,BCxs,&
-         tEB,tnextEB,dtEB,BCxs_custom,tfac,tnextfac,dtfac
+         tEB,tnextEB,dtEB,BCxs_custom,tfac,tnextfac,dtfac,iwallmom,iwallmom_mo
       use modsubgriddata, only:ekm, ekh, loneeqn
       use modsurfdata, only:thls, sv_top
       ! use modsurface,        only : surface,dthldz
@@ -1039,6 +1040,7 @@ module modstartup
       use modthermodynamics, only:thermodynamics, calc_halflev
       use modibm,            only:mo_cells_update
       use modibmdata,        only:lmocells
+      use modraddata,        only:iradiation, irad_none
       use modinletdata, only:Uinl, Urec, Wrec, u0inletbc, v0inletbc, w0inletbc, ubulk, vbulk, irecy, Utav, Ttav, &
          uminletbc, vminletbc, wminletbc, u0inletbcold, v0inletbcold, w0inletbcold, &
          storeu0inletbc, storev0inletbc, storew0inletbc, nstepread, nfile, Tinl, &
@@ -1872,6 +1874,20 @@ module modstartup
             ! call slabsum(thvf,kb,ke,thv0,ib-ih,ie+ih,jb-jh,je+jh,kb-kh,ke+kh,ib,ie,jb,je,kb,ke)
             ! thvf = thvf/rslabs
 
+            ! iwallmom = 4 and iradiation /= 0 (#415): re-diagnose the thermodynamic fields that the
+            ! restart files do not hold (presf/presh, exnf/exnh, rhof, the half levels, thv0h, dthvdz,
+            ! thvh, thvf) from the restored fields, so that the first substep sees what the
+            ! uninterrupted run saw: the surface-layer dthvdz above horizontal Monin-Obukhov facets
+            ! (from the restored mocell gradients) and the rhof, exnf of the longwave scheme, which
+            ! would otherwise be zero. Without the initm files the Monin-Obukhov state starts as at a
+            ! cold start, with the start-up mo_cells_update (halos were exchanged above).
+            ! Other configurations keep the approximate thv profiles above, so that their warm
+            ! starts are unchanged.
+            if ((iwallmom == iwallmom_mo) .or. (iradiation /= irad_none)) then
+               if ((iwallmom == iwallmom_mo) .and. (.not. lmorestored) .and. lmocells) call mo_cells_update(.true.)
+               call thermodynamics(lrestart=.true.)
+            end if
+
             ! Set average inlet profile to initial inlet profile in case of inletgenerator mode
             uaverage = 0.
             uaveragei = 0.
@@ -2274,8 +2290,9 @@ module modstartup
          ifinput, nsv, dt, cexpnr, lreadmean, lreadminl, &
          totinletav, lreadscal, ltempeq, dzf, numol, prandtlmoli, &
          lreadfacT, nfcts, nfaclyrs, lEB, iwallmom, iwalltemp, iwallmoist, ifacrestartversion, &
-         tEB, tnextEB, lwarmstart
+         tEB, tnextEB, lwarmstart, iwallmom_mo
       use modmpi, only:cmyid, cmyidx, cmyidy, myid, comm3d, mpierr, my_real, mpi_logical, abort_all_ranks
+      use modibm, only:mo_read_restart
       use modsubgriddata, only:ekm
       use modinlet, only:zinterpolate1d, zinterpolatet1d, zinterpolatew1d, zinterpolate2d, &
          Uinl, Urec, Wrec, Utav, Tinl, Trec, &
@@ -2293,7 +2310,8 @@ module modstartup
       character(len(startfile)) :: name
       character(50) :: name2, name4
       character(50) :: namefac
-      logical :: lfacrestart = .false., lscalrestart = .false.
+      logical :: lfacrestart = .false., lscalrestart = .false., lmorank, lmoall, lmoany
+      character(len(startfile)) :: namemo
       integer :: ifacversion, nfctsfile, nfaclyrsfile, iostatfac
       real :: timeefac, tEBfac, tnextEBfac
       real dummy
@@ -2437,6 +2455,34 @@ module modstartup
                write (0, *) '       Set lreadfacT = .false. to re-seed the facet temperatures from Tfacinit.inp.'//cexpnr
             end if
             call abort_all_ranks(1)
+         end if
+      end if
+
+      ! iwallmom = 4: the Monin-Obukhov state of the facet sections, one initm file per rank
+      ! (modibm:mo_write_restart). A restart without these files (written by a run with another
+      ! iwallmom) starts that state as a cold start does, with a warning: the run still continues
+      ! and the cold-started state converges within a few substeps. An incomplete set aborts.
+      if ((lwarmstart) .and. (iwallmom == iwallmom_mo)) then
+         namemo = startfile
+         namemo(5:5) = 'm'
+         namemo(15:17) = cmyidx
+         namemo(19:21) = cmyidy
+         inquire (file=trim(namemo), exist=lmorank)
+         call MPI_ALLREDUCE(lmorank, lmoall, 1, MPI_LOGICAL, MPI_LAND, comm3d, mpierr)
+         call MPI_ALLREDUCE(lmorank, lmoany, 1, MPI_LOGICAL, MPI_LOR, comm3d, mpierr)
+         if (lmoall) then
+            call mo_read_restart(trim(namemo))
+            lmorestored = .true.
+            if (myid == 0) write (*, '(a)') ' iwallmom = 4: restored the Monin-Obukhov state from '//trim(namemo)// &
+               ' and the other ranks'' initm files'
+         else if (lmoany) then
+            if (.not. lmorank) write (0, '(a)') 'ERROR: iwallmom = 4: Monin-Obukhov restart file '//trim(namemo)// &
+               ' not found, but other ranks have theirs: copy the complete initm set written with the initd files'
+            call abort_all_ranks(1)
+         else if (myid == 0) then
+            write (0, '(a)') 'WARNING: iwallmom = 4: no Monin-Obukhov restart files ('//trim(namemo)//'): the'// &
+               ' per-section state (L, tskin, qskin) starts as on a cold start, so this run does not continue the'// &
+               ' previous one exactly'
          end if
       end if
 

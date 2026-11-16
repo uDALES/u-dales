@@ -120,7 +120,10 @@ contains
     implicit none
     if (iradiation == irad_none) return
     if (rk3step == 1 .and. timee >= tnextrad) then
-      tnextrad = tnextrad + timerad
+      ! the next update on the timerad grid after timee: a warm start (tnextrad = 0) updates at its
+      ! first step, thlprad not being in the restart files, and then rejoins the grid of the run it
+      ! continues instead of updating at every step until tnextrad has caught up with timee
+      if (timerad > 0.) tnextrad = tnextrad + timerad * (1. + floor((timee - tnextrad) / timerad))
       thlprad = 0.
       if (rad_longw) call radpar
       call call_hooks_radiation

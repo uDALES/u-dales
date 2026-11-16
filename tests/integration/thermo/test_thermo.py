@@ -487,6 +487,59 @@ class TestMOFacetTemperature(_SolverTest):
         self.assertTrue(np.all(out[1]["wtheta"] > 0.))                  # warm facets heat the air
         self.assertGreater(thl.max(), 289.0)
 
+    def test_offset_floor_reconstruction_point(self):
+        """A horizontal STL floor that is not on a grid face (z = 9 m, first cell centre at 10 m) with
+        z0 = 0.5 m: log(1 m / z0) <= 1, so its c-grid sections use reconstruction points (modibm
+        initibmwallfun: lcomprec off). initibm_mocells leaves such sections out of the first-level
+        treatment (it requires log(bnddst / max(z0, z0h)) > 1, which implies lcomprec), so they do
+        not reuse the cell-centre state of mo_cells_update: wallfunheat updates them from the
+        reconstruction-point air state and divides by the same |utan|, so fac_htc = Cs max(|utan|,
+        0.1) / max(|utan|, 0.1) = fac_cth (Task 24 M5). Heat budget: the fluid gains, per step, dt A
+        wtheta of the last substep (the RK3 step increment is dt times the last-substep tendency);
+        residual: float32 thl (2e-5 summed over the first level) and the IBM corrections; measured
+        4e-5, bound 5e-4. 1 and 2 ranks agree (order of the bldump area sums only)."""
+        if not tc.ibm_preprocessor_available():
+            self.skipTest("no gfortran for the udprep legacy IBM preprocessor")
+        z0, z0h, zp, tfac = 0.5, 0.05, 9.0, 299.0
+        try:
+            prep = tc.prepare_stl(self.tmp / "prep_plane", lambda p: tc.write_plane_stl(p, zp, 560., 560.), z0, z0h)
+        except ImportError as exc:
+            self.skipTest(f"udprep dependencies missing: {exc}")
+        dist = np.loadtxt(prep / "facet_sections_c.txt", skiprows=1)[:, 3]
+        np.testing.assert_allclose(dist, 10.0 - zp)
+        self.assertLessEqual(np.log((10.0 - zp) / z0), 1.0)              # reconstruction-point sections
+        out = {}
+        for npx in (1, 2):
+            d = tc.write_ridge_run(prep, self.tmp / f"plane_{npx}", u=7.0, v=0.0, thl=np.full(64, 289.0),
+                                   qt=np.full(64, 5.0e-3), groups={
+                "RUN": {"runtime": "3.0", "nprocx": str(npx)},
+                "WALLS": {"iwalltemp": "2", "lwritefac": ".true.", "dtfac": "1."},
+                "BC": {"bctfz": "0.", "bcqfz": "0."},
+                "OUTPUT": {"lbldump": ".true.", "tstatsdump": "1.", "lfielddump": ".true.",
+                           "tfielddump": "3.0", "fieldvars": "'th'"}})
+            nf = len((d / "facets.inp.310").read_text().splitlines()) - 1
+            (d / "Tfacinit.inp.310").write_text("# initial facet temperature [K]\n" + f"{tfac:.6f}\n" * nf)
+            res = self.run_ok(d, nprocs=npx)
+            self.assertIn("iwallmom = 4: 0 cells above horizontal Monin-Obukhov facets", res.stdout + res.stderr)
+            with Dataset(d / "bldump_t.310.nc") as t, Dataset(d / "fac.310.nc") as f:
+                out[npx] = {"wtheta": np.asarray(t["wtheta"][:], dtype=float), "ustar": np.asarray(t["ustar"][:], dtype=float),
+                            "htc": np.asarray(f["htc"][:], dtype=float), "cth": np.asarray(f["cth"][:], dtype=float)}
+            if npx == 1:
+                with Dataset(d / "fielddump.000.000.310.nc") as f:
+                    thl = np.asarray(f["thl"][-1], dtype=float)
+                area = np.sum(np.loadtxt(d / "facetarea.inp.310", skiprows=1))
+        r = out[1]
+        self.assertEqual(len(r["wtheta"]), 3)
+        self.assertTrue(np.all(r["wtheta"] > 0.))                           # the warm floor heats the air
+        self.assertTrue(np.all(r["cth"] > 0.))
+        np.testing.assert_allclose(r["htc"], r["cth"], rtol=1e-6)
+        gain = np.sum(thl - 289.0) * (560. / 16) ** 2 * 20.0               # no solid c-cells
+        expect = np.sum(r["wtheta"]) * 1.0 * area
+        print(f"\n[offset floor] gain/expect {gain / expect:.7f}; htc {r['htc'][-1]} cth {r['cth'][-1]}")
+        self.assertAlmostEqual(gain / expect, 1.0, delta=5e-4)
+        for v in r:
+            np.testing.assert_allclose(out[2][v], r[v], rtol=1e-6, err_msg=v)
+
     def test_startup_checks(self):
         """Start-up checks: iwallmom = 4 accepts iwalltemp 1 and 2, rejects 3; with lmoist
         iwallmoist = 2 needs iwalltemp = 2, and iwallmoist must be 1 or 2."""
@@ -510,6 +563,112 @@ class TestMOFacetTemperature(_SolverTest):
 
 RV_RD = 461.5 / 287.04
 RLV, CP = 2.53e6, 1004.0   # check modglobal: rlv, cp
+
+
+class TestMOWarmStart(_SolverTest):
+    """Warm start with Monin-Obukhov facets (iwallmom = 4, #415): a cold run of 2N fixed steps equals
+    a warm start of N steps from its own checkpoint at step N, bit for bit (bldump and the restart
+    files at 2N), on 1 and 2 ranks. The warm start restores the per-rank initm files (the
+    per-section L, tskin, qskin, u*, Cs, csu, fluxes and the mocell surface-layer gradients) and
+    re-diagnoses the thermodynamic fields (presf, exnf, rhof, thv0h, dthvdz) from the restored ones.
+    The checkpoint at N is the one a cold run of N steps writes (the same binary and arithmetic).
+
+    The SGS model is Vreman with lbuoycorr, which reads dthvdz, so the restored surface-layer dthvdz
+    above the floor is exercised. The one-equation closure is tested to a bound instead
+    (test_one_equation_closure): its e12 ghost plane kb - 1, which subgrid reads before
+    modibm:bottom resets it, is not in the restart files. That loss is not in the Monin-Obukhov path;
+    a flat lbottom case loses it the same way."""
+
+    N = 5
+    VREMAN = {"loneeqn": ".false.", "lvreman": ".true.", "lbuoycorr": ".true."}
+    RAD = {"iradiation": "2", "rad_longw": ".true.", "rka": "85.", "dlwtop": "70.", "dlwbot": "22."}
+
+    def _cold(self, name, case, nprocx, sgs=None):
+        groups = {"RUN": {"runtime": f"{2 * self.N}.", "trestart": f"{self.N}.", "nprocx": str(nprocx)},
+                  "OUTPUT": {"lbldump": ".true.", "tstatsdump": "1."},
+                  "NAMSUBGRID": dict(self.VREMAN if sgs is None else sgs)}
+        if case == "t1":
+            # prescribed facet fluxes, moist, RF01 cloud deck with the longwave scheme
+            groups.update({"BC": {"bctfz": "-0.05", "bcqfz": "-5.0e-5"}, "NAMRADIATION": self.RAD})
+            floor = {"z0": 2.e-4, "z0h": 2.e-4}
+        else:
+            # facet temperature; green floor that evaporates (iwallmoist = 2), so qskin carries state
+            groups.update({"BC": {"bctfz": "0.", "bcqfz": "0."}, "WALLS": {"iwalltemp": "2", "iwallmoist": "2"},
+                           "ENERGYBALANCE": {"wsoil": "313.", "wfc": "313."}})
+            floor = {"z0": 2.e-4, "z0h": 2.e-5, "tfacinit": 291.0, "lgr": True}
+        d = tc.write_case(self.tmp / name, u=7.0, v=-5.5, floor=floor, groups=groups)
+        self.run_ok(d, nprocx)
+        return d
+
+    def _warm(self, cold, name, nprocx, skip=()):
+        w = tc.stage_warm_start(cold, self.tmp / name, self.N, float(self.N), skip=skip)
+        return w, tc.run(w, nprocx)
+
+    def _assert_continues(self, cold, warm):
+        for f in ("bldump_t.310.nc", "bldump_z.310.nc"):
+            with Dataset(cold / f) as c, Dataset(warm / f) as w:
+                for v in w.variables:
+                    if "time" not in w[v].dimensions:
+                        continue
+                    with self.subTest(file=f, var=v):
+                        np.testing.assert_array_equal(np.asarray(w[v][:]), np.asarray(c[v][self.N:]))
+        final = tc.restart_set(cold, 2 * self.N)
+        self.assertTrue(any(p.name.startswith("initm") for p in final))
+        for p in final:
+            with self.subTest(restart=p.name):
+                self.assertEqual((warm / p.name).read_bytes(), p.read_bytes())
+
+    def _chain(self, case, nprocx):
+        cold = self._cold(f"ws_{case}_{nprocx}", case, nprocx)
+        warm, res = self._warm(cold, f"ws_{case}_{nprocx}_warm", nprocx)
+        self.assertEqual(res.returncode, 0, (res.stdout + res.stderr)[-3000:])
+        self.assertIn("iwallmom = 4: restored the Monin-Obukhov state", res.stdout)
+        self._assert_continues(cold, warm)
+        return cold
+
+    def test_prescribed_flux_moist_1_rank(self):
+        self._chain("t1", 1)
+
+    def test_prescribed_flux_moist_2_ranks(self):
+        self._chain("t1", 2)
+
+    def test_facet_temperature_1_rank(self):
+        cold = self._chain("t2", 1)
+        with Dataset(cold / "bldump_t.310.nc") as t:
+            self.assertGreater(float(t["wq"][-1]), 0.)          # evaporating: qskin carries state
+
+    def test_facet_temperature_2_ranks(self):
+        self._chain("t2", 2)
+
+    def test_missing_state_files_start_cold_with_warning(self):
+        """Without the initm files (a restart written with another iwallmom) the run continues with a
+        rank-0 warning and the Monin-Obukhov state starts as at a cold start, so it differs."""
+        cold = self._cold("ws_noinitm", "t1", 1)
+        skip = {p.name for p in tc.restart_set(cold, self.N) if p.name.startswith("initm")}
+        warm, res = self._warm(cold, "ws_noinitm_warm", 1, skip=skip)
+        self.assertEqual(res.returncode, 0, (res.stdout + res.stderr)[-3000:])
+        self.assertIn("WARNING: iwallmom = 4: no Monin-Obukhov restart files", res.stdout + res.stderr)
+        with Dataset(cold / "bldump_t.310.nc") as c, Dataset(warm / "bldump_t.310.nc") as w:
+            self.assertFalse(np.array_equal(np.asarray(w["ustar"][:]), np.asarray(c["ustar"][self.N:])))
+
+    def test_incomplete_state_set_aborts(self):
+        cold = self._cold("ws_partial", "t1", 2)
+        warm, res = self._warm(cold, "ws_partial_warm", 2, skip={f"initm{self.N:08d}_001_000.310"})
+        self.assertNotEqual(res.returncode, 0)
+        self.assertIn("initm00000005_001_000.310 not found, but other ranks have theirs", res.stdout + res.stderr)
+
+    def test_one_equation_closure(self):
+        """One-equation SGS: the warm start misses only the e12 ghost plane kb - 1 (see the class
+        docstring), a round-off difference in the TKE next to the floor (measured: 4e-13 relative in
+        e120, 3e-16 in u). The float32 bldump Monin-Obukhov diagnostics are therefore identical; a
+        warm start that lost the Monin-Obukhov state differs there by ~1e-3 (test above)."""
+        cold = self._cold("ws_oneeqn", "t1", 1, sgs={"loneeqn": ".true.", "lvreman": ".false."})
+        warm, res = self._warm(cold, "ws_oneeqn_warm", 1)
+        self.assertEqual(res.returncode, 0, (res.stdout + res.stderr)[-3000:])
+        with Dataset(cold / "bldump_t.310.nc") as c, Dataset(warm / "bldump_t.310.nc") as w:
+            for v in ("ustar", "obl", "thls", "qts", "wtheta", "wq", "u1", "v1"):
+                with self.subTest(var=v):
+                    np.testing.assert_array_equal(np.asarray(w[v][:]), np.asarray(c[v][self.N:]))
 
 
 def ql_udales(thl, qt, exn):
@@ -702,6 +861,27 @@ class TestRadiation(_SolverTest):
                 with self.subTest(var=v):
                     np.testing.assert_array_equal(np.asarray(z[v][-1], dtype=np.float32), ref[:, col])
             np.testing.assert_array_equal(np.asarray(t["zi_sv"][:]), 700.0)
+
+    def test_warm_start(self):
+        """A warm start re-diagnoses rhof and exnf before the first longwave update (they were zero,
+        a floating-point exception), updates at its first step (thlprad is not in the restart files)
+        and then rejoins the timerad grid of the run it continues: restart at 5 s, timerad = 4 s, so
+        updates at 6 s (the first step) and 8 s, and thlprad is held over the step ending at 7 s
+        (before the fix tnextrad started at 0 and caught up one interval per step: an update at 7 s)."""
+        rad = dict(self.RAD, timerad="4.")
+        d = self._run("rad_cold", rad, groups={"RUN": {"runtime": "10.", "trestart": "5."},
+                                               "OUTPUT": {"lbldump": ".true.", "tstatsdump": "1."}})
+        w = tc.stage_warm_start(d, self.tmp / "rad_warm", 5, 5.0)
+        self.run_ok(w)
+        with Dataset(w / "bldump_z.310.nc") as z:
+            t = np.asarray(z["time"][:])
+            q = np.asarray(z["thlprad"][:], dtype=float)
+        np.testing.assert_array_equal(t, [6., 7., 8., 9., 10.])
+        self.assertTrue(np.all(np.isfinite(q)))
+        self.assertLess(q.min(), -1e-4)                      # cloud-top cooling present
+        np.testing.assert_array_equal(q[1], q[0])            # held: no update at 7 s
+        self.assertFalse(np.array_equal(q[2], q[1]))         # update at 8 s
+        np.testing.assert_array_equal(q[3], q[2])            # held at 9 s
 
     def test_zi_sv_written_only_when_configured(self):
         d, _ = self._smoke_run("zi_sv_off")

@@ -54,15 +54,25 @@ contains
 
   !> Do moist thermodynamics.
   !! Calculate the liquid water content, do the microphysics, calculate the mean hydrostatic pressure, calculate the fields at the half levels, and finally calculate the virtual potential temperature.
-  subroutine thermodynamics
+  !! lrestart: the warm-start re-diagnosis (modstartup:readinitfiles). The restart files hold ql0 and
+  !! ql0h but none of the fields derived here; the full-level ql0 is kept (the run it continues
+  !! computed it with the pressure of the step before, which is not stored) and everything after it
+  !! (diagfld: the slab means, presf/presh, exnf/exnh, rhof; the half levels; calthv: thv0h,
+  !! dthvdz; thvh, thvf) is a pure diagnosis of the restored fields, so the continuing run sees the
+  !! values the uninterrupted run had at the end of the step it restarts from.
+  subroutine thermodynamics(lrestart)
     use modglobal, only : lmoist, timee, kb, ke, kh, ib, ie, jb, je,rlv, cp, rd, rv, eps1
     use modfields, only : thl0,thl0h,qt0,qt0h,ql0,ql0h,presf,presh,exnf,exnh,thvh,thv0h,qt0av,ql0av,thvf,IIc,IIw,IIcs,IIws
     use modmpi,    only : slabsum,avexy_ibm
 !ILS13 added variables behind "exnh"
     implicit none
+    logical, intent(in), optional :: lrestart
+    logical :: lrediag
     integer :: k
+    lrediag = .false.
+    if (present(lrestart)) lrediag = lrestart
     if (timee==0) call diagfld
-    if (lmoist) then
+    if (lmoist .and. .not. lrediag) then
        call thermo(thl0,qt0,ql0(:,:,kb:),presf,exnf)   ! ql dummy starts at kb (#403)
     end if
 

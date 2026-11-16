@@ -50,6 +50,16 @@ Run: `python tests/integration/thermo/test_thermo.py -v [TestClass]`.
   the ridge on 1 and 2 ranks (rtol 1e-6, skips without `gfortran`); the start-up checks of `iwalltemp`/`iwallmoist`;
   a stable facet (2 K colder: L > 0, downward flux, same identities); the first-level `dthvdz(kb)` from the facet-temperature
   state (unstable and stable, rtol 1e-3); and with `lEB` and `iwallmoist = 2` the facEB `ef` is `-rhoa rlv wq`.
+  An STL floor off the grid faces (z = 9 m, z0 = 0.5 m), whose c-grid sections use reconstruction points: they get
+  no first-level treatment (the start-up line counts 0 cells), `fac_htc = fac_cth` (the MO `Cs`), the air gains
+  `dt A wtheta` per step (bound 5e-4) and 1 and 2 ranks agree (skips without `gfortran`).
+- `TestMOWarmStart`: warm start with Monin-Obukhov facets (#415). A cold run of 10 fixed steps against a warm start of
+  5 steps from its own checkpoint at step 5 (`initd`, `initf`, the per-rank `initm`): every bldump record and every
+  restart file at step 10 identical, for `iwalltemp = 1` (moist, prescribed fluxes, with the longwave scheme) and
+  `iwalltemp = 2` (green floor evaporating, `iwallmoist = 2`), on 1 and 2 ranks, with the Vreman SGS model and
+  `lbuoycorr`. Without the `initm` files the run warns and differs; an incomplete set aborts. With the one-equation
+  closure the bldump Monin-Obukhov diagnostics are identical (its TKE ghost level below the first level is not in the
+  restart files, a round-off difference that also occurs without Monin-Obukhov facets).
 - `TestCalthv`, `TestCalthvGuard`: `dthvdz` at the surface level is zero; a uniform saturated
   column must not divide by zero.
 - `TestBldump`: cloudy-column diagnostics (`ql`, `lwp_bar`) and a dry
@@ -60,7 +70,8 @@ Run: `python tests/integration/thermo/test_thermo.py -v [TestClass]`.
 - `TestRadiation`: `thlprad` for liquid and smoke (`rad_absorber = 'sv'`, also bit-identical to the
   recorded reference `smoke_reference.txt`, see below), `zi_sv`, and the DYCOMS free-troposphere
   term of the `dycoms_rf01` case hook (flux form vs pointwise form, column integral, subsidence balance),
-  against the closed-form longwave expressions
+  against the closed-form longwave expressions. A warm start (restart at 5 s, `timerad = 4` s) runs (it
+  re-diagnoses `rhof`, `exnf`), updates at its first step and then at 8 s, holding `thlprad` in between.
 - `TestCaseHooks`: the `&NAMCASES` registry (unknown names abort, `case_hooks = ''` is a no-op), the
   aborts for required parameters that are not set (including `tstatsdump` with `lbldump`), a namelist read error aborting
   once on all ranks, and the warning for a case group whose hook is not listed

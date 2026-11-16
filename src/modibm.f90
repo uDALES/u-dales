@@ -136,6 +136,8 @@ module modibm
    real :: mo_flux_loc(3) = 0.
    !> vegetation fraction of the iwallmoist = 2 resistance law (moist_flux)
    real, parameter :: cveg_gr = 0.8
+   !> iwallmom = 4: format version of the initm restart files (mo_write_restart)
+   integer, parameter :: imorestartversion = 1
 
    integer :: nstatfac=7, ncidfac, nrecfac=0
    character(80), allocatable :: ncstatfac(:,:)
@@ -288,6 +290,7 @@ module modibm
      use modglobal, only : nfcts, mo_maxslope, pi, iwalltemp
      use initfac,   only : facnorm, facz0, facz0h
      use modmpi,    only : myid, mpierr
+     use modsave,   only : write_mo_restart
      integer :: n, nmo
      character(len=40) :: wf
 
@@ -310,6 +313,7 @@ module modibm
      call alloc_mo_state(bound_info_u)
      call alloc_mo_state(bound_info_v)
      call alloc_mo_state(bound_info_w)
+     write_mo_restart => mo_write_restart     ! modsave:writerestartfiles writes the initm files
    end subroutine initibm_mo
 
    !> iwallmom = 4: list the fluid cells that own a c-grid section of a horizontal
@@ -451,6 +455,83 @@ module modibm
        end do
      end subroutine add_sections
    end subroutine mo_facet_means
+
+   !> iwallmom = 4: write the Monin-Obukhov state of this rank to the restart file name (the initm
+   !> file of modsave:writerestartfiles, one per rank like initd: the sections are rank-local).
+   !> Per section of the u, v, w and c grids: L (calc_obl_iter iterates from the previous L), tskin
+   !> and qskin (the surface values of the next Richardson number; with iwalltemp = 2 qskin is the
+   !> one diagnosed from the previous moisture flux), and u*, Cs, csu, w'thl', w'qt' of the last
+   !> update, which bldump reads for a section that no update reached since (zero wind). Then the
+   !> surface-layer gradients of the cells above horizontal Monin-Obukhov facets: calthv reads
+   !> mocell_dthldz and mocell_dqtdz of the last substep, whose air state the end-of-step fields no
+   !> longer hold, so they are stored rather than re-diagnosed (DALES writes dthldz, dqtdz too).
+   subroutine mo_write_restart(name)
+     use modglobal, only : ifoutput, timee
+     character(*), intent(in) :: name
+
+     open(ifoutput, file=name, form='unformatted', status='replace')
+     write(ifoutput) imorestartversion, bound_info_u%nfctsecsrank, bound_info_v%nfctsecsrank, &
+                     bound_info_w%nfctsecsrank, bound_info_c%nfctsecsrank, nmocells
+     call write_sections(bound_info_u)
+     call write_sections(bound_info_v)
+     call write_sections(bound_info_w)
+     call write_sections(bound_info_c)
+     write(ifoutput) mocell_dudz, mocell_dvdz, mocell_dthldz, mocell_dqtdz
+     write(ifoutput) timee
+     close(ifoutput)
+
+   contains
+
+     subroutine write_sections(bound_info)
+       type(bound_info_type), intent(in) :: bound_info
+       write(ifoutput) bound_info%mo_obl, bound_info%mo_tskin, bound_info%mo_qskin, bound_info%mo_ustar, &
+                       bound_info%mo_cs, bound_info%mo_csu, bound_info%mo_wthl, bound_info%mo_wqt
+     end subroutine write_sections
+   end subroutine mo_write_restart
+
+   !> iwallmom = 4: read the Monin-Obukhov state of this rank from the initm restart file name
+   !> (mo_write_restart). A file of another format version, or for another set of sections or cells
+   !> (other geometry or decomposition), or a truncated file aborts the run. Each rank reads its own
+   !> file and aborts itself, as for initd.
+   subroutine mo_read_restart(name)
+     use modglobal, only : ifinput
+     use modmpi,    only : mpierr
+     character(*), intent(in) :: name
+     integer :: hdr(6), ios
+     real :: timeefile
+
+     open(ifinput, file=name, form='unformatted', status='old', iostat=ios)
+     if (ios == 0) read(ifinput, iostat=ios) hdr
+     if (ios /= 0) call fail('cannot be read')
+     if (hdr(1) /= imorestartversion) call fail('has another format version')
+     if (any(hdr(2:6) /= (/ bound_info_u%nfctsecsrank, bound_info_v%nfctsecsrank, bound_info_w%nfctsecsrank, &
+                            bound_info_c%nfctsecsrank, nmocells /))) &
+       call fail('holds other facet sections (geometry or decomposition differ)')
+     call read_sections(bound_info_u)
+     call read_sections(bound_info_v)
+     call read_sections(bound_info_w)
+     call read_sections(bound_info_c)
+     if (ios == 0) read(ifinput, iostat=ios) mocell_dudz, mocell_dvdz, mocell_dthldz, mocell_dqtdz
+     if (ios == 0) read(ifinput, iostat=ios) timeefile
+     if (ios /= 0) call fail('is truncated or corrupt')
+     close(ifinput)
+
+   contains
+
+     subroutine read_sections(bound_info)
+       type(bound_info_type), intent(inout) :: bound_info
+       if (ios /= 0) return
+       read(ifinput, iostat=ios) bound_info%mo_obl, bound_info%mo_tskin, bound_info%mo_qskin, bound_info%mo_ustar, &
+                                 bound_info%mo_cs, bound_info%mo_csu, bound_info%mo_wthl, bound_info%mo_wqt
+     end subroutine read_sections
+
+     subroutine fail(why)
+       character(*), intent(in) :: why
+       write(0, '(a)') 'ERROR: iwallmom = 4: Monin-Obukhov restart file '//trim(name)//' '//why
+       flush(0)
+       call MPI_ABORT(MPI_COMM_WORLD, 1, mpierr)
+     end subroutine fail
+   end subroutine mo_read_restart
 
 
    subroutine initibmnorm(fname, solid_info)
