@@ -57,6 +57,12 @@ that they are easy to find when upgrading.
 
 ### Fixed
 
+- **Preprocessing x/y grids are built by index, like the solver.** `udprep`
+  built `xm`, `xt`, `ym`, `yt` with `np.arange` and a float step, which returns
+  `itot+1` points for some `xlen/itot` pairs (for example 120 cells over 5.5 m)
+  and so put an extra face at the domain top. They now come from
+  `udgrid.horizontal_grid`, the same `(i-1)*dx`, `+dx/2` construction as
+  `modglobal.f90`, as the z-grid already did since #388.
 - The SGS statistics no longer read uninitialised data at the top level
   `ke+kh`, and all SGS output arrays are zeroed before use.
 - The 3-D `sv1sgs`–`sv4sgs` output in `tdump` is now masked with `IIw`, so solid
