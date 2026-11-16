@@ -11,7 +11,7 @@ This list refers to the original code-base [DALES](https://github.com/dalesteam/
 | Name | Default | Possible values | Description | Unit |
 | ---- | ------- | --------------- | ----------- | ---- |
 | iexpnr | 000 | Three digit integer. | Experiment case number | - |
-| lwarmstart | .false. | .true. or .false. | If .true. the simulation continues from the restart set named by `startfile`: the `initd` flow fields, and by default also the `inits` scalar fields (`lreadscal`) and the `initf` facet state (`lreadfacT`). | - |
+| lwarmstart | .false. | .true. or .false. | If .true. the simulation continues from the restart set named by `startfile`: the `initd` flow fields, and by default also the `inits` scalar fields (`lreadscal`) and the `initf` facet state (`lreadfacT`); with `iwallmom = 4` also the `initm` Monin-Obukhov state. | - |
 | lstratstart | .false. | .true. or .false. | Read the flow fields from the restart set named by `startfile` as for a warm start, then overwrite the temperature and humidity profiles from `prof.inp.<expnr>`. Scalar and facet restart files are not read: scalars start from `scalar.inp.<expnr>` and facets from `Tfacinit*.inp.<expnr>`. | - |
 | startfile | '' | 'initd00001234_xxx_xxx.000'| Name of restart file, the last three digits should match iexpnr. | - |
 | lreadfacT | .true. | .true. or .false. | On a warm start, read the facet state (wall temperatures, soil moisture, humidity, energy-balance interval) from the matching `initf<ntrun>.<expnr>` restart file; `Tfacinit.inp.<expnr>` is then not read, and a missing or mismatched file aborts the run. Set to .false. to re-seed the facet temperatures from `Tfacinit.inp.<expnr>` (or `Tfacinit_layers.inp.<expnr>` with `lfacTlyrs`) instead. | - |
@@ -187,7 +187,7 @@ Parametrised longwave radiation (Stevens et al. 2005; DALES `radpar`). Off by de
 | Name | Default | Possible values | Description | Unit |
 | ---- | ------- | --------------- | ----------- | ---- |
 | iradiation | 0 | 0, 2 | Radiation scheme: 0 none, 2 parametrised longwave (`radpar`). | - |
-| timerad | 0. | `REAL` >= 0 | Update interval of the radiative tendency; 0 updates every time step. The adaptive time step is not limited to land on the radiation time, so the update may overshoot by up to one step. The schedule is not in the restart files, so after a warm start the tendency is recomputed at the first step. | [s] |
+| timerad | 0. | `REAL` >= 0 | Update interval of the radiative tendency; 0 updates every time step. The adaptive time step is not limited to land on the radiation time, so the update may overshoot by up to one step. The tendency is not in the restart files, so a warm start recomputes it at its first step and then follows the `timerad` grid of the run it continues. | [s] |
 | rad_longw | .true. | .true. or .false. | Longwave radiation on. | - |
 | rad_shortw | .false. | .false. | Shortwave radiation is not supported; `.true.` aborts. | - |
 | rad_absorber | 'ql' | 'ql' or 'sv' | Absorber of the longwave scheme: cloud liquid water `ql` (requires `lmoist`), or scalar `rad_absorber_sv` (e.g. smoke). Both use `rka`, `dlwtop` and `dlwbot`. Any other value aborts. | - |

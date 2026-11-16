@@ -37,7 +37,7 @@ What the runs show about the cause:
   wind is 0.48 % lower in uDALES and u* 0.43 % lower, with u*/|U1| again within 0.05 %. So the lower wind and u* do not
   come from the facet-temperature path. Their cause is not identified.
 - One candidate is the u* stress stencil: uDALES applies `Cm(L_u) max(|U_u|, 0.1)^2` at the u point
-  (src/modibm.f90:1779-1784, and the iwalltemp = 1 branch below it), DALES the square of the centre u* averaged to the u
+  (src/modibm.f90:1860-1865, and the iwalltemp = 1 branch below it), DALES the square of the centre u* averaged to the u
   point (DALES modsubgrid.f90:942-951). Both stencils were applied to the same saved uDALES first-level fields (seed 43,
   8 snapshots 0.5-4 h; `t24/stencil304.py`, run `t24/u304fd`). The uDALES stencil gives a 0.04-0.06 % larger mean stress
   than the DALES stencil. That has the sign of the lower wind, but it is about an order of magnitude smaller than the
