@@ -197,9 +197,27 @@ class Section:
             raise FileNotFoundError(f"Missing {namelist_path}")
 
         lines = namelist_path.read_text(encoding="ascii").splitlines(keepends=True)
-        nml_lower = namelist.strip().lower()
         var_lower = varname.strip().lower()
         value_str = _format_value(value)
+
+        # A variable that is not in namelists.json but already appears in the
+        # file is updated where it is. Preprocessing-only variables (stl_file,
+        # types_path, ...) live in &INPS, or &INP in older cases; the block the
+        # user declared them in must not be second-guessed.
+        if var_lower not in self._namelist_map_cache:
+            current_block = None
+            for line in lines:
+                stripped = line.strip()
+                if stripped.startswith("&"):
+                    current_block = stripped[1:].strip()
+                elif stripped.startswith("/"):
+                    current_block = None
+                elif current_block is not None and "=" in stripped:
+                    if stripped.split("=", 1)[0].strip().lower() == var_lower:
+                        namelist = current_block
+                        break
+
+        nml_lower = namelist.strip().lower()
 
         start_idx = None
         end_idx = None

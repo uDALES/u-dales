@@ -57,6 +57,41 @@ that they are easy to find when upgrading.
 
 ### Fixed
 
+- **The geostrophic pressure gradient is now applied only with `lcoriol = .true.`**
+  (#410). `modstartup` added `om23_gs*vg` and `-om23_gs*ug` to the large-scale
+  pressure gradient whether or not the Coriolis force was on, so a run with
+  nonzero `ug`/`vg` in `lscale.inp` and `lcoriol = .false.` (and `lprofforc =
+  .false.`) was accelerated at a constant `f*|u_g|` (about 1.15e-4 s^-1 times
+  `|u_g|` at the default `xlat = 52`). Such runs change; they no longer get
+  this spurious body force. Runs with `lcoriol = .true.`, with `ug = vg = 0`
+  (the default), or with `lprofforc = .true.` are bit-identical.
+- **The f2py preprocessing modules run in double precision.** The IBM
+  (`ibm_preproc_f2py`) and direct-shortwave (`directshortwave_f2py`) extension
+  modules were compiled with default 4-byte reals while the solver uses
+  `-fdefault-real-8`. Geometry, grid coordinates and facet sections were
+  therefore computed with about seven significant digits. Facet sections
+  lying exactly on a cell face could be assigned to either neighbouring cell
+  depending on compiler rounding, small sections near cell faces were lost
+  to the 1e-5 m^2 area threshold, and, more seriously, the first cell edge
+  (`xt(1) - dx/2`) evaluated in single precision exceeded the 1e-8 bounding-box
+  tolerance, so facets touching the `x = 0` or `y = 0` domain boundary were
+  rejected as out of bounds and received no facet sections at all (in the
+  `997`/`988` test geometry, 105 ground facets covering 5% of the surface).
+  Both modules are now built with `-fdefault-real-8 -fdefault-double-8`, their
+  signatures declare `real(kind=8)`, and the Python callers pass float64 arrays.
+  The flux-point selection in `matchFacetsCells` now treats candidate scores
+  that agree to within a relative 1e-6 as tied and takes the first, as the
+  MATLAB implementation's `max()` does; in double precision, mirror-image
+  candidates (the cells above and below a section on a horizontal cell face)
+  otherwise differ in the last bit and the choice was decided by round-off.
+  Rebuild the preprocessing tools
+  (`tools/build_preprocessing.sh <system> preprocessing_tools`) after updating.
+- **Preprocessing x/y grids are built by index, like the solver.** `udprep`
+  built `xm`, `xt`, `ym`, `yt` with `np.arange` and a float step, which returns
+  `itot+1` points for some `xlen/itot` pairs (for example 120 cells over 5.5 m)
+  and so put an extra face at the domain top. They now come from
+  `udgrid.horizontal_grid`, the same `(i-1)*dx`, `+dx/2` construction as
+  `modglobal.f90`, as the z-grid already did since #388.
 - The SGS statistics no longer read uninitialised data at the top level
   `ke+kh`, and all SGS output arrays are zeroed before use.
 - The 3-D `sv1sgs`–`sv4sgs` output in `tdump` is now masked with `IIw`, so solid
@@ -72,6 +107,34 @@ that they are easy to find when upgrading.
 
 ### Added
 
+- **Preprocessing on ECMWF HPC2020, and a test suite that survives the
+  terminal.** `tools/write_inputs.sh` takes a fourth argument, the system
+  (`common`, `icl` or `ecmwf`), and a new start mode `f` that runs the
+  preprocessing in the foreground and returns its exit code. With `c ecmwf` it
+  submits a Slurm job (`PREPROC_ACCOUNT`, `PREPROC_QOS`, `PREPROC_WALLTIME`,
+  `PREPROC_MEM`), next to the existing PBS job for `icl`.
+  `tests/system/ud_test_preprocess.sh` accepts `--system ecmwf` (or the bare
+  system word): on `common`/`icl` it now detaches from the terminal and writes
+  its console output to `logdir/test_inputs.console.log` (`--foreground` to
+  opt out); on `ecmwf` it submits the whole suite as one Slurm job. Each case is
+  preprocessed in the foreground, so failures are detected from the exit code.
+- **Facet-size uniformisation in the Python preprocessing.** With
+  `lfacetuniform = .true.` (namelist `&INPS`), `udprep` first rebuilds the STL
+  so that facet areas fall within a band around a target area: facets above the
+  band are split and coplanar facets of the same type below it are merged, with
+  the geometry, the creases, the facet types and the mesh conformity preserved.
+  The result is written to `<stem>_uniform.stl` (plus facet types, a face map
+  and a JSON sidecar), `stl_file`/`types_path` are pointed at it, and the
+  original STL is left untouched. Options `facet_target_edge`,
+  `facet_size_band`, `facet_allow_split`, `facet_allow_merge` and
+  `facet_count_max`; the default target keeps the facet count about the same.
+  The per-patch work runs in up to `nompthreads` worker processes.
+  Also available as `udgeom.uniformize_facets` (`workers=`). See
+  [Pre-processing](docs/udales-pre-processing.md#facet-size-uniformisation).
+- `udprep` now refuses an existing `facets.inp` whose facet count does not
+  match the geometry instead of silently reusing it, and `Section.save_param`
+  updates a preprocessing-only variable (such as `stl_file`) in the namelist
+  block where it already appears instead of appending a new `&INP` block.
 - `docs/udales-output-files.md` now documents the SGS flux definitions, their
   sign convention, and the fact that the SGS statistics carry **no** surface or
   wall-model contribution, so the total-stress profile does not close at the

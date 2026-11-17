@@ -168,6 +168,7 @@ class TestIBMSection(unittest.TestCase):
             "libm": True,
             "gen_geom": True,
             "geom_path": "",
+            "lfacetuniform": False,
             "iwallmom": 2,
             "ltempeq": False,
             "lmoist": False,

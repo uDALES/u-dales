@@ -411,7 +411,7 @@ module modstartup
          e12min, dzh, cexpnr, ifinput, lwarmstart, lstratstart, trestart, numol, &
          ladaptive, tnextrestart, linoutflow, lper2inout, iinletgen, lreadminl, &
          ltempeq, prandtlmoli, &
-         startfile, lprofforc,&
+         startfile, lprofforc, lcoriol,&
          idriver,dtdriver,driverstore,tdriverstart,tdriverstart_cold,tdriverdump,lchunkread,ibrank,lrandomize,BCxs,&
          tEB,tnextEB,dtEB,BCxs_custom,tfac,tnextfac,dtfac
       use modsubgriddata, only:ekm, ekh, loneeqn
@@ -1590,13 +1590,16 @@ module modstartup
             dpdyl(k) = -pgy(k)
          end do
       else
+         ! The om23_gs terms are the geostrophic balance f k x u_g. They balance the Coriolis
+         ! force on the resolved wind, so they are only applied when that force is (#410).
          do k = kb, ke
-            !dpdxl(k) =  om23_gs*vg(k)
-            !dpdyl(k) = -om23_gs*ug(k)
-            !dpdxl(k) =  -ug(k)
-            !dpdyl(k) =  -vg(k)
-            dpdxl(k) = om23_gs*vg(k) - pgx(k) - dpdx !corriolis forcing and pressure gradient
-            dpdyl(k) = -om23_gs*ug(k) - pgy(k)
+            if (lcoriol) then
+               dpdxl(k) = om23_gs*vg(k) - pgx(k) - dpdx
+               dpdyl(k) = -om23_gs*ug(k) - pgy(k)
+            else
+               dpdxl(k) = -pgx(k) - dpdx
+               dpdyl(k) = -pgy(k)
+            end if
          end do
       endif
 

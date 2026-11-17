@@ -67,7 +67,13 @@
     "read_types": false,
     "types_path": "",
     "geom_path": "",
-    "lwritefac": false
+    "lwritefac": false,
+    "lfacetuniform": false,
+    "facet_target_edge": 0.0,
+    "facet_size_band": 4.0,
+    "facet_allow_split": true,
+    "facet_allow_merge": true,
+    "facet_count_max": 0
   },
   "scalars": {
     "nsv": 0,
