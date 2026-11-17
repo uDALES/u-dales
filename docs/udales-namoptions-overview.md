@@ -52,7 +52,7 @@ This list refers to the original code-base [DALES](https://github.com/dalesteam/
 | ltempeq | .false. | .true. or .false. | Switch for solving temperature equation. | - |
 | lbuoyancy | .false. | .true. or .false. | Switch for buoyancy force in temperature equation. | - |
 | lmoist | .false. | .true. or .false. | Switch for solving moisture equation. | - |
-| lcoriol | .false. | .true. or .false. | Switch for inluding the Coriolis force. | - |
+| lcoriol | .false. | .true. or .false. | Switch for including the Coriolis force and the balancing geostrophic pressure gradient from `ug`/`vg` in `lscale.inp`. Without it `ug`/`vg` exert no force; they act only as the target wind for `lprofforc` and `igrw_damp = 2`. | - |
 | luoutflowr | .false. | .true. or .false. | Switch that determines whether u-velocity is corrected to get a fixed outflow rate. *Only functional when x-direction is not parellelised.* | |
 | lvoutflowr | .false. | .true. or .false. | Switch that determines whether u-velocity is corrected to get a fixed outflow rate. *Only functional when y-direction is not parellelised.* | |
 | luvolflowr | .false. | .true. or .false. | Switch that determines whether u-velocity is corrected to get a fixed volume flow rate. | - |

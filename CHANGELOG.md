@@ -57,6 +57,14 @@ that they are easy to find when upgrading.
 
 ### Fixed
 
+- **The geostrophic pressure gradient is now applied only with `lcoriol = .true.`**
+  (#410). `modstartup` added `om23_gs*vg` and `-om23_gs*ug` to the large-scale
+  pressure gradient whether or not the Coriolis force was on, so a run with
+  nonzero `ug`/`vg` in `lscale.inp` and `lcoriol = .false.` (and `lprofforc =
+  .false.`) was accelerated at a constant `f*|u_g|` (about 1.15e-4 s^-1 times
+  `|u_g|` at the default `xlat = 52`). Such runs change; they no longer get
+  this spurious body force. Runs with `lcoriol = .true.`, with `ug = vg = 0`
+  (the default), or with `lprofforc = .true.` are bit-identical.
 - **The f2py preprocessing modules run in double precision.** The IBM
   (`ibm_preproc_f2py`) and direct-shortwave (`directshortwave_f2py`) extension
   modules were compiled with default 4-byte reals while the solver uses
