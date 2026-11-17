@@ -60,6 +60,24 @@ class TestGridSection(unittest.TestCase):
         np.testing.assert_allclose(sim.xt, section.xt)
         np.testing.assert_allclose(sim.xm, section.xm)
 
+    def test_xygrid_has_itot_jtot_points_for_awkward_float_steps(self):
+        # np.arange(0, xlen, xlen/itot) returns itot+1 faces for these pairs,
+        # the last one at the domain top.
+        for itot, xlen in ((120, 5.5), (120, 11.0), (120, 21.0)):
+            with self.subTest(itot=itot, xlen=xlen):
+                self.assertEqual(np.arange(0.0, xlen, xlen / itot).size, itot + 1)
+                section, sim = make_grid_section(itot=itot, xlen=xlen, jtot=itot, ylen=xlen)
+                section._refresh_derived_grid_params()
+                section.generate_xygrid()
+
+                dx = xlen / itot
+                for faces, centres in ((sim.xm, sim.xt), (sim.ym, sim.yt)):
+                    self.assertEqual(faces.size, itot)
+                    self.assertEqual(centres.size, itot)
+                    np.testing.assert_allclose(faces, np.arange(itot) * dx)
+                    np.testing.assert_allclose(centres, faces + 0.5 * dx)
+                    self.assertLess(faces[-1], xlen)
+
     def test_generate_zgrid_uniform_matches_expected_faces_and_centers(self):
         section, sim = make_grid_section()
         section._refresh_derived_grid_params()

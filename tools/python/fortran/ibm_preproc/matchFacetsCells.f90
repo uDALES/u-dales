@@ -156,7 +156,10 @@ module matchFacets2Cells
     integer :: bnd_first, bnd_last, bnd_idx, cand_pos, cand_code, candidate_ids(27)
     real :: dx, dy, dz, xmin, xmax, ymin, ymax, zmin, zmax, xl, xu, yl, yu, zl, zu, tol, &
             planes(6,4), area, area_miss, xproj, yproj, zproj, proj, projVec(3), projArea, &
-            dist, dists(27), angle, angles(27), BI(3), BIs(27,3)
+            dist, dists(27), angle, angles(27), BI(3), BIs(27,3), scores(27), best_score, score_threshold
+    ! Candidate flux points whose scores agree to within this relative tolerance
+    ! are treated as tied, and the first one wins (see below).
+    real, parameter :: score_tol = 1.e-6
     real, dimension(3) :: xyz, xyz1
     integer :: n, m, i, j, k, p, dir, ids(2), thread_id
 
@@ -208,7 +211,7 @@ module matchFacets2Cells
     !$OMP         il, iu, jl, ju, kl, ku, xl, xu, yl, yu, zl, zu, planes, &
     !$OMP         clipVertices, nClipVertices, &
     !$OMP         xproj, yproj, zproj, proj, projVec, projArea, &
-    !$OMP         area, dist, dists, angle, angles, BI, BIs, &
+    !$OMP         area, dist, dists, angle, angles, BI, BIs, scores, best_score, score_threshold, &
     !$OMP         xyz, xyz1, search_adj, id, loc, candidate_ids, &
     !$OMP         bnd_first, bnd_last, bnd_idx, cand_pos, cand_code, &
     !$OMP         i, j, k, m, p, dir, ids, thread_id) &
@@ -403,9 +406,38 @@ module matchFacets2Cells
                   !    end if
                   ! end do
 
-                  id = maxloc(abs(angles) / (dists / (dx*dy*dz)**(1./3.)), 1)
-                  dist = dists(id)
-                  BI = BIs(id,:)
+                  ! Pick the candidate that maximises |angle| / normalised distance.
+                  ! Candidates that are mirror images of each other about the
+                  ! facet (for example the cells above and below a section lying
+                  ! on a horizontal cell face) have identical scores in exact
+                  ! arithmetic, but differ in the last bit in floating point, so
+                  ! a plain maxloc() would choose between them by round-off noise.
+                  ! Treat scores within score_tol of the best as tied and take the
+                  ! first, which is what the MATLAB implementation's max() does.
+                  scores = abs(angles) / (dists / (dx*dy*dz)**(1./3.))
+                  best_score = -huge(best_score)
+                  do p = 1, size(scores)
+                     if (.not. isnan(scores(p))) best_score = max(best_score, scores(p))
+                  end do
+                  if (best_score > huge(best_score)) then
+                     score_threshold = best_score ! a zero-distance candidate wins outright
+                  else
+                     score_threshold = best_score - score_tol*abs(best_score)
+                  end if
+                  id = 0
+                  do p = 1, size(scores)
+                     if (isnan(scores(p))) cycle
+                     if (scores(p) >= score_threshold) then
+                        id = p
+                        exit
+                     end if
+                  end do
+                  if (id == 0) then
+                     dist = ieee_value(dist, ieee_quiet_nan)
+                  else
+                     dist = dists(id)
+                     BI = BIs(id,:)
+                  end if
 
                   if (isnan(dist)) then
                      !write(*,*) "facet ", n, " in cell ", i, j, k, " could not find a cell to give flux to"

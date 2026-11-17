@@ -53,6 +53,7 @@ class TestRunIbmReloadsOutputs(unittest.TestCase):
             "libm": True,
             "gen_geom": True,
             "geom_path": "",
+            "lfacetuniform": False,
             "stl_ground": True,
             "diag_neighbs": True,
             "nompthreads": 1,

@@ -20,9 +20,9 @@ export PREPROC_WALLTIME="24:00:00" # Defaults to 24:00:00
 export PREPROC_MEM="128gb" # Defaults to 128gb
 ```
 
-`tools/write_inputs.sh` scans `namoptions.###` for `nompthreads` and uses it for the preprocessing CPU request. If `nompthreads` is omitted, the preprocessing default is `8`. If `nompthreads` appears more than once anywhere in the file, the wrapper stops and asks for a single value. The wrapper exports the derived value internally as `PREPROC_NCPU` for PBS submission and for the default View3D thread count, unless `VIEW3D_NUM_THREADS` is explicitly overridden.
+`tools/write_inputs.sh` scans `namoptions.###` for `nompthreads` and uses it for the preprocessing CPU request. If `nompthreads` is omitted, the preprocessing default is `8`. If `nompthreads` appears more than once anywhere in the file, the wrapper stops and asks for a single value. The wrapper exports the derived value internally as `PREPROC_NCPU` for the scheduler request (PBS on Imperial, Slurm on ECMWF) and for the default View3D thread count, unless `VIEW3D_NUM_THREADS` is explicitly overridden.
 
-When running preprocessing on an Imperial HPC compute node with `write_inputs.sh ... c`, the wrapper uses `PREPROC_WALLTIME="24:00:00"` and `PREPROC_MEM="128gb"` unless these are set in `config.sh` or the calling environment. These size the preprocessing PBS job only; they are separate from the solver job variables `WALLTIME` and `MEM` used by `hpc_execute.sh`. `PREPROC_MEM` must be written as a number followed by lowercase `gb`, such as `128gb`; a unitless value such as `128` is rejected before submitting the PBS job. Unless `VIEW3D_MAX_DENSE_MATRIX_GIB` is explicitly set, the default View3D configuration derives the dense-matrix guard from `PREPROC_MEM`: requests above `16gb` leave 16 GiB for overhead, while smaller requests use the requested GiB value. For example, `PREPROC_MEM="128gb"` gives `VIEW3D_MAX_DENSE_MATRIX_GIB=112`.
+When running preprocessing on a compute node with `write_inputs.sh ... c <system>` (`icl` submits a PBS job on Imperial HPC, `ecmwf` a Slurm job on ECMWF HPC2020), the wrapper uses `PREPROC_WALLTIME="24:00:00"` and `PREPROC_MEM="128gb"` unless these are set in `config.sh` or the calling environment. These size the preprocessing job only; they are separate from the solver job variables `WALLTIME` and `MEM` used by `hpc_execute.sh` or `ecmwf_execute.sh`. `PREPROC_MEM` must be written as a number followed by lowercase `gb`, such as `128gb`; a unitless value such as `128` is rejected before submitting the job. On ECMWF the job is also sized by `PREPROC_ACCOUNT` (Slurm account, default `spnlthee`) and `PREPROC_QOS` (default `nf`: a shared node with at most 128 cores and 128 GB, the right queue for a single threaded process). The MATLAB route is not available on ECMWF. Unless `VIEW3D_MAX_DENSE_MATRIX_GIB` is explicitly set, the default View3D configuration derives the dense-matrix guard from `PREPROC_MEM`: requests above `16gb` leave 16 GiB for overhead, while smaller requests use the requested GiB value. For example, `PREPROC_MEM="128gb"` gives `VIEW3D_MAX_DENSE_MATRIX_GIB=112`.
 
 Before running the preprocessing, one must build virtual python environment as uDALES preprocessing setup is gradually moving towards Python; the MATLAB route is deprecated and will be retired from uDALES v3.0 onwards. Run the virtual environment setup script from the repository root as given below. It creates the virtual environment, installs all dependencies, and builds the preprocessing tools (View3D and f2py extension modules). For the MATLAB route, the same setup is still a convenient way to build View3D and the bundled Python helpers used by some preprocessing paths, such as vegetation conversion. For more details on virtual environment set up see the [virtual environment README](https://github.com/uDALES/u-dales/blob/master/tools/python/README_VENV.md):
 
@@ -32,6 +32,9 @@ bash tools/python/setup_venv.sh common
 
 # For the Imperial HPC machine
 bash tools/python/setup_venv.sh icl
+
+# For the ECMWF Atos HPC2020
+bash tools/python/setup_venv.sh ecmwf
 ```
 This is a one-time setup task and should be repeated after pulling changes that affect Python dependencies or preprocessing binaries.
 
@@ -49,38 +52,51 @@ This is a one-time setup task and should be repeated after pulling changes that 
 
 Then, to start the pre-processing, run:
 
+The general syntax is `write_inputs.sh <-m|-p> <PATH_TO_CASE> [start] [system]`. `start` says where and how the preprocessing runs:
+
+- `l` (default): on the current node, in the background. The wrapper returns at once and the output goes to `write_inputs.<expnr>.log` in the case directory.
+- `f`: on the current node, in the foreground. The wrapper blocks, the output goes to the terminal and to the log, and the exit code of the preprocessing is returned. Use this from scripts.
+- `c`: on a compute node, through the scheduler of `system` (`icl`: PBS, `ecmwf`: Slurm).
+
+`system` is `common` (default), `icl` or `ecmwf`.
+
 For local ubuntu or mac
 
 ``` sh
 # We assume you are running the following commands from your
 # top-level project directory.
 
-# General syntax: write_inputs.sh <-m|-p> <PATH_TO_CASE> [start]
 ./u-dales/tools/write_inputs.sh -m experiments/001
 
 # Or run the Python preprocessing route
 ./u-dales/tools/write_inputs.sh -p experiments/001
+
+# Or run it in the foreground and wait for it
+./u-dales/tools/write_inputs.sh -p experiments/001 f
 ```
 
 For ICL HPC
 
 ``` sh
-# We assume you are running the following commands from your
-# top-level project directory.
-
-# General syntax: write_inputs.sh <-m|-p> experiments/exp_id run_node_type
-
 # To run preprocessing on HPC login node (not recommended)
 ./u-dales/tools/write_inputs.sh -m experiments/001 l
 
 # To run preprocessing on HPC compute node (recommended)
 # For MATLAB
-./u-dales/tools/write_inputs.sh -m experiments/001 c
+./u-dales/tools/write_inputs.sh -m experiments/001 c icl
 # For Python
-./u-dales/tools/write_inputs.sh -p experiments/001 c
+./u-dales/tools/write_inputs.sh -p experiments/001 c icl
 ```
 
-In above example commands, replace 001 with the number of your example.
+For ECMWF HPC2020 (Python route only)
+
+``` sh
+# To run preprocessing on a compute node as a Slurm job (recommended;
+# login nodes give a session very few cores and end long processes)
+./u-dales/tools/write_inputs.sh -p experiments/001 c ecmwf
+```
+
+The job script (`pre-job.<expnr>` on Imperial, `pre-job.<expnr>.slurm` on ECMWF) and the scheduler output are written in the case directory. In above example commands, replace 001 with the number of your example.
 
 Note: After editing or creating a `namoptions.###` file (use an existing template where possible), run `write_inputs.sh` to generate or update geometry-related input files such as `facets.inp` and `factypes.inp`. If your setup requires generating geometry from STL files during pre-processing, set the `gen_geom` parameter in the `namoptions` file so the pre-processor will build geometry from the provided STL.
 
@@ -139,6 +155,122 @@ overfull facets exceed 5% of total facet area, the correction removes more than
 1% of total surface exchange area, or the reciprocity L1 error exceeds 1%. Set
 `UDALES_VIEW_FACTOR_POLICY=strict` before `write_inputs.sh -p` to reject any
 material row-closure violation rather than repair it.
+
+## Facet-size uniformisation
+
+uDALES treats every STL triangle as one facet with a single surface temperature
+and a single set of fluxes. STL files from city models mix triangles of very
+different sizes: a few huge ground or roof triangles next to clusters of sliver
+triangles left behind by CAD operations. Both ends are bad for the surface
+energy balance. A huge facet spreads one temperature over a whole wall, and a
+sliver gets all-or-nothing sun and hardly any view-factor neighbours.
+
+With `lfacetuniform = .true.` under `&INPS`, the Python preprocessing first
+rebuilds the mesh so that facet areas fall within a band around a target area,
+writes the result as a new STL (and a new facet-type file) next to the original,
+and runs every later step on the new geometry. The original files are never
+modified.
+
+### Inputs
+
+The step is driven entirely from `namoptions.<expnr>`. Only the switch is
+required; the geometry variables are the same ones used without uniformisation:
+
+```fortran
+&INPS
+  stl_file          = 'geom.stl'        ! source STL, relative to the case directory
+  read_types        = .true.            ! optional: per-facet types ...
+  types_path        = 'geom_types.txt'  ! ... one integer per face, in face order
+  lfacetuniform     = .true.            ! switch the step on
+  facet_target_edge = 0.0               ! optional tuning, see below
+  facet_size_band   = 4.0
+  facet_allow_split = .true.
+  facet_allow_merge = .true.
+  facet_count_max   = 0
+/
+```
+
+| Variable | Default | Meaning |
+| --- | --- | --- |
+| `lfacetuniform` | `.false.` | Switch. Everything else only matters when this is true. |
+| `facet_target_edge` | `0.0` | Target facet edge length in metres; the target area is that of the equilateral triangle with this edge. `0` keeps the facet count about the same by taking the mean facet area of the input as the target. Set it explicitly when the whole mesh is uniformly too coarse or too fine, which the automatic target cannot correct. |
+| `facet_size_band` | `4.0` | Facets with an area between target/band and target×band are accepted as they are. A larger band touches fewer facets and adds fewer new ones. |
+| `facet_allow_split` | `.true.` | Allow facets above the band to be split. |
+| `facet_allow_merge` | `.true.` | Allow facets below the band to be merged with coplanar neighbours of the same type. |
+| `facet_count_max` | `0` | Abort when the result would have more facets than this. `0` means four times the input facet count. The view-factor and shortwave steps scale with the square of the facet count, so this guards against an unintentionally fine target. |
+
+When `read_types` is true the facet types are read from `types_path` and carried
+over to the new faces; merging never crosses a type boundary. Without types, all
+faces are treated as one type.
+
+### What the step does
+
+- Faces are grouped into coplanar, edge-connected patches of the same facet type.
+- A patch that contains faces below the band is retriangulated as a whole, which
+  merges the tiny faces into their coplanar neighbours.
+- Faces above the band are split.
+- Faces inside the band are copied unchanged, so a mesh that is already uniform
+  passes through untouched and running the step twice changes nothing.
+- The geometry itself is preserved: no vertex moves, creases and type boundaries
+  stay where they are, the mesh stays conforming (no T-junctions) and the output
+  has no unused vertices.
+
+The step prints a summary: facet counts, area percentiles before and after, the
+number of faces merged and split, and the number of faces that remain outside
+the band.
+
+The per-patch work (checking and retriangulating the patches) runs in up to
+`nompthreads` worker processes; fewer are started when there are not enough
+patches to keep them busy, and the result does not depend on that number.
+
+### Outputs and what happens next
+
+The outputs are written next to the input STL and never overwrite anything:
+
+| File | Content |
+| --- | --- |
+| `<stem>_uniform.stl` | the uniformised geometry |
+| `<types stem>_uniform<ext>` | facet types of the new faces (only when `read_types` is true) |
+| `<stem>_uniform_facemap.txt` | 1-based index of the input face each new face comes from, for carrying other per-facet data across |
+| `<stem>_uniform.json` | source file checksums, settings used and the summary |
+
+`stl_file` and `types_path` in `namoptions` are then rewritten in place to point
+at the new files, and the geometry is reloaded. From this point on, the
+preprocessing (IBM, `facets.inp`, view factors, shortwave, SEB) and
+post-processing with `udbase` use only the uniform geometry; the original STL
+and types file are not read again.
+
+### Rerunning and regenerating
+
+Rerunning the preprocessing with the rewritten `namoptions` is a no-op for this
+step: `stl_file` already names a uniformised geometry made with the current
+settings, and nothing is recomputed.
+
+Per-facet input files generated earlier from the original STL are stale. In
+particular an existing `facets.inp.<expnr>` is refused because its facet count
+no longer matches the geometry, and other steps that do not overwrite their
+outputs (for example `Tfacinit.inp`, the View3D view factors) keep the old
+files. Delete those files before enabling uniformisation on an existing case so
+they are regenerated. `factypes.inp` is a material table, not per facet, and
+stays valid.
+
+To regenerate with different settings, set `stl_file` (and `types_path`) back to
+the source files and delete the `_uniform` outputs. The step refuses to
+overwrite an existing `<stem>_uniform.stl` unless its sidecar matches the
+current source and settings, and refuses to continue when `stl_file` names a
+uniformised geometry made with settings different from the current ones.
+
+### Limits
+
+Merging never crosses a crease or a type boundary, and a facet narrower than
+the target (a 1 m wide wall piece, say) stays small whatever the settings,
+because its edges are real geometry; the summary reports how many such faces
+remain. An edge shared with a face that is kept as it is cannot be split, so a
+split facet next to a kept one may stay larger than the target along that edge.
+
+The same operation is available in Python as `udgeom.uniformize_facets(mesh,
+...)` or `UDGeom.uniformize_facets(...)`; `workers=` sets the maximum number of
+worker processes there (default 1).
 
 ## Developer's guide
 
@@ -245,6 +377,11 @@ The following parameters are related to the immersed boundary method.
 - `stl_file`: Name of STL file defining the geometry.
 - `read_types`: Switch for reading facet types from file. Default: false (all facets are set to type 1).
 - `types_path`: Name of types file.
+- `lfacetuniform`: Python preprocessing only. Switch for making the STL facet sizes uniform before the geometry is used (see [Facet-size uniformisation](#facet-size-uniformisation)). Default: false.
+- `facet_target_edge`: target facet edge length (m) for `lfacetuniform`; 0 keeps the facet count about the same. Default: 0.
+- `facet_size_band`: facets with an area within a factor `facet_size_band` of the target area are accepted as they are. Default: 4.
+- `facet_allow_split`, `facet_allow_merge`: allow splitting facets above the band / merging coplanar facets of the same type below it. Default: true, true.
+- `facet_count_max`: abort when uniformisation would produce more facets than this; 0 means four times the input facet count. Default: 0.
 - `facT`: if `iwallmom = 2` or  `iwalltemp = 2` then (constant) facet temperature, or if `lEB = .true.` then initial facet temperature. Default: 288.
 - `isolid_bound`: Option for classification of solid/fluid points, including boundary points. 1: In-house Fortran routine (default, fast), 2: equivalent MATLAB routine (useful for debugging), 3: inpolyhedron (MATLAB; provided for when option 1 & 2 are not producing expected results): <https://www.mathworks.com/matlabcentral/fileexchange/37856-inpolyhedron-are-points-inside-a-triangulated-volume>.
 - `ifacsec`: Option for facet section calculation. 1: Fortran (default, fast), 2: MATLAB (useful for debugging).

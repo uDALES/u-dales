@@ -22,7 +22,7 @@ For the Python tooling (pre-processing and the Python package tests), create the
 ./tools/python/setup_venv.sh common
 ```
 
-This creates the environment at `tools/python/.venv`, installs all dependencies, and builds the compiled preprocessing extensions (View3D and the f2py modules). See [tools/python/README_VENV.md](https://github.com/uDALES/u-dales/blob/master/tools/python/README_VENV.md) for details.
+Use `icl` or `ecmwf` instead of `common` on those clusters. This creates the environment at `tools/python/.venv`, installs all dependencies, and builds the compiled preprocessing extensions (View3D and the f2py modules). See [tools/python/README_VENV.md](https://github.com/uDALES/u-dales/blob/master/tools/python/README_VENV.md) for details.
 
 ## Building for development
 
