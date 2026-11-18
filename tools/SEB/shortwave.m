@@ -33,7 +33,7 @@ if ldirectShortwaveFortran
     fclose(fileID);
 
     cd(folder);
-    system('gfortran -O3 directShortwave.f90 -o DS.exe');
+    system('gfortran -O3 -fdefault-real-8 -fdefault-double-8 directShortwave.f90 -o DS.exe');
     copyfile('DS.exe', fpath)
     delete DS.exe
 end
