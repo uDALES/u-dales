@@ -623,7 +623,7 @@ class IBMSection(Section):
             "IBM_preproc_module.f90",
             "IBM_preproc_main.f90",
         ]
-        cmd = [compiler, "-O3", "-fopenmp"]
+        cmd = [compiler, "-O3", "-fopenmp", "-fdefault-real-8", "-fdefault-double-8"]
         cmd.extend(str(IBM_FORTRAN_DIR / src) for src in sources)
         cmd.extend(["-o", str(exe)])
         subprocess.run(
