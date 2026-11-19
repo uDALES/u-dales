@@ -101,17 +101,17 @@ uDALES-specific udcomf stage
                 |
                 v
 strict model-neutral exchange stage
-  thermal_comfort_inputs_udales.h<height>.<expnr>.nc
+  thermal_comfort_inputs.h<height>.<expnr>.nc
                 |
                 v
 model-neutral thermalcomfort stage
-  thermal_comfort_indices_<model>.h<height>.nc
+  thermal_comfort_indices.h<height>.<expnr>.nc
 ```
 
 The exchange boundary is deliberate. The exchange file carries everything
 the index routine needs and nothing uDALES-specific, so the same index code
-runs on an exchange file prepared from any source. Model name or file name
-does not alter the physics.
+runs on an exchange file prepared from any source. The file name does not
+alter the physics.
 
 ## Package design
 
@@ -677,7 +677,7 @@ $PY tools/python/examples/thermal_comfort/udales_to_comfort.py \
 
 ```bash
 $PY tools/python/examples/thermal_comfort/calculate_indices.py \
-  "$CASE/thermal_comfort_inputs_udales.h1p1.1.nc"
+  "$CASE/thermal_comfort_inputs.h1p1.1.nc"
 ```
 
 Use `--skip-atmosphere` or `--skip-radiation` only when the corresponding final
@@ -889,7 +889,7 @@ are rejected by the checkpoint manifest.
 ## Exchange files
 
 After all three per-height files exist, `sim.comf.export_exchange()`
-assembles `thermal_comfort_inputs_udales.h<height>.<expnr>.nc` for each configured
+assembles `thermal_comfort_inputs.h<height>.<expnr>.nc` for each configured
 height. It streams the saved `(x,y,time)` fields without re-running the LES,
 surface energy balance, or receptor radiation. The records are those of the
 pedestrian atmosphere file; the shortwave and longwave files must carry the
@@ -927,8 +927,8 @@ or remaps the grid.
 The input contract is the exchange file described above: any number of time
 records from a single instant upward on a strictly increasing axis with
 window bounds, the grid with cell bounds, the pedestrian mask, the receptor
-height, the physical fields with the documented units, and per-record solar
-angles. Nothing is optional and nothing is derived when absent. Per-cell
+height, per-record solar angles, and the physical fields the selected indices
+need with the documented units. Nothing is derived when absent. Per-cell
 nonphysical inputs (nonfinite values, nonpositive temperature or pressure,
 negative humidity, wind or irradiance, or direct beam with the sun below
 the horizon) are flagged with validity bit 64 instead of rejecting the
@@ -939,59 +939,84 @@ from pathlib import Path
 from udcomf.thermalcomfort import calculate_indices, ComfortParameters
 
 output = calculate_indices(
-    Path("thermal_comfort_inputs_udales.h1p1.1.nc"),
-    parameters=ComfortParameters(),
+    Path("thermal_comfort_inputs.h1p1.1.nc"),
+    parameters=ComfortParameters.defaults(),   # comfort_defaults.json
+    indices=("mrt", "pet", "utci", "wbgt"),    # any subset
 )
 ```
 
-The default output is `thermal_comfort_indices_<model>.h<height>.nc`, with
-native coordinates, mask, time bounds, and `(x,y,time)` planes for `mrt`,
-`pet`, `utci` and `wbgt` in degrees Celsius, one record per exchange record.
-`globe_temperature` and `natural_wet_bulb_temperature` are retained for WBGT
-auditing. All values are indices **of the window-mean inputs**, not time means
-of the instantaneous indices. The input file must contain every required
-variable with its units, the grid and per-record solar angles; missing or
-negative source values inside the mask are flagged.
+`indices` selects which of `mrt`, `pet`, `utci` and `wbgt` are calculated
+(default: all). MRT reads the radiation planes and the solar zenith; UTCI
+adds `ta`, `pabs`, `qv` and `ws_10`; PET adds `ta`, `pabs`, `qv` and
+`ws_local`; WBGT reads `ta`, `pabs`, `qv`, `ws_local` and the radiation planes
+but not MRT. Only those fields are required and read, so a radiation-only
+exchange file is enough for MRT.
+
+The default output is `thermal_comfort_indices.h<height>.<expnr>.nc` beside
+an input named `thermal_comfort_inputs.h<height>.<expnr>.nc` (the prefix is
+replaced; any other input name needs `output_path`). It has native
+coordinates, mask, time bounds, and `(x,y,time)` planes for the selected
+indices in degrees Celsius, one record per exchange record.
+`globe_temperature` and `natural_wet_bulb_temperature` are written with WBGT
+for auditing. All values are indices **of the window-mean inputs**, not time
+means of the instantaneous indices. Missing or negative source values inside
+the mask are flagged.
+
+Every person, sensor and domain parameter is read from
+`udcomf/thermalcomfort/comfort_defaults.json`: the body factors and optical
+properties for MRT, the PET reference person, the UTCI operational domain,
+the WBGT globe and wick sizes and properties, the sensor solver settings and
+the ISO 7243 weights. None of these values is fixed in the code. A user who
+needs other values copies the file, edits it and loads it with
+`ComfortParameters.from_file(path)` or `--parameters` of
+`calculate_indices.py`; a parameter file must hold every key and no others.
+The values used are written to the output attribute `comfort_parameters`.
 Output outside the mask, and indices outside their physical or validated
 domains, use `_FillValue`. No meteorological input is clipped. A per-cell
 `validity_flags` bit mask and global `validity_counts` record humidity, UTCI,
 WBGT sensor-domain/convergence and PET failures.
 
-MRT uses the documented six-direction standing-person weights (0.06 up/down,
-0.22 each side), human shortwave absorptivity 0.70 and emissivity 0.97. The
-direct beam is separate: its orientation-averaged standing-body factor varies
-with solar zenith as `0.28 sin(zenith) + 0.06 cos(zenith)` above the horizon.
+MRT uses the six-direction standing-person weights of the parameter file
+(default 0.06 up/down, 0.22 each side), human shortwave absorptivity (0.70)
+and emissivity (0.97). The direct beam is separate: its orientation-averaged
+standing-body factor varies with solar zenith as
+`side_factor sin(zenith) + horizontal_factor cos(zenith)` above the horizon
+(default `0.28 sin(zenith) + 0.06 cos(zenith)`).
 Azimuth is checked but not used because person orientation is averaged. This
 is a stated six-plane approximation, not angularly resolved human geometry.
-The factors and PET person can be changed through `ComfortParameters` but
-**must be kept identical** for every file in one comparison.
+The parameter file **must be kept identical** for every file in one
+comparison.
 
-PET is `pythermalcomfort`'s steady MEMI implementation for a standing
-35-year-old man, 1.75 m, 75 kg, 1.37 met (79.7 W m-2) and 0.9 clo by default.
+PET is `pythermalcomfort`'s steady MEMI implementation for the reference
+person of the parameter file, by default a standing 35-year-old man, 1.75 m,
+75 kg, 1.37 met (79.7 W m-2) and 0.9 clo.
 The `pet_met` input unit is **met**; the W m-2 value is its body-surface-area
 equivalent, not 80 W total-body power. UTCI uses that
-library's unrounded operational calculation with `ws_10`; outside its
-temperature, radiant-temperature, wind or vapour-pressure domain it is missing
-and flagged, not extrapolated. PET uses `ws_local` and actual pressure.
+library's unrounded operational calculation with `ws_10`; outside the
+temperature, radiant-temperature, wind and vapour-pressure domain of the
+parameter file it is missing and flagged, not extrapolated. PET uses `ws_local` and actual pressure.
 Both receive RH derived from `qv` and `pabs`. Supersaturation within the
 configured tolerance is capped to saturation and flagged with bit 32; larger
 overshoots are flagged invalid, never silently altered.
 
 WBGT solves a Liljegren-type black-globe and natural-wet-bulb heat/mass balance
 with the saved **local** six-plane radiation, air temperature, pressure,
-humidity and `ws_local`. A 50.8 mm globe receives direct DNI over one-quarter
-of its area and the six-plane mean non-direct irradiance. A 7 mm by 25.4 mm
-vertical wick receives lateral and end-face irradiance by surface-area
-weighting; its direct side projection is `sin(zenith)/pi`. This replaces the
-published Liljegren program's flat-ground shortwave/sky/surface estimate with
-an urban directional estimate: it is **not** claimed to be the unmodified,
-instrument-validated Liljegren model. Cells below its 0.13 m s-1 forced-flow
-domain, outside the wick property fit's 283.15--313.15 K temperature range, or
-with nonconvergent sensor balances are missing and flagged; wind is not raised
-to the reference code's floor. The ISO 7243 solar-load expression
-is selected where local direct beam is positive, and the no-direct-solar
-expression elsewhere. This per-cell sun/shade rule is fixed in the
-implementation.
+humidity and `ws_local`. The globe (default 50.8 mm, emissivity 0.95)
+receives direct DNI over one-quarter of its area and the six-plane mean
+non-direct irradiance. The vertical wick (default 7 mm by 25.4 mm, emissivity
+0.95, shortwave absorptivity 0.60) receives lateral and end-face irradiance by
+surface-area weighting; its direct side projection is `sin(zenith)/pi`. This
+replaces the published Liljegren program's flat-ground shortwave/sky/surface
+estimate with an urban directional estimate: it is **not** claimed to be the
+unmodified, instrument-validated Liljegren model. Cells below the forced-flow
+wind limit (default 0.13 m s-1), outside the wick property fit's temperature
+range (default 283.15--313.15 K), or with nonconvergent sensor balances
+(default 80 iterations, 0.02 K) are missing and flagged; wind is not raised to
+the reference code's floor. The ISO 7243 solar-load weights (default 0.7, 0.2,
+0.1 on natural wet-bulb, globe and air temperature) apply where the local
+direct beam is positive, and the no-direct-solar weights (default 0.7, 0.3)
+elsewhere. This per-cell sun/shade rule is fixed in the implementation; the
+weights come from the parameter file.
 
 References: [SOLWEIG standing-person factors](https://umep-dev.github.io/solweig/physics/tmrt/),
 [pythermalcomfort PET/UTCI](https://pythermalcomfort.readthedocs.io/en/stable/documentation/models.html),

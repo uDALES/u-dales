@@ -260,7 +260,7 @@ def write_exchange_heights(sim, *, heights: tuple[float, ...] | None = None,
             raise ValueError(f"Solar {key} must be explicitly configured")
     site = {key: float(options[key]) for key in ("longitude", "latitude", "elevation")}
     backend = solar_position_backend(options.get("isolarpos", 1))
-    paths = {h: target_dir / f"thermal_comfort_inputs_udales.{height_tag(h)}.{sim.expnr}.nc"
+    paths = {h: target_dir / f"thermal_comfort_inputs.{height_tag(h)}.{sim.expnr}.nc"
              for h in selected}
     if not overwrite and any(path.exists() for path in paths.values()):
         raise FileExistsError("One or more exchange files already exist")
@@ -340,7 +340,6 @@ def write_exchange_heights(sim, *, heights: tuple[float, ...] | None = None,
                     out["solar_zenith"].units = out["solar_azimuth"].units = "rad"
                     out["solar_azimuth"].long_name = "solar azimuth clockwise from true north at midpoint of averaging window"
                     out["solar_zenith"].long_name = "solar zenith at midpoint of averaging window"
-                    out.model_name = "uDALES"
                     out.Conventions = "CF-1.10"
                     out.simulation_identifier = str(sim.expnr)
                     out.simulation_start_utc = start.strftime("%Y-%m-%dT%H:%M:%SZ")

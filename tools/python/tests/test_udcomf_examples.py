@@ -30,19 +30,35 @@ class TestThermalComfortExamples(unittest.TestCase):
         self.assertEqual(args.facet_source, [])
         self.assertEqual(args.stats_source, [])
 
-    def test_parameter_reader_uses_defaults_and_rejects_unknown_fields(self):
+    def test_calculate_parser_defaults_to_all_indices(self):
+        args = self.calculate.build_parser().parse_args(["a.nc"])
+        self.assertEqual(args.indices, ("mrt", "pet", "utci", "wbgt"))
+        self.assertEqual(args.tile_x, 64)
+        args = self.calculate.build_parser().parse_args(["--indices", "wbgt,mrt", "a.nc", "b.nc"])
+        self.assertEqual(args.indices, ("mrt", "wbgt"))
+        self.assertEqual(len(args.exchange_files), 2)
+        with self.assertRaises(SystemExit):
+            self.calculate.build_parser().parse_args(["--indices", "pmv", "a.nc"])
+        with self.assertRaises(SystemExit):
+            self.calculate.build_parser().parse_args(["--indices", "", "a.nc"])
+
+    def test_parameter_reader_uses_the_defaults_file_and_requires_complete_files(self):
         defaults = self.calculate.load_comfort_parameters(None)
         self.assertEqual(defaults.pet_met, 1.37)
+        with open(self.calculate.DEFAULT_PARAMETERS_PATH, encoding="utf-8") as stream:
+            raw = json.load(stream)
         with TemporaryDirectory() as tmp:
             path = Path(tmp) / "parameters.json"
-            path.write_text(json.dumps({"pet_clo": 0.7}), encoding="utf-8")
+            path.write_text(json.dumps(dict(raw, pet_clo=0.7)), encoding="utf-8")
             self.assertEqual(
                 self.calculate.load_comfort_parameters(path).pet_clo, 0.7,
             )
-            path.write_text(json.dumps({"unknown": 1}), encoding="utf-8")
+            path.write_text(json.dumps({"pet_clo": 0.7}), encoding="utf-8")
+            with self.assertRaisesRegex(ValueError, "Missing comfort parameters"):
+                self.calculate.load_comfort_parameters(path)
+            path.write_text(json.dumps(dict(raw, unknown=1)), encoding="utf-8")
             with self.assertRaisesRegex(ValueError, "Unknown comfort parameters"):
                 self.calculate.load_comfort_parameters(path)
-
 
 if __name__ == "__main__":
     unittest.main()

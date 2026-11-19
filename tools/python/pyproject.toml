@@ -34,6 +34,10 @@ py-modules = [
 ]
 packages = ["udgeom", "udprep", "udvis", "udcomf", "udcomf.thermalcomfort"]
 
+[tool.setuptools.package-data]
+udprep = ["defaults.json"]
+"udcomf.thermalcomfort" = ["comfort_defaults.json"]
+
 [tool.setuptools.dynamic]
 dependencies = { file = ["requirements.txt"] }
 

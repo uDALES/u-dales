@@ -1,12 +1,64 @@
 #!/usr/bin/env python3
 """Prepare thermal-comfort exchange files from uDALES outputs.
 
-This script does not run uDALES or repeat the surface energy balance. It reads
-saved statistics, facet radiation outputs, and preprocessing files from one
-case directory. The site longitude, latitude and elevation, the model axis
-rotation and the UTC start date all come from namoptions.
+Usage
+-----
+    python udales_to_comfort.py --case-dir CASE_DIR [options]
 
-Every saved statistics record becomes one output record: the mean over the
+    --case-dir DIR       The uDALES case directory (required). It must hold
+                         namoptions.<expnr>, the preprocessing files, the
+                         gathered facet outputs facEB/facT and the gathered
+                         time-averaged statistics. The site longitude, latitude
+                         and elevation, the model axis rotation (xazimuth), the
+                         UTC start date, the receptor heights and the statistics
+                         schedule (tstatstart, tstatsdump, tstatsgap) are all
+                         read from namoptions.
+
+Options
+-------
+    --statistics-source {stats_tkslice,stats_t}
+                         Statistics file to read the receptor-level means from.
+                         Default: stats_tkslice.
+    --heights H [H ...]  Receptor heights (m) to process; they must be saved
+                         receptor heights of the case. Default: all.
+    --output-dir DIR     Where the intermediate planes and exchange files go.
+                         Default: the case directory.
+    --facet-source PATH  Warm-start segment (case directory or facEB.<case>.nc)
+                         whose facet records are merged into this case first.
+                         Repeat for every segment.
+    --stats-source PATH  Warm-start segment (case directory or
+                         stats_tkslice/stats_t.<case>.nc) whose comfort subset is
+                         merged into stats_tkslice of this case first. Repeat
+                         for every segment.
+    --overwrite-merge    Replace an existing merged facEB/facT or stats_tkslice.
+    --skip-atmosphere    Reuse existing pedestrian_atmosphere files.
+    --skip-radiation     Reuse existing pedestrian_shortwave/longwave files.
+    --tile-size N        Receptors traced per radiation tile (checkpoint
+                         granularity). Default: 256.
+    --n-mu N             Zenith quadrature points for the sky/facet radiation.
+                         Default: 8.
+    --n-azimuth N        Azimuth quadrature points. Default: 32.
+    --max-gap S          Largest accepted interval (s) between facet records
+                         inside one averaging window. Default: 1.1 times the
+                         median interval.
+    --checkpoint-root DIR
+                         Radiation checkpoint directory. Default: inside the case.
+    --no-resume          Ignore existing radiation tile checkpoints.
+    --overwrite          Replace existing atmosphere, radiation and exchange files.
+
+Outputs (per receptor height, in the output directory)
+-----------------------------------------------------
+    pedestrian_atmosphere.h<height>.<expnr>.nc
+    pedestrian_shortwave.h<height>.<expnr>.nc
+    pedestrian_longwave.h<height>.<expnr>.nc
+    thermal_comfort_inputs.h<height>.<expnr>.nc   (input of calculate_indices.py)
+
+Example
+-------
+    python udales_to_comfort.py --case-dir /data/cases/001 --heights 1.1 1.5
+
+This script does not run uDALES or repeat the surface energy balance. Every
+saved statistics record becomes one output record: the mean over the
 ``tstatsdump`` seconds preceding its timestamp, with solar angles evaluated
 at the midpoint of that window.
 """

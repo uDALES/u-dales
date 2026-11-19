@@ -2,18 +2,17 @@
 
 from __future__ import annotations
 
-from dataclasses import asdict, dataclass
 from importlib.metadata import version
 import json
 import operator
 import os
 from pathlib import Path
-import re
 import tempfile
 
 from netCDF4 import Dataset
 import numpy as np
 
+from .parameters import ComfortParameters
 from .physics import (
     EPSILON, mean_radiant_temperature, saturation_pressure_pa, sensor_temperatures,
     vapour_pressure_pa, wet_bulb_globe_temperature,
@@ -27,61 +26,71 @@ for _side in ("upface", "downface", "northface", "southface", "eastface", "westf
     _RADIATION[f"sw_nondirect_{_side}"] = "W m-2"
     _RADIATION[f"lw_{_side}"] = "W m-2"
 _FIELDS = {**_ATMOSPHERE, **_RADIATION}
+_HUMIDITY = ("ta", "pabs", "qv")
+
+INDEX_NAMES = ("mrt", "pet", "utci", "wbgt")
+
+# Exchange fields each index reads. MRT itself is an input of PET and UTCI,
+# so selecting either of them also evaluates MRT from the radiation planes.
+_INDEX_FIELDS = {
+    "mrt": tuple(_RADIATION),
+    "utci": tuple(_RADIATION) + _HUMIDITY + ("ws_10",),
+    "pet": tuple(_RADIATION) + _HUMIDITY + ("ws_local",),
+    "wbgt": tuple(_RADIATION) + _HUMIDITY + ("ws_local",),
+}
 _RESULTS = {"mrt": "mean radiant temperature", "pet": "physiological equivalent temperature",
             "utci": "universal thermal climate index", "wbgt": "wet-bulb globe temperature",
             "globe_temperature": "black-globe sensor temperature",
             "natural_wet_bulb_temperature": "natural wet-bulb sensor temperature"}
+_FLAGS = (("invalid_humidity", 1), ("utci_outside_domain", 2), ("wbgt_outside_domain", 4),
+          ("wbgt_nonconverged", 8), ("pet_failed", 16), ("humidity_capped", 32),
+          ("invalid_input", 64))
+_FLAG_MEANINGS = ("invalid_relative_humidity utci_outside_domain wbgt_outside_domain "
+                  "wbgt_sensor_nonconverged pet_failed humidity_capped_to_saturation "
+                  "invalid_input")
+_INPUT_PREFIX = "thermal_comfort_inputs"
+_OUTPUT_PREFIX = "thermal_comfort_indices"
 
 
-@dataclass(frozen=True)
-class ComfortParameters:
-    """Explicit common person and sensor choices applied to every model.
-
-    PET metabolic activity is 1.37 met = 79.7 W m-2, not 80 W total-body
-    power. This distinguishes the library's units from the informal PET
-    reference-person wording in the project note.
-    """
-
-    human_shortwave_absorptivity: float = 0.70
-    human_longwave_emissivity: float = 0.97
-    human_horizontal_factor: float = 0.06
-    human_vertical_factor: float = 0.22
-    human_direct_side_factor: float = 0.28
-    pet_met: float = 1.37
-    pet_clo: float = 0.9
-    pet_age_years: int = 35
-    pet_sex: str = "male"
-    pet_weight_kg: float = 75.0
-    pet_height_m: float = 1.75
-    supersaturation_tolerance_percent: float = 5.0
-
-    def __post_init__(self) -> None:
-        values = (self.human_shortwave_absorptivity, self.human_longwave_emissivity,
-                  self.human_horizontal_factor, self.human_vertical_factor,
-                  self.human_direct_side_factor, self.pet_met, self.pet_clo,
-                  self.pet_weight_kg, self.pet_height_m,
-                  self.supersaturation_tolerance_percent)
-        if (not np.isfinite(values).all()
-                or not 0 < self.human_shortwave_absorptivity <= 1
-                or not 0 < self.human_longwave_emissivity <= 1
-                or not np.isclose(2 * self.human_horizontal_factor +
-                                  4 * self.human_vertical_factor, 1.0, atol=1e-12)
-                or self.human_horizontal_factor <= 0 or self.human_vertical_factor <= 0
-                or self.human_direct_side_factor <= 0
-                or self.pet_met <= 0 or self.pet_clo < 0 or self.pet_age_years <= 0
-                or self.pet_weight_kg <= 0 or self.pet_height_m <= 0
-                or self.supersaturation_tolerance_percent < 0
-                or self.pet_sex not in ("male", "female")):
-            raise ValueError("Comfort person and radiation parameters are invalid")
+def selected_indices(indices) -> tuple[str, ...]:
+    """Normalise a selection of index names into canonical order."""
+    if indices is None:
+        return INDEX_NAMES
+    names = tuple(str(name).lower() for name in indices)
+    unknown = sorted(set(names) - set(INDEX_NAMES))
+    if unknown:
+        raise ValueError(f"Unknown comfort indices {unknown}; choose from {list(INDEX_NAMES)}")
+    if not names:
+        raise ValueError("At least one comfort index must be selected")
+    return tuple(name for name in INDEX_NAMES if name in names)
 
 
-def _validate_exchange(ds: Dataset) -> np.ndarray:
+def required_fields(indices: tuple[str, ...]) -> tuple[str, ...]:
+    """Exchange fields the selected indices need, in schema order."""
+    needed = set()
+    for name in indices:
+        needed.update(_INDEX_FIELDS[name])
+    return tuple(field for field in _FIELDS if field in needed)
+
+
+def default_output_path(input_path: Path) -> Path:
+    """``thermal_comfort_inputs<rest>`` beside the input becomes ``thermal_comfort_indices<rest>``."""
+    input_path = Path(input_path)
+    if not input_path.name.startswith(_INPUT_PREFIX):
+        raise ValueError(
+            f"Exchange file name must start with {_INPUT_PREFIX} to derive an output name; "
+            f"pass an explicit output path for {input_path.name}"
+        )
+    return input_path.with_name(_OUTPUT_PREFIX + input_path.name[len(_INPUT_PREFIX):])
+
+
+def _validate_exchange(ds: Dataset, fields: tuple[str, ...]) -> np.ndarray:
     """Check the exchange schema; dynamic values are checked by tile.
 
     Required: the native (x, y) grid with cell bounds, at least one time
     record on a strictly increasing axis with window bounds, the receptor
     height, the pedestrian mask, per-record solar angles, and the physical
-    fields with the documented units. Returns the pedestrian mask.
+    ``fields`` with the documented units. Returns the pedestrian mask.
     """
     for dim in ("x", "y", "time", "bounds"):
         if dim not in ds.dimensions:
@@ -105,7 +114,7 @@ def _validate_exchange(ds: Dataset) -> np.ndarray:
     for name, dims in schema.items():
         if name not in ds.variables or ds[name].dimensions != dims:
             raise ValueError(f"Exchange file has missing or invalid {name} dimensions")
-    for name in _FIELDS:
+    for name in fields:
         if (name not in ds.variables or ds[name].dimensions != ("x", "y", "time")
                 or getattr(ds[name], "units", None) != _FIELDS[name]):
             raise ValueError(f"Exchange file lacks a valid {name} field")
@@ -137,14 +146,17 @@ def _validate_exchange(ds: Dataset) -> np.ndarray:
     return mask
 
 
-def _load_physics():
+def _load_physics(indices: tuple[str, ...]):
+    """Import the PET/UTCI library only when one of them is selected."""
+    if not ({"pet", "utci"} & set(indices)):
+        return None, None, None
     try:
         from pythermalcomfort.models import pet_steady, utci
     except ImportError as exc:
         raise ImportError(
-            "The comfort indices require pythermalcomfort; install tools/python[comfort]"
+            "PET and UTCI require pythermalcomfort; install tools/python[comfort]"
         ) from exc
-    return pet_steady, utci
+    return pet_steady, utci, version("pythermalcomfort")
 
 
 def _library_values(function, *, result: str, size: int, **kwargs) -> np.ndarray:
@@ -161,7 +173,7 @@ def _pet_values(pet_steady, tdb: np.ndarray, mrt: np.ndarray, wind: np.ndarray,
     kwargs = dict(tdb=tdb, tr=mrt, v=wind, rh=rh, p_atm=pabs / 100.0,
                   met=config.pet_met, clo=config.pet_clo, age=config.pet_age_years,
                   sex=config.pet_sex, weight=config.pet_weight_kg,
-                  height=config.pet_height_m, position="standing")
+                  height=config.pet_height_m, position=config.pet_position)
     try:
         return _library_values(pet_steady, result="pet", size=len(tdb), **kwargs)
     except (ArithmeticError, RuntimeError, ValueError):
@@ -177,10 +189,26 @@ def _pet_values(pet_steady, tdb: np.ndarray, mrt: np.ndarray, wind: np.ndarray,
         return values
 
 
+def _method_description(indices: tuple[str, ...]) -> str:
+    parts = {"mrt": "standing six-direction MRT", "pet": "MEMI PET",
+             "utci": "operational UTCI", "wbgt": "directional Liljegren-type WBGT"}
+    return "; ".join(parts[name] for name in indices)
+
+
 def calculate_indices(input_path: Path, *, output_path: Path | None = None,
                       parameters: ComfortParameters | None = None,
-                      overwrite: bool = False, tile_x: int = 64) -> Path:
+                      indices=None, overwrite: bool = False, tile_x: int = 64) -> Path:
     """Calculate index maps for every record of an exchange file on its native grid.
+
+    ``indices`` selects any subset of ``mrt``, ``pet``, ``utci`` and ``wbgt``
+    (default: all four). Only the exchange fields those indices need are
+    required and read: MRT needs the radiation planes and the solar zenith;
+    UTCI adds air temperature, pressure, humidity and ``ws_10``; PET adds the
+    same with ``ws_local``; WBGT needs humidity, pressure, ``ws_local`` and
+    the radiation planes but not MRT. Globe and natural wet-bulb temperatures
+    are written with WBGT.
+
+    ``parameters`` defaults to the values of ``comfort_defaults.json``.
 
     No horizontal interpolation or model-specific adjustment occurs. The one
     documented exception to "no clipping" is slight supersaturation: relative
@@ -201,25 +229,23 @@ def calculate_indices(input_path: Path, *, output_path: Path | None = None,
         raise TypeError("tile_x must be an integer") from exc
     if tile_x <= 0:
         raise ValueError("tile_x must be positive")
-    config = ComfortParameters() if parameters is None else parameters
+    config = ComfortParameters.defaults() if parameters is None else parameters
     if not isinstance(config, ComfortParameters):
         raise TypeError("parameters must be a ComfortParameters instance")
-    pet_steady, utci = _load_physics()
+    selected = selected_indices(indices)
+    fields_needed = required_fields(selected)
+    need_mrt = bool({"mrt", "pet", "utci"} & set(selected))
+    need_humidity = bool({"pet", "utci", "wbgt"} & set(selected))
+    results = [name for name in INDEX_NAMES if name in selected]
+    if "wbgt" in selected:
+        results += ["globe_temperature", "natural_wet_bulb_temperature"]
+    pet_steady, utci, library_version = _load_physics(selected)
     source_path = Path(input_path)
     with Dataset(source_path) as source:
         source.set_auto_mask(False)
-        mask = _validate_exchange(source)
-        raw_name = str(getattr(source, "model_name", "") or "")
-        if not raw_name:
-            raw_name = source_path.stem
-        model = re.sub(r"[^a-z0-9_-]+", "_", raw_name.lower()).strip("_")
-        if not model:
-            raise ValueError("Model name cannot be used in an output filename")
+        mask = _validate_exchange(source, fields_needed)
         nt = len(source.dimensions["time"])
-        height = float(source["receptor_height"][...])
-        tag = "." + f"h{height:g}".replace(".", "p")
-        output = (source_path.with_name(f"thermal_comfort_indices_{model}{tag}.nc")
-                  if output_path is None else Path(output_path))
+        output = default_output_path(source_path) if output_path is None else Path(output_path)
         if output.resolve() == source_path.resolve():
             raise ValueError("Comfort output must not replace its exchange input")
         if output.exists() and not overwrite:
@@ -228,10 +254,7 @@ def calculate_indices(input_path: Path, *, output_path: Path | None = None,
         fd, name = tempfile.mkstemp(prefix=f".{output.name}.", suffix=".tmp", dir=output.parent)
         os.close(fd)
         temporary = Path(name)
-        counts = {name: 0 for name in ("invalid_humidity", "humidity_capped",
-                                          "utci_outside_domain", "wbgt_outside_domain",
-                                          "wbgt_nonconverged", "pet_failed",
-                                          "invalid_input")}
+        counts = {label: 0 for label, _bit in _FLAGS}
         try:
             with Dataset(temporary, "w", format="NETCDF4") as target:
                 nx, ny = mask.shape
@@ -251,32 +274,36 @@ def calculate_indices(input_path: Path, *, output_path: Path | None = None,
                     copy.setncatts(attrs)
                 target.setncatts({name: source.getncattr(name) for name in source.ncattrs()})
                 target.input_file = source_path.name
-                target.comfort_method = (
-                    "standing six-direction MRT; MEMI PET; operational UTCI; "
-                    "directional Liljegren-type WBGT"
-                )
-                target.comfort_parameters = json.dumps(asdict(config), sort_keys=True)
-                target.pet_utci_library = f"pythermalcomfort {version('pythermalcomfort')}"
-                target.wbgt_sensor_convention = (
-                    "0.0508 m globe; 0.007 x 0.0254 m wetted cylinder; "
-                    "direct-exposed ISO weighting"
-                )
-                target.wbgt_radiation_convention = (
-                    "sphere: six-plane mean plus DNI/4; wick: lateral/end area weighting"
-                )
-                target.wbgt_model_limit = "forced-convection wind >= 0.13 m/s; no wind clipping"
+                target.indices = " ".join(selected)
+                target.comfort_method = _method_description(selected)
+                target.comfort_parameters = config.to_json()
+                if library_version is not None:
+                    target.pet_utci_library = f"pythermalcomfort {library_version}"
+                if "wbgt" in selected:
+                    target.wbgt_sensor_convention = (
+                        f"{config.wbgt_globe_diameter_m:g} m globe; "
+                        f"{config.wbgt_wick_diameter_m:g} x {config.wbgt_wick_length_m:g} m "
+                        "wetted cylinder; direct-exposed ISO weighting"
+                    )
+                    target.wbgt_radiation_convention = (
+                        "sphere: six-plane mean plus DNI/4; wick: lateral/end area weighting"
+                    )
+                    target.wbgt_model_limit = (
+                        f"forced-convection wind >= {config.wbgt_wind_min_m_s:g} m/s; "
+                        "no wind clipping"
+                    )
                 target.validity_flag_meanings = (
                     "1 invalid_relative_humidity; 2 utci_outside_domain; "
                     "4 wbgt_outside_domain; 8 wbgt_sensor_nonconverged; 16 pet_failed; "
                     "32 humidity_capped_to_saturation; 64 invalid_input"
                 )
                 variables = {}
-                for field, long_name in _RESULTS.items():
+                for field in results:
                     var = target.createVariable(field, "f4", ("x", "y", "time"),
                                                 fill_value=np.float32(-9.96921e36),
                                                 zlib=True, complevel=3,
                                                 chunksizes=(min(nx, tile_x), min(ny, 64), 1))
-                    var.long_name = long_name
+                    var.long_name = _RESULTS[field]
                     var.units = "degree_Celsius"
                     var.averaging_convention = (
                         "index calculated from the window-mean inputs of each record"
@@ -286,12 +313,8 @@ def calculate_indices(input_path: Path, *, output_path: Path | None = None,
                                               fill_value=np.int16(-1), zlib=True, complevel=3,
                                               chunksizes=(min(nx, tile_x), min(ny, 64), 1))
                 flags.long_name = "bitwise index validity reasons"
-                flags.flag_masks = np.array([1, 2, 4, 8, 16, 32, 64], dtype="i2")
-                flags.flag_meanings = (
-                    "invalid_relative_humidity utci_outside_domain wbgt_outside_domain "
-                    "wbgt_sensor_nonconverged pet_failed humidity_capped_to_saturation "
-                    "invalid_input"
-                )
+                flags.flag_masks = np.array([bit for _label, bit in _FLAGS], dtype="i2")
+                flags.flag_meanings = _FLAG_MEANINGS
                 for t in range(nt):
                     zenith = float(source["solar_zenith"][t])
                     for lo in range(0, nx, tile_x):
@@ -305,7 +328,7 @@ def calculate_indices(input_path: Path, *, output_path: Path | None = None,
                         tile_mask = valid
                         usable = valid.copy()
                         fields = {}
-                        for field in _FIELDS:
+                        for field in fields_needed:
                             var = source[field]
                             values = np.asarray(var[lo:hi, :, t], dtype=float)
                             fill = getattr(var, "_FillValue", None)
@@ -328,94 +351,128 @@ def calculate_indices(input_path: Path, *, output_path: Path | None = None,
                                 sunlit = fields["sw_direct_normal"] > 1.0e-6
                             invalid_input = invalid_input | (valid & sunlit)
                             valid = valid & ~sunlit
-                        ta = fields["ta"]
-                        pressure = fields["pabs"]
-                        wind = fields["ws_local"]
-                        es = saturation_pressure_pa(ta)
-                        e_raw = vapour_pressure_pa(fields["qv"], pressure)
-                        rh_raw = 100.0 * e_raw / es
-                        # Slight supersaturation is expected from averaging the
-                        # convex saturation curve and from vertical interpolation
-                        # between saturated levels; within the configured
-                        # tolerance the cell is treated as exactly saturated in
-                        # every index input, not rejected. Bit 32 marks it, but
-                        # only when the overshoot exceeds 0.01 % - float32
-                        # storage round-off alone must not raise flags.
-                        capped = (np.isfinite(rh_raw) & (rh_raw > 100.0)
-                                  & (rh_raw <= 100.0 + config.supersaturation_tolerance_percent)
-                                  & (e_raw < pressure) & (es < pressure))
-                        humidity_ok = ((np.isfinite(rh_raw) & (rh_raw >= 0)
-                                        & (rh_raw <= 100.0) & (e_raw < pressure))
-                                       | capped)
-                        e = np.where(capped, es, e_raw)
-                        rh = np.where(capped, 100.0, rh_raw)
-                        qv_saturated = EPSILON * es / (pressure - (1.0 - EPSILON) * es)
-                        qv_used = np.where(capped, qv_saturated, fields["qv"])
-                        mrt_k = mean_radiant_temperature(
-                            fields, zenith, alpha_sw=config.human_shortwave_absorptivity,
-                            emissivity=config.human_longwave_emissivity,
-                            factor_horizontal=config.human_horizontal_factor,
-                            factor_vertical=config.human_vertical_factor,
-                            direct_side_factor=config.human_direct_side_factor,
-                        )
-                        mrt = mrt_k - 273.15
                         state = np.zeros(tile_mask.shape, dtype=np.int16)
                         state[invalid_input] |= 64
-                        state[valid & ~humidity_ok] |= 1
-                        state[valid & capped & (rh_raw > 100.01)] |= 32
-                        tdb = ta - 273.15
-                        utci_ok = (valid & humidity_ok & (tdb >= -50) & (tdb <= 50)
-                                   & ((mrt - tdb) >= -30) & ((mrt - tdb) <= 70)
-                                   & (fields["ws_10"] >= 0.5) & (fields["ws_10"] <= 17)
-                                   & (e <= 5000) & np.isfinite(mrt))
-                        state[valid & ~utci_ok] |= 2
-                        utci_values = np.full(valid.shape, np.nan)
-                        if utci_ok.any():
-                            utci_values[utci_ok] = _library_values(
-                                utci, result="utci", size=int(utci_ok.sum()),
-                                tdb=tdb[utci_ok], tr=mrt[utci_ok], v=fields["ws_10"][utci_ok],
-                                rh=rh[utci_ok], limit_inputs=True, round_output=False,
+
+                        if need_humidity:
+                            ta = fields["ta"]
+                            pressure = fields["pabs"]
+                            es = saturation_pressure_pa(ta)
+                            e_raw = vapour_pressure_pa(fields["qv"], pressure)
+                            rh_raw = 100.0 * e_raw / es
+                            # Slight supersaturation is expected from averaging the
+                            # convex saturation curve and from vertical interpolation
+                            # between saturated levels; within the configured
+                            # tolerance the cell is treated as exactly saturated in
+                            # every index input, not rejected. Bit 32 marks it, but
+                            # only when the overshoot exceeds 0.01 % - float32
+                            # storage round-off alone must not raise flags.
+                            capped = (np.isfinite(rh_raw) & (rh_raw > 100.0)
+                                      & (rh_raw <= 100.0 + config.supersaturation_tolerance_percent)
+                                      & (e_raw < pressure) & (es < pressure))
+                            humidity_ok = ((np.isfinite(rh_raw) & (rh_raw >= 0)
+                                            & (rh_raw <= 100.0) & (e_raw < pressure))
+                                           | capped)
+                            e = np.where(capped, es, e_raw)
+                            rh = np.where(capped, 100.0, rh_raw)
+                            qv_saturated = EPSILON * es / (pressure - (1.0 - EPSILON) * es)
+                            qv_used = np.where(capped, qv_saturated, fields["qv"])
+                            tdb = ta - 273.15
+                            state[valid & ~humidity_ok] |= 1
+                            state[valid & capped & (rh_raw > 100.01)] |= 32
+
+                        outputs = {}
+                        if need_mrt:
+                            mrt_k = mean_radiant_temperature(
+                                fields, zenith, alpha_sw=config.human_shortwave_absorptivity,
+                                emissivity=config.human_longwave_emissivity,
+                                factor_horizontal=config.human_horizontal_factor,
+                                factor_vertical=config.human_vertical_factor,
+                                direct_side_factor=config.human_direct_side_factor,
                             )
-                        state[utci_ok & ~np.isfinite(utci_values)] |= 2
-                        pet_ok = valid & humidity_ok & np.isfinite(mrt)
-                        pet_values = np.full(valid.shape, np.nan)
-                        if pet_ok.any():
-                            pet_values[pet_ok] = _pet_values(
-                                pet_steady, tdb[pet_ok], mrt[pet_ok], wind[pet_ok],
-                                rh[pet_ok], pressure[pet_ok], config,
-                            )
-                        state[pet_ok & ~np.isfinite(pet_values)] |= 16
-                        wbgt_domain = (valid & humidity_ok & (wind >= 0.13)
-                                       & (ta >= 283.15) & (ta <= 313.15))
-                        state[valid & ~wbgt_domain] |= 4
-                        tg = np.full(valid.shape, np.nan)
-                        tnwb = np.full(valid.shape, np.nan)
-                        wbgt_values = np.full(valid.shape, np.nan)
-                        if wbgt_domain.any():
-                            sensor_fields = {key: np.where(wbgt_domain, value, np.nan)
-                                             for key, value in fields.items() if key in _RADIATION}
-                            tg, tnwb, converged = sensor_temperatures(
-                                np.where(wbgt_domain, ta, np.nan),
-                                np.where(wbgt_domain, pressure, np.nan),
-                                np.where(wbgt_domain, qv_used, np.nan),
-                                np.where(wbgt_domain, wind, np.nan), sensor_fields, zenith,
-                            )
-                            state[wbgt_domain & ~converged] |= 8
-                            wbgt_values = wet_bulb_globe_temperature(
-                                ta, tg, tnwb, fields["sw_direct_normal"]
-                            )
-                        outputs = {"mrt": mrt, "pet": pet_values, "utci": utci_values,
-                                   "wbgt": wbgt_values, "globe_temperature": tg - 273.15,
-                                   "natural_wet_bulb_temperature": tnwb - 273.15}
+                            mrt = mrt_k - 273.15
+                            if "mrt" in selected:
+                                outputs["mrt"] = mrt
+
+                        if "utci" in selected:
+                            ws_10 = fields["ws_10"]
+                            utci_ok = (valid & humidity_ok
+                                       & (tdb >= config.utci_ta_min_c)
+                                       & (tdb <= config.utci_ta_max_c)
+                                       & ((mrt - tdb) >= config.utci_mrt_minus_ta_min_k)
+                                       & ((mrt - tdb) <= config.utci_mrt_minus_ta_max_k)
+                                       & (ws_10 >= config.utci_ws_10_min_m_s)
+                                       & (ws_10 <= config.utci_ws_10_max_m_s)
+                                       & (e <= config.utci_vapour_pressure_max_pa)
+                                       & np.isfinite(mrt))
+                            state[valid & ~utci_ok] |= 2
+                            utci_values = np.full(valid.shape, np.nan)
+                            if utci_ok.any():
+                                utci_values[utci_ok] = _library_values(
+                                    utci, result="utci", size=int(utci_ok.sum()),
+                                    tdb=tdb[utci_ok], tr=mrt[utci_ok], v=ws_10[utci_ok],
+                                    rh=rh[utci_ok], limit_inputs=True, round_output=False,
+                                )
+                            state[utci_ok & ~np.isfinite(utci_values)] |= 2
+                            outputs["utci"] = utci_values
+
+                        if "pet" in selected:
+                            pet_ok = valid & humidity_ok & np.isfinite(mrt)
+                            pet_values = np.full(valid.shape, np.nan)
+                            if pet_ok.any():
+                                pet_values[pet_ok] = _pet_values(
+                                    pet_steady, tdb[pet_ok], mrt[pet_ok],
+                                    fields["ws_local"][pet_ok], rh[pet_ok],
+                                    pressure[pet_ok], config,
+                                )
+                            state[pet_ok & ~np.isfinite(pet_values)] |= 16
+                            outputs["pet"] = pet_values
+
+                        if "wbgt" in selected:
+                            wind = fields["ws_local"]
+                            wbgt_domain = (valid & humidity_ok
+                                           & (wind >= config.wbgt_wind_min_m_s)
+                                           & (ta >= config.wbgt_ta_min_k)
+                                           & (ta <= config.wbgt_ta_max_k))
+                            state[valid & ~wbgt_domain] |= 4
+                            tg = np.full(valid.shape, np.nan)
+                            tnwb = np.full(valid.shape, np.nan)
+                            wbgt_values = np.full(valid.shape, np.nan)
+                            if wbgt_domain.any():
+                                sensor_fields = {key: np.where(wbgt_domain, value, np.nan)
+                                                 for key, value in fields.items()
+                                                 if key in _RADIATION}
+                                tg, tnwb, converged = sensor_temperatures(
+                                    np.where(wbgt_domain, ta, np.nan),
+                                    np.where(wbgt_domain, pressure, np.nan),
+                                    np.where(wbgt_domain, qv_used, np.nan),
+                                    np.where(wbgt_domain, wind, np.nan), sensor_fields, zenith,
+                                    globe_diameter=config.wbgt_globe_diameter_m,
+                                    globe_emissivity=config.wbgt_globe_emissivity,
+                                    wick_diameter=config.wbgt_wick_diameter_m,
+                                    wick_length=config.wbgt_wick_length_m,
+                                    wick_emissivity=config.wbgt_wick_emissivity,
+                                    wick_shortwave_absorptivity=config.wbgt_wick_shortwave_absorptivity,
+                                    wind_min=config.wbgt_wind_min_m_s,
+                                    iterations=config.wbgt_max_iterations,
+                                    tolerance_k=config.wbgt_tolerance_k,
+                                )
+                                state[wbgt_domain & ~converged] |= 8
+                                wbgt_values = wet_bulb_globe_temperature(
+                                    ta, tg, tnwb, fields["sw_direct_normal"],
+                                    sun_weights=config.wbgt_sun_weights,
+                                    shade_weights=config.wbgt_shade_weights,
+                                )
+                            outputs["wbgt"] = wbgt_values
+                            outputs["globe_temperature"] = tg - 273.15
+                            outputs["natural_wet_bulb_temperature"] = tnwb - 273.15
+
                         for field, values in outputs.items():
                             variables[field][lo:hi, :, t] = np.where(
                                 valid & np.isfinite(values), values, variables[field]._FillValue
                             ).astype("f4")
                         flags[lo:hi, :, t] = np.where(tile_mask, state, flags._FillValue)
-                        for label, bit in (("invalid_humidity", 1), ("humidity_capped", 32),
-                                           ("utci_outside_domain", 2),
-                                           ("wbgt_outside_domain", 4), ("wbgt_nonconverged", 8),
-                                           ("pet_failed", 16), ("invalid_input", 64)):
+                        for label, bit in _FLAGS:
                             counts[label] += int(np.count_nonzero(state & bit))
                 target.validity_counts = json.dumps(counts, sort_keys=True)
             if output.exists() and not overwrite:

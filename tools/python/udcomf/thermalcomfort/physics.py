@@ -4,6 +4,11 @@ The globe/wick heat and mass balances follow Liljegren et al. (2008). Their
 flat-ground incoming-radiation model is replaced by saved six-plane irradiance
 and a stated, orientation-averaged sensor geometry. This is an urban adaptation,
 not a claim of bitwise equivalence to Liljegren's reference WBGT program.
+
+Only physical constants and the published empirical correlations are fixed
+here. Every body, sensor and domain choice (body factors, optical properties,
+sensor sizes, solver settings, ISO weights) is an argument supplied by the
+caller from ``ComfortParameters``.
 """
 
 from __future__ import annotations
@@ -32,8 +37,7 @@ def saturation_pressure_pa(temperature_k: np.ndarray) -> np.ndarray:
     )
 
 
-def direct_body_factor(zenith: float, *, side_factor: float = 0.28,
-                       top_factor: float = 0.06) -> float:
+def direct_body_factor(zenith: float, *, side_factor: float, top_factor: float) -> float:
     """Orientation-averaged standing-cylinder projected area per body area.
 
     The lateral coefficient is the standing-person SOLWEIG/VDI convention;
@@ -48,10 +52,9 @@ def direct_body_factor(zenith: float, *, side_factor: float = 0.28,
 
 
 def mean_radiant_temperature(fields: dict[str, np.ndarray], zenith: float,
-                             *, alpha_sw: float = 0.70, emissivity: float = 0.97,
-                             factor_horizontal: float = 0.06,
-                             factor_vertical: float = 0.22,
-                             direct_side_factor: float = 0.28) -> np.ndarray:
+                             *, alpha_sw: float, emissivity: float,
+                             factor_horizontal: float, factor_vertical: float,
+                             direct_side_factor: float) -> np.ndarray:
     """Six-plane standing-person MRT in kelvin, with separate direct beam."""
     if not np.isclose(2 * factor_horizontal + 4 * factor_vertical, 1.0, atol=1e-12):
         raise ValueError("Six-direction body factors must sum to one")
@@ -96,13 +99,13 @@ def _convective_coefficient(temperature_k: np.ndarray, pressure_pa: np.ndarray,
     return nusselt * _air_conductivity(temperature_k) / diameter
 
 
-def _sensor_irradiance(fields: dict[str, np.ndarray], zenith: float,
-                       *, sphere: bool) -> tuple[np.ndarray, np.ndarray]:
+def _sensor_irradiance(fields: dict[str, np.ndarray], zenith: float, *, sphere: bool,
+                       wick_diameter: float, wick_length: float) -> tuple[np.ndarray, np.ndarray]:
     if sphere:
         sw = sum(fields[f"sw_nondirect_{side}"] for side in _SIDES) / 6.0
         lw = sum(fields[f"lw_{side}"] for side in _SIDES) / 6.0
         return sw + fields["sw_direct_normal"] / 4.0, lw
-    end_to_side = 0.007 / (4.0 * 0.0254)
+    end_to_side = wick_diameter / (4.0 * wick_length)
     norm = 1.0 + 2.0 * end_to_side
     sw = sum(fields[f"sw_nondirect_{side}"] for side in _SIDES[2:]) / 4.0
     lw = sum(fields[f"lw_{side}"] for side in _SIDES[2:]) / 4.0
@@ -122,21 +125,26 @@ def _sensor_irradiance(fields: dict[str, np.ndarray], zenith: float,
 
 def sensor_temperatures(ta_k: np.ndarray, pressure_pa: np.ndarray, qv: np.ndarray,
                         wind: np.ndarray, fields: dict[str, np.ndarray], zenith: float,
-                        *, iterations: int = 80, tolerance_k: float = 0.02,
+                        *, globe_diameter: float, globe_emissivity: float,
+                        wick_diameter: float, wick_length: float, wick_emissivity: float,
+                        wick_shortwave_absorptivity: float, wind_min: float,
+                        iterations: int, tolerance_k: float,
                         ) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
     """Iterate globe and natural-wet-bulb balances on a bounded grid tile.
 
-    No meteorological input is clipped. Cells outside Liljegren's forced-flow
-    range (wind < 0.13 m/s) or with a nonconvergent sensor balance return NaN.
+    No meteorological input is clipped. Cells below the forced-flow wind
+    limit or with a nonconvergent sensor balance return NaN.
     """
     shape = ta_k.shape
     if any(array.shape != shape for array in (pressure_pa, qv, wind)):
         raise ValueError("Sensor input shapes disagree")
-    globe_sw, globe_lw = _sensor_irradiance(fields, zenith, sphere=True)
-    wick_sw, wick_lw = _sensor_irradiance(fields, zenith, sphere=False)
+    globe_sw, globe_lw = _sensor_irradiance(
+        fields, zenith, sphere=True, wick_diameter=wick_diameter, wick_length=wick_length)
+    wick_sw, wick_lw = _sensor_irradiance(
+        fields, zenith, sphere=False, wick_diameter=wick_diameter, wick_length=wick_length)
     e_air = vapour_pressure_pa(qv, pressure_pa)
     valid = (np.isfinite(ta_k) & np.isfinite(pressure_pa) & np.isfinite(wind)
-             & np.isfinite(e_air) & (wind >= 0.13) & (e_air >= 0)
+             & np.isfinite(e_air) & (wind >= wind_min) & (e_air >= 0)
              & (e_air < pressure_pa) & (ta_k > 0))
     globe = np.where(valid, ta_k, np.nan).astype(float)
     wick = np.where(valid, ta_k, np.nan).astype(float)
@@ -145,8 +153,9 @@ def sensor_temperatures(ta_k: np.ndarray, pressure_pa: np.ndarray, qv: np.ndarra
     with np.errstate(divide="ignore", invalid="ignore", over="ignore"):
         for _ in range(iterations):
             ref = 0.5 * (globe + ta_k)
-            h = _convective_coefficient(ref, pressure_pa, wind, 0.0508, sphere=True)
-            rhs = (0.95 * globe_lw + 0.95 * globe_sw + h * (ta_k - globe)) / (0.95 * SIGMA)
+            h = _convective_coefficient(ref, pressure_pa, wind, globe_diameter, sphere=True)
+            rhs = (globe_emissivity * (globe_lw + globe_sw) + h * (ta_k - globe)) / (
+                globe_emissivity * SIGMA)
             proposed = np.where(rhs > 0, rhs**0.25, np.nan)
             newly = (valid & ~globe_ok & np.isfinite(proposed)
                      & (np.abs(proposed - globe) < tolerance_k))
@@ -161,7 +170,7 @@ def sensor_temperatures(ta_k: np.ndarray, pressure_pa: np.ndarray, qv: np.ndarra
                 break
         for _ in range(iterations):
             ref = 0.5 * (wick + ta_k)
-            h = _convective_coefficient(ref, pressure_pa, wind, 0.007, sphere=False)
+            h = _convective_coefficient(ref, pressure_pa, wind, wick_diameter, sphere=False)
             density = pressure_pa / (_R_AIR * ref)
             schmidt = _air_viscosity(ref) / (
                 density * _vapour_diffusivity(ref, pressure_pa / 100.0)
@@ -172,7 +181,8 @@ def sensor_temperatures(ta_k: np.ndarray, pressure_pa: np.ndarray, qv: np.ndarra
                 latent * (e_wick - e_air) / (pressure_pa - e_wick)
                 * (_PR / schmidt) ** 0.56
             )
-            radiative = 0.95 * (wick_lw - SIGMA * wick**4) + 0.60 * wick_sw
+            radiative = (wick_emissivity * (wick_lw - SIGMA * wick**4)
+                         + wick_shortwave_absorptivity * wick_sw)
             proposed = ta_k - evaporation + radiative / h
             newly = valid & ~wick_ok & np.isfinite(proposed) & (e_wick < pressure_pa) & (
                 np.abs(proposed - wick) < tolerance_k
@@ -186,10 +196,20 @@ def sensor_temperatures(ta_k: np.ndarray, pressure_pa: np.ndarray, qv: np.ndarra
 
 
 def wet_bulb_globe_temperature(ta_k: np.ndarray, globe_k: np.ndarray,
-                               wick_k: np.ndarray, direct_normal: np.ndarray) -> np.ndarray:
-    """ISO 7243 solar/no-direct-solar expressions, selected per grid cell."""
+                               wick_k: np.ndarray, direct_normal: np.ndarray,
+                               *, sun_weights: tuple[float, float, float],
+                               shade_weights: tuple[float, float]) -> np.ndarray:
+    """ISO 7243 solar/no-direct-solar expressions, selected per grid cell.
+
+    ``sun_weights`` multiply (natural wet-bulb, globe, air) where the local
+    direct beam is positive; ``shade_weights`` multiply (natural wet-bulb,
+    globe) elsewhere.
+    """
     ta_c = ta_k - 273.15
     tg_c = globe_k - 273.15
     tw_c = wick_k - 273.15
-    return np.where(direct_normal > 0, 0.7 * tw_c + 0.2 * tg_c + 0.1 * ta_c,
-                    0.7 * tw_c + 0.3 * tg_c)
+    w_sun = sun_weights
+    w_shade = shade_weights
+    return np.where(direct_normal > 0,
+                    w_sun[0] * tw_c + w_sun[1] * tg_c + w_sun[2] * ta_c,
+                    w_shade[0] * tw_c + w_shade[1] * tg_c)

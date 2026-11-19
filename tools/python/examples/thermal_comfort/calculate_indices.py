@@ -1,57 +1,105 @@
 #!/usr/bin/env python3
-"""Calculate MRT, PET, UTCI, and WBGT maps from exchange files.
+"""Calculate MRT, PET, UTCI and WBGT maps from thermal-comfort exchange files.
 
-Accepts exchange NetCDF files with any number of time records. Each file must
-carry the model grid with cell bounds, the pedestrian mask, the receptor
-height, the physical fields with their units, time bounds and per-record solar
-angles, as written by udales_to_comfort.py or prepared from another source in
-the same format.
+Usage
+-----
+    python calculate_indices.py [options] EXCHANGE_FILE [EXCHANGE_FILE ...]
+
+    EXCHANGE_FILE        One or more exchange NetCDF files, for example the
+                         thermal_comfort_inputs.h<height>.<expnr>.nc files
+                         written by udales_to_comfort.py. Each file is processed
+                         on its own and its result is written beside it as
+                         thermal_comfort_indices.h<height>.<expnr>.nc (the
+                         "thermal_comfort_inputs" prefix replaced). A file whose
+                         name does not start with that prefix needs --output.
+
+Options
+-------
+    --indices LIST       Comma-separated indices to calculate: any of mrt,
+                         pet, utci, wbgt (for example --indices mrt,wbgt).
+                         Default: all four. Only the exchange fields the chosen
+                         indices need are required: mrt reads the radiation
+                         planes and solar zenith; utci adds ta, pabs, qv and
+                         ws_10; pet adds ta, pabs, qv and ws_local; wbgt reads
+                         ta, pabs, qv, ws_local and the radiation planes. Globe
+                         and natural wet-bulb temperatures are written with wbgt.
+    --parameters FILE    JSON file with every person, sensor and domain
+                         parameter. Default: udcomf/thermalcomfort/
+                         comfort_defaults.json. To change a value, copy that
+                         file, edit it and pass the copy here. The file must
+                         contain all keys and no others.
+    --output FILE        Output path; allowed only with one exchange file.
+    --tile-x N           Width in x-cells of the slabs processed at once
+                         (memory use only; results do not depend on it).
+                         Default: 64.
+    --overwrite          Replace an existing output file.
+
+Examples
+--------
+    python calculate_indices.py case/thermal_comfort_inputs.h1p1.001.nc
+    python calculate_indices.py --indices mrt,wbgt case/thermal_comfort_inputs.h*.001.nc
+    python calculate_indices.py --parameters my_parameters.json \\
+        --output mrt_only.nc --indices mrt case/thermal_comfort_inputs.h1p1.001.nc
+
+Each exchange file must carry the model grid with cell bounds, the pedestrian
+mask, the receptor height, time bounds, per-record solar angles and the
+physical fields the selected indices need, with their units. Inputs outside an
+index's validated domain are flagged and written as missing, never clipped.
 """
 
 from __future__ import annotations
 
 import argparse
-from dataclasses import fields
-import json
 from pathlib import Path
 import sys
 
-from udcomf.thermalcomfort import ComfortParameters, calculate_indices
+from udcomf.thermalcomfort import (
+    DEFAULT_PARAMETERS_PATH, INDEX_NAMES, ComfortParameters, calculate_indices,
+    selected_indices,
+)
 
 
 def load_comfort_parameters(path: Path | None) -> ComfortParameters:
-    """Read shared comfort parameters, or use the documented defaults."""
-    if path is None:
-        return ComfortParameters()
-    config_path = Path(path).expanduser().resolve()
-    with config_path.open(encoding="utf-8") as stream:
-        config = json.load(stream)
-    if not isinstance(config, dict):
-        raise ValueError("Comfort-parameter JSON must contain one object")
-    allowed = {field.name for field in fields(ComfortParameters)}
-    unexpected = sorted(config.keys() - allowed)
-    if unexpected:
-        raise ValueError(f"Unknown comfort parameters: {unexpected}")
-    return ComfortParameters(**config)
+    """Read a complete parameter file, or the packaged comfort_defaults.json."""
+    source = DEFAULT_PARAMETERS_PATH if path is None else Path(path).expanduser().resolve()
+    return ComfortParameters.from_file(source)
+
+
+def parse_indices(text: str) -> tuple[str, ...]:
+    """Comma-separated index names in canonical order; unknown names are rejected."""
+    try:
+        return selected_indices(name.strip() for name in text.split(",") if name.strip())
+    except ValueError as exc:
+        raise argparse.ArgumentTypeError(str(exc)) from exc
 
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         description=(
-            "Calculate native-grid MRT, PET, UTCI, and WBGT from one or more "
-            "model-neutral thermal-comfort exchange files."
+            "Calculate native-grid MRT, PET, UTCI and WBGT from one or more "
+            "thermal-comfort exchange files."
         )
     )
     parser.add_argument("exchange_files", type=Path, nargs="+")
     parser.add_argument(
+        "--indices", type=parse_indices, default=INDEX_NAMES, metavar="LIST",
+        help=(
+            "Comma-separated indices to calculate, any of "
+            + ",".join(INDEX_NAMES) + "; default: all four."
+        ),
+    )
+    parser.add_argument(
         "--parameters", type=Path, default=None,
-        help="Shared ComfortParameters JSON; default: documented protocol values.",
+        help=f"Complete comfort-parameter JSON; default: {DEFAULT_PARAMETERS_PATH.name}.",
     )
     parser.add_argument(
         "--output", type=Path, default=None,
         help="Output NetCDF path; valid only with one exchange file.",
     )
-    parser.add_argument("--tile-x", type=int, default=64)
+    parser.add_argument(
+        "--tile-x", type=int, default=64,
+        help="Width in x-cells of the slabs processed at once; default: 64.",
+    )
     parser.add_argument("--overwrite", action="store_true")
     return parser
 
@@ -78,10 +126,11 @@ def main(argv: list[str] | None = None) -> int:
                 source,
                 output_path=output,
                 parameters=parameters,
+                indices=args.indices,
                 overwrite=args.overwrite,
                 tile_x=args.tile_x,
             )
-            print(f"Thermal-comfort indices: {result}")
+            print(f"Thermal-comfort indices ({', '.join(args.indices)}): {result}")
     except (
         FileNotFoundError, FileExistsError, ImportError, OSError,
         RuntimeError, TypeError, ValueError,

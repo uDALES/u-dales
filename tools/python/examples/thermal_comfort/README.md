@@ -5,8 +5,9 @@ separate in `udcomf`:
 
 1. `udales_to_comfort.py` reads saved uDALES results and writes one exchange
    input file per receptor height.
-2. `calculate_indices.py` reads exchange files and calculates MRT, PET, UTCI,
-   and WBGT with one set of person and sensor parameters.
+2. `calculate_indices.py` reads exchange files and calculates MRT, PET, UTCI
+   and WBGT, or any subset of them, with one set of person, sensor and domain
+   parameters read from a JSON file.
 
 Neither script runs the LES. The first script reuses saved uDALES statistics,
 facet energy-balance output, shortwave forcing, longwave forcing, geometry,
@@ -108,51 +109,68 @@ The outputs are:
 pedestrian_atmosphere.h<height>.<expnr>.nc
 pedestrian_shortwave.h<height>.<expnr>.nc
 pedestrian_longwave.h<height>.<expnr>.nc
-thermal_comfort_inputs_udales.h<height>.<expnr>.nc
+thermal_comfort_inputs.h<height>.<expnr>.nc
 ```
 
 ## Exchange files to comfort indices
 
 Run the index calculation on one or several exchange files. With the
-documented default person and sensor parameters:
+parameters of `tools/python/udcomf/thermalcomfort/comfort_defaults.json`:
 
 ```bash
 $PY tools/python/examples/thermal_comfort/calculate_indices.py \
-  "$CASE/thermal_comfort_inputs_udales.h1p1.1.nc"
+  "$CASE/thermal_comfort_inputs.h1p1.1.nc"
 ```
 
 Several height files can be processed together. Each output is placed beside
-its input:
+its input, with `thermal_comfort_inputs` in the name replaced by
+`thermal_comfort_indices`:
 
 ```bash
 $PY tools/python/examples/thermal_comfort/calculate_indices.py \
-  outputs/thermal_comfort_inputs_udales.h1p1.1.nc \
-  outputs/thermal_comfort_inputs_udales.h1p5.1.nc
+  outputs/thermal_comfort_inputs.h1p1.1.nc \
+  outputs/thermal_comfort_inputs.h1p5.1.nc
 ```
 
-The output name is `thermal_comfort_indices_<model>.h<height>.nc`. It contains
-one `(x,y,time)` record per exchange record for `mrt`, `pet`, `utci`, and
-`wbgt`, plus globe and natural-wet-bulb temperatures and validity flags.
+The output `thermal_comfort_indices.h<height>.<expnr>.nc` contains one
+`(x,y,time)` record per exchange record for each selected index in degrees
+Celsius, globe and natural-wet-bulb temperatures when WBGT is selected, and
+validity flags. An exchange file whose name does not start with
+`thermal_comfort_inputs` needs `--output`.
 
-To use a different person or sensor configuration, put only the changed
-`ComfortParameters` fields in one JSON file. For example:
+`--indices` takes a comma-separated subset. Only the exchange fields those
+indices need must be present:
 
-```json
-{
-  "human_shortwave_absorptivity": 0.7,
-  "human_longwave_emissivity": 0.97,
-  "pet_met": 1.37,
-  "pet_clo": 0.9
-}
-```
+| index | exchange fields read |
+|---|---|
+| `mrt` | the thirteen radiation planes and `solar_zenith` |
+| `utci` | MRT inputs, `ta`, `pabs`, `qv`, `ws_10` |
+| `pet` | MRT inputs, `ta`, `pabs`, `qv`, `ws_local` |
+| `wbgt` | `ta`, `pabs`, `qv`, `ws_local`, the radiation planes, `solar_zenith` |
 
 ```bash
 $PY tools/python/examples/thermal_comfort/calculate_indices.py \
-  --parameters common_comfort_parameters.json \
-  thermal_comfort_inputs_*.nc
+  --indices mrt,wbgt "$CASE"/thermal_comfort_inputs.h*.1.nc
 ```
 
-Use the same parameter file for every exchange file that is to be compared.
+Every person, sensor and domain value of the calculation (six-direction body
+factors and optical properties, the PET reference person, the UTCI
+operational domain, the WBGT globe and wick geometry and properties, the
+sensor solver settings and the ISO 7243 weights) is read from
+`comfort_defaults.json`; nothing is fixed in the code. To use other values,
+copy that file, edit the entries and pass the copy:
+
+```bash
+cp tools/python/udcomf/thermalcomfort/comfort_defaults.json my_comfort_parameters.json
+# edit my_comfort_parameters.json
+$PY tools/python/examples/thermal_comfort/calculate_indices.py \
+  --parameters my_comfort_parameters.json \
+  "$CASE"/thermal_comfort_inputs.h*.1.nc
+```
+
+The parameter file must contain every key of the defaults file and no others;
+the values used are stored in the output attribute `comfort_parameters`. Use
+the same parameter file for every exchange file that is to be compared.
 Inputs outside an index's validated domain are flagged and written as missing;
 the calculation does not clip them into range.
 
