@@ -2470,7 +2470,7 @@ module stats
       deallocate(fld2d)
     end subroutine stats_write_pedestrian_wind
 
-    !> Time averages on the yz-planes islice(1:nislice): stats_islice.xxx.xxx.nc, one file
+    !> Time averages on the yz-planes islice(1:nislice): stats_tislice.xxx.xxx.nc, one file
     !> per x-block that contains at least one plane, written by its myidy == 0 rank.
     subroutine stats_write_tavg_islice
       implicit none
@@ -2494,7 +2494,7 @@ module stats
       end if
     end subroutine stats_write_tavg_islice
 
-    !> Time averages on the xz-planes jslice(1:njslice): stats_jslice.xxx.xxx.nc, one file
+    !> Time averages on the xz-planes jslice(1:njslice): stats_tjslice.xxx.xxx.nc, one file
     !> per y-block that contains at least one plane, written by its myidx == 0 rank.
     subroutine stats_write_tavg_jslice
       implicit none
@@ -2518,7 +2518,7 @@ module stats
       end if
     end subroutine stats_write_tavg_jslice
 
-    !> Time averages on the xy-planes kslice(1:nkslice): stats_kslice.xxx.xxx.nc, one file
+    !> Time averages on the xy-planes kslice(1:nkslice): stats_tkslice.xxx.xxx.nc, one file
     !> per x-block, written by its myidy == 0 rank.
     subroutine stats_write_tavg_kslice
       implicit none
@@ -2543,9 +2543,9 @@ module stats
       implicit none
       local_ntislice = count(islice(1:nislice) >= zstart(1) .and. islice(1:nislice) <= zend(1))
       if (local_ntislice > 0 .and. myidy == 0) then
-        filenametis = 'stats_islice.xxx.xxx.nc'
-        filenametis(14:16) = cmyidx
-        filenametis(18:20) = cexpnr
+        filenametis = 'stats_tislice.xxx.xxx.nc'
+        filenametis(15:17) = cmyidx
+        filenametis(19:21) = cexpnr
         nrectis = 0
         call open_nc(filenametis, ncidtis, nrectis, n1=local_ntislice, n2=jtot, n3=zdim)
         if (nrectis == 0) then
@@ -2561,9 +2561,9 @@ module stats
       implicit none
       local_ntjslice = count(jslice(1:njslice) >= zstart(2) .and. jslice(1:njslice) <= zend(2))
       if (local_ntjslice > 0 .and. myidx == 0) then
-        filenametjs = 'stats_jslice.xxx.xxx.nc'
-        filenametjs(14:16) = cmyidy
-        filenametjs(18:20) = cexpnr
+        filenametjs = 'stats_tjslice.xxx.xxx.nc'
+        filenametjs(15:17) = cmyidy
+        filenametjs(19:21) = cexpnr
         nrectjs = 0
         call open_nc(filenametjs, ncidtjs, nrectjs, n1=itot, n2=local_ntjslice, n3=zdim)
         if (nrectjs == 0) then
@@ -2578,9 +2578,9 @@ module stats
     subroutine stats_createnc_tkslice
       implicit none
       if (myidy == 0) then
-        filenametks = 'stats_kslice.xxx.xxx.nc'
-        filenametks(14:16) = cmyidx
-        filenametks(18:20) = cexpnr
+        filenametks = 'stats_tkslice.xxx.xxx.nc'
+        filenametks(15:17) = cmyidx
+        filenametks(19:21) = cexpnr
         nrectks = 0
         call open_nc(filenametks, ncidtks, nrectks, n1=xdim, n2=jtot, n3=nkslice)
         if (nrectks == 0) then

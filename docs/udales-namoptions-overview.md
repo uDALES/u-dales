@@ -287,15 +287,15 @@ BCs at the bottom (BCbot; only effective if not covered with ground facets): 1 =
 | fieldvars | '' | Any of the given labels, several are separated by a comma: u0,v0,w0,p0,pa,th,ta,rh,qt,ql,s1,s2,s3,s4,s5 (prognostic and derived fields); di,ux,vy,wz (divergence of the corrected velocity and its three terms); pd,pu,pv,pw (pressure correction and predicted velocities of the last substep); rs,du,dv,dw (right-hand side of the Poisson equation and its three terms) | Variable names of fields (`pa` writes hydrostatic absolute pressure as `pabs`). The di/ux/vy/wz/rs/du/dv/dw fields are computed at output time only. | - |
 | receptor_height | 1.1 | `REAL` > 0 | Height above model ground (`z=0`) used for pedestrian-level output. | [m] |
 | nreceptor_heights | 0 | Integer 0 to 1000 | Number of entries in `receptor_heights`; 0 keeps the legacy single `receptor_height` output. | - |
-| receptor_heights | - | Positive, finite, strictly increasing list | Requested heights for `ws_local`; first entry must equal `receptor_height`. With more than one height, `ws_local` gains a `receptor_height` dimension in `stats_t` and `stats_kslice`. | [m] |
+| receptor_heights | - | Positive, finite, strictly increasing list | Requested heights for `ws_local`; first entry must equal `receptor_height`. With more than one height, `ws_local` gains a `receptor_height` dimension in `stats_t` and `stats_tkslice`. | [m] |
 | tsample | 5. | `REAL` | Sample time for statistics. | [s] |
 | tstatsdump | 10000. | `REAL` | Output time for statistics. | [s] |
 | tstatstart | 0. | `REAL` | Time from which statistics computation or data sampling starts. | [s] |
 | tstatsgap | 0. | `REAL` | If > 0, time-averaged statistics are written on a fixed absolute schedule: dumps at `tstatstart + n*(tstatsdump + tstatsgap)` (n = 1, 2, ...), each averaging the `tstatsdump` seconds preceding it; no sampling during the gap. The schedule is kept across warm starts. E.g. `tstatstart = 21600`, `tstatsdump = 900`, `tstatsgap = 13500` gives 15-min means ending at t = 36000, 50400, ... | [s] |
 | ltdump | .false. | .true. or .false. | Write time-averaged statistics to `stats_t.xxx.xxx.nc`, including horizontal wind speed at the requested receptor height(s) (`ws_local`) and z=10 m (`ws_10`). | - |
-| ltislicedump | .false. | .true. or .false. | Write the time-averaged statistics (same variables and schedule as `ltdump`) only on the yz-planes `islice(1:nislice)`, to `stats_islice.xxx.xxx.nc`. Can be used with or without `ltdump`. | - |
-| ltjslicedump | .false. | .true. or .false. | As `ltislicedump` for the xz-planes `jslice(1:njslice)`, to `stats_jslice.xxx.xxx.nc`. | - |
-| ltkslicedump | .false. | .true. or .false. | As `ltislicedump` for the xy-planes `kslice(1:nkslice)`, to `stats_kslice.xxx.xxx.nc`; also writes `ws_local` and `ws_10` on the full x-y plane, including when `ltdump=.false.`. | - |
+| ltislicedump | .false. | .true. or .false. | Write the time-averaged statistics (same variables and schedule as `ltdump`) only on the yz-planes `islice(1:nislice)`, to `stats_tislice.xxx.xxx.nc`. Can be used with or without `ltdump`. | - |
+| ltjslicedump | .false. | .true. or .false. | As `ltislicedump` for the xz-planes `jslice(1:njslice)`, to `stats_tjslice.xxx.xxx.nc`. | - |
+| ltkslicedump | .false. | .true. or .false. | As `ltislicedump` for the xy-planes `kslice(1:nkslice)`, to `stats_tkslice.xxx.xxx.nc`; also writes `ws_local` and `ws_10` on the full x-y plane, including when `ltdump=.false.`. | - |
 | lydump | .false. | .true. or .false. | Switch to output y-averaged statistics. *Only functional if x-direction is not parallelised.* | - |
 | lytdump | .false. | .true. or .false. | Switch to output y- and time- averaged statistics. *Only functional if x-direction is not parallelised.* | - |
 | lxydump | .false. | .true. or .false. | Switch to output x- and y- averaged statistics. | - |

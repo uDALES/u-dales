@@ -111,8 +111,8 @@ for file in *dump.*.000.${expnr}.nc ; do
     fi
 done
 
-## call loop for ins_jslice* and stats_jslice* (one file per y-block, gathered along y)
-for dumps in $(list_dump_types "ins_jslice") $(list_dump_types "stats_jslice") ; do
+## call loop for ins_jslice* and stats_tjslice* (one file per y-block, gathered along y)
+for dumps in $(list_dump_types "ins_jslice") $(list_dump_types "stats_tjslice") ; do
     file=$(first_file_of $dumps)
     if [ -f "$file" ]; then
 
@@ -120,7 +120,7 @@ for dumps in $(list_dump_types "ins_jslice") $(list_dump_types "stats_jslice") ;
             echo "Merging $dumps along y-direction."
             proposed_ymparam="ym"
             ymparam=$(check_existing_variables "$proposed_ymparam" "$file")
-        elif [ $dumps == "stats_jslice" ]; then
+        elif [ $dumps == "stats_tjslice" ]; then
             # time-averaged statistics on xz-planes: same variables (and staggering) as stats_t
             echo "Merging $dumps along y-direction."
             proposed_ymparam="v,vpwp,upvp,vsgs,vpthlp,vps1p,vps2p,vps3p,vps4p,ym"
@@ -167,17 +167,17 @@ for file in *dump.000.${expnr}.nc ; do
     fi
 done
 
-## call loop for stats_* (stats_jslice is gathered along y above)
+## call loop for stats_* (stats_tjslice is gathered along y above)
 for dumps in $(list_dump_types "stats_*") ; do
     file=$(first_file_of $dumps)
     if [ -f "$file" ]; then
 
-        if [ $dumps == "stats_jslice" ]; then
+        if [ $dumps == "stats_tjslice" ]; then
             continue
         fi
 
-        if [ $dumps == "stats_t" ] || [ $dumps == "stats_islice" ] || [ $dumps == "stats_kslice" ]; then
-            # stats_islice/stats_kslice hold the same variables and staggering as stats_t
+        if [ $dumps == "stats_t" ] || [ $dumps == "stats_tislice" ] || [ $dumps == "stats_tkslice" ]; then
+            # stats_tislice/stats_tkslice hold the same variables and staggering as stats_t
 	        echo "Merging $dumps along x-direction."	
             proposed_xmparam="u,upwp,upvp,usgs,upthlp,ups1p,ups2p,ups3p,ups4p,xm"
             xmparam=$(check_existing_variables "$proposed_xmparam" "$file")

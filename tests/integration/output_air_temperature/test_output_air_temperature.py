@@ -108,7 +108,7 @@ class AirTemperatureOutputTest(unittest.TestCase):
 
             families = (
                 "ins_field", "ins_islice", "ins_jslice", "ins_kslice", "ins_probe",
-                "stats_t", "stats_islice", "stats_jslice", "stats_kslice",
+                "stats_t", "stats_tislice", "stats_tjslice", "stats_tkslice",
                 "stats_xyt", "stats_xy", "stats_yt", "stats_y",
             )
             for family in families:
@@ -201,9 +201,9 @@ class AirTemperatureOutputTest(unittest.TestCase):
 
             with (
                 Dataset(case_dir / f"stats_t.001.{CASE}.nc") as full,
-                Dataset(case_dir / f"stats_islice.001.{CASE}.nc") as islice,
-                Dataset(case_dir / f"stats_jslice.000.{CASE}.nc") as jslice,
-                Dataset(case_dir / f"stats_kslice.001.{CASE}.nc") as kslice,
+                Dataset(case_dir / f"stats_tislice.001.{CASE}.nc") as islice,
+                Dataset(case_dir / f"stats_tjslice.000.{CASE}.nc") as jslice,
+                Dataset(case_dir / f"stats_tkslice.001.{CASE}.nc") as kslice,
             ):
                 expected = float(full["tha"][0, 11, 15, 15])
                 self.assertAlmostEqual(float(islice["tha"][0, 11, 15, 0]), expected, places=4)
@@ -284,7 +284,7 @@ class AirTemperatureOutputTest(unittest.TestCase):
             self._run_case(case_dir, "pa", "pa", "pa", ltempeq=False, lmoist=False)
             families = (
                 "ins_field", "ins_islice", "ins_jslice", "ins_kslice", "ins_probe",
-                "stats_t", "stats_islice", "stats_jslice", "stats_kslice",
+                "stats_t", "stats_tislice", "stats_tjslice", "stats_tkslice",
                 "stats_xyt", "stats_xy", "stats_yt", "stats_y",
             )
             for family in families:
@@ -358,7 +358,7 @@ class AirTemperatureOutputTest(unittest.TestCase):
             case_dir = Path(tmp)
             self._run_case(case_dir, "u0,v0,w0", "u0,v0,w0", "u0,v0,w0", ltdump=False)
             self.assertFalse(list(case_dir.glob(f"stats_t.*.{CASE}.nc")))
-            files = sorted(case_dir.glob(f"stats_kslice.*.{CASE}.nc"))
+            files = sorted(case_dir.glob(f"stats_tkslice.*.{CASE}.nc"))
             self.assertTrue(files)
             for path in files:
                 with Dataset(path) as ds:
@@ -376,7 +376,7 @@ class AirTemperatureOutputTest(unittest.TestCase):
             self._run_case(case_dir, "u0,v0,w0", "u0,v0,w0", "u0,v0,w0",
                            receptor_height=heights[0], receptor_heights=heights)
             t_files = sorted(case_dir.glob(f"stats_t.*.{CASE}.nc"))
-            k_files = sorted(case_dir.glob(f"stats_kslice.*.{CASE}.nc"))
+            k_files = sorted(case_dir.glob(f"stats_tkslice.*.{CASE}.nc"))
             self.assertTrue(t_files)
             self.assertEqual(len(t_files), len(k_files))
             for t_path, k_path in zip(t_files, k_files):
@@ -398,9 +398,17 @@ class AirTemperatureOutputTest(unittest.TestCase):
                            expected_error="values differ from configured heights")
 
             if all(shutil.which(tool) for tool in ("ncpdq", "ncrcat", "ncks")):
+                # Every xm-staggered variable must be listed, as gather_outputs.sh does,
+                # or the remaining ones keep a per-rank xm dimension in the output.
+                with Dataset(k_files[0]) as ds:
+                    xm_variables = ",".join(
+                        name for name in ("u", "upwp", "upvp", "usgs", "upthlp",
+                                          "ups1p", "ups2p", "ups3p", "ups4p", "xm")
+                        if name in ds.variables
+                    )
                 gather = subprocess.run(
                     ["bash", str(ROOT / "tools" / "nco_concatenate_field_x.sh"),
-                     "stats_kslice", "u,xm", "gathered_kslice.nc"],
+                     "stats_tkslice", xm_variables, "gathered_kslice.nc"],
                     cwd=case_dir, capture_output=True, text=True, check=False,
                 )
                 self.assertEqual(gather.returncode, 0, gather.stdout + gather.stderr)

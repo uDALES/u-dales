@@ -890,12 +890,12 @@ class UDBase:
         return self._load_ncdata(filename, var, time_index=time_index,
                                  vertical_indices=vertical_indices)
 
-    def load_stat_kslice(
+    def load_stat_tkslice(
         self, var: Optional[str] = None, *, time_index: Optional[int] = None,
         vertical_indices: Optional[List[int]] = None,
     ) -> Union[xr.Dataset, np.ndarray]:
         """Load gathered time-averaged horizontal slices, optionally selecting records/levels."""
-        filename = self.path / f"stats_kslice.{self.expnr}.nc"
+        filename = self.path / f"stats_tkslice.{self.expnr}.nc"
         return self._load_ncdata(filename, var, time_index=time_index,
                                  vertical_indices=vertical_indices)
     
