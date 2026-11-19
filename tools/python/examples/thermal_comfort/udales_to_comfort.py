@@ -3,8 +3,8 @@
 
 This script does not run uDALES or repeat the surface energy balance. It reads
 saved statistics, facet radiation outputs, and preprocessing files from one
-case directory. Verified georeferencing is supplied separately because it
-cannot be inferred safely from a local or rotated LES grid.
+case directory. The site longitude, latitude and elevation, the model axis
+rotation and the UTC start date all come from namoptions.
 
 Every saved statistics record becomes one output record: the mean over the
 ``tstatsdump`` seconds preceding its timestamp, with solar angles evaluated
@@ -14,86 +14,22 @@ at the midpoint of that window.
 from __future__ import annotations
 
 import argparse
-import json
 from pathlib import Path
 import sys
 
-import numpy as np
-
 from udbase import UDBase
-from udcomf.udcomf_export import ExchangeMetadata, check_comfort_preflight
+from udcomf.udcomf_export import check_comfort_preflight
 from udcomf.udcomf_io import merge_facet_outputs, merge_statistics_outputs
-
-
-_ARRAY_FIELDS = (
-    "x", "y", "x_bounds", "y_bounds", "longitude", "latitude", "z_ground",
-)
-_TEXT_FIELDS = (
-    "vertical_datum", "model_version", "institution",
-    "building_representation", "terrain_convention",
-)
-
-
-def load_exchange_metadata(path: Path) -> ExchangeMetadata:
-    """Load checked scalar metadata and georeference arrays without pickle."""
-    config_path = Path(path).expanduser().resolve()
-    with config_path.open(encoding="utf-8") as stream:
-        config = json.load(stream)
-    if not isinstance(config, dict):
-        raise ValueError("Metadata JSON must contain one object")
-
-    required = {"georeference_npz", "crs_attributes", *_TEXT_FIELDS}
-    missing = sorted(required - config.keys())
-    unexpected = sorted(config.keys() - required)
-    if missing or unexpected:
-        raise ValueError(
-            f"Metadata JSON fields are invalid; missing={missing}, unexpected={unexpected}"
-        )
-    if not isinstance(config["georeference_npz"], str):
-        raise TypeError("georeference_npz must be a path string")
-    crs = config["crs_attributes"]
-    if not isinstance(crs, dict) or not all(
-        isinstance(key, str) and isinstance(value, (str, int, float))
-        and not isinstance(value, bool)
-        for key, value in crs.items()
-    ):
-        raise TypeError("crs_attributes must map strings to string or numeric values")
-    for field in _TEXT_FIELDS:
-        if not isinstance(config[field], str) or not config[field].strip():
-            raise ValueError(f"Metadata field {field} must be a nonempty string")
-
-    arrays_path = Path(config["georeference_npz"]).expanduser()
-    if not arrays_path.is_absolute():
-        arrays_path = config_path.parent / arrays_path
-    arrays_path = arrays_path.resolve()
-    with np.load(arrays_path, allow_pickle=False) as archive:
-        missing_arrays = sorted(set(_ARRAY_FIELDS) - set(archive.files))
-        if missing_arrays:
-            raise ValueError(f"Georeference NPZ lacks arrays: {missing_arrays}")
-        arrays = {
-            name: np.asarray(archive[name], dtype=float).copy()
-            for name in _ARRAY_FIELDS
-        }
-
-    return ExchangeMetadata(
-        **arrays,
-        crs_attributes=dict(crs),
-        **{field: config[field] for field in _TEXT_FIELDS},
-    )
 
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         description=(
             "Generate height-specific atmosphere/radiation files and exchange "
-            "input files from existing uDALES outputs."
+            "input files for the comfort indices from existing uDALES outputs."
         )
     )
     parser.add_argument("--case-dir", type=Path, required=True)
-    parser.add_argument(
-        "--metadata", type=Path, required=True,
-        help="JSON metadata file pointing to the verified georeference NPZ.",
-    )
     parser.add_argument(
         "--statistics-source", choices=("stats_tkslice", "stats_t"),
         default="stats_tkslice",
@@ -189,7 +125,6 @@ def main(argv: list[str] | None = None) -> int:
         _print_preflight(report)
         if not report.ready:
             raise ValueError("Comfort preflight has blockers; no postprocessing was started")
-        metadata = load_exchange_metadata(args.metadata)
 
         if args.facet_source:
             merged = merge_facet_outputs(
@@ -228,7 +163,6 @@ def main(argv: list[str] | None = None) -> int:
             )
         if not args.skip_atmosphere:
             outputs = sim.comf.atmosphere.write_heights(
-                times,
                 source=args.statistics_source,
                 heights=heights,
                 output_dir=output_dir,
@@ -256,7 +190,6 @@ def main(argv: list[str] | None = None) -> int:
                     print(f"{kind.capitalize()} {height:g} m: {path}")
 
         exchange = sim.comf.export_exchange(
-            metadata,
             heights=heights,
             input_dir=output_dir,
             output_dir=output_dir,

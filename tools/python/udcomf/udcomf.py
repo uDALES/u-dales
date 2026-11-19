@@ -50,8 +50,8 @@ class UDComf:
 
         return merge_statistics_outputs(Path(self.sim.path), case_paths, overwrite=overwrite)
 
-    def export_exchange(self, metadata, **kwargs):
+    def export_exchange(self, **kwargs):
         """Write one exchange input file per requested height."""
         from .udcomf_export import write_exchange_heights
 
-        return write_exchange_heights(self.sim, metadata, **kwargs)
+        return write_exchange_heights(self.sim, **kwargs)

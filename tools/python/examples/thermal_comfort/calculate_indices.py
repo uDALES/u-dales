@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
-"""Calculate model-neutral MRT, PET, UTCI, and WBGT maps.
+"""Calculate MRT, PET, UTCI, and WBGT maps from exchange files.
 
-Accepts exchange NetCDF files with any number of time records; optional
-metadata (bounds, georeference, CRS, provenance, pedestrian mask) is used
-when present. The physical fields, their units and per-record solar angles
-are required. The same routine serves exchange files written from uDALES or
-prepared from another model's output in the documented format.
+Accepts exchange NetCDF files with any number of time records. Each file must
+carry the model grid with cell bounds, the pedestrian mask, the receptor
+height, the physical fields with their units, time bounds and per-record solar
+angles, as written by udales_to_comfort.py or prepared from another source in
+the same format.
 """
 
 from __future__ import annotations

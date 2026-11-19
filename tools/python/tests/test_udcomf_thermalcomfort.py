@@ -1,4 +1,4 @@
-"""Model-neutral comfort schema, radiation physics, and index tests."""
+"""Exchange schema, radiation physics, and comfort index tests."""
 
 from importlib.util import find_spec
 from pathlib import Path
@@ -32,18 +32,9 @@ def _exchange(path: Path, *, model: str = "model_a", local_wind: float = 1.,
             ds[name].units = "m"
             ds.createVariable(f"{name}_bounds", "f8", (name, "bounds"))[:] = [[0., 10.], [10., 20.]]
             ds[f"{name}_bounds"].units = "m"
-        for name, values, units in (("longitude", 2.33, "degrees_east"),
-                                    ("latitude", 48.86, "degrees_north"),
-                                    ("z_ground", 77., "m")):
-            ds.createVariable(name, "f8", ("x", "y"))[:] = values
-            ds[name].units = units
-        ds["z_ground"].vertical_datum = "IGN69"
         ds.createVariable("receptor_height", "f8").assignValue(1.1)
-        ds["receptor_height"].units = "m above local terrain"
+        ds["receptor_height"].units = "m above model ground"
         ds.createVariable("pedestrian_mask", "i1", ("x", "y"))[:] = mask
-        ds.createVariable("crs", "i4").assignValue(0)
-        ds["crs"].grid_mapping_name = "transverse_mercator"
-        ds["crs"].crs_wkt = "TEST WKT"
         ds.createVariable("time", "f8", ("time",))[:] = times
         ds["time"].units = "seconds since 2023-08-21 00:00:00 UTC"
         ds["time"].calendar = "gregorian"
@@ -69,8 +60,6 @@ def _exchange(path: Path, *, model: str = "model_a", local_wind: float = 1.,
             var[:] = data
             var.units = units
             var.cell_methods = "time: mean"
-            var.grid_mapping = "crs"
-            var.coordinates = "longitude latitude"
         for side in ("upface", "downface", "northface", "southface", "eastface", "westface"):
             for prefix, value in (("sw_nondirect_", 0.), ("lw_", SIGMA * ta**4)):
                 name = f"{prefix}{side}"
@@ -80,15 +69,11 @@ def _exchange(path: Path, *, model: str = "model_a", local_wind: float = 1.,
                 var[:] = data
                 var.units = "W m-2"
                 var.cell_methods = "time: mean"
-                var.grid_mapping = "crs"
-                var.coordinates = "longitude latitude"
         ds.Conventions = "CF-1.10"
         for name, value in (
-            ("model_name", model), ("model_version", "test"),
-            ("institution", "test"), ("simulation_identifier", "fixture"),
+            ("model_name", model), ("simulation_identifier", "fixture"),
             ("horizontal_grid_spacing_m", "x=10,y=10"),
-            ("vertical_grid_spacing_m", "1,2"), ("terrain_convention", "flat"),
-            ("building_representation", "none"),
+            ("vertical_grid_spacing_m", "1,2"),
             ("model_axis_rotation_degrees_from_true_north", 0.),
             ("vertical_interpolation_method", "linear"),
         ):
@@ -259,19 +244,24 @@ class TestComfortFiles(unittest.TestCase):
                 self.assertEqual(int(ds["validity_flags"][0, 0, 0]) & 1, 1)
 
 def _generic_exchange(path: Path, *, n_times: int = 3, rh: float = 50.) -> None:
-    """Minimal relaxed file: no mask, bounds, georeference, CRS or provenance."""
+    """Minimal file written by another tool: the required variables only, no attributes beyond units."""
     ta = 298.15
     pressure = 101325.
     e = rh / 100. * float(saturation_pressure_pa(np.array([ta]))[0])
     qv = EPSILON * e / (pressure - (1 - EPSILON) * e)
     with Dataset(path, "w") as ds:
-        for name, size in (("x", 2), ("y", 2), ("time", n_times)):
+        for name, size in (("x", 2), ("y", 2), ("time", n_times), ("bounds", 2)):
             ds.createDimension(name, size)
         for name in ("x", "y"):
             ds.createVariable(name, "f8", (name,))[:] = [5., 15.]
             ds[name].units = "m"
-        ds.createVariable("time", "f8", ("time",))[:] = 600.0 * (1 + np.arange(n_times))
+            ds.createVariable(f"{name}_bounds", "f8", (name, "bounds"))[:] = [[0., 10.], [10., 20.]]
+        times = 600.0 * (1 + np.arange(n_times))
+        ds.createVariable("time", "f8", ("time",))[:] = times
         ds["time"].units = "s since simulation start"
+        ds.createVariable("time_bounds", "f8", ("time", "bounds"))[:] = np.column_stack((times - 600., times))
+        ds.createVariable("receptor_height", "f8").assignValue(1.5)
+        ds.createVariable("pedestrian_mask", "i1", ("x", "y"))[:] = 1
         for name, value in (("solar_zenith", np.pi / 3), ("solar_azimuth", np.pi)):
             ds.createVariable(name, "f8", ("time",))[:] = value
             ds[name].units = "rad"
@@ -329,29 +319,44 @@ def _generic_exchange(path: Path, *, n_times: int = 3, rh: float = 50.) -> None:
                 self.assertEqual(float(ds["pet"][0, 0, 0]), float(ds["pet"]._FillValue))
 
 
-    def test_accepts_relaxed_files_with_arbitrary_record_counts(self):
+    def test_accepts_minimal_files_with_arbitrary_record_counts(self):
         import json
         with TemporaryDirectory() as tmp:
-            source = Path(tmp) / "relaxed.nc"
+            source = Path(tmp) / "minimal.nc"
             _generic_exchange(source, n_times=3)
             output = calculate_indices(source)
+            self.assertEqual(output.name, "thermal_comfort_indices_generic.h1p5.nc")
             with Dataset(output) as ds:
                 ds.set_auto_mask(False)
                 self.assertEqual(len(ds.dimensions["time"]), 3)
-                # derived mask excludes the cell with nonfinite input
-                np.testing.assert_array_equal(ds["pedestrian_mask"][:],
-                                              [[1, 1], [1, 0]])
+                np.testing.assert_array_equal(ds["pedestrian_mask"][:], [[1, 1], [1, 1]])
                 self.assertNotEqual(float(ds["mrt"][0, 0, 0]),
                                     float(ds["mrt"]._FillValue))
+                # the cell with nonfinite input inside the mask is flagged, not fatal
                 self.assertEqual(float(ds["mrt"][1, 1, 0]),
                                  float(ds["mrt"]._FillValue))
+                self.assertEqual(int(ds["validity_flags"][1, 1, 0]) & 64, 64)
                 counts = json.loads(ds.validity_counts)
-                self.assertEqual(counts["invalid_input"], 0)
+                self.assertEqual(counts["invalid_input"], 3)
+
+    def test_rejects_files_without_mask_or_bounds(self):
+        with TemporaryDirectory() as tmp:
+            source = Path(tmp) / "minimal.nc"
+            _generic_exchange(source, n_times=1)
+            with Dataset(source, "r+") as ds:
+                ds.renameVariable("pedestrian_mask", "other")
+            with self.assertRaisesRegex(ValueError, "pedestrian_mask"):
+                calculate_indices(source)
+            _generic_exchange(source, n_times=1)
+            with Dataset(source, "r+") as ds:
+                ds.renameVariable("time_bounds", "other")
+            with self.assertRaisesRegex(ValueError, "time_bounds"):
+                calculate_indices(source)
 
     def test_flags_nonphysical_cells_instead_of_refusing(self):
         import json
         with TemporaryDirectory() as tmp:
-            source = Path(tmp) / "relaxed.nc"
+            source = Path(tmp) / "minimal.nc"
             _generic_exchange(source, n_times=2)
             with Dataset(source, "r+") as ds:
                 ds["pabs"][0, 1, :] = -5.0  # nonphysical pressure in one cell
@@ -364,7 +369,7 @@ def _generic_exchange(path: Path, *, n_times: int = 3, rh: float = 50.) -> None:
                 counts = json.loads(ds.validity_counts)
                 self.assertGreater(counts["invalid_input"], 0)
 
-    def test_accepts_full_protocol_files_unchanged(self):
+    def test_output_path_can_be_chosen(self):
         with TemporaryDirectory() as tmp:
             source = Path(tmp) / "exchange.nc"
             _exchange(source)

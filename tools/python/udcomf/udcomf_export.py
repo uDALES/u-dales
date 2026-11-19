@@ -186,31 +186,6 @@ _UNITS = {"ta": "K", "pabs": "Pa", "qv": "kg kg-1",
 _UNITS.update({name: "W m-2" for name in _SHORTWAVE + _LONGWAVE})
 
 
-@dataclass(frozen=True)
-class ExchangeMetadata:
-    """Verified georeferencing and run identity not recoverable from uDALES outputs.
-
-    x/y and their bounds are projected *model-axis* coordinates. For a rotated
-    LES grid, the supplied CRS must describe those axes, not the unrotated
-    national projection. Longitude/latitude must be transformed from the same
-    grid definition.
-    """
-
-    x: np.ndarray
-    y: np.ndarray
-    x_bounds: np.ndarray
-    y_bounds: np.ndarray
-    longitude: np.ndarray
-    latitude: np.ndarray
-    z_ground: np.ndarray
-    crs_attributes: dict[str, str | float]
-    vertical_datum: str
-    model_version: str
-    institution: str
-    building_representation: str
-    terrain_convention: str
-
-
 def _check_exchange_source(ds: Dataset, path: Path, x: np.ndarray, y: np.ndarray,
                            times: np.ndarray, duration: float, height: float,
                            fields: tuple[str, ...], *, radiation: bool) -> np.ndarray:
@@ -251,47 +226,18 @@ def _check_exchange_source(ds: Dataset, path: Path, x: np.ndarray, y: np.ndarray
     return mask.astype(bool)
 
 
-def _check_georeference(meta: ExchangeMetadata, sim, shape: tuple[int, int]) -> None:
-    nx, ny = shape
-    for name, expected_shape in (("x", (nx,)), ("y", (ny,)),
-                                 ("x_bounds", (nx, 2)), ("y_bounds", (ny, 2)),
-                                 ("longitude", shape), ("latitude", shape),
-                                 ("z_ground", shape)):
-        value = np.asarray(getattr(meta, name), dtype=float)
-        if value.shape != expected_shape or not np.isfinite(value).all():
-            raise ValueError(f"Georeference {name} must be finite with shape {expected_shape}")
-    for axis, spacing in (("x", sim.dx), ("y", sim.dy)):
-        centers = np.asarray(getattr(meta, axis), dtype=float)
-        bounds = np.asarray(getattr(meta, f"{axis}_bounds"), dtype=float)
-        if (not np.allclose(bounds[:, 1] - bounds[:, 0], spacing, rtol=0, atol=1e-5)
-                or not np.allclose(bounds.mean(axis=1), centers, rtol=0, atol=1e-5)
-                or not np.allclose(np.diff(centers), spacing, rtol=0, atol=1e-5)
-                or not np.allclose(bounds[1:, 0], bounds[:-1, 1], rtol=0, atol=1e-5)):
-            raise ValueError(f"Georeference {axis} coordinates/bounds disagree with LES spacing")
-    if (np.any(np.abs(meta.longitude) > 180) or np.any(np.abs(meta.latitude) > 90)
-            or not meta.crs_attributes.get("grid_mapping_name")
-            or not (meta.crs_attributes.get("crs_wkt") or meta.crs_attributes.get("spatial_ref"))):
-        raise ValueError("Georeference needs valid WGS84 coordinates and a complete CF CRS/WKT")
-    if not np.allclose(meta.z_ground, np.asarray(meta.z_ground)[0, 0], rtol=0, atol=1e-5):
-        raise ValueError("uDALES has flat model ground; z_ground must be a constant datum height")
-    for name in ("vertical_datum", "model_version", "institution", "building_representation",
-                 "terrain_convention"):
-        if not isinstance(getattr(meta, name), str) or not getattr(meta, name).strip():
-            raise ValueError(f"Exchange metadata {name} must be explicitly supplied")
-
-
-def write_exchange_heights(sim, metadata: ExchangeMetadata, *,
-                           heights: tuple[float, ...] | None = None,
+def write_exchange_heights(sim, *, heights: tuple[float, ...] | None = None,
                            input_dir: Path | None = None, output_dir: Path | None = None,
                            overwrite: bool = False) -> dict[float, Path]:
     """Assemble one exchange input file per height from the saved planes.
 
     The records are those of the pedestrian atmosphere file, i.e. the saved
     statistics records; shortwave and longwave planes must carry the same
-    records. This is an I/O operation; atmospheric and radiative quantities
-    are not recalculated. Solar angles alone are evaluated with the existing
-    SPA routine at the midpoint of each averaging window, because those
-    instants are not archived.
+    records. The grid is the model grid in metres. This is an I/O operation;
+    atmospheric and radiative quantities are not recalculated. Solar angles
+    alone are evaluated with the existing SPA routine, at the midpoint of each
+    averaging window, from the site longitude, latitude and elevation and the
+    UTC start date in namoptions.
     """
     case = Path(sim.path)
     source_dir = case if input_dir is None else Path(input_dir)
@@ -308,10 +254,10 @@ def write_exchange_heights(sim, metadata: ExchangeMetadata, *,
     start = _simulation_start(options)
     schedule = read_stats_schedule(case)
     duration = schedule.tstatsdump
-    _check_georeference(metadata, sim, (len(sim.xt), len(sim.yt)))
     for key in ("longitude", "latitude", "elevation"):
         if key not in options or not np.isfinite(float(options[key])):
             raise ValueError(f"Solar {key} must be explicitly configured")
+    site = {key: float(options[key]) for key in ("longitude", "latitude", "elevation")}
     paths = {h: target_dir / f"thermal_comfort_inputs_udales.{height_tag(h)}.{sim.expnr}.nc"
              for h in selected}
     if not overwrite and any(path.exists() for path in paths.values()):
@@ -319,6 +265,7 @@ def write_exchange_heights(sim, metadata: ExchangeMetadata, *,
     target_dir.mkdir(parents=True, exist_ok=True)
     x = np.asarray(sim.xt, dtype=float)
     y = np.asarray(sim.yt, dtype=float)
+    dx, dy = float(sim.dx), float(sim.dy)
     start_label = start.strftime("%Y-%m-%d %H:%M:%S")
     for height, path in paths.items():
         sources = {
@@ -345,8 +292,8 @@ def write_exchange_heights(sim, metadata: ExchangeMetadata, *,
                     raise ValueError(f"{kind} does not cover every atmospheric-valid receptor")
             midpoints = schedule.window_midpoints(times)
             solar = [solar_position_python(start + timedelta(seconds=float(t)),
-                                           float(options["longitude"]), float(options["latitude"]),
-                                           0.0, float(options["elevation"]))
+                                           site["longitude"], site["latitude"],
+                                           0.0, site["elevation"])
                      for t in midpoints]
             zenith = np.deg2rad([float(state["zenith"]) for state in solar])
             azimuth = np.mod(np.deg2rad([float(state["azimuth"]) for state in solar]), 2 * np.pi)
@@ -360,31 +307,22 @@ def write_exchange_heights(sim, metadata: ExchangeMetadata, *,
                     nx, ny = len(x), len(y)
                     for dim, length in (("x", nx), ("y", ny), ("time", len(times)), ("bounds", 2)):
                         out.createDimension(dim, length)
-                    for axis in ("x", "y"):
-                        out.createVariable(axis, "f8", (axis,))[:] = getattr(metadata, axis)
+                    for axis, centres, spacing in (("x", x, dx), ("y", y, dy)):
+                        out.createVariable(axis, "f8", (axis,))[:] = centres
                         out[axis].units = "m"
-                        out[axis].standard_name = f"projection_{axis}_coordinate"
+                        out[axis].long_name = f"model {axis} coordinate of scalar cell centres"
                         out[axis].axis = axis.upper()
-                        out.createVariable(f"{axis}_bounds", "f8", (axis, "bounds"))[:] = getattr(metadata, f"{axis}_bounds")
+                        out.createVariable(f"{axis}_bounds", "f8", (axis, "bounds"))[:] = (
+                            np.column_stack((centres - 0.5 * spacing, centres + 0.5 * spacing))
+                        )
                         out[f"{axis}_bounds"].units = "m"
                         out[axis].bounds = f"{axis}_bounds"
-                    for coord, units in (("longitude", "degrees_east"), ("latitude", "degrees_north"),
-                                         ("z_ground", "m")):
-                        out.createVariable(coord, "f8", ("x", "y"))[:] = getattr(metadata, coord)
-                        out[coord].units = units
-                    out["longitude"].standard_name = "longitude"
-                    out["latitude"].standard_name = "latitude"
-                    out["z_ground"].standard_name = "surface_altitude"
-                    out["z_ground"].vertical_datum = metadata.vertical_datum
                     out.createVariable("receptor_height", "f8").assignValue(height)
-                    out["receptor_height"].units = "m above local terrain"
+                    out["receptor_height"].units = "m above model ground"
                     out.createVariable("pedestrian_mask", "i1", ("x", "y"))[:] = atm.astype("i1")
                     out["pedestrian_mask"].long_name = "valid pedestrian receptor"
                     out["pedestrian_mask"].flag_values = np.array([0, 1], dtype="i1")
                     out["pedestrian_mask"].flag_meanings = "invalid valid"
-                    crs = out.createVariable("crs", "i4")
-                    crs.assignValue(0)
-                    crs.setncatts(metadata.crs_attributes)
                     time = out.createVariable("time", "f8", ("time",))
                     time[:] = times
                     time.units = f"seconds since {start_label} UTC"
@@ -402,16 +340,15 @@ def write_exchange_heights(sim, metadata: ExchangeMetadata, *,
                     out["solar_zenith"].long_name = "solar zenith at midpoint of averaging window"
                     out.model_name = "uDALES"
                     out.Conventions = "CF-1.10"
-                    out.model_version = metadata.model_version
-                    out.institution = metadata.institution
                     out.simulation_identifier = str(sim.expnr)
                     out.simulation_start_utc = start.strftime("%Y-%m-%dT%H:%M:%SZ")
                     out.averaging_window_s = float(duration)
-                    out.horizontal_grid_spacing_m = f"x={sim.dx:g}, y={sim.dy:g}"
-                    out.vertical_grid_spacing_m = ",".join(f"{dz:.9g}" for dz in np.asarray(sim.dzt))
-                    out.terrain_convention = metadata.terrain_convention
-                    out.building_representation = metadata.building_representation
+                    out.site_longitude_degrees_east = site["longitude"]
+                    out.site_latitude_degrees_north = site["latitude"]
+                    out.site_elevation_m = site["elevation"]
                     out.model_axis_rotation_degrees_from_true_north = float(sim.xazimuth)
+                    out.horizontal_grid_spacing_m = f"x={dx:g}, y={dy:g}"
+                    out.vertical_grid_spacing_m = ",".join(f"{dz:.9g}" for dz in np.asarray(sim.dzt))
                     out.vertical_interpolation_method = "linear in physical height between scalar centres"
                     out.solar_geometry = "udprep.solar SPA at the midpoint of each averaging window"
                     out.source_files = ", ".join(path.name for path in sources.values())
@@ -425,8 +362,6 @@ def write_exchange_heights(sim, metadata: ExchangeMetadata, *,
                             )
                             variable.units = _UNITS[field]
                             variable.cell_methods = "time: mean"
-                            variable.grid_mapping = "crs"
-                            variable.coordinates = "longitude latitude"
                     for index in range(len(times)):
                         for kind, names in (("atmosphere", _ATMOSPHERE),
                                             ("shortwave", _SHORTWAVE), ("longwave", _LONGWAVE)):

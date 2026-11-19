@@ -28,49 +28,13 @@ dependency:
 tools/python/.venv/bin/python -m pip install -e 'tools/python[comfort]'
 ```
 
-## Verified georeferencing
+## Site information
 
-The exchange writer does not infer geographic coordinates from the solar
-longitude/latitude or from the STL. Prepare an NPZ containing these numeric
-arrays:
-
-```python
-import numpy as np
-
-np.savez_compressed(
-    "city_georeference.npz",
-    x=projected_model_x_centres,          # (nx,)
-    y=projected_model_y_centres,          # (ny,)
-    x_bounds=projected_model_x_bounds,    # (nx, 2)
-    y_bounds=projected_model_y_bounds,    # (ny, 2)
-    longitude=longitude_on_les_grid,      # (nx, ny), WGS84 degrees east
-    latitude=latitude_on_les_grid,        # (nx, ny), WGS84 degrees north
-    z_ground=geodetic_ground_elevation,   # (nx, ny), constant for flat uDALES ground
-)
-```
-
-Create a JSON file beside it. Every value must describe the actual simulation;
-the placeholders below are not defaults:
-
-```json
-{
-  "georeference_npz": "city_georeference.npz",
-  "crs_attributes": {
-    "grid_mapping_name": "<verified CF grid mapping name>",
-    "crs_wkt": "<complete WKT describing the projected model axes>"
-  },
-  "vertical_datum": "<vertical datum of z_ground>",
-  "model_version": "<uDALES commit used for the simulation>",
-  "institution": "<contributing institution>",
-  "building_representation": "<actual IBM and facet representation>",
-  "terrain_convention": "<actual flat-ground convention>"
-}
-```
-
-For a rotated LES, the CRS must genuinely describe the projected model axes.
-Labelling rotated or offset local coordinates directly with the unrotated national projection is wrong.
-The script checks shape, spacing, bounds, coordinate ranges, and constant
-ground elevation, but it cannot prove that the supplied transform is correct.
+Everything geographic the pipeline needs is already in `namoptions`: the site
+`longitude`, `latitude` and `elevation` and the UTC start date for the solar
+position, and `xazimuth` for the rotation of the model x-axis from true
+north. The exchange file carries the model grid in metres and records these
+values as global attributes. No other metadata file is read.
 
 ## uDALES outputs to exchange files
 
@@ -84,7 +48,6 @@ CASE=/path/to/experiments/1
 
 $PY tools/python/examples/thermal_comfort/udales_to_comfort.py \
   --case-dir "$CASE" \
-  --metadata "$CASE/thermal_comfort_metadata.json" \
   --statistics-source stats_tkslice \
   --tile-size 256 \
   --n-mu 8 \
@@ -107,7 +70,6 @@ the configured receptor heights, `ws_local`, `ws_10`) and writes it as
 ```bash
 $PY tools/python/examples/thermal_comfort/udales_to_comfort.py \
   --case-dir "$CASE" \
-  --metadata "$CASE/thermal_comfort_metadata.json" \
   --facet-source "$CASE/facEB.2.nc" \
   --facet-source "$CASE/facEB.3.nc" \
   --facet-source "$CASE/facEB.4.nc" \
@@ -125,7 +87,6 @@ have passed their earlier checks, assemble only the exchange files with:
 ```bash
 $PY tools/python/examples/thermal_comfort/udales_to_comfort.py \
   --case-dir "$CASE" \
-  --metadata "$CASE/thermal_comfort_metadata.json" \
   --skip-atmosphere \
   --skip-radiation
 ```
@@ -136,7 +97,6 @@ For a long headless radiation run:
 LOG="$CASE/udcomf_postprocess.log"
 nohup "$PY" -u tools/python/examples/thermal_comfort/udales_to_comfort.py \
   --case-dir "$CASE" \
-  --metadata "$CASE/thermal_comfort_metadata.json" \
   --statistics-source stats_tkslice \
   > "$LOG" 2>&1 < /dev/null &
 printf 'PID %s, log %s\n' "$!" "$LOG"

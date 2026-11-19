@@ -13,7 +13,6 @@ import trimesh
 from udcomf import UDComf
 from udcomf.thermalcomfort import calculate_indices
 from udcomf.thermalcomfort.physics import SIGMA
-from udcomf.udcomf_export import ExchangeMetadata
 
 
 def _small_case(root: Path):
@@ -118,27 +117,12 @@ class TestEndToEndComfort(unittest.TestCase):
             sim, targets = _small_case(Path(tmp))
             times = sim.comf.statistics_times("stats_tkslice")
             np.testing.assert_array_equal(times, targets)
-            sim.comf.atmosphere.write_heights(times, source="stats_tkslice")
+            sim.comf.atmosphere.write_heights(source="stats_tkslice")
             sim.comf.radiation.write_heights(
                 times, duration=sim.comf.schedule.tstatsdump,
                 tile_size=1, n_mu=8, n_azimuth=32, resume=False,
             )
-            metadata = ExchangeMetadata(
-                x=np.array([600005.0]), y=np.array([6860005.0]),
-                x_bounds=np.array([[600000.0, 600010.0]]),
-                y_bounds=np.array([[6860000.0, 6860010.0]]),
-                longitude=np.array([[2.33]]), latitude=np.array([[48.86]]),
-                z_ground=np.array([[77.0]]),
-                crs_attributes={
-                    "grid_mapping_name": "transverse_mercator",
-                    "crs_wkt": "synthetic validation CRS",
-                },
-                vertical_datum="IGN69", model_version="validation",
-                institution="uDALES test suite",
-                building_representation="flat open-ground synthetic scene",
-                terrain_convention="flat model ground",
-            )
-            exchange = sim.comf.export_exchange(metadata)[1.1]
+            exchange = sim.comf.export_exchange()[1.1]
             output = calculate_indices(exchange)
 
             with Dataset(exchange) as source, Dataset(output) as result:

@@ -27,17 +27,14 @@ class UDComfAtmosphere:
         self.sim = sim
 
     def write_heights(
-        self, times: np.ndarray | None = None, *, source: str = "stats_tkslice",
+        self, *, source: str = "stats_tkslice",
         heights: tuple[float, ...] | None = None,
         output_dir: Path | None = None, overwrite: bool = False,
-        time_tolerance: float = 1.0,
     ) -> dict[float, Path]:
         """Write ta, pabs, qv and saved mean speeds for every selected height.
 
-        Each output record is one saved statistics record: the mean over the
-        ``tstatsdump`` seconds preceding its timestamp. ``times`` (seconds
-        since simulation start) selects records; by default every saved
-        record is written.
+        Every saved statistics record becomes one output record: the mean
+        over the ``tstatsdump`` seconds preceding its timestamp.
         """
         if source not in ("stats_t", "stats_tkslice"):
             raise ValueError("source must be stats_t or stats_tkslice")
@@ -98,22 +95,7 @@ class UDComfAtmosphere:
             masks[height] = receptor.valid & ~solid[:, :, lo] & ~solid[:, :, hi]
 
         saved_times = validate_statistics_times(load("time"), schedule)
-        if times is None:
-            records = np.arange(saved_times.size)
-        else:
-            targets = np.asarray(times, dtype=float)
-            if (targets.ndim != 1 or not len(targets) or not np.isfinite(targets).all()
-                    or np.any(np.diff(targets) <= 0)
-                    or not np.isfinite(time_tolerance) or time_tolerance < 0):
-                raise ValueError("Requested times must be finite and strictly increasing")
-            records = np.searchsorted(saved_times, targets)
-            records = np.minimum(records, saved_times.size - 1)
-            previous = np.maximum(records - 1, 0)
-            records = np.where(abs(saved_times[previous] - targets) < abs(saved_times[records] - targets),
-                               previous, records)
-            if (np.any(abs(saved_times[records] - targets) > time_tolerance)
-                    or len(set(records.tolist())) != len(records)):
-                raise ValueError("Statistics do not contain a unique record at each requested time")
+        records = np.arange(saved_times.size)
         record_times = saved_times[records]
 
         directory = Path(sim.path) if output_dir is None else Path(output_dir)

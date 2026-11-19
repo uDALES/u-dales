@@ -66,9 +66,7 @@ class TestMultiheightComfort(unittest.TestCase):
         with TemporaryDirectory() as tmp:
             sim = _case(Path(tmp))
             original = sim.receptor_height
-            paths = sim.comf.atmosphere.write_heights(
-                np.array([3600., 7200.]), source="stats_tkslice"
-            )
+            paths = sim.comf.atmosphere.write_heights(source="stats_tkslice")
             self.assertEqual(set(paths), {1.1, 1.5})
             self.assertEqual(sim.receptor_height, original)
             for height, path in paths.items():
@@ -87,18 +85,14 @@ class TestMultiheightComfort(unittest.TestCase):
                     self.assertEqual(int(ds["valid_mask"][1, 1]), 0)
                     self.assertTrue(np.isnan(ds["ta"][1, 1, 0]))
             with self.assertRaises(FileExistsError):
-                sim.comf.atmosphere.write_heights(np.array([3600., 7200.]))
+                sim.comf.atmosphere.write_heights()
 
-    def test_missing_brackets_and_times_fail_without_outputs(self):
+    def test_missing_brackets_fail_without_outputs(self):
         with TemporaryDirectory() as tmp:
             sim = _case(Path(tmp), omit_second_level=True)
             with self.assertRaisesRegex(ValueError, "bracketing scalar levels"):
-                sim.comf.atmosphere.write_heights(np.array([3600.]))
+                sim.comf.atmosphere.write_heights()
             self.assertFalse(list(sim.path.glob("pedestrian_atmosphere.*.nc")))
-        with TemporaryDirectory() as tmp:
-            sim = _case(Path(tmp))
-            with self.assertRaisesRegex(ValueError, "unique record"):
-                sim.comf.atmosphere.write_heights(np.array([3900.]))
 
     def test_window_bounds_follow_tstatsdump_and_default_to_all_records(self):
         with TemporaryDirectory() as tmp:
@@ -130,7 +124,7 @@ class TestMultiheightComfort(unittest.TestCase):
                 ds["qt"][0, :, 0, 0] = 0.001
                 ds["ql"][0, :, 0, 0] = 0.001000001
             with self.assertRaisesRegex(ValueError, "qv must be nonnegative"):
-                sim.comf.atmosphere.write_heights(np.array([3600.]))
+                sim.comf.atmosphere.write_heights()
             self.assertFalse(list(sim.path.glob("pedestrian_atmosphere.*.nc")))
 
     def test_full_stats_selects_only_bracketing_levels(self):
@@ -156,9 +150,7 @@ class TestMultiheightComfort(unittest.TestCase):
 
             selected = sim.load_stat_t("tha", time_index=0, vertical_indices=[0, 1])
             self.assertEqual(selected.shape, (2, 2, 2))
-            paths = sim.comf.atmosphere.write_heights(
-                np.array([3600.]), source="stats_t", heights=(1.5,)
-            )
+            paths = sim.comf.atmosphere.write_heights(source="stats_t", heights=(1.5,))
             with Dataset(paths[1.5]) as ds:
                 self.assertAlmostEqual(float(ds["ta"][0, 0, 0]), 303., places=3)
 
@@ -182,7 +174,7 @@ class TestMultiheightComfort(unittest.TestCase):
                 dst.createVariable("receptor_height", "f4").assignValue(1.1)
                 dst.createVariable("ws_local", "f4", ("time", "yt", "xt"))[:] = src["ws_local"][:, 0]
             replacement.replace(source_path)
-            paths = sim.comf.atmosphere.write_heights(np.array([3600.]))
+            paths = sim.comf.atmosphere.write_heights()
             self.assertEqual(set(paths), {1.1})
             with Dataset(paths[1.1]) as ds:
                 self.assertEqual(float(ds["ws_local"][0, 0, 0]), 1.0)

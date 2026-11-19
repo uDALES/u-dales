@@ -56,7 +56,7 @@ been rebased or merged.
    reads quantities already saved by preprocessing or the simulation. The only
    new physical calculations before the index stage are receptor visibility,
    directional irradiance, exact-window integration, vertical interpolation of
-   atmospheric scalars, and midpoint solar position for exchange metadata.
+   atmospheric scalars, and midpoint solar position for the exchange file.
 2. **Reuse existing loaders.** `UDComf` owns the same `UDBase` instance exposed
    as `sim.comf`. It uses `UDBase.load_stat_t`, `load_stat_tkslice`,
    `load_fac_eb`, `load_fac_temperature`, `load_timedepsw`, `load_timedeplw`,
@@ -395,10 +395,9 @@ granularity, not parallel execution.
 Each exchange file contains one record per saved statistics record, with
 `time` in seconds since the simulation start (the `units` attribute names the
 UTC start instant) and time bounds `[time - tstatsdump, time)`, on one native
-`(x,y)` grid and one scalar receptor height. Every physical field has
-dimensions `(x,y,time)`, `cell_methods = "time: mean"`, a CF grid mapping,
-longitude/latitude coordinates, and an explicit fill value outside one fixed
-pedestrian mask.
+`(x,y)` grid in model metres and one scalar receptor height. Every physical
+field has dimensions `(x,y,time)`, `cell_methods = "time: mean"`, and an
+explicit fill value outside one fixed pedestrian mask.
 
 Required atmospheric and radiative fields are:
 
@@ -408,18 +407,13 @@ Required atmospheric and radiative fields are:
 | Shortwave | `sw_direct_normal`; `sw_nondirect_{up,down,north,south,east,west}face` | W m-2 |
 | Longwave | `lw_{up,down,north,south,east,west}face` | W m-2 |
 
-It also requires increasing projected `x/y` centres and contiguous cell
-bounds, WGS84 longitude/latitude on `(x,y)`, geodetic `z_ground` and its named
-vertical datum, a scalar CF CRS with complete WKT, solar zenith and true-north
-clockwise azimuth at the midpoint of each averaging window, and
-model/grid/provenance attributes including the UTC simulation start and the
-averaging window length.
-
-The uDALES exchange writer requires constant `z_ground` because the current
-model ground is flat. It does not infer projection, origin, model rotation, or
-vertical datum from solar coordinates or the STL. These must be supplied from
-a verified geospatial transform. Assigning the unrotated national projection
-directly to rotated or offset local LES axes is not valid.
+It also requires increasing `x/y` cell centres with contiguous cell bounds,
+the `pedestrian_mask`, the scalar `receptor_height`, and solar zenith and
+true-north clockwise azimuth at the midpoint of each averaging window. The
+uDALES writer adds global attributes for the UTC simulation start, the
+averaging window length, the site longitude, latitude and elevation, the
+model axis rotation (`xazimuth`) and the grid spacing, all taken from
+`namoptions`; no separate metadata file is involved.
 
 ## Thermal-comfort physics
 
@@ -526,7 +520,7 @@ equivalence to or instrument validation of the original flat-ground program.
 
 ### Validity and output
 
-The final file preserves coordinates, masks, time bounds, CRS, and provenance.
+The final file preserves coordinates, bounds, mask, time bounds, solar angles and the input's global attributes.
 It writes `mrt`, `pet`, `utci`, `wbgt`, `globe_temperature`, and
 `natural_wet_bulb_temperature` in degree Celsius. The `validity_flags` bits are:
 
@@ -665,9 +659,7 @@ preflight and merge interfaces derive `namoptions.<expnr>` from that name.
    repeated `--facet-source` option, and merge the comfort subset of the
    statistics with `sim.comf.prepare_statistics_outputs(...)` or the repeated
    `--stats-source` option. Never fill restart gaps.
-4. Prepare verified georeferencing arrays and metadata as documented in the
-   runnable example README. These facts are intentionally not guessed.
-5. Generate atmospheric planes, both radiation sets, and exchange files:
+4. Generate atmospheric planes, both radiation sets, and exchange files:
 
 ```bash
 PY=tools/python/.venv/bin/python
@@ -675,14 +667,13 @@ CASE=/path/to/experiments/1
 
 $PY tools/python/examples/thermal_comfort/udales_to_comfort.py \
   --case-dir "$CASE" \
-  --metadata "$CASE/thermal_comfort_metadata.json" \
   --statistics-source stats_tkslice \
   --tile-size 256 \
   --n-mu 8 \
   --n-azimuth 32
 ```
 
-6. Apply the common index implementation to one or several exchange files:
+5. Apply the index calculation to one or several exchange files:
 
 ```bash
 $PY tools/python/examples/thermal_comfort/calculate_indices.py \
@@ -693,9 +684,8 @@ Use `--skip-atmosphere` or `--skip-radiation` only when the corresponding final
 plane files already exist and match the requested case, heights, records, and
 settings. Existing outputs are not replaced without explicit `--overwrite`.
 Radiation checkpoint resume is enabled by default. The full command set,
-metadata JSON/NPZ format, multi-model batch calculation, custom common-person
-parameters, warm-start example, and `nohup` command are in the runnable example
-README linked at the top of this document.
+custom person parameters, warm-start example, and `nohup` command are in the
+runnable example README linked at the top of this document.
 
 ## Performance and operational limits
 
@@ -898,7 +888,7 @@ are rejected by the checkpoint manifest.
 
 ## Exchange files
 
-After all three per-height files exist, `sim.comf.export_exchange(metadata)`
+After all three per-height files exist, `sim.comf.export_exchange()`
 assembles `thermal_comfort_inputs_udales.h<height>.<expnr>.nc` for each configured
 height. It streams the saved `(x,y,time)` fields without re-running the LES,
 surface energy balance, or receptor radiation. The records are those of the
@@ -909,47 +899,18 @@ to `[t - tstatsdump, t)`. Incomplete or subset radiation files are rejected;
 outside the fixed pedestrian mask every field is written with `_FillValue`.
 Negative humidity is rejected, never clipped. The only new physical
 evaluation is solar geometry at the midpoint of each averaging window using
-the existing `udprep.solar` SPA routine, with the configured solar longitude,
-latitude, and elevation. The output azimuth is clockwise from true north in
-radians.
+the existing `udprep.solar` SPA routine, with the site longitude, latitude
+and elevation and the UTC start date from `namoptions`. The output azimuth is
+clockwise from true north in radians.
 
-Construct an `ExchangeMetadata` object from **verified case georeferencing**:
-projected model-axis `x/y` centres and `(n,2)` bounds, WGS84 `longitude` and
-`latitude` on the `(x,y)` grid, constant geodetic `z_ground` and its named
-vertical datum, and a CF grid-mapping attribute dictionary including
-`grid_mapping_name` plus complete `crs_wkt` or `spatial_ref`. Also provide the
-actual solver version/commit, institution, and terrain and building
-conventions. The UTC simulation start is taken from `namoptions`. A rotated
-model grid needs a CRS that genuinely describes its projected model axes;
-assigning the unrotated national projection directly to rotated or offset
-local `x/y` is incorrect. The writer checks bounds against LES spacing,
-but it cannot independently verify the geographic transform you supply.
+The grid is the model grid: `x` and `y` are the scalar cell centres `xt` and
+`yt` in metres with bounds from `dx` and `dy`, and the global attribute
+`model_axis_rotation_degrees_from_true_north` records `xazimuth`. The writer
+does not place the grid on a map projection; a user who needs that applies
+their own transform to these model coordinates afterwards. The assembler does
+not compute thermal-comfort indices, which belong to the next pipeline step.
 
-```python
-from udcomf.udcomf_export import ExchangeMetadata
-
-metadata = ExchangeMetadata(
-    x=projected_x, y=projected_y,
-    x_bounds=projected_x_bounds, y_bounds=projected_y_bounds,
-    longitude=longitude_grid, latitude=latitude_grid,
-    z_ground=constant_ground_elevation,
-    crs_attributes=verified_cf_crs,
-    vertical_datum="<verified vertical datum>",
-    model_version="<solver commit used for this run>",
-    institution="<contributing institution>",
-    building_representation="<actual IBM/facet representation>",
-    terrain_convention="<actual flat-ground convention>",
-)
-files = sim.comf.export_exchange(metadata)
-```
-
-These geographic and provenance facts are not inferred from the solar site
-coordinates or from the STL. For a real city case, verify the STL's projected
-origin/rotation and geodetic ground reference before constructing metadata.
-The assembler does not compute thermal-comfort indices, which belong to the
-next pipeline step.
-
-## Model-neutral MRT, PET, UTCI and WBGT
+## MRT, PET, UTCI and WBGT
 
 Install the optional scientific implementation on Python 3.10 or newer:
 
@@ -960,13 +921,11 @@ tools/python/.venv/bin/python -m pip install -e 'tools/python[comfort]'
 The function reads only the exchange file; it never opens uDALES case inputs
 or remaps the grid.
 
-The input contract is deliberately light: any number of time records from a
-single instant upward on a strictly increasing axis, the physical fields
-with the documented units, and per-record solar angles. Optional metadata -
-time and grid bounds, longitude/latitude, ground elevation, CRS, receptor
-height, provenance, pedestrian mask - is validated when present and simply
-omitted otherwise; without a mask, the computation mask is derived from
-data finiteness at the first record and written to the output. Per-cell
+The input contract is the exchange file described above: any number of time
+records from a single instant upward on a strictly increasing axis with
+window bounds, the grid with cell bounds, the pedestrian mask, the receptor
+height, the physical fields with the documented units, and per-record solar
+angles. Nothing is optional and nothing is derived when absent. Per-cell
 nonphysical inputs (nonfinite values, nonpositive temperature or pressure,
 negative humidity, wind or irradiance, or direct beam with the sun below
 the horizon) are flagged with validity bit 64 instead of rejecting the
@@ -1096,8 +1055,8 @@ are incomplete and contain NaN, never gap-filled.
 
 Both files use native (x,y,time) fields in W m-2, time_bounds,
 time_complete, valid_mask, processed_mask, coordinates, receptor_height,
-and provenance. processed_mask distinguishes a subset check from a full
-plane. Unselected and invalid cells are NaN.
+and the checkpoint manifest as provenance. processed_mask distinguishes a
+subset check from a full plane. Unselected and invalid cells are NaN.
 
 For example, use this Python code to request the saved record times for
 both radiation kinds:
@@ -1152,8 +1111,8 @@ ltdump or ltkslicedump; for k-slice-only output, configure kslice to include
 both scalar levels bracketing every receptor height. The run must last beyond
 the first dump. Every receptor height must lie between scalar-centre heights,
 as must 10 m for ws_10. Preflight checks these requirements without loading
-the large geometry or running the solver. It does not validate surface
-radiation or geospatial metadata.
+the large geometry or running the solver. It does not validate the surface
+radiation inputs.
 
 Full stats_t includes at least 28 three-dimensional float32 fields at each
 dump when temperature and moisture are enabled. On a grid of a few hundred
