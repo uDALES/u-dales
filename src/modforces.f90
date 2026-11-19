@@ -869,7 +869,8 @@ module modforces
   !use modglobal, only: ltempeq, lperiodicEBcorr, ib, ie, jb, je, kb, ke, imax, jtot
   use modglobal, only : ltempeq, lmoist, lperiodicEBcorr, ib, ie, jb, je, ke,&
                           itot, jtot, totheatflux,sinkbase, totqflux, &
-                          zh, fraction,xlen,ylen,dzf
+                          zh, fraction,xlen,ylen,dzf, eps1
+  use modsurfdata, only : wttop, wqtop   ! prescribed lid fluxes replace the top-cell volume term (2026-10-18)
   use modmpi, only : comm3d, mpierr, MY_REAL, MPI_SUM
   !
   integer :: i, j, k
@@ -909,6 +910,10 @@ module modforces
   !phi_theta_t = 0 ! For debugging the flux profile !(1-fraction)*H_proj! The heat flux out the top of the domain.
   phi_theta_t = (1-fraction)*tot_Tflux/(xlen*ylen*dzf(ke)) ![Ks^-1]    
   phi_q_t = (1-fraction)*tot_qflux/(xlen*ylen*dzf(ke))
+  ! 2026-10-18: with a lid flux prescribed in &BC (wttop / wqtop) the (1-fraction) share leaves through the top boundary
+  ! condition (fluxtop, Grylls 2020 / Wilson 2025 eq. 4.5) and must not be removed again as a volume term in the top cell
+  if (abs(wttop) > eps1) phi_theta_t = 0.
+  if (abs(wqtop) > eps1) phi_q_t = 0.
   !phi_theta_t = (1-fraction)*H_proj
   !phi_q_t = (1-fraction)*E_proj
 
