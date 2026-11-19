@@ -811,8 +811,9 @@ class UDComfRadiation:
             direct[daylight] = forcing["dni"][used[daylight]] * fractions
         return np.vstack((direct, nondirect)), (n_backface, n_ground)
 
-    def write_hourly(
-        self, kind: str, target_times: np.ndarray, *,
+    def write_radiation(
+        self, kind: str, times: np.ndarray, *,
+        duration: float | None = None,
         receptor_height: float | None = None,
         flat_indices: np.ndarray | None = None,
         output_path: Path | None = None,
@@ -826,17 +827,26 @@ class UDComfRadiation:
         resume: bool = True,
         overwrite: bool = False,
     ) -> Path:
-        """Write preceding-15-minute hourly irradiance planes.
+        """Write irradiance planes averaged over the window preceding each time.
 
+        ``times`` are the saved statistics record times and ``duration`` the
+        averaging window (``tstatsdump``; read from namoptions when omitted).
         Source samples are integrated under piecewise-linear interpolation,
         not claimed to be exact sub-cadence physical fluxes. Missing coverage
-        and restart gaps produce NaN windows. Checkpoints are atomic per hour
+        and restart gaps produce NaN windows. Checkpoints are atomic per record
         and receptor tile; resume requires identical input file signatures.
         """
         from .checkpoints import (
             RadiationCheckpoints, consolidate_radiation, file_signature,
-            hourly_windows, selection_hash,
+            preceding_windows, selection_hash,
         )
+        from .schedule import read_stats_schedule
+
+        if duration is None:
+            duration = read_stats_schedule(self.sim.path).tstatsdump
+        duration = float(duration)
+        if not np.isfinite(duration) or duration <= 0:
+            raise ValueError("duration must be positive")
 
         if kind not in ("shortwave", "longwave"):
             raise ValueError("kind must be 'shortwave' or 'longwave'")
@@ -859,11 +869,12 @@ class UDComfRadiation:
         if len(indices) == 0 or len(np.unique(indices)) != len(indices):
             raise ValueError("Select at least one unique fluid receptor")
         indices = np.sort(indices)
+        times_requested = np.asarray(times, dtype=float)
         times = np.asarray(
             self.sim.load_shortwave_forcing("time") if kind == "shortwave"
             else self.sim.load_fac_eb("t"), dtype=float,
         )
-        windows, gap = hourly_windows(times, target_times, max_gap=max_gap)
+        windows, gap = preceding_windows(times, times_requested, duration=duration, max_gap=max_gap)
         names = (
             ("sw_direct_normal",) + tuple(f"sw_nondirect_{name}" for name in _PLANE_NAMES)
             if kind == "shortwave" else tuple(f"lw_{name}" for name in _PLANE_NAMES)
@@ -903,7 +914,7 @@ class UDComfRadiation:
             else [case / f"facEB.{expnr}.nc", case / f"timedeplw.inp.{expnr}"]
         )
         manifest = {
-            "version": 4,
+            "version": 5,
             "kind": kind,
             "case": str(case.resolve()),
             "receptor_height_m": float(grid.z.flat[0]),
@@ -916,7 +927,7 @@ class UDComfRadiation:
             "sun_body_points": sun_body_points,
             "sun_body_height_m": float(sun_body_height),
             "target_times_s": [window.end for window in windows],
-            "window_duration_s": 900.0,
+            "window_duration_s": duration,
             "max_source_gap_s": gap,
             "source_files": [file_signature(path) for path in source_files],
         }
@@ -967,11 +978,12 @@ class UDComfRadiation:
                     checkpoints.write(time_index, tile_index, tile_values)
         return consolidate_radiation(
             output, checkpoints, grid, indices, names, windows, tile_size,
-            overwrite=overwrite,
+            duration=duration, overwrite=overwrite,
         )
 
-    def write_hourly_heights(
-        self, target_times: np.ndarray, *,
+    def write_heights(
+        self, times: np.ndarray, *,
+        duration: float | None = None,
         heights: tuple[float, ...] | None = None,
         kinds: tuple[str, ...] = ("shortwave", "longwave"),
         flat_indices: np.ndarray | None = None,
@@ -1014,8 +1026,8 @@ class UDComfRadiation:
             results[height] = {}
             for kind in kinds:
                 tag = height_tag(height)
-                results[height][kind] = self.write_hourly(
-                    kind, target_times, receptor_height=height,
+                results[height][kind] = self.write_radiation(
+                    kind, times, duration=duration, receptor_height=height,
                     flat_indices=flat_indices,
                     output_path=directory / f"pedestrian_{kind}.{tag}.{self.sim.expnr}.nc",
                     checkpoint_dir=checkpoints / kind / tag,

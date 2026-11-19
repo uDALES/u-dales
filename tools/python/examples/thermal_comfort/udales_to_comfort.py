@@ -1,16 +1,19 @@
 #!/usr/bin/env python3
-"""Prepare model-neutral thermal-comfort exchange files from uDALES outputs.
+"""Prepare thermal-comfort exchange files from uDALES outputs.
 
 This script does not run uDALES or repeat the surface energy balance. It reads
 saved statistics, facet radiation outputs, and preprocessing files from one
 case directory. Verified georeferencing is supplied separately because it
 cannot be inferred safely from a local or rotated LES grid.
+
+Every saved statistics record becomes one output record: the mean over the
+``tstatsdump`` seconds preceding its timestamp, with solar angles evaluated
+at the midpoint of that window.
 """
 
 from __future__ import annotations
 
 import argparse
-from datetime import date
 import json
 from pathlib import Path
 import sys
@@ -19,7 +22,7 @@ import numpy as np
 
 from udbase import UDBase
 from udcomf.udcomf_export import ExchangeMetadata, check_comfort_preflight
-from udcomf.udcomf_io import merge_facet_outputs
+from udcomf.udcomf_io import merge_facet_outputs, merge_statistics_outputs
 
 
 _ARRAY_FIELDS = (
@@ -28,15 +31,7 @@ _ARRAY_FIELDS = (
 _TEXT_FIELDS = (
     "vertical_datum", "model_version", "institution",
     "building_representation", "terrain_convention",
-    "spinup_start_utc", "spinup_end_utc",
 )
-
-
-def _analysis_day(value: str) -> date:
-    try:
-        return date.fromisoformat(value)
-    except ValueError as exc:
-        raise argparse.ArgumentTypeError("expected YYYY-MM-DD") from exc
 
 
 def load_exchange_metadata(path: Path) -> ExchangeMetadata:
@@ -90,19 +85,18 @@ def load_exchange_metadata(path: Path) -> ExchangeMetadata:
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         description=(
-            "Generate height-specific atmosphere/radiation files and strict "
-            "model-neutral exchange files from existing uDALES outputs."
+            "Generate height-specific atmosphere/radiation files and exchange "
+            "input files from existing uDALES outputs."
         )
     )
     parser.add_argument("--case-dir", type=Path, required=True)
-    parser.add_argument("--analysis-day", type=_analysis_day, required=True)
     parser.add_argument(
         "--metadata", type=Path, required=True,
         help="JSON metadata file pointing to the verified georeference NPZ.",
     )
     parser.add_argument(
-        "--statistics-source", choices=("stats_kslice", "stats_t"),
-        default="stats_kslice",
+        "--statistics-source", choices=("stats_tkslice", "stats_t"),
+        default="stats_tkslice",
     )
     parser.add_argument(
         "--heights", type=float, nargs="+", default=None,
@@ -116,12 +110,19 @@ def build_parser() -> argparse.ArgumentParser:
         "--facet-source", type=Path, action="append", default=[],
         help=(
             "Warm-start case directory or facEB.<case>.nc file. Repeat as needed; "
-            "records are sorted and checked before merging."
+            "records are sorted and checked before merging into the case."
         ),
     )
     parser.add_argument(
-        "--overwrite-facet-merge", action="store_true",
-        help="Replace existing merged facEB/facT files in the destination case.",
+        "--stats-source", type=Path, action="append", default=[],
+        help=(
+            "Warm-start case directory or stats_tkslice/stats_t.<case>.nc file. Repeat as "
+            "needed; only the comfort subset is merged into stats_tkslice of the case."
+        ),
+    )
+    parser.add_argument(
+        "--overwrite-merge", action="store_true",
+        help="Replace existing merged facEB/facT or stats_tkslice files in the case.",
     )
     parser.add_argument(
         "--skip-atmosphere", action="store_true",
@@ -159,9 +160,11 @@ def _print_preflight(report) -> None:
         "  receptor heights: "
         + ", ".join(f"{value:g} m" for value in report.receptor_heights_m)
     )
+    schedule = report.schedule
     print(
-        f"  requested hours  : {report.analysis_times_s[0]:g} to "
-        f"{report.analysis_times_s[-1]:g} s"
+        f"  statistics      : tstatsdump={schedule.tstatsdump:g} s, "
+        f"tstatsgap={schedule.tstatsgap:g} s, tstatstart={schedule.tstatstart:g} s, "
+        f"first dump at {report.first_dump_s:g} s"
     )
     for caution in report.cautions:
         print(f"  CAUTION: {caution}")
@@ -182,7 +185,7 @@ def main(argv: list[str] | None = None) -> int:
     heights = None if args.heights is None else tuple(args.heights)
 
     try:
-        report = check_comfort_preflight(case, args.analysis_day)
+        report = check_comfort_preflight(case)
         _print_preflight(report)
         if not report.ready:
             raise ValueError("Comfort preflight has blockers; no postprocessing was started")
@@ -190,19 +193,42 @@ def main(argv: list[str] | None = None) -> int:
 
         if args.facet_source:
             merged = merge_facet_outputs(
-                case, args.facet_source, overwrite=args.overwrite_facet_merge,
+                case, args.facet_source, overwrite=args.overwrite_merge,
             )
             print(
                 f"Merged {len(merged.source_cases)} facet segments into "
                 f"{merged.eb_path.name} and {merged.temperature_path.name} "
                 f"({merged.record_count} records)"
             )
+        if args.stats_source:
+            if args.statistics_source != "stats_tkslice":
+                raise ValueError("--stats-source writes stats_tkslice; use --statistics-source stats_tkslice")
+            merged = merge_statistics_outputs(
+                case, args.stats_source, overwrite=args.overwrite_merge,
+            )
+            print(
+                f"Merged {len(merged.source_cases)} statistics segments into "
+                f"{merged.path.name} ({merged.record_count} records, scalar levels "
+                f"{list(k + 1 for k in merged.selected_levels)})"
+            )
 
         sim = UDBase(case.name, case, load_geometry=not args.skip_radiation)
-        target_times = np.asarray(report.analysis_times_s, dtype=float)
+        times = sim.comf.statistics_times(args.statistics_source)
+        schedule = sim.comf.schedule
+        irregular = schedule.off_schedule(times)
+        print(
+            f"Statistics records: {times.size} from t = {times[0]:g} s to {times[-1]:g} s, "
+            f"each a {schedule.tstatsdump:g} s mean"
+        )
+        if irregular.any():
+            print(
+                f"  NOTE: {int(irregular.sum())} record(s) are not on the "
+                "tstatstart + n*(tstatsdump + tstatsgap) schedule, as happens after a warm "
+                "start inside a window; they remain full-length means"
+            )
         if not args.skip_atmosphere:
-            outputs = sim.comf.atmosphere.write_hourly_heights(
-                target_times,
+            outputs = sim.comf.atmosphere.write_heights(
+                times,
                 source=args.statistics_source,
                 heights=heights,
                 output_dir=output_dir,
@@ -212,8 +238,9 @@ def main(argv: list[str] | None = None) -> int:
                 print(f"Atmosphere {height:g} m: {path}")
 
         if not args.skip_radiation:
-            outputs = sim.comf.radiation.write_hourly_heights(
-                target_times,
+            outputs = sim.comf.radiation.write_heights(
+                times,
+                duration=schedule.tstatsdump,
                 heights=heights,
                 output_dir=output_dir,
                 checkpoint_root=checkpoint_root,
@@ -229,7 +256,6 @@ def main(argv: list[str] | None = None) -> int:
                     print(f"{kind.capitalize()} {height:g} m: {path}")
 
         exchange = sim.comf.export_exchange(
-            args.analysis_day,
             metadata,
             heights=heights,
             input_dir=output_dir,

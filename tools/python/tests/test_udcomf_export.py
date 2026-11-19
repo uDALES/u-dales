@@ -1,6 +1,5 @@
 """Pre-run comfort-output checks on small synthetic namelists."""
 
-from datetime import date
 from pathlib import Path
 from tempfile import TemporaryDirectory
 import unittest
@@ -48,22 +47,36 @@ def _case(path: Path, *, first_level: float = 0.75, gap: int = 2700) -> Path:
 
 
 class TestComfortPreflight(unittest.TestCase):
-    def test_15_minute_hourly_schedule_and_bracket_are_ready(self):
+    def test_schedule_and_bracket_are_ready(self):
         with TemporaryDirectory() as tmp:
             case = _case(Path(tmp))
-            result = check_comfort_preflight(case, date(2023, 8, 21))
+            result = check_comfort_preflight(case)
             self.assertTrue(result.ready, result.blockers)
-            self.assertEqual(result.analysis_times_s[0], 25200.0)
-            self.assertEqual(result.analysis_times_s[-1], 108000.0)
-            self.assertEqual(result.estimated_stats_bytes, 10 * 8 * 4 * 28 * 4 * 24)
+            self.assertEqual(result.schedule.tstatsdump, 900.0)
+            self.assertEqual(result.schedule.period, 3600.0)
+            self.assertEqual(result.first_dump_s, 25200.0)
+            self.assertEqual(result.estimated_stats_bytes_per_dump, 10 * 8 * 4 * 28 * 4)
 
-    def test_bad_cadence_and_unbracketed_receptor_fail(self):
+    def test_any_gap_is_accepted_but_unbracketed_receptor_fails(self):
         with TemporaryDirectory() as tmp:
             case = _case(Path(tmp), first_level=1.25, gap=13500)
-            result = check_comfort_preflight(case, date(2023, 8, 21))
+            result = check_comfort_preflight(case)
             self.assertFalse(result.ready)
             self.assertTrue(any("ws_local" in issue for issue in result.blockers))
-            self.assertTrue(any("hourly" in issue for issue in result.blockers))
+            self.assertFalse(any("hourly" in issue for issue in result.blockers))
+            self.assertEqual(result.schedule.tstatsgap, 13500.0)
+
+    def test_runtime_and_sampling_consistency(self):
+        with TemporaryDirectory() as tmp:
+            case = _case(Path(tmp))
+            path = case / "namoptions.123"
+            namelist = f90nml.read(path)
+            namelist["run"]["runtime"] = 20000.0
+            namelist["output"]["tsample"] = 1200.0
+            namelist.write(path, force=True)
+            result = check_comfort_preflight(case)
+            self.assertTrue(any("first statistics dump" in issue for issue in result.blockers))
+            self.assertTrue(any("tsample must not exceed" in issue for issue in result.blockers))
 
     def test_multi_height_kslice_only_requires_each_bracket(self):
         with TemporaryDirectory() as tmp:
@@ -75,14 +88,14 @@ class TestComfortPreflight(unittest.TestCase):
                 nreceptor_heights=2, receptor_heights=[1.1, 1.5],
             )
             namelist.write(path, force=True)
-            report = check_comfort_preflight(case, date(2023, 8, 21))
+            report = check_comfort_preflight(case)
             self.assertTrue(report.ready, report.blockers)
             self.assertEqual(report.receptor_heights_m, (1.1, 1.5))
-            self.assertLess(report.estimated_stats_bytes, 10 * 8 * 4 * 28 * 4 * 24)
+            self.assertLess(report.estimated_stats_bytes_per_dump, 10 * 8 * 4 * 28 * 4)
 
             namelist["output"]["nkslice"] = 1
             namelist["output"]["kslice"] = [2]
             namelist.write(path, force=True)
-            report = check_comfort_preflight(case, date(2023, 8, 21))
+            report = check_comfort_preflight(case)
             self.assertFalse(report.ready)
             self.assertTrue(any("kslice is missing" in issue for issue in report.blockers))

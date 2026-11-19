@@ -50,8 +50,6 @@ class TestThermalComfortExamples(unittest.TestCase):
                 "institution": "test",
                 "building_representation": "IBM facets",
                 "terrain_convention": "flat ground",
-                "spinup_start_utc": "2023-08-20T18:00:00Z",
-                "spinup_end_utc": "2023-08-21T00:00:00Z",
             }
             path = root / "metadata.json"
             path.write_text(json.dumps(config), encoding="utf-8")

@@ -1,14 +1,14 @@
-"""Preparation checks for model-neutral thermal-comfort export.
+"""Pre-run checks and exchange-file export for thermal-comfort postprocessing.
 
 The checks use the namelist parser shared with UDBase and only load the
-one-dimensional profile. They do not initialise the Paris geometry or alter
+one-dimensional profile. They do not initialise the geometry or alter
 simulation inputs.
 """
 
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import date, datetime, timedelta, timezone
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from contextlib import ExitStack
 import os
@@ -20,7 +20,8 @@ from netCDF4 import Dataset
 
 from udconfig import parse_namoptions
 from udprep.solar import solar_position_python
-from .heights import configured_receptor_heights, height_tag, validate_heights
+from .heights import bracketing_levels, configured_receptor_heights, height_tag, validate_heights
+from .schedule import StatsSchedule, read_stats_schedule, validate_statistics_times
 
 
 @dataclass(frozen=True)
@@ -29,8 +30,9 @@ class ComfortPreflight:
     receptor_height_m: float
     receptor_heights_m: tuple[float, ...]
     first_scalar_height_m: float
-    analysis_times_s: tuple[float, ...]
-    estimated_stats_bytes: int
+    schedule: StatsSchedule
+    first_dump_s: float
+    estimated_stats_bytes_per_dump: int
     blockers: tuple[str, ...]
     cautions: tuple[str, ...]
 
@@ -39,12 +41,24 @@ class ComfortPreflight:
         return not self.blockers
 
 
-def check_comfort_preflight(case_dir: Path, analysis_day: date) -> ComfortPreflight:
-    """Audit full-3D or gathered k-slice statistics before a simulation.
+def _simulation_start(options: dict) -> datetime:
+    try:
+        return datetime(
+            int(options["year"]), int(options["month"]), int(options["day"]),
+            int(options["hour"]), int(options.get("minute", 0)),
+            int(options.get("second", 0)), tzinfo=timezone.utc,
+        )
+    except (KeyError, TypeError, ValueError) as exc:
+        raise ValueError("A valid UTC simulation start date is required in namoptions") from exc
 
-    The byte count is a lower-bound raw payload estimate for 28 3-D float32
-    variables with temperature and moisture enabled. It excludes metadata,
-    NetCDF overhead, slices, probes, restart files, and radiation output.
+
+def check_comfort_preflight(case_dir: Path) -> ComfortPreflight:
+    """Audit a case configuration before running the LES for comfort output.
+
+    The byte estimate is a lower-bound raw payload per statistics dump for 28
+    3-D float32 variables with temperature and moisture enabled. It excludes
+    metadata, NetCDF overhead, slices, probes, restart files, and radiation
+    output.
     """
     case = Path(case_dir).expanduser().resolve()
     options_path = case / f"namoptions.{case.name}"
@@ -58,23 +72,9 @@ def check_comfort_preflight(case_dir: Path, analysis_day: date) -> ComfortPrefli
 
     blockers: list[str] = []
     cautions: list[str] = []
-    try:
-        start = datetime(
-            int(options["year"]), int(options["month"]), int(options["day"]),
-            int(options["hour"]), int(options.get("minute", 0)),
-            int(options.get("second", 0)), tzinfo=timezone.utc,
-        )
-    except (KeyError, TypeError, ValueError) as exc:
-        raise ValueError("A valid UTC simulation start date is required in namoptions") from exc
+    _simulation_start(options)
     if float(options.get("timezone", 0.0)) != 0.0:
-        blockers.append("Simulation timezone must be UTC for the agreed output timeline")
-    midnight = datetime.combine(analysis_day, datetime.min.time(), tzinfo=timezone.utc)
-    targets = tuple(
-        (midnight + timedelta(hours=i) - start).total_seconds()
-        for i in range(1, 25)
-    )
-    if targets[0] <= 0:
-        blockers.append("Analysis day does not follow the simulation start")
+        blockers.append("Simulation timezone must be UTC so that solar positions can be evaluated")
 
     try:
         receptor_heights = configured_receptor_heights(case)
@@ -102,13 +102,9 @@ def check_comfort_preflight(case_dir: Path, analysis_day: date) -> ComfortPrefli
         if count <= 0 or len(indices) != count or any(index < 1 or index > len(heights) for index in indices):
             blockers.append("ltkslicedump needs valid, distinct kslice indices")
         else:
-            for height in receptor_heights:
-                if not heights[0] <= height <= heights[-1]:
-                    continue
-                upper = int(np.searchsorted(heights, height, side="left"))
-                needed = {upper + 1}
-                if not np.isclose(heights[upper], height, rtol=0, atol=1e-5):
-                    needed.add(upper)
+            inside = [h for h in receptor_heights if heights[0] <= h <= heights[-1]]
+            for height, (lower, upper, _) in bracketing_levels(heights, inside).items() if inside else ():
+                needed = {lower + 1, upper + 1}
                 if not needed.issubset(indices):
                     blockers.append(
                         f"kslice is missing scalar levels {sorted(needed)} for receptor_height={height:g} m"
@@ -122,26 +118,25 @@ def check_comfort_preflight(case_dir: Path, analysis_day: date) -> ComfortPrefli
     if not options.get("ltimedepsw", False) or not options.get("ltimedeplw", False):
         blockers.append("Time-dependent shortwave and longwave forcing must be enabled")
 
-    dump = float(options.get("tstatsdump", 0))
-    gap = float(options.get("tstatsgap", 0))
-    stat_start = float(options.get("tstatstart", 0))
-    period = dump + gap
-    if not np.isclose(dump, 900.0, rtol=0, atol=1e-6):
-        blockers.append("tstatsdump must be 900 s for preceding-15-minute means")
-    if not np.isclose(period, 3600.0, rtol=0, atol=1e-6):
-        blockers.append("tstatsdump + tstatsgap must be 3600 s for hourly means")
-    if not np.isclose(stat_start + period, targets[0], rtol=0, atol=1e-6):
-        blockers.append(
-            f"First stats dump would be at {stat_start + period:g} s; "
-            f"the first required hour is {targets[0]:g} s"
-        )
-    if float(options.get("runtime", 0)) < targets[-1]:
-        blockers.append("Configured runtime ends before the last required hourly plane")
-    sample = float(options.get("tsample", 0))
-    if not np.isfinite(sample) or sample <= 0 or sample > 900:
-        blockers.append("tsample must be finite, positive, and no longer than 900 s")
-    if sample > 5:
-        cautions.append("tsample exceeds 5 s; 15-minute means may under-sample rapid changes")
+    try:
+        schedule = read_stats_schedule(case)
+    except ValueError as exc:
+        blockers.append(str(exc))
+        schedule = StatsSchedule(0.0, float("nan"), 0.0, float("nan"))
+    first_dump = schedule.tstatstart + schedule.period
+    if np.isfinite(schedule.tstatsdump):
+        if "tstatsdump" not in options:
+            cautions.append(
+                f"tstatsdump is not set; the solver default of {schedule.tstatsdump:g} s applies"
+            )
+        if float(options.get("runtime", 0)) <= first_dump:
+            blockers.append(
+                f"runtime ends before the first statistics dump at {first_dump:g} s"
+            )
+        if schedule.tsample > schedule.tstatsdump:
+            blockers.append("tsample must not exceed tstatsdump")
+        elif schedule.tsample > 5:
+            cautions.append("tsample exceeds 5 s; averaged fields may under-sample rapid changes")
 
     itot = int(options["itot"])
     jtot = int(options["jtot"])
@@ -149,18 +144,14 @@ def check_comfort_preflight(case_dir: Path, analysis_day: date) -> ComfortPrefli
     if len(heights) != ktot:
         blockers.append(f"prof has {len(heights)} scalar levels but ktot={ktot}")
     vertical_count = ktot if full_stats else int(options.get("nkslice", 0))
-    estimated = itot * jtot * vertical_count * 28 * 4 * 24
+    estimated = itot * jtot * vertical_count * 28 * 4
     if full_stats:
         cautions.append(
-            "Full stats_t writes at least 28 three-dimensional fields per dump; "
-            f"24 dumps are roughly {estimated / 1e12:.2f} TB of raw float32 payload"
+            "Full stats_t writes at least 28 three-dimensional fields per dump, roughly "
+            f"{estimated / 1e9:.3f} GB of raw float32 payload each"
         )
     elif slice_stats:
         cautions.append("K-slice-only output saves disk space but still allocates 3D statistics in the solver")
-    cautions.append(
-        "Warm starts inside a 15-minute window can yield partial means even if dump "
-        "timestamps match; check restart times against all requested windows"
-    )
     forcing_archive = case / f"shortwave_forcing.{case.name}.nc"
     if not forcing_archive.is_file():
         cautions.append(
@@ -174,8 +165,9 @@ def check_comfort_preflight(case_dir: Path, analysis_day: date) -> ComfortPrefli
         receptor_height_m=receptor_heights[0] if receptor_heights else float("nan"),
         receptor_heights_m=receptor_heights,
         first_scalar_height_m=float(heights[0]),
-        analysis_times_s=targets,
-        estimated_stats_bytes=estimated,
+        schedule=schedule,
+        first_dump_s=first_dump,
+        estimated_stats_bytes_per_dump=estimated,
         blockers=tuple(blockers),
         cautions=tuple(cautions),
     )
@@ -199,8 +191,9 @@ class ExchangeMetadata:
     """Verified georeferencing and run identity not recoverable from uDALES outputs.
 
     x/y and their bounds are projected *model-axis* coordinates. For a rotated
-    LES grid, the supplied CRS must describe those axes, not merely EPSG:2154.
-    Longitude/latitude must be transformed from the same grid definition.
+    LES grid, the supplied CRS must describe those axes, not the unrotated
+    national projection. Longitude/latitude must be transformed from the same
+    grid definition.
     """
 
     x: np.ndarray
@@ -216,13 +209,11 @@ class ExchangeMetadata:
     institution: str
     building_representation: str
     terrain_convention: str
-    spinup_start_utc: str
-    spinup_end_utc: str
 
 
 def _check_exchange_source(ds: Dataset, path: Path, x: np.ndarray, y: np.ndarray,
-                           times: np.ndarray, height: float, fields: tuple[str, ...],
-                           *, radiation: bool) -> np.ndarray:
+                           times: np.ndarray, duration: float, height: float,
+                           fields: tuple[str, ...], *, radiation: bool) -> np.ndarray:
     """Validate a previously generated native-grid plane file without copying it."""
     for name in ("x", "y", "time", "time_bounds", "valid_mask", "receptor_height", *fields):
         if name not in ds.variables:
@@ -231,22 +222,16 @@ def _check_exchange_source(ds: Dataset, path: Path, x: np.ndarray, y: np.ndarray
         value = np.asarray(ds[name][:], dtype=float)
         if value.shape != expected.shape or not np.allclose(value, expected, rtol=0, atol=1e-5):
             raise ValueError(f"{path.name} has a different {name} grid")
-    bounds = np.column_stack((times - 900.0, times))
+    bounds = np.column_stack((times - duration, times))
     if (ds["time_bounds"].dimensions != ("time", "bounds")
             or not np.allclose(ds["time_bounds"][:], bounds, rtol=0, atol=1e-5)):
-        raise ValueError(f"{path.name} has incorrect 15-minute time bounds")
+        raise ValueError(f"{path.name} time bounds do not match the {duration:g} s averaging window")
     if not np.isclose(float(ds["receptor_height"][...]), height, rtol=0, atol=1e-5):
         raise ValueError(f"{path.name} has a different receptor height")
     mask = np.asarray(ds["valid_mask"][:])
     if (ds["valid_mask"].dimensions != ("x", "y")
             or mask.shape != (len(x), len(y)) or not np.isin(mask, (0, 1)).all()):
         raise ValueError(f"{path.name} has an invalid receptor mask")
-    if not radiation:
-        if "source_time" not in ds.variables or ds["source_time"].dimensions != ("time",):
-            raise ValueError(f"{path.name} lacks actual statistics record times")
-        actual = np.asarray(ds["source_time"][:], dtype=float)
-        if actual.shape != times.shape or not np.isfinite(actual).all() or np.any(abs(actual - times) > 1.0):
-            raise ValueError(f"{path.name} statistics records miss the requested hours")
     for name in fields:
         var = ds[name]
         if var.dimensions != ("x", "y", "time") or var.shape != (len(x), len(y), len(times)):
@@ -290,20 +275,23 @@ def _check_georeference(meta: ExchangeMetadata, sim, shape: tuple[int, int]) -> 
     if not np.allclose(meta.z_ground, np.asarray(meta.z_ground)[0, 0], rtol=0, atol=1e-5):
         raise ValueError("uDALES has flat model ground; z_ground must be a constant datum height")
     for name in ("vertical_datum", "model_version", "institution", "building_representation",
-                 "terrain_convention", "spinup_start_utc", "spinup_end_utc"):
+                 "terrain_convention"):
         if not isinstance(getattr(meta, name), str) or not getattr(meta, name).strip():
             raise ValueError(f"Exchange metadata {name} must be explicitly supplied")
 
 
-def write_exchange_heights(sim, analysis_day: date, metadata: ExchangeMetadata, *,
+def write_exchange_heights(sim, metadata: ExchangeMetadata, *,
                            heights: tuple[float, ...] | None = None,
                            input_dir: Path | None = None, output_dir: Path | None = None,
                            overwrite: bool = False) -> dict[float, Path]:
-    """Assemble strict model-neutral 24-hour input files from saved planes.
+    """Assemble one exchange input file per height from the saved planes.
 
-    This is an I/O operation; atmospheric and radiative quantities are not
-    recalculated. Solar angles alone are evaluated at exact window midpoints
-    with the existing SPA routine because those instants are not archived.
+    The records are those of the pedestrian atmosphere file, i.e. the saved
+    statistics records; shortwave and longwave planes must carry the same
+    records. This is an I/O operation; atmospheric and radiative quantities
+    are not recalculated. Solar angles alone are evaluated with the existing
+    SPA routine at the midpoint of each averaging window, because those
+    instants are not archived.
     """
     case = Path(sim.path)
     source_dir = case if input_dir is None else Path(input_dir)
@@ -317,32 +305,21 @@ def write_exchange_heights(sim, analysis_day: date, metadata: ExchangeMetadata, 
                parse_namoptions(case / f"namoptions.{sim.expnr}").items()}
     if "timezone" not in options or float(options["timezone"]) != 0:
         raise ValueError("Exchange output requires a UTC simulation clock")
-    start = datetime(int(options["year"]), int(options["month"]), int(options["day"]),
-                     int(options["hour"]), int(options.get("minute", 0)),
-                     int(options.get("second", 0)), tzinfo=timezone.utc)
-    midnight = datetime.combine(analysis_day, datetime.min.time(), tzinfo=timezone.utc)
-    expected = np.arange(1, 25, dtype=float) * 3600.0
-    model_times = expected + (midnight - start).total_seconds()
+    start = _simulation_start(options)
+    schedule = read_stats_schedule(case)
+    duration = schedule.tstatsdump
     _check_georeference(metadata, sim, (len(sim.xt), len(sim.yt)))
-    if (datetime.fromisoformat(metadata.spinup_start_utc.replace("Z", "+00:00")) != start
-            or datetime.fromisoformat(metadata.spinup_end_utc.replace("Z", "+00:00")) != midnight):
-        raise ValueError("UTC spin-up dates must match simulation start and analysis-day midnight")
     for key in ("longitude", "latitude", "elevation"):
         if key not in options or not np.isfinite(float(options[key])):
             raise ValueError(f"Solar {key} must be explicitly configured")
-    solar = [solar_position_python(midnight + timedelta(seconds=float(t - 450)),
-                                   float(options["longitude"]), float(options["latitude"]),
-                                   0.0, float(options["elevation"]))
-             for t in expected]
-    zenith = np.deg2rad([float(state["zenith"]) for state in solar])
-    azimuth = np.mod(np.deg2rad([float(state["azimuth"]) for state in solar]), 2 * np.pi)
-    if not np.isfinite(zenith).all() or not np.isfinite(azimuth).all():
-        raise ValueError("Solar geometry is not finite")
     paths = {h: target_dir / f"thermal_comfort_inputs_udales.{height_tag(h)}.{sim.expnr}.nc"
              for h in selected}
     if not overwrite and any(path.exists() for path in paths.values()):
         raise FileExistsError("One or more exchange files already exist")
     target_dir.mkdir(parents=True, exist_ok=True)
+    x = np.asarray(sim.xt, dtype=float)
+    y = np.asarray(sim.yt, dtype=float)
+    start_label = start.strftime("%Y-%m-%d %H:%M:%S")
     for height, path in paths.items():
         sources = {
             kind: source_dir / f"pedestrian_{kind}.{height_tag(height)}.{sim.expnr}.nc"
@@ -353,25 +330,35 @@ def write_exchange_heights(sim, analysis_day: date, metadata: ExchangeMetadata, 
             for kind, source in sources.items():
                 datasets[kind] = stack.enter_context(Dataset(source, "r"))
                 datasets[kind].set_auto_mask(False)
-            x = np.asarray(sim.xt, dtype=float)
-            y = np.asarray(sim.yt, dtype=float)
+            if "time" not in datasets["atmosphere"].variables:
+                raise ValueError(f"{sources['atmosphere'].name} lacks time")
+            times = validate_statistics_times(datasets["atmosphere"]["time"][:], schedule)
             atm = _check_exchange_source(datasets["atmosphere"], sources["atmosphere"],
-                                         x, y, model_times, height, _ATMOSPHERE, radiation=False)
+                                         x, y, times, duration, height, _ATMOSPHERE, radiation=False)
             if not atm.any():
                 raise ValueError("No valid pedestrian cells")
             for kind, fields in (("shortwave", _SHORTWAVE), ("longwave", _LONGWAVE)):
                 ds = datasets[kind]
-                mask = _check_exchange_source(ds, sources[kind], x, y, model_times,
+                mask = _check_exchange_source(ds, sources[kind], x, y, times, duration,
                                               height, fields, radiation=True)
                 if np.any(atm & ~mask) or np.any(atm & (np.asarray(ds["processed_mask"][:]) != 1)):
                     raise ValueError(f"{kind} does not cover every atmospheric-valid receptor")
+            midpoints = schedule.window_midpoints(times)
+            solar = [solar_position_python(start + timedelta(seconds=float(t)),
+                                           float(options["longitude"]), float(options["latitude"]),
+                                           0.0, float(options["elevation"]))
+                     for t in midpoints]
+            zenith = np.deg2rad([float(state["zenith"]) for state in solar])
+            azimuth = np.mod(np.deg2rad([float(state["azimuth"]) for state in solar]), 2 * np.pi)
+            if not np.isfinite(zenith).all() or not np.isfinite(azimuth).all():
+                raise ValueError("Solar geometry is not finite")
             fd, name = tempfile.mkstemp(prefix=f".{path.name}.", suffix=".tmp", dir=target_dir)
             os.close(fd)
             temporary = Path(name)
             try:
                 with Dataset(temporary, "w", format="NETCDF4") as out:
                     nx, ny = len(x), len(y)
-                    for dim, length in (("x", nx), ("y", ny), ("time", 24), ("bounds", 2)):
+                    for dim, length in (("x", nx), ("y", ny), ("time", len(times)), ("bounds", 2)):
                         out.createDimension(dim, length)
                     for axis in ("x", "y"):
                         out.createVariable(axis, "f8", (axis,))[:] = getattr(metadata, axis)
@@ -399,33 +386,34 @@ def write_exchange_heights(sim, analysis_day: date, metadata: ExchangeMetadata, 
                     crs.assignValue(0)
                     crs.setncatts(metadata.crs_attributes)
                     time = out.createVariable("time", "f8", ("time",))
-                    time[:] = expected
-                    time.units = f"seconds since {analysis_day.isoformat()} 00:00:00 UTC"
+                    time[:] = times
+                    time.units = f"seconds since {start_label} UTC"
                     time.calendar = "gregorian"
                     time.bounds = "time_bounds"
                     time.standard_name = "time"
+                    time.long_name = "end of the averaging window"
                     time.axis = "T"
-                    out.createVariable("time_bounds", "f8", ("time", "bounds"))[:] = np.column_stack((expected - 900, expected))
+                    out.createVariable("time_bounds", "f8", ("time", "bounds"))[:] = schedule.window_bounds(times)
                     out["time_bounds"].units = time.units
                     out.createVariable("solar_zenith", "f8", ("time",))[:] = zenith
                     out.createVariable("solar_azimuth", "f8", ("time",))[:] = azimuth
                     out["solar_zenith"].units = out["solar_azimuth"].units = "rad"
-                    out["solar_azimuth"].long_name = "solar azimuth clockwise from true north"
+                    out["solar_azimuth"].long_name = "solar azimuth clockwise from true north at midpoint of averaging window"
                     out["solar_zenith"].long_name = "solar zenith at midpoint of averaging window"
                     out.model_name = "uDALES"
                     out.Conventions = "CF-1.10"
                     out.model_version = metadata.model_version
                     out.institution = metadata.institution
                     out.simulation_identifier = str(sim.expnr)
+                    out.simulation_start_utc = start.strftime("%Y-%m-%dT%H:%M:%SZ")
+                    out.averaging_window_s = float(duration)
                     out.horizontal_grid_spacing_m = f"x={sim.dx:g}, y={sim.dy:g}"
                     out.vertical_grid_spacing_m = ",".join(f"{dz:.9g}" for dz in np.asarray(sim.dzt))
                     out.terrain_convention = metadata.terrain_convention
                     out.building_representation = metadata.building_representation
                     out.model_axis_rotation_degrees_from_true_north = float(sim.xazimuth)
                     out.vertical_interpolation_method = "linear in physical height between scalar centres"
-                    out.spinup_start_utc = metadata.spinup_start_utc
-                    out.spinup_end_utc = metadata.spinup_end_utc
-                    out.solar_geometry = "udprep.solar SPA, exact 15-minute window midpoint"
+                    out.solar_geometry = "udprep.solar SPA at the midpoint of each averaging window"
                     out.source_files = ", ".join(path.name for path in sources.values())
                     for kind, names in (("atmosphere", _ATMOSPHERE),
                                         ("shortwave", _SHORTWAVE), ("longwave", _LONGWAVE)):
@@ -439,13 +427,16 @@ def write_exchange_heights(sim, analysis_day: date, metadata: ExchangeMetadata, 
                             variable.cell_methods = "time: mean"
                             variable.grid_mapping = "crs"
                             variable.coordinates = "longitude latitude"
-                    for index in range(24):
+                    for index in range(len(times)):
                         for kind, names in (("atmosphere", _ATMOSPHERE),
                                             ("shortwave", _SHORTWAVE), ("longwave", _LONGWAVE)):
                             for field in names:
                                 values = np.asarray(datasets[kind][field][:, :, index], dtype=float)
                                 if not np.isfinite(values[atm]).all():
-                                    raise ValueError(f"{sources[kind].name}:{field} has missing values in valid cells at hour {index + 1}")
+                                    raise ValueError(
+                                        f"{sources[kind].name}:{field} has missing values in valid cells "
+                                        f"at record {index + 1} (t = {times[index]:g} s)"
+                                    )
                                 if field in ("ta", "pabs") and np.any(values[atm] <= 0):
                                     raise ValueError(f"{field} must be positive in valid cells")
                                 if field not in ("ta", "pabs") and np.any(values[atm] < 0):

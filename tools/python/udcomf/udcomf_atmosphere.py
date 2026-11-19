@@ -7,11 +7,11 @@ import os
 import tempfile
 from typing import TYPE_CHECKING
 
-import f90nml
 from netCDF4 import Dataset
 import numpy as np
 
-from .heights import configured_receptor_heights, height_tag, validate_heights
+from .heights import bracketing_levels, configured_receptor_heights, height_tag, validate_heights
+from .schedule import read_stats_schedule, validate_statistics_times
 
 if TYPE_CHECKING:
     from udbase import UDBase
@@ -26,29 +26,26 @@ class UDComfAtmosphere:
     def __init__(self, sim: UDBase):
         self.sim = sim
 
-    def write_hourly_heights(
-        self, target_times: np.ndarray, *, source: str = "stats_kslice",
+    def write_heights(
+        self, times: np.ndarray | None = None, *, source: str = "stats_tkslice",
         heights: tuple[float, ...] | None = None,
         output_dir: Path | None = None, overwrite: bool = False,
         time_tolerance: float = 1.0,
     ) -> dict[float, Path]:
         """Write ta, pabs, qv and saved mean speeds for every selected height.
 
-        `target_times` are seconds since simulation start. A restart inside an
-        averaging window cannot be detected from stats files alone.
+        Each output record is one saved statistics record: the mean over the
+        ``tstatsdump`` seconds preceding its timestamp. ``times`` (seconds
+        since simulation start) selects records; by default every saved
+        record is written.
         """
-        if source not in ("stats_t", "stats_kslice"):
-            raise ValueError("source must be stats_t or stats_kslice")
+        if source not in ("stats_t", "stats_tkslice"):
+            raise ValueError("source must be stats_t or stats_tkslice")
         sim = self.sim
         configured = configured_receptor_heights(sim.path)
         selected = configured if heights is None else validate_heights(heights)
-        output_options = f90nml.read(
-            Path(sim.path) / f"namoptions.{sim.expnr}"
-        ).get("output", {})
-        if not np.isclose(float(output_options.get("tstatsdump", float("nan"))),
-                          900.0, rtol=0, atol=1e-6):
-            raise ValueError("tstatsdump must be 900 s for preceding-15-minute atmospheric means")
-        load = sim.load_stat_t if source == "stats_t" else sim.load_stat_kslice
+        schedule = read_stats_schedule(sim.path)
+        load = sim.load_stat_t if source == "stats_t" else sim.load_stat_tkslice
         source_path = Path(sim.path) / f"{source}.{sim.expnr}.nc"
         if not source_path.is_file():
             raise FileNotFoundError(f"Gathered statistics file is missing: {source_path}")
@@ -77,20 +74,10 @@ class UDComfAtmosphere:
             if len(matches) != 1 or int(matches[0]) in source_levels:
                 raise ValueError("Statistics zt coordinates do not uniquely match the model grid")
             source_levels[int(matches[0])] = source_index
-        brackets = {}
-        for height in selected:
-            upper = int(np.searchsorted(z_model, height))
-            if upper == len(z_model) or height < z_model[0]:
-                raise ValueError(f"Height {height:g} m is outside scalar-centre levels")
-            if np.isclose(z_model[upper], height, rtol=0, atol=1e-5):
-                lower = upper
-                weight = 0.0
-            else:
-                lower = upper - 1
-                weight = (height - z_model[lower]) / (z_model[upper] - z_model[lower])
+        brackets = bracketing_levels(z_model, selected)
+        for height, (lower, upper, _) in brackets.items():
             if lower not in source_levels or upper not in source_levels:
                 raise ValueError(f"Statistics lack bracketing scalar levels for {height:g} m")
-            brackets[height] = (lower, upper, weight)
         needed = sorted({source_levels[k] for lo, hi, _ in brackets.values() for k in (lo, hi)})
         positions = {source_index: offset for offset, source_index in enumerate(needed)}
 
@@ -110,19 +97,24 @@ class UDComfAtmosphere:
             receptor = sim.comf.radiation.receptor_grid(height)
             masks[height] = receptor.valid & ~solid[:, :, lo] & ~solid[:, :, hi]
 
-        times = np.asarray(load("time"), dtype=float)
-        targets = np.asarray(target_times, dtype=float)
-        if (times.ndim != 1 or targets.ndim != 1 or not len(times) or not len(targets)
-                or not np.isfinite(times).all() or not np.isfinite(targets).all()
-                or np.any(np.diff(times) <= 0) or np.any(np.diff(targets) <= 0)
-                or not np.isfinite(time_tolerance) or time_tolerance < 0):
-            raise ValueError("Statistics and requested times must be finite and strictly increasing")
-        records = np.searchsorted(times, targets)
-        records = np.minimum(records, len(times) - 1)
-        previous = np.maximum(records - 1, 0)
-        records = np.where(abs(times[previous] - targets) < abs(times[records] - targets), previous, records)
-        if np.any(abs(times[records] - targets) > time_tolerance) or len(set(records)) != len(records):
-            raise ValueError("Statistics do not contain a unique record at each requested hour")
+        saved_times = validate_statistics_times(load("time"), schedule)
+        if times is None:
+            records = np.arange(saved_times.size)
+        else:
+            targets = np.asarray(times, dtype=float)
+            if (targets.ndim != 1 or not len(targets) or not np.isfinite(targets).all()
+                    or np.any(np.diff(targets) <= 0)
+                    or not np.isfinite(time_tolerance) or time_tolerance < 0):
+                raise ValueError("Requested times must be finite and strictly increasing")
+            records = np.searchsorted(saved_times, targets)
+            records = np.minimum(records, saved_times.size - 1)
+            previous = np.maximum(records - 1, 0)
+            records = np.where(abs(saved_times[previous] - targets) < abs(saved_times[records] - targets),
+                               previous, records)
+            if (np.any(abs(saved_times[records] - targets) > time_tolerance)
+                    or len(set(records.tolist())) != len(records)):
+                raise ValueError("Statistics do not contain a unique record at each requested time")
+        record_times = saved_times[records]
 
         directory = Path(sim.path) if output_dir is None else Path(output_dir)
         paths = {
@@ -144,7 +136,8 @@ class UDComfAtmosphere:
                 temporary[height] = Path(name)
                 ds = Dataset(name, "w", format="NETCDF4")
                 datasets[height] = ds
-                self._create_output(ds, x, y, targets, times[records], height, masks[height], source)
+                self._create_output(ds, x, y, record_times, schedule.window_bounds(record_times),
+                                    height, masks[height], source, schedule.tstatsdump)
 
             def interpolate(values: np.ndarray, height: float) -> np.ndarray:
                 lo, hi, weight = brackets[height]
@@ -187,22 +180,19 @@ class UDComfAtmosphere:
 
     @staticmethod
     def _create_output(ds: Dataset, x: np.ndarray, y: np.ndarray,
-                       targets: np.ndarray, source_times: np.ndarray,
-                       height: float, mask: np.ndarray, source: str) -> None:
+                       record_times: np.ndarray, bounds: np.ndarray,
+                       height: float, mask: np.ndarray, source: str, duration: float) -> None:
         ds.createDimension("x", len(x))
         ds.createDimension("y", len(y))
-        ds.createDimension("time", len(targets))
+        ds.createDimension("time", len(record_times))
         ds.createDimension("bounds", 2)
         ds.createVariable("x", "f8", ("x",))[:] = x
         ds.createVariable("y", "f8", ("y",))[:] = y
         ds["x"].units = ds["y"].units = "m"
-        ds.createVariable("time", "f8", ("time",))[:] = targets
+        ds.createVariable("time", "f8", ("time",))[:] = record_times
         ds["time"].units = "s since simulation start"
-        ds.createVariable("source_time", "f8", ("time",))[:] = source_times
-        ds["source_time"].units = "s since simulation start"
-        ds.createVariable("time_bounds", "f8", ("time", "bounds"))[:] = np.column_stack(
-            (targets - 900.0, targets)
-        )
+        ds["time"].long_name = "end of the statistics averaging window"
+        ds.createVariable("time_bounds", "f8", ("time", "bounds"))[:] = bounds
         ds["time"].bounds = "time_bounds"
         ds["time_bounds"].units = "s since simulation start"
         ds.createVariable("receptor_height", "f8").assignValue(height)
@@ -214,8 +204,11 @@ class UDComfAtmosphere:
                 zlib=True, complevel=3, chunksizes=(min(len(x), 64), min(len(y), 64), 1),
             )
             variable.units = units
+            variable.cell_methods = "time: mean"
         ds.source = source
-        ds.setncattr("window_note", "Requested preceding 900 s mean; verify warm-start boundaries separately")
+        ds.setncattr("averaging_window_s", float(duration))
+        ds.setncattr("window_note", "Each record is the solver's mean over the tstatsdump seconds "
+                                    "preceding its timestamp")
 
     @staticmethod
     def _write_field(ds: Dataset, name: str, values: np.ndarray, mask: np.ndarray,

@@ -41,6 +41,29 @@ def validate_heights(heights) -> tuple[float, ...]:
     return values
 
 
+def bracketing_levels(z_model: np.ndarray, heights, *, atol: float = 1e-5
+                      ) -> dict[float, tuple[int, int, float]]:
+    """Map each height to ``(lower, upper, weight)`` zero-based scalar levels.
+
+    ``value = (1-weight)*f[lower] + weight*f[upper]``. A height within ``atol``
+    of a scalar centre uses that level alone (``lower == upper``).
+    """
+    z = np.asarray(z_model, dtype=float)
+    if z.ndim != 1 or z.size == 0 or not np.isfinite(z).all() or np.any(np.diff(z) <= 0):
+        raise ValueError("Scalar-centre heights must increase strictly")
+    brackets = {}
+    for height in validate_heights(heights):
+        upper = int(np.searchsorted(z, height))
+        if upper == len(z) or height < z[0]:
+            raise ValueError(f"Height {height:g} m is outside scalar-centre levels")
+        if np.isclose(z[upper], height, rtol=0, atol=atol):
+            brackets[height] = (upper, upper, 0.0)
+        else:
+            lower = upper - 1
+            brackets[height] = (lower, upper, float((height - z[lower]) / (z[upper] - z[lower])))
+    return brackets
+
+
 def height_tag(height: float) -> str:
     """A round-trip-unique, filesystem-safe tag for one positive float height."""
     value = validate_heights((height,))[0]

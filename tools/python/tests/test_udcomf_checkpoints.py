@@ -10,7 +10,7 @@ from netCDF4 import Dataset
 import numpy as np
 import trimesh
 
-from udcomf.checkpoints import hourly_windows
+from udcomf.checkpoints import preceding_windows
 from udcomf.udcomf_radiation import UDComfRadiation
 
 
@@ -64,10 +64,10 @@ def _case(path):
     return sim
 
 
-class TestHourlyWindows(unittest.TestCase):
-    def test_linear_series_integrates_exact_preceding_quarter_hour(self):
+class TestPrecedingWindows(unittest.TestCase):
+    def test_linear_series_integrates_exact_preceding_window(self):
         source = np.arange(0, 3901, 300, dtype=float)
-        windows, gap = hourly_windows(source, np.array([3600.0]))
+        windows, gap = preceding_windows(source, np.array([3600.0]), duration=900.0)
         self.assertEqual(gap, 330.0)
         self.assertTrue(windows[0].complete)
         self.assertAlmostEqual(windows[0].weights.sum(), 1.0)
@@ -76,11 +76,19 @@ class TestHourlyWindows(unittest.TestCase):
 
     def test_gap_and_uncovered_endpoints_are_missing(self):
         source = np.array([0, 2700, 3000, 3600, 3900, 6300, 6600, 6900], dtype=float)
-        windows, _ = hourly_windows(source, np.array([3600.0, 7200.0]), max_gap=450)
+        windows, _ = preceding_windows(source, np.array([3600.0, 7200.0]), duration=900.0, max_gap=450)
         self.assertFalse(windows[0].complete)
         self.assertFalse(windows[1].complete)
-        with self.assertRaisesRegex(ValueError, "exact-hour"):
-            hourly_windows(source, np.array([3500.0]))
+        with self.assertRaisesRegex(ValueError, "duration must be positive"):
+            preceding_windows(source, np.array([3500.0]), duration=0.0)
+
+    def test_arbitrary_endpoints_and_durations(self):
+        source = np.arange(0, 3901, 300, dtype=float)
+        windows, _ = preceding_windows(source, np.array([3500.0, 3800.0]), duration=600.0)
+        self.assertTrue(all(window.complete for window in windows))
+        # f(t)=t: the [2900, 3500) mean is 3200 and the [3200, 3800) mean is 3500.
+        self.assertAlmostEqual(source[windows[0].indices] @ windows[0].weights, 3200.0)
+        self.assertAlmostEqual(source[windows[1].indices] @ windows[1].weights, 3500.0)
 
 
 class TestHourlyRadiation(unittest.TestCase):
@@ -88,8 +96,8 @@ class TestHourlyRadiation(unittest.TestCase):
         with TemporaryDirectory() as tmp:
             sim = _case(Path(tmp))
             radiation = UDComfRadiation(sim)
-            outputs = radiation.write_hourly_heights(
-                np.array([3600.]), heights=(1.1, 1.5), kinds=("shortwave",),
+            outputs = radiation.write_heights(
+                np.array([3600.]), duration=900., heights=(1.1, 1.5), kinds=("shortwave",),
                 flat_indices=np.array([0]), tile_size=1, n_mu=2, n_azimuth=8,
             )
             self.assertEqual(sim.receptor_height, 1.1)
@@ -101,7 +109,7 @@ class TestHourlyRadiation(unittest.TestCase):
                 self.assertTrue((Path(tmp) / "udcomf_radiation.checkpoints" / "shortwave"
                                  / tag / "time_0000_tile_00000.npz").is_file())
             with self.assertRaises(FileExistsError):
-                radiation.write_hourly_heights(
+                radiation.write_heights(
                     np.array([3600.]), heights=(1.1, 1.5), kinds=("shortwave",),
                     flat_indices=np.array([0]), tile_size=1, n_mu=2, n_azimuth=8,
                 )
@@ -115,8 +123,8 @@ class TestHourlyRadiation(unittest.TestCase):
                 ("shortwave", ("sw_direct_normal", "sw_nondirect_upface"), 131.5),
                 ("longwave", ("lw_upface", "lw_downface"), 400.0),
             ):
-                output = radiation.write_hourly(
-                    kind, targets, flat_indices=np.array([0, 1]),
+                output = radiation.write_radiation(
+                    kind, targets, duration=900., flat_indices=np.array([0, 1]),
                     tile_size=1, n_mu=2, n_azimuth=8,
                 )
                 with Dataset(output) as ds:
@@ -142,21 +150,21 @@ class TestHourlyRadiation(unittest.TestCase):
                 )
                 checkpoint.unlink()
                 with mock.patch.object(radiation, "_source_series", wraps=radiation._source_series) as series:
-                    radiation.write_hourly(
-                        kind, targets, flat_indices=np.array([0, 1]),
+                    radiation.write_radiation(
+                        kind, targets, duration=900., flat_indices=np.array([0, 1]),
                         tile_size=1, n_mu=2, n_azimuth=8,
                         resume=True, overwrite=True,
                     )
                     self.assertEqual(series.call_count, 1)
                 with mock.patch.object(radiation, "_source_series", side_effect=AssertionError("recomputed")):
-                    radiation.write_hourly(
-                        kind, targets, flat_indices=np.array([0, 1]),
+                    radiation.write_radiation(
+                        kind, targets, duration=900., flat_indices=np.array([0, 1]),
                         tile_size=1, n_mu=2, n_azimuth=8,
                         resume=True, overwrite=True,
                     )
                 with self.assertRaisesRegex(ValueError, "settings changed"):
-                    radiation.write_hourly(
-                        kind, targets, flat_indices=np.array([0, 1]),
+                    radiation.write_radiation(
+                        kind, targets, duration=900., flat_indices=np.array([0, 1]),
                         tile_size=1, n_mu=4, n_azimuth=8, overwrite=True,
                     )
 
@@ -165,8 +173,8 @@ class TestHourlyRadiation(unittest.TestCase):
             sim = _case(Path(tmp))
             radiation = UDComfRadiation(sim)
             with mock.patch.object(radiation, "_source_series", side_effect=AssertionError("traced")):
-                path = radiation.write_hourly(
-                    "longwave", np.array([10800.0]),
+                path = radiation.write_radiation(
+                    "longwave", np.array([10800.0]), duration=900.,
                     flat_indices=np.array([0]), n_mu=2, n_azimuth=8,
                 )
             with Dataset(path) as ds:

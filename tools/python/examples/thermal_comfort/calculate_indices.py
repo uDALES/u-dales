@@ -4,8 +4,8 @@
 Accepts exchange NetCDF files with any number of time records; optional
 metadata (bounds, georeference, CRS, provenance, pedestrian mask) is used
 when present. The physical fields, their units and per-record solar angles
-are required. The separate intercomparison-protocol tool, maintained
-outside this repository, enforces the strict 24-hour exchange contract.
+are required. The same routine serves exchange files written from uDALES or
+prepared from another model's output in the documented format.
 """
 
 from __future__ import annotations

@@ -15,7 +15,7 @@ from udcomf.thermalcomfort.physics import (
 )
 
 
-def _exchange(path: Path, *, model: str = "PALM", local_wind: float = 1.,
+def _exchange(path: Path, *, model: str = "model_a", local_wind: float = 1.,
               direct_sun: bool = True, rh: float = 50.) -> None:
     ta = 298.15
     pressure = 101325.
@@ -91,8 +91,6 @@ def _exchange(path: Path, *, model: str = "PALM", local_wind: float = 1.,
             ("building_representation", "none"),
             ("model_axis_rotation_degrees_from_true_north", 0.),
             ("vertical_interpolation_method", "linear"),
-            ("spinup_start_utc", "2023-08-20T18:00:00Z"),
-            ("spinup_end_utc", "2023-08-21T00:00:00Z"),
         ):
             ds.setncattr(name, value)
 
@@ -193,7 +191,7 @@ class TestComfortFiles(unittest.TestCase):
             output = calculate_indices(source)
             with Dataset(output) as ds:
                 ds.set_auto_mask(False)
-                self.assertEqual(ds.model_name, "PALM")
+                self.assertEqual(ds.model_name, "model_a")
                 self.assertEqual(ds["mrt"].dimensions, ("x", "y", "time"))
                 self.assertEqual(float(ds["mrt"][0, 0, 0]), 25.)
                 self.assertGreater(float(ds["mrt"][0, 1, 0]), 25.)
@@ -218,10 +216,10 @@ class TestComfortFiles(unittest.TestCase):
 
     def test_same_physics_for_different_model_names(self):
         with TemporaryDirectory() as tmp:
-            first = Path(tmp) / "palm.nc"
-            second = Path(tmp) / "urbclim.nc"
-            _exchange(first, model="PALM")
-            _exchange(second, model="UrbClim")
+            first = Path(tmp) / "model_a.nc"
+            second = Path(tmp) / "model_b.nc"
+            _exchange(first, model="model_a")
+            _exchange(second, model="model_b")
             a = calculate_indices(first)
             b = calculate_indices(second)
             with Dataset(a) as left, Dataset(b) as right:

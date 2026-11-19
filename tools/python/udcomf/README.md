@@ -12,7 +12,8 @@ changing the pipeline.
 
 ## Purpose and status
 
-The objective is to calculate hourly two-dimensional pedestrian-level maps of:
+The objective is to calculate two-dimensional pedestrian-level maps, one per
+saved statistics record, of:
 
 - mean radiant temperature (`mrt`), degree Celsius;
 - physiological equivalent temperature (`pet`), degree Celsius;
@@ -21,9 +22,12 @@ The objective is to calculate hourly two-dimensional pedestrian-level maps of:
 
 The indices are postprocessed after the LES. They are not calculated inside
 uDALES. Each map is calculated from atmospheric and radiative quantities
-averaged over the preceding 15 minutes at an exact hourly endpoint. Therefore,
-the result is an index evaluated from mean inputs, not the time average of an
-index evaluated at every LES timestep.
+averaged over the `tstatsdump` seconds preceding a saved statistics record,
+i.e. over the solver's own averaging window. Therefore, the result is an index
+evaluated from mean inputs, not the time average of an index evaluated at
+every LES timestep. The record times, and so the number of maps, follow from
+`tstatstart`, `tstatsdump`, `tstatsgap` and `runtime` in `namoptions`; nothing
+in the pipeline assumes hourly output or a fixed number of records.
 
 The implementation is complete through the initial validated index engine in
 commit `42abbc9a`. Its main development sequence after commit `75835290` was:
@@ -39,7 +43,7 @@ commit `42abbc9a`. Its main development sequence after commit `75835290` was:
 | `5484eef0` | Current statistics and saved-radiation UDBase loaders. |
 | `d0847a28` | `udcomf` facade and shared-case package structure. |
 | `010407af` | Preservation of original atmospheric shortwave forcing. |
-| `43482cee` | Multi-height `ws_local` and `stats_kslice` support. |
+| `43482cee` | Multi-height `ws_local` and `stats_tkslice` support. |
 | `f01deb53` | Full uDALES-to-exchange input pipeline. |
 | `42abbc9a` | MRT, PET, UTCI, WBGT, reference tests, and quadrature correction. |
 
@@ -54,13 +58,13 @@ been rebased or merged.
    directional irradiance, exact-window integration, vertical interpolation of
    atmospheric scalars, and midpoint solar position for exchange metadata.
 2. **Reuse existing loaders.** `UDComf` owns the same `UDBase` instance exposed
-   as `sim.comf`. It uses `UDBase.load_stat_t`, `load_stat_kslice`,
+   as `sim.comf`. It uses `UDBase.load_stat_t`, `load_stat_tkslice`,
    `load_fac_eb`, `load_fac_temperature`, `load_timedepsw`, `load_timedeplw`,
    `load_shortwave_forcing`, and existing facet-property assignment. Do not
    create model-specific duplicate NetCDF readers for these files.
 3. **Separate model-specific preparation from common physics.** uDALES-specific
-   code ends at the strict exchange NetCDF. `calculate_indices` reads that same
-   format for uDALES, PALM, UrbClim, or another model.
+   code ends at the exchange NetCDF. `calculate_indices` reads only that
+   format, so the index physics never touches uDALES case files.
 4. **Keep each model on its native horizontal grid.** There is no common-grid
    remapping or horizontal interpolation. Every final field has dimensions
    `(x,y,time)` on the source model's native two-dimensional plane.
@@ -68,12 +72,12 @@ been rebased or merged.
    depend on height. Multiple configured heights are handled sequentially in
    one postprocessing run; the LES is not repeated.
 6. **No hidden fallback, clipping, or gap filling.** Invalid units, missing
-   fields, incomplete 15-minute windows, negative humidity/irradiance, schema
+   fields, incomplete averaging windows, negative humidity/irradiance, schema
    disagreement, supersaturation, or values outside an index's validated
    domain are rejected or explicitly flagged and written as missing.
-7. **Use one comfort protocol across models.** Human, clothing, activity, and
-   sensor parameters must be identical for every participant in an
-   intercomparison.
+7. **Use one set of comfort parameters per comparison.** Human, clothing,
+   activity, and sensor parameters must be identical for every exchange file
+   whose indices are to be compared.
 
 ## Data flow and ownership
 
@@ -86,7 +90,7 @@ Python preprocessing
                 |
                 v
 uDALES simulation
-  stats_t.<expnr>.nc or stats_kslice.<expnr>.nc
+  stats_t.<expnr>.nc or stats_tkslice.<expnr>.nc
   facEB.<expnr>.nc and facT.<expnr>.nc
                 |
                 v
@@ -104,10 +108,10 @@ model-neutral thermalcomfort stage
   thermal_comfort_indices_<model>.h<height>.nc
 ```
 
-The exchange boundary is deliberate. A PALM or UrbClim contributor should
-produce the same strict exchange variables from that model's output, then run
-the identical index routine. Model name or file name does not alter the
-physics.
+The exchange boundary is deliberate. The exchange file carries everything
+the index routine needs and nothing uDALES-specific, so the same index code
+runs on an exchange file prepared from any source. Model name or file name
+does not alter the physics.
 
 ## Package design
 
@@ -116,12 +120,13 @@ physics.
 | `udbase.py` | Loads the case once and exposes it through `UDBase`; attaches `sim.comf`. |
 | `udnetcdf.py` | Shared selective NetCDF read used by UDBase; reverses dimensions to the established Python/MATLAB convention and can select one time and selected `zt` levels before loading. |
 | `udcomf/udcomf.py` | Thin facade holding the shared `UDBase` state and entry points for merge and exchange export. |
-| `udcomf/heights.py` | Reads and validates scalar or multi-height namelist configuration and creates stable file tags such as `h1p1`. |
-| `udcomf/udcomf_io.py` | Streams and merges warm-start `facEB`/`facT` segments, preserving real gaps and rejecting overlaps/schema changes. |
-| `udcomf/udcomf_atmosphere.py` | Extracts `ta`, `pabs`, `qv`, `ws_local`, and `ws_10` from gathered `stats_t` or `stats_kslice`. |
+| `udcomf/heights.py` | Reads and validates scalar or multi-height namelist configuration, finds the scalar levels bracketing a height, and creates stable file tags such as `h1p1`. |
+| `udcomf/schedule.py` | Reads `tstatstart`, `tstatsdump`, `tstatsgap` and `tsample` with the solver defaults, derives window bounds and midpoints from saved record times, and checks that records do not overlap. |
+| `udcomf/udcomf_io.py` | Streams and merges warm-start `facEB`/`facT` segments, and the comfort subset of warm-start statistics into one `stats_tkslice` file, preserving real gaps and rejecting overlaps/schema changes. |
+| `udcomf/udcomf_atmosphere.py` | Extracts `ta`, `pabs`, `qv`, `ws_local`, and `ws_10` from gathered `stats_t` or `stats_tkslice`. |
 | `udcomf/udcomf_radiation.py` | Builds receptor grids, traces first-hit rays, and calculates six shortwave and six longwave receiving-plane irradiances plus local DNI. |
-| `udcomf/checkpoints.py` | Exact preceding-window integration, atomic per-hour/per-tile radiation checkpoints, manifest validation, and NetCDF consolidation. |
-| `udcomf/udcomf_export.py` | Preflight audit and strict 24-hour, per-height, model-neutral exchange writer. |
+| `udcomf/checkpoints.py` | Exact preceding-window integration, atomic per-record/per-tile radiation checkpoints, manifest validation, and NetCDF consolidation. |
+| `udcomf/udcomf_export.py` | Preflight audit and the per-height exchange writer. |
 | `udcomf/thermalcomfort/physics.py` | MRT radiation equation and globe/wick heat- and mass-balance physics. |
 | `udcomf/thermalcomfort/indices.py` | Strict exchange validation, tiled PET/UTCI/WBGT/MRT calculation, flags, metadata, and atomic final output. |
 | `udcomf/VALIDATION.md` | Verification matrix, fixed references, tolerances, scientific scope, and remaining physical validation. |
@@ -203,7 +208,7 @@ namelist.
 For one configured height, Python sees `ws_local(x,y,time)` and a scalar
 `receptor_height`. For several heights, it sees
 `ws_local(x,y,receptor_height,time)`. `ws_10(x,y,time)` remains two-dimensional
-per time. These variables are written to both `stats_t` and `stats_kslice`,
+per time. These variables are written to both `stats_t` and `stats_tkslice`,
 including when only k-slice statistics are enabled.
 
 ### Receptor-height namelist contract
@@ -233,13 +238,13 @@ No special variable list is needed in `gather_outputs.sh`. The diagnostics are
 ordinary variables inside the existing NetCDF output families, so the normal
 gather route carries them with those files. The multi-height coordinate and
 `ws_local` dimension were covered by NCO/MPI gathering tests. Always use the
-gathered `stats_t.<expnr>.nc` or `stats_kslice.<expnr>.nc`; `udcomf` does not
+gathered `stats_t.<expnr>.nc` or `stats_tkslice.<expnr>.nc`; `udcomf` does not
 read rank-split files.
 
 ## Changes to the Python suite
 
 1. UDBase statistics loading now uses `stats_t` and `stats_xyt`, replacing the
-   obsolete `tdump`/`xytdump` names. `load_stat_kslice` was added for gathered
+   obsolete `tdump`/`xytdump` names. `load_stat_tkslice` was added for gathered
    horizontal time-average slices.
 2. `udnetcdf.load_ncdata` can select a record and selected `zt` levels before
    materializing an array. It preserves the established reversed dimension
@@ -272,7 +277,7 @@ unless an explicit input/output directory is passed:
 | `namoptions.<expnr>` and `prof.inp.<expnr>` | Clock, grid, physics flags, output cadence, receptor heights, and scalar-level heights. |
 | STL named by the case plus `facets.inp.<expnr>` and `factypes.inp.<expnr>` | First-hit visibility, face ordering/orientation, albedo, and facet radiation mapping. |
 | `solid_c.txt` | Excludes receptors inside IBM solids. |
-| Gathered `stats_t.<expnr>.nc` or `stats_kslice.<expnr>.nc` | `tha`, `pabs`, `qt`, `ql`, `ws_local`, `ws_10`, coordinates, and saved times. |
+| Gathered `stats_t.<expnr>.nc` or `stats_tkslice.<expnr>.nc` | `tha`, `pabs`, `qt`, `ql`, `ws_local`, `ws_10`, coordinates, and saved times. |
 | `shortwave_forcing.<expnr>.nc` | Atmospheric DNI, diffuse horizontal irradiance, and solar angles before facet mapping. |
 | `timedepsw.inp.<expnr>` | Facet absorbed net shortwave after uDALES preprocessing shading/reflection. |
 | `facEB.<expnr>.nc` | Facet timestamps and emitted `LWout`; also carries archived SEB output. |
@@ -285,17 +290,17 @@ it is not one of the saved facet or atmospheric outputs.
 
 ## Atmospheric extraction
 
-For each configured height, `UDComfAtmosphere.write_hourly_heights`:
+For each configured height, `UDComfAtmosphere.write_heights`:
 
-- opens gathered `stats_t` or `stats_kslice` through UDBase;
+- opens gathered `stats_t` or `stats_tkslice` through UDBase;
 - reads only the scalar levels bracketing that height;
 - linearly interpolates saved `tha`, `pabs`, `qt`, and `ql` in physical height;
 - writes `ta=tha`, `qv=qt-ql`, and `pabs`;
 - copies the solver-saved `ws_local` plane for the matching height and the
   solver-saved `ws_10` plane; it never derives speed from mean u/v;
 - requires fluid cells at the receptor and both interpolation levels;
-- preserves the actual statistics timestamp as `source_time` and describes the
-  requested `[hour-900 s,hour)` bounds separately.
+- writes every saved record by default (or the requested subset), with
+  `time_bounds` equal to `[t - tstatsdump, t)` for each record time `t`.
 
 Negative `qv`, missing bracketing levels, duplicate/missing times, mismatched
 height coordinates, or grid disagreement are hard errors.
@@ -325,7 +330,7 @@ are unavailable, rather than silently skipping the audit. A ray that hits the
 back of a facet is classified separately (`_BACKFACE`) from unmeshed ground:
 both contribute zero shortwave and are fatal for longwave, but the error and
 the diagnostics distinguish an orientation/mesh defect from a coverage gap.
-The hourly radiation files carry two `(x,y)` integer diagnostics,
+The radiation files carry two `(x,y)` integer diagnostics,
 `n_backface_rays` and `n_unmeshed_ground_rays` (-1 where a receptor's static
 rays were never traced), plus their global totals as attributes. In a healthy
 watertight mesh both totals are zero; because the longwave stage hard-errors
@@ -370,13 +375,14 @@ a complete, consistently oriented ground/facet mesh is required.
 
 ### Time integration and checkpoints
 
-Hourly radiation values are exact integrals of a piecewise-linear interpolation
-of saved source samples over `[hour-900 s,hour)`. They are not claimed to be
+Radiation values are exact integrals of a piecewise-linear interpolation of
+saved source samples over `[t - tstatsdump, t)` for each statistics record
+time `t`. They are not claimed to be
 exact physical sub-cadence means. A window is incomplete when its endpoints
 are not bracketed or an internal source interval exceeds `max_gap` (default
 1.1 times the median source cadence). No extrapolation or gap filling occurs.
 
-Checkpoints are atomic NPZ files per hour and receptor tile, plus one
+Checkpoints are atomic NPZ files per record and receptor tile, plus one
 per-tile ray-count file feeding the `n_backface_rays` and
 `n_unmeshed_ground_rays` diagnostics. Their manifest
 contains the case, height, grid, receptor selection hash, quadrature, target
@@ -384,13 +390,15 @@ times, file paths/sizes/modification times, and algorithm version. Resume is
 allowed only when the manifest is identical. `tile_size` controls checkpoint
 granularity, not parallel execution.
 
-## Strict model-neutral exchange contract
+## Exchange file contract
 
-Each exchange file contains exactly 24 records at `01:00,...,24:00`, with time
-bounds `[time-900 s,time)`, on one native `(x,y)` grid and one scalar receptor
-height. Every physical field has dimensions `(x,y,time)`, `cell_methods =
-"time: mean"`, a CF grid mapping, longitude/latitude coordinates, and an
-explicit fill value outside one fixed pedestrian mask.
+Each exchange file contains one record per saved statistics record, with
+`time` in seconds since the simulation start (the `units` attribute names the
+UTC start instant) and time bounds `[time - tstatsdump, time)`, on one native
+`(x,y)` grid and one scalar receptor height. Every physical field has
+dimensions `(x,y,time)`, `cell_methods = "time: mean"`, a CF grid mapping,
+longitude/latitude coordinates, and an explicit fill value outside one fixed
+pedestrian mask.
 
 Required atmospheric and radiative fields are:
 
@@ -403,14 +411,15 @@ Required atmospheric and radiative fields are:
 It also requires increasing projected `x/y` centres and contiguous cell
 bounds, WGS84 longitude/latitude on `(x,y)`, geodetic `z_ground` and its named
 vertical datum, a scalar CF CRS with complete WKT, solar zenith and true-north
-clockwise azimuth at each window midpoint, model/grid/provenance attributes,
-and exact UTC spin-up endpoints.
+clockwise azimuth at the midpoint of each averaging window, and
+model/grid/provenance attributes including the UTC simulation start and the
+averaging window length.
 
 The uDALES exchange writer requires constant `z_ground` because the current
 model ground is flat. It does not infer projection, origin, model rotation, or
 vertical datum from solar coordinates or the STL. These must be supplied from
-a verified geospatial transform. Assigning EPSG:2154 directly to rotated or
-offset local LES axes is not valid.
+a verified geospatial transform. Assigning the unrotated national projection
+directly to rotated or offset local LES axes is not valid.
 
 ## Thermal-comfort physics
 
@@ -447,7 +456,7 @@ humidity from the Buck liquid-water saturation equation in
 100 percent by no more than `supersaturation_tolerance_percent` (default 5) -
 is treated as exactly saturated in every index input (`RH=100`, `e=es`, and a
 saturated `qv` for the WBGT sensor balance) and flagged with bit 32, because
-15-minute averaging of the convex saturation curve and vertical interpolation
+time averaging of the convex saturation curve and vertical interpolation
 between saturated levels legitimately produce small overshoots. Bit 32 is
 raised only when the overshoot exceeds 0.01 percent, so float32 storage
 round-off at exact saturation does not generate flag noise. Overshoots beyond
@@ -580,9 +589,7 @@ this workflow.
 
 ## Solver configuration before an expensive run
 
-For the agreed hourly protocol, configure the LES before running it. For a
-simulation starting at 18:00 UTC on the preceding day and an analysis day
-starting at model time 21600 s, the essential settings are:
+Configure the LES before running it. The essential settings are:
 
 ```fortran
 ! In the appropriate existing namelist groups:
@@ -599,6 +606,8 @@ receptor_height = 1.1
 nreceptor_heights = 3
 receptor_heights = 1.1, 1.5, 2.0
 
+! Statistics schedule; choose the averaging window and cadence you need.
+! Example: 15-minute means ending on every hour from t = 25200 s.
 tstatstart = 21600.
 tstatsdump = 900.
 tstatsgap = 2700.
@@ -611,33 +620,35 @@ nkslice = <number of selected scalar levels>
 kslice = <one-based levels bracketing every receptor height>
 ```
 
-The case must run through the final requested endpoint. `tsample` must be
-positive and no longer than 900 s; preflight cautions above 5 s because rapidly
-varying conditions may be undersampled. Every receptor height and 10 m must lie
-within the scalar-centre height range. For k-slice output, include both scalar
-levels bracketing every receptor height (only one if the height exactly equals
-a scalar level). `ws_local` and `ws_10` themselves are saved directly and do
-not require reconstruction from the selected k slices.
+The solver writes a statistics record at `tstatstart + n*(tstatsdump +
+tstatsgap)`, each the mean over the `tstatsdump` seconds that precede it; with
+`tstatsgap = 0` the windows are back to back. Any positive `tstatsdump` and any
+nonnegative `tstatsgap` are accepted by the postprocessor; the run must only
+last beyond the first dump. `tsample` must be positive and no longer than
+`tstatsdump`; preflight cautions above 5 s because rapidly varying conditions
+may be undersampled. Every receptor height and 10 m must lie within the
+scalar-centre height range. For k-slice output, include both scalar levels
+bracketing every receptor height (only one if the height exactly equals a
+scalar level). `ws_local` and `ws_10` themselves are saved directly and do not
+require reconstruction from the selected k slices.
 
-`stats_kslice` greatly reduces output volume, but the current solver still
+`stats_tkslice` greatly reduces output volume, but the current solver still
 allocates full three-dimensional statistics accumulators. It is a disk-I/O
 optimization, not an equivalent memory optimization.
 
 Run the audit before submitting the LES:
 
 ```python
-from datetime import date
 from pathlib import Path
 from udcomf.udcomf_export import check_comfort_preflight
 
-report = check_comfort_preflight(Path("/path/to/case"), date(2025, 6, 21))
+report = check_comfort_preflight(Path("/path/to/case"))
+print(report.schedule, report.first_dump_s)
 print(report.blockers)
 print(report.cautions)
 ```
 
-Do not submit while `report.blockers` is nonempty. Preflight cannot prove that
-a warm start did not interrupt one of the final 15 minutes before a statistics
-dump, so restart times still require a separate audit.
+Do not submit while `report.blockers` is nonempty.
 
 ## End-to-end usage
 
@@ -648,10 +659,12 @@ preflight and merge interfaces derive `namoptions.<expnr>` from that name.
    `shortwave_forcing.<expnr>.nc`, `timedepsw.inp.<expnr>`, and
    `timedeplw.inp.<expnr>` exist and are populated.
 2. Run uDALES with the output settings above, then gather `stats_t` or
-   `stats_kslice` and all required facet output.
+   `stats_tkslice` and all required facet output.
 3. If the LES used warm starts under several case numbers, merge paired
    `facEB`/`facT` files with `sim.comf.prepare_facet_outputs(...)` or the CLI's
-   repeated `--facet-source` option. Never fill restart gaps.
+   repeated `--facet-source` option, and merge the comfort subset of the
+   statistics with `sim.comf.prepare_statistics_outputs(...)` or the repeated
+   `--stats-source` option. Never fill restart gaps.
 4. Prepare verified georeferencing arrays and metadata as documented in the
    runnable example README. These facts are intentionally not guessed.
 5. Generate atmospheric planes, both radiation sets, and exchange files:
@@ -662,9 +675,8 @@ CASE=/path/to/experiments/1
 
 $PY tools/python/examples/thermal_comfort/udales_to_comfort.py \
   --case-dir "$CASE" \
-  --analysis-day 2025-06-21 \
   --metadata "$CASE/thermal_comfort_metadata.json" \
-  --statistics-source stats_kslice \
+  --statistics-source stats_tkslice \
   --tile-size 256 \
   --n-mu 8 \
   --n-azimuth 32
@@ -678,7 +690,7 @@ $PY tools/python/examples/thermal_comfort/calculate_indices.py \
 ```
 
 Use `--skip-atmosphere` or `--skip-radiation` only when the corresponding final
-plane files already exist and match the requested case, heights, hours, and
+plane files already exist and match the requested case, heights, records, and
 settings. Existing outputs are not replaced without explicit `--overwrite`.
 Radiation checkpoint resume is enabled by default. The full command set,
 metadata JSON/NPZ format, multi-model batch calculation, custom common-person
@@ -705,8 +717,8 @@ README linked at the top of this document.
   receptor or facet area during the comfort calculation.
 - A complete, correctly ordered and consistently oriented triangular STL is
   essential. Face count and normals are checked against `facets.inp`.
-- Warm-start merge preserves gaps. An hourly window crossing a gap remains
-  incomplete, and strict exchange export rejects incomplete radiation.
+- Warm-start merges preserve gaps. A radiation window crossing a gap remains
+  incomplete, and exchange export rejects incomplete radiation.
 
 ## Verification and remaining scientific evidence
 
@@ -725,7 +737,7 @@ At the handoff represented by this document, the complete stream passed 516
 Python unit tests with 11 expected skips, followed by all configured
 direct-shortwave, preprocessing, UDBase/MATLAB-reference, and View3D integration
 groups. The tests cover multi-height wind, masks, selective statistics reads,
-warm starts, exact windows, radiation limits, strict schema, model-label
+warm starts, exact windows, radiation limits, exchange schema, model-label
 invariance, fixed MRT/PET/UTCI/WBGT references, and a synthetic full chain.
 
 This is software verification, not complete field validation. In particular,
@@ -758,6 +770,35 @@ result = merge_facet_outputs(case, sources)
 ```
 
 This writes `facEB.1.nc` and `facT.1.nc` without changing the sources.
+
+## Warm-start statistics
+
+The atmospheric stage reads one gathered statistics file. For a chain of warm
+starts, merge only what the comfort pipeline needs with
+`sim.comf.prepare_statistics_outputs(case_paths=[...])` or
+`merge_statistics_outputs(case, sources)`. Each source is a case directory
+(its gathered `stats_tkslice.<case>.nc`, or `stats_t.<case>.nc` if that is
+all it has) or such a file. The merge keeps `tha`, `pabs`, `qt` and `ql` at the
+scalar levels bracketing the destination's configured receptor heights, plus
+`ws_local`, `ws_10` and the coordinates, and writes them record by record to
+`stats_tkslice.<destination>.nc`. Full 3-D `stats_t` chains are never
+concatenated whole.
+
+Segments are ordered by saved time. `tstatsdump` must agree between the
+destination and every source `namoptions`, the grid and receptor-height
+coordinates must match, and two records whose averaging windows overlap are an
+error. Gaps are preserved and recorded, together with the first and last
+record of every segment, in the global attributes `udcomf_merged_cases`,
+`udcomf_segment_first_times`, `udcomf_segment_last_times` and
+`udcomf_boundary_gaps_seconds`. The destination's own statistics file cannot
+be a source; copy or rename it first.
+
+A warm start never shortens an averaging window: the solver restarts its
+accumulators from zero and writes the next record only after `tstatsdump`
+seconds, so every merged record is a full-length mean. What a restart inside
+a window does change is the dump instant, which moves to `tstatsdump` seconds
+after the restart until the schedule re-anchors at the next window. The CLI
+reports such off-schedule records; they are valid.
 The merge sorts segments by saved simulation time, rejects overlaps and schema
 mismatches, and preserves restart gaps exactly; it does not interpolate or
 claim that an averaging window crossing a gap is complete. Existing merged
@@ -790,8 +831,8 @@ never added to a non-direct field. Outputs are irradiance in W m-2, not power
 multiplied by facet area.
 
 `shortwave_at_receptor` calculates one point; `shortwave_plane` returns native
-(x, y) arrays with NaN at solid or unselected cells. Hourly means and files
-are written by `write_hourly`. Angular quadrature is
+(x, y) arrays with NaN at solid or unselected cells. Window means and files
+are written by `write_radiation`. Angular quadrature is
 configurable via `n_mu` and `n_azimuth`. Results should be checked for
 quadrature convergence in obstructed scenes.
 
@@ -804,7 +845,7 @@ namelist parser. The first list entry must equal `receptor_height`. The
 `udprep/defaults.json` scalar stays unchanged: preprocessing inputs are not
 receptor-specific.
 
-After gathering `stats_kslice` (or `stats_t`) and merging warm-start facet
+After gathering `stats_tkslice` (or `stats_t`) and merging warm-start facet
 outputs, process all saved heights without changing the case configuration:
 
 ```python
@@ -812,74 +853,79 @@ import numpy as np
 from udbase import UDBase
 
 sim = UDBase(1, "/path/to/experiments/1", load_geometry=True)
-hours = np.arange(25200.0, 108001.0, 3600.0)
-atmosphere = sim.comf.atmosphere.write_hourly_heights(
-    hours, source="stats_kslice"
+times = sim.comf.statistics_times("stats_tkslice")   # every saved record
+atmosphere = sim.comf.atmosphere.write_heights(
+    times, source="stats_tkslice"
 )
-radiation = sim.comf.radiation.write_hourly_heights(
-    hours, tile_size=256, n_mu=8, n_azimuth=32, resume=True
+radiation = sim.comf.radiation.write_heights(
+    times, duration=sim.comf.schedule.tstatsdump,
+    tile_size=256, n_mu=8, n_azimuth=32, resume=True,
 )
 ```
+
+Pass a subset of `times` to process fewer records; the radiation `duration`
+defaults to `tstatsdump` from `namoptions` when omitted.
 
 Each height has its own `pedestrian_atmosphere.h<height>.<expnr>.nc`,
 `pedestrian_shortwave.h<height>.<expnr>.nc`, and
 `pedestrian_longwave.h<height>.<expnr>.nc`. Fields remain `(x,y,time)`;
 `receptor_height` is a scalar coordinate in each file. Radiation checkpoints
-live in separate `<kind>/h<height>/` directories. The old `write_hourly`
-single-height call retains its existing filenames and checkpoint path.
+live in separate `<kind>/h<height>/` directories. The single-height
+`write_radiation` call retains its existing filenames and checkpoint path.
 
 The atmospheric exporter reads only the saved scalar levels bracketing the
 requested heights. It writes `ta` from saved `tha`, `pabs`, `qv` from saved
 `qt-ql`, and the saved `ws_local` and `ws_10` means. It never calculates wind
 speed from time-mean velocity components. Gathered statistics must contain
-each requested hourly record, the complete `ws_local` height coordinate, and
-all bracketing scalar levels; missing data are rejected. Valid cells must be
-fluid at the receptor and both interpolation levels. The output time axis is
-seconds since simulation start, with the actual source record time retained.
-The 900 s bounds describe the requested averaging interval; whether a warm
-start interrupted that interval must still be checked separately.
+each requested record, the complete `ws_local` height coordinate, and all
+bracketing scalar levels; missing data are rejected. Valid cells must be fluid
+at the receptor and both interpolation levels. The output time axis is the
+saved record times in seconds since simulation start, with
+`time_bounds = [t - tstatsdump, t)` and the window length stored as
+`averaging_window_s`.
 
 Radiation is computed afresh at every height because visibility changes with
 height. The STL mesh and existing forcing/facet files are reused; neither
 preprocessing nor the LES is rerun. Heights are processed sequentially to
 limit peak memory. A city-scale full-plane ray sweep has not yet been performance
-qualified. These files are uDALES-side inputs to the common-model thermal-index
-engine described below; this radiation stage does not itself calculate MRT,
+qualified. These files are uDALES-side inputs to the thermal-index engine
+described below; this radiation stage does not itself calculate MRT,
 PET, UTCI, or WBGT.
 If a multi-height radiation run stops after finishing some heights, rerun with
 `resume=True, overwrite=True`: matching completed tile checkpoints are reused
 and existing final files are reconsolidated. Changed input files or settings
 are rejected by the checkpoint manifest.
 
-## Model-neutral exchange files
+## Exchange files
 
-After all three per-height files exist, `sim.comf.export_exchange(day, metadata)`
+After all three per-height files exist, `sim.comf.export_exchange(metadata)`
 assembles `thermal_comfort_inputs_udales.h<height>.<expnr>.nc` for each configured
 height. It streams the saved `(x,y,time)` fields without re-running the LES,
-surface energy balance, or receptor radiation. It requires the exact 24 hourly
-windows on the analysis day, complete shortwave and longwave coverage of every
-atmospheric-valid receptor, matching native grids/heights/times, finite physical
-fields, and actual statistics records at the requested hours. Incomplete or
-subset radiation files are rejected; outside the fixed pedestrian mask every
-field is written with `_FillValue`. Negative humidity is rejected, never clipped.
-The only new physical evaluation is solar geometry at each exact 15-minute
-window midpoint using the existing `udprep.solar` SPA routine, with the
-configured solar longitude, latitude, and elevation. The output azimuth is
-clockwise from true north in radians.
+surface energy balance, or receptor radiation. The records are those of the
+pedestrian atmosphere file; the shortwave and longwave files must carry the
+same records with complete coverage of every atmospheric-valid receptor,
+matching native grids/heights, finite physical fields, and time bounds equal
+to `[t - tstatsdump, t)`. Incomplete or subset radiation files are rejected;
+outside the fixed pedestrian mask every field is written with `_FillValue`.
+Negative humidity is rejected, never clipped. The only new physical
+evaluation is solar geometry at the midpoint of each averaging window using
+the existing `udprep.solar` SPA routine, with the configured solar longitude,
+latitude, and elevation. The output azimuth is clockwise from true north in
+radians.
 
 Construct an `ExchangeMetadata` object from **verified case georeferencing**:
 projected model-axis `x/y` centres and `(n,2)` bounds, WGS84 `longitude` and
 `latitude` on the `(x,y)` grid, constant geodetic `z_ground` and its named
 vertical datum, and a CF grid-mapping attribute dictionary including
 `grid_mapping_name` plus complete `crs_wkt` or `spatial_ref`. Also provide the
-actual solver version/commit, institution, terrain and building conventions,
-and exact UTC spin-up endpoints. A rotated model grid needs a CRS that genuinely
-describes its projected model axes; assigning EPSG:2154 directly to rotated or
-offset local `x/y` is incorrect. The writer checks bounds against LES spacing,
+actual solver version/commit, institution, and terrain and building
+conventions. The UTC simulation start is taken from `namoptions`. A rotated
+model grid needs a CRS that genuinely describes its projected model axes;
+assigning the unrotated national projection directly to rotated or offset
+local `x/y` is incorrect. The writer checks bounds against LES spacing,
 but it cannot independently verify the geographic transform you supply.
 
 ```python
-from datetime import date
 from udcomf.udcomf_export import ExchangeMetadata
 
 metadata = ExchangeMetadata(
@@ -893,18 +939,15 @@ metadata = ExchangeMetadata(
     institution="<contributing institution>",
     building_representation="<actual IBM/facet representation>",
     terrain_convention="<actual flat-ground convention>",
-    spinup_start_utc="2025-06-20T18:00:00Z",
-    spinup_end_utc="2025-06-21T00:00:00Z",
 )
-files = sim.comf.export_exchange(date(2025, 6, 21), metadata)
+files = sim.comf.export_exchange(metadata)
 ```
 
 These geographic and provenance facts are not inferred from the solar site
 coordinates or from the STL. For a real city case, verify the STL's projected
 origin/rotation and geodetic ground reference before constructing metadata.
-The assembler cannot prove that a warm start did not interrupt a 15-minute
-statistics window; audit restart boundaries separately. It also does not
-compute thermal-comfort indices, which belong to the next pipeline step.
+The assembler does not compute thermal-comfort indices, which belong to the
+next pipeline step.
 
 ## Model-neutral MRT, PET, UTCI and WBGT
 
@@ -914,8 +957,8 @@ Install the optional scientific implementation on Python 3.10 or newer:
 tools/python/.venv/bin/python -m pip install -e 'tools/python[comfort]'
 ```
 
-The same function reads an exchange file from **any** model; it never opens
-uDALES case inputs or horizontally remaps another model's grid.
+The function reads only the exchange file; it never opens uDALES case inputs
+or remaps the grid.
 
 The input contract is deliberately light: any number of time records from a
 single instant upward on a strictly increasing axis, the physical fields
@@ -927,9 +970,7 @@ data finiteness at the first record and written to the output. Per-cell
 nonphysical inputs (nonfinite values, nonpositive temperature or pressure,
 negative humidity, wind or irradiance, or direct beam with the sun below
 the horizon) are flagged with validity bit 64 instead of rejecting the
-file. Formal intercomparisons use a separate standalone protocol tool,
-maintained outside this repository, that enforces the full 24-hour strict
-exchange contract on the same physics:
+file:
 
 ```python
 from pathlib import Path
@@ -942,13 +983,13 @@ output = calculate_indices(
 ```
 
 The default output is `thermal_comfort_indices_<model>.h<height>.nc`, with
-native coordinates, mask, time bounds, and hourly `(x,y,time)` planes for
-`mrt`, `pet`, `utci` and `wbgt` in degrees Celsius. `globe_temperature` and
-`natural_wet_bulb_temperature` are retained for WBGT auditing. All values are
-indices **of the preceding 15-minute mean inputs**, not time means of the
-instantaneous indices. The input file must contain every required variable,
-units, grid, fixed mask, 24 time bounds, solar angles, georeference and
-provenance; missing or negative source values inside the mask are rejected.
+native coordinates, mask, time bounds, and `(x,y,time)` planes for `mrt`,
+`pet`, `utci` and `wbgt` in degrees Celsius, one record per exchange record.
+`globe_temperature` and `natural_wet_bulb_temperature` are retained for WBGT
+auditing. All values are indices **of the window-mean inputs**, not time means
+of the instantaneous indices. The input file must contain every required
+variable with its units, the grid and per-record solar angles; missing or
+negative source values inside the mask are flagged.
 Output outside the mask, and indices outside their physical or validated
 domains, use `_FillValue`. No meteorological input is clipped. A per-cell
 `validity_flags` bit mask and global `validity_counts` record humidity, UTCI,
@@ -961,7 +1002,7 @@ with solar zenith as `0.28 sin(zenith) + 0.06 cos(zenith)` above the horizon.
 Azimuth is checked but not used because person orientation is averaged. This
 is a stated six-plane approximation, not angularly resolved human geometry.
 The factors and PET person can be changed through `ComfortParameters` but
-**must be kept identical across models** in one intercomparison.
+**must be kept identical** for every file in one comparison.
 
 PET is `pythermalcomfort`'s steady MEMI implementation for a standing
 35-year-old man, 1.75 m, 75 kg, 1.37 met (79.7 W m-2) and 0.9 clo by default.
@@ -987,7 +1028,8 @@ domain, outside the wick property fit's 283.15--313.15 K temperature range, or
 with nonconvergent sensor balances are missing and flagged; wind is not raised
 to the reference code's floor. The ISO 7243 solar-load expression
 is selected where local direct beam is positive, and the no-direct-solar
-expression elsewhere. This per-cell sun/shade rule is part of the protocol.
+expression elsewhere. This per-cell sun/shade rule is fixed in the
+implementation.
 
 References: [SOLWEIG standing-person factors](https://umep-dev.github.io/solweig/physics/tmrt/),
 [pythermalcomfort PET/UTCI](https://pythermalcomfort.readthedocs.io/en/stable/documentation/models.html),
@@ -1030,8 +1072,8 @@ uses the first visible, front-facing facet or the unobstructed sky. The six
 `lw_*face` outputs are irradiance in W m-2, never facet-area-weighted fluxes.
 The same `trace_shortwave_rays` first-hit map can be passed as `ray_map` for
 multiple longwave times. `longwave_plane` returns native `(x, y)` arrays with
-NaN at solid or unselected cells. Hourly means and files are written by
-`write_hourly`.
+NaN at solid or unselected cells. Window means and files are written by
+`write_radiation`.
 
 An unmeshed-ground or back-face hit is rejected: its emitted longwave is
 unknown, so zero would silently bias the comfort calculation. A complete,
@@ -1040,33 +1082,33 @@ attenuation are not implemented (vegetation cases raise). The sky is isotropic,
 facet emission Lambertian, and the quadrature should be checked for convergence
 in obstructed scenes. No full-plane performance claim is made here.
 
-## Hourly output and restart
+## Window output and restart
 
-The write_hourly method takes exact-hour endpoints in simulation seconds and
-writes means over the preceding 900 seconds. Each saved source timestamp is a
-point sample. The integral is exact under piecewise-linear interpolation
-between those samples; it is not an exact physical sub-cadence mean. The
-default maximum accepted source interval is 1.1 times the median cadence;
-set max_gap explicitly when that assumption is unsuitable. Windows outside
-the source range or crossing a longer interval are incomplete and contain
-NaN, never gap-filled.
+The write_radiation method takes the statistics record times in simulation
+seconds and the window length `duration` (default: `tstatsdump` from
+`namoptions`), and writes means over the `duration` seconds preceding each
+time. Each saved source timestamp is a point sample. The integral is exact
+under piecewise-linear interpolation between those samples; it is not an
+exact physical sub-cadence mean. The default maximum accepted source interval
+is 1.1 times the median cadence; set max_gap explicitly when that assumption
+is unsuitable. Windows outside the source range or crossing a longer interval
+are incomplete and contain NaN, never gap-filled.
 
 Both files use native (x,y,time) fields in W m-2, time_bounds,
 time_complete, valid_mask, processed_mask, coordinates, receptor_height,
 and provenance. processed_mask distinguishes a subset check from a full
 plane. Unselected and invalid cells are NaN.
 
-For example, use this Python code to request the same hourly endpoints for
+For example, use this Python code to request the saved record times for
 both radiation kinds:
 
-    import numpy as np
     from udbase import UDBase
 
     sim = UDBase(1, "/path/to/experiments/1", load_geometry=True)
-    hours = np.arange(21600.0, 108001.0, 3600.0)
+    times = sim.comf.statistics_times("stats_tkslice")
     for kind in ("shortwave", "longwave"):
-        sim.comf.radiation.write_hourly(
-            kind, hours, tile_size=256, n_mu=8, n_azimuth=32,
+        sim.comf.radiation.write_radiation(
+            kind, times, tile_size=256, n_mu=8, n_azimuth=32,
             resume=True,
         )
 
@@ -1075,8 +1117,8 @@ pedestrian_longwave.<expnr>.nc in the case directory, with separate
 udcomf_radiation.checkpoints/<kind>/ directories. Pass flat_indices for a
 small receptor subset, or output_path and checkpoint_dir to write elsewhere.
 Checkpoint identity includes input path, size, modification time, selected
-receptors, quadrature, and target times. Resume skips finished hour/tile
-checkpoints; changed inputs or settings require a new checkpoint directory.
+receptors, quadrature, window length and target times. Resume skips finished
+record/tile checkpoints; changed inputs or settings require a new checkpoint directory.
 Use overwrite=True to replace an existing final file.
 
 The full facet source series is loaded once through UDBase for each kind.
@@ -1089,38 +1131,33 @@ convergence before allocating production resources.
 After a warm-start merge, windows that cross a restart gap, or whose last
 source sample falls just short of the requested endpoint, remain present
 with time_complete=0 and NaN fields. List them after processing and decide
-explicitly whether the analysis can proceed without those hours.
+explicitly whether the analysis can proceed without those records.
 
 ## Before the LES run
 
 Run the configuration check before submitting a production simulation:
 
-    from datetime import date
     from pathlib import Path
     from udcomf.udcomf_export import check_comfort_preflight
 
-    report = check_comfort_preflight(Path("/path/to/case"), date(2025, 6, 21))
+    report = check_comfort_preflight(Path("/path/to/case"))
+    print(report.schedule, report.first_dump_s)
     print(report.blockers)
     print(report.cautions)
 
-For a run starting at 18:00 UTC
-on the day before the analysis day, the 24 required comparison planes end at model times 25200,
-28800, ..., 108000 s. The needed statistics settings are tstatstart=21600,
-tstatsdump=900, and tstatsgap=2700, with ltempeq and lmoist enabled. Enable
-either ltdump or ltkslicedump; for k-slice-only output, configure kslice to
-include both scalar levels bracketing every receptor height. The case must run
-through the last dump. Every receptor height must lie between scalar-centre
-heights, as must 10 m for ws_10. Preflight checks these requirements without
-loading the large geometry or running the solver.
-
-The check does not prove that a warm-started averaging window is complete:
-restarts inside its last 15 minutes can yield a partial mean at the correct
-timestamp. Nor does it validate surface radiation or geospatial metadata.
-Check actual restart boundaries and output records after the run.
+The statistics records end at tstatstart + n*(tstatsdump + tstatsgap); each
+is the mean over the preceding tstatsdump seconds. Choose these for the
+cadence and window you need, with ltempeq and lmoist enabled. Enable either
+ltdump or ltkslicedump; for k-slice-only output, configure kslice to include
+both scalar levels bracketing every receptor height. The run must last beyond
+the first dump. Every receptor height must lie between scalar-centre heights,
+as must 10 m for ws_10. Preflight checks these requirements without loading
+the large geometry or running the solver. It does not validate surface
+radiation or geospatial metadata.
 
 Full stats_t includes at least 28 three-dimensional float32 fields at each
-dump when temperature and moisture are enabled. For 24 dumps on a grid of a
-few hundred million cells the raw data payload reaches the terabyte scale
-before slices, probes, restarts and other outputs. stats_kslice is the
-disk-saving alternative, but the solver still allocates full 3D time-average
+dump when temperature and moisture are enabled. On a grid of a few hundred
+million cells the raw data payload reaches tens of gigabytes per dump before
+slices, probes, restarts and other outputs. stats_tkslice is the disk-saving
+alternative, but the solver still allocates full 3D time-average
 accumulators; k-slice-only does not deliver an equivalent memory reduction.

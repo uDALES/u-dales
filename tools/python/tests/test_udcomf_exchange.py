@@ -1,6 +1,6 @@
 """Strict per-height uDALES thermal-comfort exchange tests."""
 
-from datetime import date, datetime, timezone
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from shutil import copyfile
 from tempfile import TemporaryDirectory
@@ -22,7 +22,7 @@ def _fixture(root: Path):
     (case / "namoptions.001").write_text(
         "&DOMAIN\n year=2023\n month=8\n day=21\n hour=0\n"
         " longitude=2.33\n latitude=48.86\n elevation=35.\n timezone=0.\n/\n"
-        "&OUTPUT\n receptor_height=1.1\n/\n", encoding="ascii",
+        "&OUTPUT\n receptor_height=1.1\n tstatsdump=600.\n/\n", encoding="ascii",
     )
     sim = SimpleNamespace(
         path=case, expnr="001", xt=np.array([5., 15.]), yt=np.array([5., 15.]),
@@ -37,21 +37,18 @@ def _fixture(root: Path):
         crs_attributes={"grid_mapping_name": "transverse_mercator", "crs_wkt": "TEST WKT"},
         vertical_datum="IGN69", model_version="test-revision", institution="test-institute",
         building_representation="IBM facets", terrain_convention="flat local ground",
-        spinup_start_utc="2023-08-21T00:00:00Z", spinup_end_utc="2023-08-21T00:00:00Z",
     )
-    times = np.arange(1, 25) * 3600.
+    times = np.array([1800., 5400., 9000.])
     for kind, fields in (("atmosphere", _ATMOSPHERE),
                          ("shortwave", _SHORTWAVE), ("longwave", _LONGWAVE)):
         path = case / f"pedestrian_{kind}.h1p1.001.nc"
         with Dataset(path, "w") as ds:
-            for name, length in (("x", 2), ("y", 2), ("time", 24), ("bounds", 2)):
+            for name, length in (("x", 2), ("y", 2), ("time", len(times)), ("bounds", 2)):
                 ds.createDimension(name, length)
             ds.createVariable("x", "f8", ("x",))[:] = sim.xt
             ds.createVariable("y", "f8", ("y",))[:] = sim.yt
             ds.createVariable("time", "f8", ("time",))[:] = times
-            if kind == "atmosphere":
-                ds.createVariable("source_time", "f8", ("time",))[:] = times
-            ds.createVariable("time_bounds", "f8", ("time", "bounds"))[:] = np.column_stack((times - 900, times))
+            ds.createVariable("time_bounds", "f8", ("time", "bounds"))[:] = np.column_stack((times - 600, times))
             ds.createVariable("receptor_height", "f8").assignValue(1.1)
             ds.createVariable("valid_mask", "i1", ("x", "y"))[:] = [[1, 1], [1, 0]]
             if kind != "atmosphere":
@@ -71,21 +68,24 @@ class TestExchange(unittest.TestCase):
     def test_writes_strict_schema_and_mask(self):
         with TemporaryDirectory() as tmp:
             sim, meta = _fixture(Path(tmp))
-            path = write_exchange_heights(sim, date(2023, 8, 21), meta)[1.1]
+            path = write_exchange_heights(sim, meta)[1.1]
             with Dataset(path) as ds:
                 ds.set_auto_mask(False)
                 self.assertEqual(ds["ta"].dimensions, ("x", "y", "time"))
                 self.assertEqual(ds["ta"].cell_methods, "time: mean")
                 self.assertEqual(ds["time"].calendar, "gregorian")
                 self.assertEqual(ds["time"].bounds, "time_bounds")
-                self.assertEqual(float(ds["time"][0]), 3600.)
-                self.assertEqual(float(ds["time_bounds"][-1, 0]), 85500.)
+                self.assertEqual(float(ds["time"][0]), 1800.)
+                self.assertEqual(ds["time"].units, "seconds since 2023-08-21 00:00:00 UTC")
+                self.assertEqual(float(ds["time_bounds"][-1, 0]), 8400.)
+                self.assertEqual(float(ds.averaging_window_s), 600.)
+                self.assertEqual(ds.simulation_start_utc, "2023-08-21T00:00:00Z")
                 self.assertEqual(float(ds["x"][0]), 1005.)
                 self.assertEqual(float(ds["qv"][0, 0, 0]), np.float32(.01))
                 self.assertEqual(float(ds["ta"][1, 1, 0]), float(ds["ta"]._FillValue))
                 self.assertEqual(int(ds["pedestrian_mask"][1, 1]), 0)
                 self.assertEqual(len(ds.variables), 32)
-                midpoint = datetime(2023, 8, 21, 0, 52, 30, tzinfo=timezone.utc)
+                midpoint = datetime(2023, 8, 21, tzinfo=timezone.utc) + timedelta(seconds=1500)
                 expected_azimuth = np.deg2rad(solar_position_python(
                     midpoint, 2.33, 48.86, 0., 35.
                 )["azimuth"]) % (2 * np.pi)
@@ -104,7 +104,7 @@ class TestExchange(unittest.TestCase):
                 copyfile(original, second)
                 with Dataset(second, "r+") as ds:
                     ds["receptor_height"].assignValue(1.5)
-            outputs = write_exchange_heights(sim, date(2023, 8, 21), meta)
+            outputs = write_exchange_heights(sim, meta)
             self.assertEqual(set(outputs), {1.1, 1.5})
             with Dataset(outputs[1.5]) as ds:
                 self.assertEqual(float(ds["receptor_height"][...]), 1.5)
@@ -113,9 +113,9 @@ class TestExchange(unittest.TestCase):
         with TemporaryDirectory() as tmp:
             sim, meta = _fixture(Path(tmp))
             with Dataset(sim.path / "pedestrian_longwave.h1p1.001.nc", "r+") as ds:
-                ds["time_complete"][4] = 0
+                ds["time_complete"][1] = 0
             with self.assertRaisesRegex(ValueError, "incomplete radiation"):
-                write_exchange_heights(sim, date(2023, 8, 21), meta)
+                write_exchange_heights(sim, meta)
             self.assertFalse(list(sim.path.glob("thermal_comfort_inputs*")))
 
     def test_rejects_partial_mask_and_negative_humidity(self):
@@ -125,33 +125,41 @@ class TestExchange(unittest.TestCase):
             with Dataset(shortwave, "r+") as ds:
                 ds["processed_mask"][0, 0] = 0
             with self.assertRaisesRegex(ValueError, "does not cover"):
-                write_exchange_heights(sim, date(2023, 8, 21), meta)
+                write_exchange_heights(sim, meta)
             with Dataset(shortwave, "r+") as ds:
                 ds["processed_mask"][0, 0] = 1
             with Dataset(sim.path / "pedestrian_atmosphere.h1p1.001.nc", "r+") as ds:
-                ds["qv"][0, 0, 3] = -1e-9
+                ds["qv"][0, 0, 2] = -1e-9
             with self.assertRaisesRegex(ValueError, "nonnegative"):
-                write_exchange_heights(sim, date(2023, 8, 21), meta)
+                write_exchange_heights(sim, meta)
             self.assertFalse(list(sim.path.glob("thermal_comfort_inputs*")))
 
-    def test_rejects_statistics_record_at_wrong_hour(self):
+    def test_rejects_radiation_records_that_differ_from_atmosphere(self):
+        with TemporaryDirectory() as tmp:
+            sim, meta = _fixture(Path(tmp))
+            with Dataset(sim.path / "pedestrian_shortwave.h1p1.001.nc", "r+") as ds:
+                ds["time"][2] = 9002.
+            with self.assertRaisesRegex(ValueError, "different time grid"):
+                write_exchange_heights(sim, meta)
+
+    def test_rejects_bounds_inconsistent_with_tstatsdump(self):
         with TemporaryDirectory() as tmp:
             sim, meta = _fixture(Path(tmp))
             with Dataset(sim.path / "pedestrian_atmosphere.h1p1.001.nc", "r+") as ds:
-                ds["source_time"][2] = 10802.
-            with self.assertRaisesRegex(ValueError, "statistics records miss"):
-                write_exchange_heights(sim, date(2023, 8, 21), meta)
+                ds["time_bounds"][1, 0] = 4500.
+            with self.assertRaisesRegex(ValueError, "averaging window"):
+                write_exchange_heights(sim, meta)
 
     def test_rejects_mismatched_georeference(self):
         with TemporaryDirectory() as tmp:
             sim, meta = _fixture(Path(tmp))
             meta.x_bounds[0, 1] = 1009.
             with self.assertRaisesRegex(ValueError, "x coordinates/bounds"):
-                write_exchange_heights(sim, date(2023, 8, 21), meta)
+                write_exchange_heights(sim, meta)
 
     def test_rejects_variable_ground_for_flat_model(self):
         with TemporaryDirectory() as tmp:
             sim, meta = _fixture(Path(tmp))
             meta.z_ground[0, 0] = 76.
             with self.assertRaisesRegex(ValueError, "flat model ground"):
-                write_exchange_heights(sim, date(2023, 8, 21), meta)
+                write_exchange_heights(sim, meta)

@@ -1,6 +1,5 @@
 """Small end-to-end uDALES thermal-comfort postprocessing test."""
 
-from datetime import date
 from importlib.util import find_spec
 from pathlib import Path
 from tempfile import TemporaryDirectory
@@ -33,7 +32,7 @@ def _small_case(root: Path):
         "# z thl\n0.5 298.15\n1.5 298.15\n", encoding="ascii"
     )
     for name in (
-        "stats_kslice.001.nc", "facets.inp.001", "factypes.inp.001",
+        "stats_tkslice.001.nc", "facets.inp.001", "factypes.inp.001",
         "solid_c.txt", "ground.stl", "shortwave_forcing.001.nc",
         "timedepsw.inp.001", "facEB.001.nc", "timedeplw.inp.001",
     ):
@@ -44,7 +43,7 @@ def _small_case(root: Path):
                   [100.0, 100.0, 0.0], [-100.0, 100.0, 0.0]],
         faces=[[0, 1, 2], [0, 2, 3]], process=False,
     )
-    targets = np.arange(1, 25, dtype=float) * 3600.0
+    targets = np.arange(1, 7, dtype=float) * 3600.0
     source_times = np.arange(0.0, targets[-1] + 300.0, 300.0)
     temperature = 298.15
     thermal_flux = SIGMA * temperature**4
@@ -92,7 +91,7 @@ def _small_case(root: Path):
         "solar_zenith": np.full_like(source_times, 100.0),
         "solar_azimuth_local": np.zeros_like(source_times),
     }
-    sim.load_stat_kslice = load_stats
+    sim.load_stat_tkslice = load_stats
     sim.load_stat_t = load_stats
     sim.load_shortwave_forcing = lambda name: shortwave[name]
     sim.load_timedepsw = lambda: {
@@ -117,9 +116,12 @@ class TestEndToEndComfort(unittest.TestCase):
     def test_small_udales_case_reaches_model_neutral_indices(self):
         with TemporaryDirectory() as tmp:
             sim, targets = _small_case(Path(tmp))
-            sim.comf.atmosphere.write_hourly_heights(targets, source="stats_kslice")
-            sim.comf.radiation.write_hourly_heights(
-                targets, tile_size=1, n_mu=8, n_azimuth=32, resume=False,
+            times = sim.comf.statistics_times("stats_tkslice")
+            np.testing.assert_array_equal(times, targets)
+            sim.comf.atmosphere.write_heights(times, source="stats_tkslice")
+            sim.comf.radiation.write_heights(
+                times, duration=sim.comf.schedule.tstatsdump,
+                tile_size=1, n_mu=8, n_azimuth=32, resume=False,
             )
             metadata = ExchangeMetadata(
                 x=np.array([600005.0]), y=np.array([6860005.0]),
@@ -135,15 +137,15 @@ class TestEndToEndComfort(unittest.TestCase):
                 institution="uDALES test suite",
                 building_representation="flat open-ground synthetic scene",
                 terrain_convention="flat model ground",
-                spinup_start_utc="2023-08-21T00:00:00Z",
-                spinup_end_utc="2023-08-21T00:00:00Z",
             )
-            exchange = sim.comf.export_exchange(date(2023, 8, 21), metadata)[1.1]
+            exchange = sim.comf.export_exchange(metadata)[1.1]
             output = calculate_indices(exchange)
 
             with Dataset(exchange) as source, Dataset(output) as result:
                 self.assertEqual(source["ta"].dimensions, ("x", "y", "time"))
                 self.assertEqual(result["mrt"].dimensions, ("x", "y", "time"))
+                self.assertEqual(len(source.dimensions["time"]), 6)
+                np.testing.assert_allclose(source["time_bounds"][:, 0], targets - 900.)
                 np.testing.assert_allclose(source["qv"][0, 0, :], 0.010, atol=1e-7)
                 np.testing.assert_allclose(result["mrt"][0, 0, :], 25.0, atol=2e-4)
                 for name in ("pet", "utci", "wbgt"):

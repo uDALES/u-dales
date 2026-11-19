@@ -24,12 +24,14 @@ class Window:
         return bool(self.indices.size)
 
 
-def hourly_windows(source_times: np.ndarray, target_times: np.ndarray,
-                   *, duration: float = 900.0, max_gap: float | None = None) -> tuple[list[Window], float]:
+def preceding_windows(source_times: np.ndarray, target_times: np.ndarray,
+                      *, duration: float, max_gap: float | None = None) -> tuple[list[Window], float]:
     """Integrate piecewise-linear source samples over preceding windows.
 
-    A window is incomplete if its endpoints are not bracketed or any source
-    interval inside it exceeds max_gap. No extrapolation or gap filling.
+    Each target time ``t`` receives the mean of the source series over
+    ``[t - duration, t)``. A window is incomplete if its endpoints are not
+    bracketed or any source interval inside it exceeds max_gap. No
+    extrapolation or gap filling.
     """
     source = np.asarray(source_times, dtype=float)
     targets = np.asarray(target_times, dtype=float)
@@ -37,11 +39,11 @@ def hourly_windows(source_times: np.ndarray, target_times: np.ndarray,
             or np.any(np.diff(source) <= 0)):
         raise ValueError("Source times must be finite, increasing, and contain two records")
     if (targets.ndim != 1 or targets.size == 0 or not np.isfinite(targets).all()
-            or np.any(np.diff(targets) <= 0)
-            or not np.allclose(targets / 3600.0, np.round(targets / 3600.0), rtol=0, atol=1e-9)):
-        raise ValueError("Target times must be increasing exact-hour endpoints")
-    if not np.isfinite(duration) or duration <= 0 or duration > 3600:
-        raise ValueError("Window duration must be in (0, 3600] seconds")
+            or np.any(np.diff(targets) <= 0)):
+        raise ValueError("Target times must be finite and strictly increasing")
+    duration = float(duration)
+    if not np.isfinite(duration) or duration <= 0:
+        raise ValueError("Window duration must be positive")
     intervals = np.diff(source)
     if max_gap is None:
         max_gap = 1.1 * float(np.median(intervals))
@@ -168,7 +170,8 @@ class RadiationCheckpoints:
 
 def consolidate_radiation(path: Path, checkpoints: RadiationCheckpoints,
                           grid, indices: np.ndarray, names: tuple[str, ...],
-                          windows: list[Window], tile_size: int, *, overwrite: bool) -> Path:
+                          windows: list[Window], tile_size: int, *, duration: float,
+                          overwrite: bool) -> Path:
     """Write native-grid (x,y,time) fields after all tile checkpoints exist."""
     path = Path(path)
     if path.exists() and not overwrite:
@@ -191,9 +194,10 @@ def consolidate_radiation(path: Path, checkpoints: RadiationCheckpoints,
             time = ds.createVariable("time", "f8", ("time",))
             time[:] = [window.end for window in windows]
             time.units = "s since simulation start"
+            time.long_name = "end of the averaging window"
             time.bounds = "time_bounds"
             bounds = ds.createVariable("time_bounds", "f8", ("time", "bounds"))
-            bounds[:] = [[window.end - 900.0, window.end] for window in windows]
+            bounds[:] = [[window.end - duration, window.end] for window in windows]
             complete = ds.createVariable("time_complete", "i1", ("time",))
             complete[:] = [int(window.complete) for window in windows]
             ds.createVariable("valid_mask", "i1", ("x", "y"))[:] = grid.valid.astype(np.int8)
@@ -232,7 +236,8 @@ def consolidate_radiation(path: Path, checkpoints: RadiationCheckpoints,
                                "for longwave")
                 var[:] = plane.reshape(nx, ny)
                 ds.setncattr(f"total_{ray_name}", int(plane[plane >= 0].sum()))
-            ds.setncattr("integration", "Piecewise-linear source interpolation; exact 900 s integral")
+            ds.setncattr("integration", "Piecewise-linear source interpolation; exact integral over the preceding window")
+            ds.setncattr("averaging_window_s", float(duration))
             ds.setncattr("missing_windows", "NaN where source coverage is absent or a cadence gap is detected")
             ds.setncattr("provenance", json.dumps(checkpoints.manifest, sort_keys=True))
             for time_index, _window in enumerate(windows):
