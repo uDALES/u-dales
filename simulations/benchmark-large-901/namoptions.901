@@ -1,0 +1,60 @@
+&RUN
+iexpnr       = 901
+runtime      = 5.
+trestart     = 1000000.
+dtmax        = 0.05
+ladaptive    = .false.
+irandom      = 43
+randu        = 0.01
+nprocx       = 32
+nprocy       = 32
+libm         = .true.
+/
+
+&OUTPUT
+/
+
+&DOMAIN
+itot         = 2048
+jtot         = 2048
+ktot         = 256
+xlen         = 1280
+ylen         = 1280
+/
+
+&PHYSICS
+ps           = 101500.
+igrw_damp    = 0
+ltempeq      = .false.
+lmoist       = .false.
+lbuoyancy    = .false.
+/
+
+&DYNAMICS
+ipoiss       = 0
+/
+
+&NAMSUBGRID
+lvreman      = .true.
+/
+
+&BC
+wtsurf       = 0.
+wqsurf       = 0.
+thls         = 288.
+z0           = 0.01
+z0h          = 0.000067
+/
+
+&WALLS
+/
+
+&INPS
+zsize        = 240
+u0           = 3.
+dpdx         = 0.0041912
+stl_file     = xie_castro_tiled.stl
+diag_neighbs = .true.
+stl_ground   = .true.
+ifacsec      = 1
+/

@@ -382,18 +382,8 @@ def _mpi_command(executable: Path, namelist: Path, nprocs: int, gpu: bool) -> li
     extra = shlex.split(
         os.environ.get(extra_variable, os.environ.get("MPI_LAUNCH_EXTRA_ARGS", ""))
     )
-    try:
-        version = subprocess.run(
-            [mpiexec, "--version"],
-            check=False,
-            capture_output=True,
-            text=True,
-            timeout=10,
-        ).stdout
-    except (OSError, subprocess.TimeoutExpired):
-        version = ""
-    if re.search(r"Open MPI|OpenRTE", version, flags=re.IGNORECASE) and "--oversubscribe" not in extra:
-        extra.insert(0, "--oversubscribe")
+    # uDALES runs one rank per CPU and never oversubscribes (tools/mpi_env.sh);
+    # the launcher is not asked to, and MPI_LAUNCH_EXTRA_ARGS passes through.
 
     command = [mpiexec, *extra, "-n", str(nprocs)]
     use_bind = gpu and nprocs > 1 and os.environ.get("UDALES_GPU_BIND", "1") != "0"

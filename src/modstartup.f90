@@ -983,7 +983,7 @@ module modstartup
          e12min, dzh, cexpnr, ifinput, lwarmstart, lstratstart, trestart, numol, &
          ladaptive, tnextrestart, linoutflow, lper2inout, iinletgen, lreadminl, &
          ltempeq, prandtlmoli, &
-         tnextfielddump, tfielddump, startfile, lprofforc,&
+         tnextfielddump, tfielddump, startfile, lprofforc, lcoriol,&
          idriver,dtdriver,driverstore,tdriverstart,tdriverstart_cold,tdriverdump,lchunkread,ibrank,lrandomize,BCxs,&
          tEB,tnextEB,dtEB,BCxs_custom,tfac,tnextfac,dtfac
       use modsubgriddata, only:ekm, ekh, loneeqn
@@ -2153,13 +2153,16 @@ module modstartup
             dpdyl(k) = -pgy(k)
          end do
       else
+         ! The om23_gs terms are the geostrophic balance f k x u_g. They balance the Coriolis
+         ! force on the resolved wind, so they are only applied when that force is (#410).
          do k = kb, ke
-            !dpdxl(k) =  om23_gs*vg(k)
-            !dpdyl(k) = -om23_gs*ug(k)
-            !dpdxl(k) =  -ug(k)
-            !dpdyl(k) =  -vg(k)
-            dpdxl(k) = om23_gs*vg(k) - pgx(k) - dpdx !corriolis forcing and pressure gradient
-            dpdyl(k) = -om23_gs*ug(k) - pgy(k)
+            if (lcoriol) then
+               dpdxl(k) = om23_gs*vg(k) - pgx(k) - dpdx
+               dpdyl(k) = -om23_gs*ug(k) - pgy(k)
+            else
+               dpdxl(k) = -pgx(k) - dpdx
+               dpdyl(k) = -pgy(k)
+            end if
          end do
       endif
 
@@ -2171,7 +2174,8 @@ module modstartup
       do k = kb + 1, ke
          whls(k) = (wfls(k)*dzf(k - 1) + wfls(k - 1)*dzf(k))/(2*dzh(k))
       end do
-      whls(ke + 1) = (wfls(ke) + dzf(ke)*(wfls(ke) - wfls(ke - 1))/dzh(ke)) ! tg3315 31/07/18 removed a 0.5
+      ! zh(ke+1) lies half a cell above zf(ke): extrapolate over dzf(ke)/2 (as in DALES)
+      whls(ke + 1) = wfls(ke) + 0.5*dzf(ke)*(wfls(ke) - wfls(ke - 1))/dzh(ke)
 
       !    idtmax = floor(dtmax/tres)
       btime = timee
@@ -2210,7 +2214,7 @@ module modstartup
       use modsurfdata, only:thls
       use modfields, only:u0, v0, w0, thl0, qt0, ql0, ql0h, qtav, qlav, e120, sv0, mindist, wall, &
          uav, vav, wav, uuav, vvav, wwav, uvav, uwav, vwav, svav, thlav, thl2av, sv2av, pres0, &
-         svprof, viscratioav, thluav, thlvav, thlwav, svuav, svvav, svwav, presav, &
+         viscratioav, thluav, thlvav, thlwav, svuav, svvav, svwav, presav, &
          uusgsav, vvsgsav, wwsgsav, uwsgsav, thlusgsav, thlwsgsav, svusgsav, svwsgsav, tkesgsav, &
          strain2av, nusgsav
       use modglobal, only:ib, ie, ih, jb, je, jh, kb, ke, kh, startfile, timee, totavtime, &
@@ -2218,7 +2222,7 @@ module modstartup
          totinletav, lreadscal, ltempeq, dzf, numol, prandtlmoli, &
          lreadfacT, nfcts, nfaclyrs, lEB, iwallmom, iwalltemp, iwallmoist, ifacrestartversion, &
          tEB, tnextEB, lwarmstart
-      use modmpi, only:cmyid, cmyidx, cmyidy, myid, comm3d, mpierr, my_real, mpi_logical
+      use modmpi, only:cmyid, cmyidx, cmyidy, myid, comm3d, mpierr, my_real, mpi_logical, abort_all_ranks
       use modsubgriddata, only:ekm
       use modinlet, only:zinterpolate1d, zinterpolatet1d, zinterpolatew1d, zinterpolate2d, &
          Uinl, Urec, Wrec, Utav, Tinl, Trec, &
@@ -2276,9 +2280,12 @@ module modstartup
          name(5:5) = 's'
          inquire (file=name, exist=lscalrestart)
          if (.not. lscalrestart) then
+            ! Each rank checks its own file, so the rank that misses it reports
+            ! and aborts itself (no barrier: the other ranks may not detect this).
             write (0, *) 'ERROR: scalar restart file ', trim(name), ' not found.'
             write (0, *) '       A warm start with nsv > 0 and lreadscal = .true. needs the inits files written with the initd set.'
             write (0, *) '       Set lreadscal = .false. to start the scalars from scalar.inp.'//cexpnr//' instead.'
+            flush(0)
             call MPI_ABORT(MPI_COMM_WORLD, 1, mpierr)
          end if
          open (unit=ifinput, file=name, form='unformatted', status='old')
@@ -2309,17 +2316,20 @@ module modstartup
                read (ifinput, iostat=iostatfac) ifacversion, nfctsfile, nfaclyrsfile
                if (iostatfac /= 0) then
                   write (0, *) 'ERROR: cannot read the header of facet restart file ', trim(namefac)
+                  flush(0)
                   call MPI_ABORT(MPI_COMM_WORLD, 1, mpierr)
                end if
                if (ifacversion /= ifacrestartversion) then
                   write (0, *) 'ERROR: facet restart file ', trim(namefac), ' has format version ', ifacversion, &
                      ' but this build reads version ', ifacrestartversion
+                  flush(0)
                   call MPI_ABORT(MPI_COMM_WORLD, 1, mpierr)
                end if
                if ((nfctsfile /= nfcts) .or. (nfaclyrsfile /= nfaclyrs)) then
                   write (0, *) 'ERROR: facet restart file ', trim(namefac), ' does not match this simulation'
                   write (0, *) '       file       : nfcts = ', nfctsfile, ' nfaclyrs = ', nfaclyrsfile
                   write (0, *) '       namoptions : nfcts = ', nfcts, ' nfaclyrs = ', nfaclyrs
+                  flush(0)
                   call MPI_ABORT(MPI_COMM_WORLD, 1, mpierr)
                end if
                read (ifinput, iostat=iostatfac) ((facT(n, j), n=1, nfcts), j=1, nfaclyrs + 1)
@@ -2341,6 +2351,7 @@ module modstartup
                if (iostatfac /= 0) then
                   write (0, *) 'ERROR: facet restart file ', trim(namefac), ' is truncated or corrupt (iostat ', &
                      iostatfac, '); the facet state cannot be restored'
+                  flush(0)
                   call MPI_ABORT(MPI_COMM_WORLD, 1, mpierr)
                end if
                if (lEB) then
@@ -2372,7 +2383,7 @@ module modstartup
                write (0, *) '       A warm start with lreadfacT = .true. needs the initf file written with the initd set.'
                write (0, *) '       Set lreadfacT = .false. to re-seed the facet temperatures from Tfacinit.inp.'//cexpnr
             end if
-            call MPI_ABORT(MPI_COMM_WORLD, 1, mpierr)
+            call abort_all_ranks(1)
          end if
       end if
 

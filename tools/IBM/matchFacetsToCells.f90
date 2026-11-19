@@ -16,7 +16,7 @@ program run
    integer :: i, j, k
    integer :: nfluid_IB_u, nfluid_IB_v, nfluid_IB_w, nfluid_IB_c, &
               nsolid_IB_u, nsolid_IB_v, nsolid_IB_w, nsolid_IB_c, nfacsecs_u, nfacsecs_v, nfacsecs_w, nfacsecs_c
-   real   , allocatable, dimension(:)     :: xf, xh, yf, yh, zf, zh
+   real   , allocatable, dimension(:)     :: xf, xh, yf, yh, zf, zh, zedges_f, zedges_h
    real   , allocatable, dimension(:,:)   :: vertices, faceNormal
    integer, allocatable, dimension(:,:)   :: connectivityList
    logical, allocatable, dimension(:,:,:) :: fluid_IB_u, solid_IB_u, fluid_IB_v, solid_IB_v, &
@@ -121,6 +121,15 @@ program run
      connectivityList, faceNormal, vertices)
 
 
+   !! Vertical cell edges (valid on stretched grids):
+   !! cells centred on zf(k) span the faces zh(k)..zh(k+1);
+   !! cells centred on zh(k) (w grid) span the centres zf(k-1)..zf(k)
+   allocate(zedges_f(ktot+1), zedges_h(ktot+1))
+   zedges_f(1:ktot) = zh
+   zedges_f(ktot+1) = 2.*zf(ktot) - zh(ktot)
+   zedges_h(1) = 2.*zh(1) - zf(1)
+   zedges_h(2:ktot+1) = zf
+
    !!!!!!! Computation of facet sections for each grid !!!!!!
 
    ! u-grid
@@ -128,7 +137,7 @@ program run
          'solid_boundary_u.txt' , nsolid_IB_u, fluid_IB_u, solid_IB_u, fluid_IB_xyz_u)
 
    call matchFacetsToCells(connectivityList, faceNormal, nFaces, vertices, nVertices, &
-     fluid_IB_u, solid_IB_u, fluid_IB_xyz_u, nfluid_IB_u, xh, yf, zf, itot, jtot, ktot, &
+     fluid_IB_u, solid_IB_u, fluid_IB_xyz_u, nfluid_IB_u, xh, yf, zf, zedges_f, itot, jtot, ktot, &
      diag_neighbs, periodic_x, periodic_y, secfacids_u, secbndptids_u, secareas_u, bnddst_u, n_threads)
    write(*,*) 'Computation of facet_sections_u.txt done.'
 
@@ -137,7 +146,7 @@ program run
          'solid_boundary_v.txt' , nsolid_IB_v, fluid_IB_v, solid_IB_v, fluid_IB_xyz_v)
 
    call matchFacetsToCells(connectivityList, faceNormal, nFaces, vertices, nVertices, &
-     fluid_IB_v, solid_IB_v, fluid_IB_xyz_v, nfluid_IB_v, xf, yh, zf, itot, jtot, ktot, &
+     fluid_IB_v, solid_IB_v, fluid_IB_xyz_v, nfluid_IB_v, xf, yh, zf, zedges_f, itot, jtot, ktot, &
      diag_neighbs, periodic_x, periodic_y, secfacids_v, secbndptids_v, secareas_v, bnddst_v, n_threads)
    write(*,*) 'Computation of facet_sections_v.txt done.'
 
@@ -146,7 +155,7 @@ program run
          'solid_boundary_w.txt' , nsolid_IB_w, fluid_IB_w, solid_IB_w, fluid_IB_xyz_w)
 
    call matchFacetsToCells(connectivityList, faceNormal, nFaces, vertices, nVertices, &
-     fluid_IB_w, solid_IB_w, fluid_IB_xyz_w, nfluid_IB_w, xf, yf, zh, itot, jtot, ktot, &
+     fluid_IB_w, solid_IB_w, fluid_IB_xyz_w, nfluid_IB_w, xf, yf, zh, zedges_h, itot, jtot, ktot, &
      diag_neighbs, periodic_x, periodic_y, secfacids_w, secbndptids_w, secareas_w, bnddst_w, n_threads)
    write(*,*) 'Computation of facet_sections_w.txt done.'
 
@@ -155,7 +164,7 @@ program run
          'solid_boundary_c.txt' , nsolid_IB_c, fluid_IB_c, solid_IB_c, fluid_IB_xyz_c)
 
    call matchFacetsToCells(connectivityList, faceNormal, nFaces, vertices, nVertices, &
-      fluid_IB_c, solid_IB_c, fluid_IB_xyz_c, nfluid_IB_c, xf, yf, zf, itot, jtot, ktot, &
+      fluid_IB_c, solid_IB_c, fluid_IB_xyz_c, nfluid_IB_c, xf, yf, zf, zedges_f, itot, jtot, ktot, &
       diag_neighbs, periodic_x, periodic_y, secfacids_c, secbndptids_c, secareas_c, bnddst_c, n_threads)
    write(*,*) 'Computation of facet_sections_c.txt done.'
 
@@ -271,15 +280,18 @@ program run
 
    subroutine matchFacetsToCells(connectivityList, faceNormal, nFaces, vertices, nVertices, &
       fluid_IB, solid_IB, fluid_IB_xyz, nfluid_IB, &
-      xgrid, ygrid, zgrid, itot, jtot, ktot, &
+      xgrid, ygrid, zgrid, zedges, itot, jtot, ktot, &
       diag_neighbs, periodic_x, periodic_y, &
       secfacids, secbndptids, secareas, bnddst, n_threads)
 
+    ! zedges(k), zedges(k+1): bottom and top of the cell centred on zgrid(k). They are passed in
+    ! rather than taken as zgrid -+ dz/2, because on a stretched grid the cell faces are not half
+    ! of the first spacing away from the centre.
     use, intrinsic :: ieee_arithmetic
     integer, intent(in) :: nFaces, nVertices, nfluid_IB, itot, jtot, ktot, n_threads
     integer, intent(in) :: connectivityList(nFaces,3)
     real   , intent(in) :: faceNormal(nFaces,3), vertices(nVertices,3), fluid_IB_xyz(nfluid_IB,3)
-    real   , intent(in) :: xgrid(itot), ygrid(jtot), zgrid(ktot)
+    real   , intent(in) :: xgrid(itot), ygrid(jtot), zgrid(ktot), zedges(ktot+1)
     logical, intent(in), dimension(itot,jtot,ktot) :: fluid_IB, solid_IB
     logical, intent(in) :: diag_neighbs, periodic_x, periodic_y
     integer, dimension(:), allocatable, intent(out) :: secfacids, secbndptids
@@ -322,13 +334,13 @@ program run
 
     dx = xgrid(2)-xgrid(1)
     dy = ygrid(2)-ygrid(1)
-    dz = zgrid(2)-zgrid(1)
+    dz = zgrid(2)-zgrid(1) ! only a common length scale in the neighbour weighting below
 
     tol = 1e-8 ! machine precision errors
     area_miss = 0.0 ! Initialize for OpenMP reduction
 
     !$OMP parallel do default(none) &
-    !$OMP shared(nFaces, connectivityList, faceNormal, vertices, xgrid, ygrid, zgrid, tol, &
+    !$OMP shared(nFaces, connectivityList, faceNormal, vertices, xgrid, ygrid, zgrid, zedges, tol, &
     !$OMP        fluid_IB, solid_IB, fluid_IB_xyz, nfluid_IB, itot, jtot, ktot, &
     !$OMP        diag_neighbs, periodic_x, periodic_y, dx, dy, dz, &
     !$OMP        thread_data, actual_threads) &
@@ -383,12 +395,12 @@ program run
       elsewhere
          ju_comp = .false.
       end where
-      where (zmin >= (/zgrid   -dz/2., zgrid(ktot)+dz/2./)-tol)
+      where (zmin >= zedges-tol)
          kl_comp = .true.
       elsewhere
          kl_comp = .false.
       end where
-      where (zmax <= (/zgrid(1)-dz/2., zgrid      +dz/2./)+tol)
+      where (zmax <= zedges+tol)
          ku_comp = .true.
       elsewhere
          ku_comp = .false.
@@ -446,8 +458,8 @@ program run
                xu = xgrid(i) + dx/2. + tol
                yl = ygrid(j) - dy/2. - tol
                yu = ygrid(j) + dy/2. + tol
-               zl = zgrid(k) - dz/2. - tol
-               zu = zgrid(k) + dz/2. + tol
+               zl = zedges(k) - tol
+               zu = zedges(k+1) + tol
 
                planes(1,:) = (/ 1., 0., 0., xu/)
                planes(2,:) = (/-1., 0., 0.,-xl/)
@@ -956,8 +968,6 @@ program run
 
     ! Merge and sort results from all threads
     !$ call mergeAndSortThreadResults(thread_data, actual_threads, secfacids, secareas, secbndptids, bnddst)
-
-    nfacsecs = size(secfacids,1)
 
    write(*,*) "Total area missing flux: ", area_miss, " m^2"
 

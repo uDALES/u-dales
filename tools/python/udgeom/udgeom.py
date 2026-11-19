@@ -908,6 +908,35 @@ class UDGeom:
             self._invalidate_cache()
         return geom
 
+    def uniformize_facets(self, *, inplace: bool = False, **kwargs):
+        """
+        Split large facets and merge tiny coplanar facets of the same type.
+
+        Thin wrapper around :func:`udgeom.uniformize_facets`; see there for the
+        keyword arguments (``target_edge``, ``size_band``, ``allow_split``,
+        ``allow_merge``, ``max_faces``, ``face_types``, ...).
+
+        Parameters
+        ----------
+        inplace : bool, default=False
+            If True, replace ``self.stl`` with the uniformised mesh.
+
+        Returns
+        -------
+        result : udgeom.UniformFacetsResult
+            Holds the new mesh (``result.mesh``), the facet types and the
+            old-to-new face map, and a ``summary()`` of what changed.
+        """
+        from .uniform_facets import uniformize_facets as uniformize_facets_impl
+
+        if self.stl is None:
+            raise ValueError("No geometry loaded.")
+        result = uniformize_facets_impl(self.stl, **kwargs)
+        if inplace:
+            self.stl = result.mesh
+            self._invalidate_cache()
+        return result
+
     def calculate_independent_surfaces(self):
         """
         Partition the mesh into face-connected independent surfaces.

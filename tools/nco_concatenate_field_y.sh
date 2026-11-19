@@ -20,6 +20,9 @@
 ## call: dumptype, ym-variables(list separated by comma, no space, include ym), out.nc
 ## e.g. nco_concatenate_field.sh fielddump v,ym out.nc
 
+set -euo pipefail
+shopt -s nullglob   # a pattern without files is an empty list, not a literal
+
 if (( $# == 3 )) ; then
 	dumps=$1
 	ymparam=$2
@@ -29,7 +32,8 @@ else
 	exit 1
 fi
 
-n=$(ls ${dumps}.*.*.nc | wc -l)
+files=( ${dumps}.*.*.nc )
+n=${#files[@]}
 ## start if more than one *dumps
 if (( n > 1 )) ; then
 

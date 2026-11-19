@@ -1,6 +1,6 @@
 #!/bin/bash
 
-set -e
+set -euo pipefail
 
 if (( $# < 1 ))
 then
@@ -27,11 +27,11 @@ else
 fi
 
 ## check if required variables are set
-if [ -z "$DA_WORKDIR" ]; then
+if [ -z "${DA_WORKDIR:-}" ]; then
     echo "Output top-level directory DA_WORKDIR must be set inside $inputdir/config.sh"
     exit 1
 fi;
-if [ -z "$DA_BUILD" ]; then
+if [ -z "${DA_BUILD:-}" ]; then
     echo "Executable DA_BUILD must be set inside $inputdir/config.sh"
     exit 1
 fi;
@@ -40,31 +40,42 @@ if [ ! -x "$DA_BUILD" ]; then
     echo "Build it first with: tools/build_executable.sh archer release"
     exit 1
 fi
-if [ -z "$DA_TOOLSDIR" ]; then
+if [ -z "${DA_TOOLSDIR:-}" ]; then
     echo "Script directory DA_TOOLSDIR must be set inside $inputdir/config.sh"
     exit 1
 fi;
-if [ -z $NNODE ]; then
+if [ -z "${NNODE:-}" ]; then
     echo "Number of nodes NNODE must be set inside $inputdir/config.sh"
     echo "Product of NNODE and NCPU set in $inputdir/config.sh must be equal to the product of nprocx and nprocy set in $inputdir/namoptions.$exp"
     exit 1
 fi;
-if [ -z $NCPU ]; then
+if [ -z "${NCPU:-}" ]; then
     echo "Number of CPU cores on each node NCPU must be set inside $inputdir/config.sh"
     echo "Product of NNODE and NCPU set in $inputdir/config.sh must be equal to the product of nprocx and nprocy set in $inputdir/namoptions.$exp"
     exit 1
 fi;
-if [ -z $WALLTIME ]; then
+if [ -z "${WALLTIME:-}" ]; then
     echo "Wall clock time WALLTIME must be set inside $inputdir/config.sh"
     exit 1
 fi;
-if [ -z $QOS ]; then
+if [ -z "${QOS:-}" ]; then
     echo "Job quota QOS must be set inside $inputdir/config.sh"
     exit 1
 fi;
 
 ## set the output directory
 outdir="$DA_WORKDIR/$exp"
+
+## Refuse to run into an existing output directory. uDALES never removes,
+## modifies or overwrites existing results; that decision stays with the user.
+if [ -e "$outdir" ]; then
+    echo "ERROR: output directory $outdir already exists." >&2
+    echo "       uDALES does not remove, modify or overwrite existing results." >&2
+    echo "       To run a new case, give it a case number that has no output directory yet." >&2
+    echo "       To rerun case $exp on purpose, move or delete its output directory yourself first, e.g." >&2
+    echo "         mv $outdir ${outdir}_old        or        rm -r $outdir" >&2
+    exit 1
+fi
 
 ## create output directory and copy the inputs
 ## The executable is copied in with the inputs and the run uses that copy:
@@ -73,7 +84,7 @@ outdir="$DA_WORKDIR/$exp"
 ## the job is queued cannot change what executes.
 mkdir -p "$outdir"
 cp -r -P "$inputdir"/* "$outdir"
-cp "$DA_BUILD" "$outdir/u-dales"
+cp --preserve=mode "$DA_BUILD" "$outdir/u-dales"
 pushd "$outdir"
 
 echo "writing job.$exp.slurm"
@@ -89,6 +100,7 @@ cat <<EOF > "job.$exp.slurm"
 #SBATCH --account=n02-ASSURE
 #SBATCH --partition=standard
 #SBATCH --qos=${QOS}
+set -eo pipefail
 module load epcc-job-env
 export OMP_NUM_THREADS=1
 srun --distribution=block:block --hint=nomultithread "$outdir/u-dales" "$outdir/namoptions.$exp" >> "$outdir/output.$exp.log" 2>&1

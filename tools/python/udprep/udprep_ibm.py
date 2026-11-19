@@ -6,6 +6,9 @@ facet-section mappings, and writes the resulting sparse input files.
 """
 from __future__ import annotations
 
+import hashlib
+import json
+import logging
 import os
 from contextlib import contextmanager
 from pathlib import Path
@@ -21,6 +24,8 @@ from ._section import Section, SectionSpec
 IBM_FORTRAN_DIR = Path(__file__).resolve().parents[1] / "fortran" / "ibm_preproc"
 PREBUILT_IBM_EXE = Path(__file__).resolve().parents[2] / "preprocessing" / "build" / "bin" / "IBM_preproc"
 
+logger = logging.getLogger(__name__)
+
 DEFAULTS: Dict[str, Any] = Section.load_defaults_json().get("ibm", {})
 FIELDS: List[str] = list(DEFAULTS.keys())
 
@@ -35,6 +40,8 @@ class IBMSection(Section):
 
         if self.libm:
             if self.gen_geom:
+                if self.lfacetuniform:
+                    steps.append(("uniformize_facets", self.uniformize_facets))
                 steps.extend(
                     [
                         ("run_ibm", lambda: self.run_ibm(backend=backend)),
@@ -131,6 +138,173 @@ class IBMSection(Section):
                 fields.extend(f"{val:13.8f}" for val in row[offset:offset + k + 1])
                 f.write("  ".join(fields) + "\n")
 
+    # ------------------------------------------------------------------ #
+    # Facet-size uniformisation
+    # ------------------------------------------------------------------ #
+
+    @staticmethod
+    def _uniform_names(stl_file: str, types_path: str | None) -> Dict[str, str]:
+        """Output file names derived from the input STL (and types file) names."""
+        stl = Path(stl_file)
+        stem = f"{stl.stem}_uniform"
+        names = {
+            "stl": f"{stem}{stl.suffix or '.stl'}",
+            "sidecar": f"{stem}.json",
+            "facemap": f"{stem}_facemap.txt",
+        }
+        if types_path:
+            tp = Path(types_path)
+            names["types"] = f"{tp.stem}_uniform{tp.suffix or '.txt'}"
+        return names
+
+    @staticmethod
+    def _file_digest(path: Path) -> str:
+        digest = hashlib.sha256()
+        with path.open("rb") as f:
+            for chunk in iter(lambda: f.read(1 << 20), b""):
+                digest.update(chunk)
+        return digest.hexdigest()
+
+    def _uniform_settings(self) -> Dict[str, Any]:
+        return {
+            "facet_target_edge": float(self.facet_target_edge),
+            "facet_size_band": float(self.facet_size_band),
+            "facet_allow_split": bool(self.facet_allow_split),
+            "facet_allow_merge": bool(self.facet_allow_merge),
+        }
+
+    def _resolve_types_path(self, sim) -> Path | None:
+        if not self.read_types:
+            return None
+        if not str(self.types_path).strip():
+            raise ValueError("types_path must be specified if read_types is true in namoptions")
+        types_path = Path(self.types_path)
+        if not types_path.is_absolute():
+            types_path = Path(sim.path) / types_path
+        if not types_path.is_file():
+            raise FileNotFoundError(f"Missing types file: {types_path}")
+        return types_path
+
+    def uniformize_facets(self) -> None:
+        """Make the STL facet sizes uniform and continue from the new STL.
+
+        Runs :func:`udgeom.uniformize_facets` on ``stl_file`` (splitting facets
+        above the accepted size band and merging coplanar facets of the same
+        type below it), writes ``<stem>_uniform.stl``, the matching facet-type
+        file when ``read_types`` is set, an old-to-new face map and a JSON
+        sidecar recording the source and the settings. ``stl_file`` (and
+        ``types_path``) are then pointed at the new files, in memory and in
+        ``namoptions``, and the geometry is reloaded, so every later step (IBM,
+        facets.inp, view factors, shortwave, SEB) works on the uniform mesh.
+        The original STL is never modified.
+
+        Reruns are safe: a ``stl_file`` that is itself a uniformised geometry
+        made with the current settings is accepted as is; an existing
+        ``<stem>_uniform.stl`` is reused when its sidecar matches the source
+        file and the settings, and refused otherwise (uDALES never overwrites
+        existing inputs; delete or rename the file to regenerate it).
+        """
+        from udgeom import FacetCountError, uniformize_facets
+
+        sim = self._require_sim()
+        case = Path(sim.path)
+        stl_name = str(sim.stl_file)
+        stl_path = case / stl_name
+        if not stl_path.is_file():
+            raise FileNotFoundError(f"STL file not found: {stl_path}")
+        settings = self._uniform_settings()
+        types_path = self._resolve_types_path(sim)
+
+        # Is stl_file already a product of this step?
+        own_sidecar = case / f"{Path(stl_name).stem}.json"
+        if own_sidecar.is_file():
+            meta = json.loads(own_sidecar.read_text(encoding="ascii"))
+            if meta.get("tool") == "udgeom.uniformize_facets" and meta.get("outputs", {}).get("stl") == stl_name:
+                if meta.get("settings") == settings:
+                    logger.info(
+                        "[ibm] %s is already a uniformised geometry (made from %s); nothing to do",
+                        stl_name, meta.get("source", {}).get("stl"),
+                    )
+                    return
+                raise ValueError(
+                    f"{stl_name} is a uniformised geometry made from {meta.get('source', {}).get('stl')} "
+                    f"with settings {meta.get('settings')}, but the current settings are {settings}. "
+                    f"Set stl_file back to the source STL and delete {stl_name} (and {own_sidecar.name}) "
+                    "to regenerate it with the new settings."
+                )
+
+        names = self._uniform_names(stl_name, str(types_path.name) if types_path is not None else None)
+        out_stl = case / names["stl"]
+        sidecar = case / names["sidecar"]
+        source_meta = {"stl": stl_name, "sha256": self._file_digest(stl_path)}
+        if types_path is not None:
+            source_meta["types"] = str(self.types_path)
+            source_meta["types_sha256"] = self._file_digest(types_path)
+
+        if out_stl.exists():
+            meta = json.loads(sidecar.read_text(encoding="ascii")) if sidecar.is_file() else None
+            reusable = (
+                meta is not None
+                and meta.get("source") == source_meta
+                and meta.get("settings") == settings
+                and ("types" not in names or (case / names["types"]).is_file())
+            )
+            if not reusable:
+                raise FileExistsError(
+                    f"{out_stl} already exists but was not made from {stl_name} with the current "
+                    f"settings (or its sidecar {sidecar.name} is missing). uDALES does not overwrite "
+                    "existing inputs: delete or rename it to regenerate."
+                )
+            logger.info("[ibm] reusing existing uniformised geometry %s", out_stl.name)
+        else:
+            face_types = None
+            if types_path is not None:
+                face_types = self._load_facet_types(types_path, len(sim.geom.stl.faces))
+            n_in = len(sim.geom.stl.faces)
+            max_faces = int(self.facet_count_max) if int(self.facet_count_max) > 0 else 4 * n_in
+            try:
+                result = uniformize_facets(
+                    sim.geom.stl,
+                    face_types=face_types,
+                    target_edge=float(self.facet_target_edge) if float(self.facet_target_edge) > 0 else None,
+                    size_band=float(self.facet_size_band),
+                    allow_split=bool(self.facet_allow_split),
+                    allow_merge=bool(self.facet_allow_merge),
+                    max_faces=max_faces,
+                    workers=int(self.nompthreads),
+                )
+            except FacetCountError as exc:
+                raise FacetCountError(
+                    f"{exc} (namoptions: facet_target_edge, facet_count_max)"
+                ) from exc
+            logger.info("[ibm] %s", result.summary())
+            result.mesh.export(str(out_stl))
+            if face_types is not None:
+                with (case / names["types"]).open("w", encoding="ascii", newline="\n") as f:
+                    f.write("# facet types of %s, in face order\n" % names["stl"])
+                    for value in result.face_types:
+                        f.write(f"{int(value)}\n")
+            with (case / names["facemap"]).open("w", encoding="ascii", newline="\n") as f:
+                f.write(f"# source face index (1-based, in {stl_name}) of every face of {names['stl']}\n")
+                for value in result.face_map:
+                    f.write(f"{int(value) + 1}\n")
+            meta = {
+                "tool": "udgeom.uniformize_facets",
+                "source": source_meta,
+                "settings": settings,
+                "outputs": {k: v for k, v in names.items() if k != "sidecar"},
+                "report": {k: v for k, v in result.report.items() if not isinstance(v, list)},
+            }
+            sidecar.write_text(json.dumps(meta, indent=2) + "\n", encoding="ascii")
+
+        # Continue from the uniform geometry: in memory, in namoptions, and reload.
+        self.stl_file = names["stl"]
+        self.save_param("stl_file", names["stl"])
+        if types_path is not None:
+            self.types_path = names["types"]
+            self.save_param("types_path", names["types"])
+        sim._load_geometry()
+
     def write_facets(self) -> None:
         """Write facets.inp from the STL and facet types.
 
@@ -149,6 +323,12 @@ class IBMSection(Section):
             sim.facet_types = np.atleast_1d(
                 np.loadtxt(path, skiprows=1, usecols=0, dtype=int)
             ).reshape(-1)
+            if len(sim.facet_types) != len(stl.faces):
+                raise ValueError(
+                    f"{path} has {len(sim.facet_types)} facets but the geometry "
+                    f"{sim.stl_file} has {len(stl.faces)} faces; it was written for a "
+                    f"different STL. Delete {path.name} to regenerate it."
+                )
             sim.nfcts = len(stl.faces)
             return
 
@@ -378,12 +558,14 @@ class IBMSection(Section):
 
     @staticmethod
     def _as_fortran_real_input(values: Any) -> np.ndarray:
-        # Match the old text-file path: Python wrote %.10f, then Fortran read default real.
-        return np.asfortranarray(np.round(np.asarray(values, dtype=np.float64), 10).astype(np.float32))
+        # The f2py module is built with -fdefault-real-8 (see tools/preprocessing),
+        # so Fortran "real" is float64. Values are rounded to 10 decimals as the
+        # old text-file path did (Python wrote %.10f).
+        return np.asfortranarray(np.round(np.asarray(values, dtype=np.float64), 10))
 
     @staticmethod
     def _as_fortran_real_scalar(value: Any) -> float:
-        return float(np.float32(round(float(value), 10)))
+        return float(round(float(value), 10))
 
     def _ray_direction(self, name: str) -> np.ndarray:
         value = getattr(self, name)
@@ -441,7 +623,7 @@ class IBMSection(Section):
             "IBM_preproc_module.f90",
             "IBM_preproc_main.f90",
         ]
-        cmd = [compiler, "-O3", "-fopenmp"]
+        cmd = [compiler, "-O3", "-fopenmp", "-fdefault-real-8", "-fdefault-double-8"]
         cmd.extend(str(IBM_FORTRAN_DIR / src) for src in sources)
         cmd.extend(["-o", str(exe)])
         subprocess.run(

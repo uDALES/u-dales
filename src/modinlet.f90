@@ -2054,7 +2054,7 @@ contains
         output(k) = input(kbin)/zfin(kbin) * zf(k)
 !        output(:,k,:) = input(:,kbin,:)   ! temeperature is not zero at the wall, so line above is wrong
       else                            ! normal interpolation
-        output(k) = input(linlf(k)) + (input(linuf(k)) - input(linlf(k))) / (zfin(linuf(k)) - zfin(linlf(k))) * (zf(k) - zf(linlf(k)))
+        output(k) = input(linlf(k)) + (input(linuf(k)) - input(linlf(k))) / (zfin(linuf(k)) - zfin(linlf(k))) * (zf(k) - zfin(linlf(k)))
         if ((zf(k) .gt. zfin(linuf(k))) .or. (zf(k) .lt. zfin(linlf(k)))) then
           write(6,*) '!!!Mistake in zinterpolate1d !!!!'
         end if
@@ -2077,7 +2077,7 @@ contains
         output(:,k) = input(:,kbin)/zfin(kbin) * zf(k)
 !        output(:,k,:) = input(:,kbin,:)   ! temeperature is not zero at the wall, so line above is wrong
       else                            ! normal interpolation
-        output(:,k) = input(:,linlf(k)) + (input(:,linuf(k)) - input(:,linlf(k))) / (zfin(linuf(k)) - zfin(linlf(k))) * (zf(k) - zf(linlf(k)))
+        output(:,k) = input(:,linlf(k)) + (input(:,linuf(k)) - input(:,linlf(k))) / (zfin(linuf(k)) - zfin(linlf(k))) * (zf(k) - zfin(linlf(k)))
         if ((zf(k) .gt. zfin(linuf(k))) .or. (zf(k) .lt. zfin(linlf(k)))) then
           write(6,*) '!!!Mistake in zinterpolate2d !!!!'
         end if
@@ -2130,7 +2130,7 @@ contains
 !        output(k) = input(kbin)/zhin(kbin) * zh(k)
 !        output(:,k,:) = input(:,kbin,:)   ! temeperature is not zero at the wall, so line above is wrong
       else                            ! normal interpolation
-        output(k) = input(linlh(k)) + (input(linuh(k)) - input(linlh(k))) / (zhin(linuh(k)) - zhin(linlh(k))) * (zh(k) - zh(linlh(k)))
+        output(k) = input(linlh(k)) + (input(linuh(k)) - input(linlh(k))) / (zhin(linuh(k)) - zhin(linlh(k))) * (zh(k) - zhin(linlh(k)))
         if ((zh(k) .gt. zhin(linuh(k))) .or. (zh(k) .lt. zhin(linlh(k)))) then
           write(6,*) '!!!Mistake in zinterpolatew1d !!!!'
         end if
@@ -2186,7 +2186,7 @@ contains
 !        output(:,k,:) = input(:,kbin,:)/zfin(kbin) * zf(k)
 !        output(:,k,:) = input(:,kbin,:)   ! temeperature is not zero at the wall, so line above is wrong
       else                            ! normal interpolation
-        output(k) = input(linlf(k)) + (input(linuf(k)) - input(linlf(k))) / (zfin(linuf(k)) - zfin(linlf(k))) * (zf(k) - zf(linlf(k)))
+        output(k) = input(linlf(k)) + (input(linuf(k)) - input(linlf(k))) / (zfin(linuf(k)) - zfin(linlf(k))) * (zf(k) - zfin(linlf(k)))
         if ((zf(k) .gt. zfin(linuf(k))) .or. (zf(k) .lt. zfin(linlf(k)))) then
           write(6,*) '!!!Mistake in zinterpolatet1d !!!!'
         end if

@@ -687,7 +687,7 @@ module modibm
                                 lskipsec, lcomprec, fac_tau)
      use modglobal, only : ib, ie, ih, jb, je, jh, kb, ke, kh, &
                            iwallmom, eps1, grav, prandtlturb
-     use modcuda,   only : u0_d, v0_d, w0_d, thl0_d, dxdydzfi_d
+     use modcuda,   only : u0_d, v0_d, w0_d, thl0_d, dxdydzfi_d, dxdydzhi_d, dzf_d, dzh_d
      implicit none
 
      integer, intent(in) :: align, nsec, nfct
@@ -702,7 +702,7 @@ module modibm
 
      integer :: sec, fac, i, j, k, iwm
      logical :: norec
-     real    :: area, dist, stress, stress_dir, momvol, Tair, utan, ctm
+     real    :: area, dist, stress, stress_dir, momvol, Tair, utan, ctm, wk, wkm
      real    :: ux, uy, uz, nx, ny, nz, sx, sy, sz, tx, ty, tz, smagi
      real    :: a_is, sig, logdz
 
@@ -716,7 +716,7 @@ module modibm
      !$acc parallel loop default(present) &
      !$acc   private(fac, i, j, k, area, dist, stress, stress_dir, momvol, &
      !$acc           Tair, utan, ctm, ux, uy, uz, nx, ny, nz, sx, sy, sz, &
-     !$acc           tx, ty, tz, smagi, a_is, sig, logdz)
+     !$acc           tx, ty, tz, smagi, a_is, sig, logdz, wk, wkm)
      do sec = 1, nsec
        if (lskipsec(sec)) cycle
 
@@ -755,14 +755,24 @@ module modibm
            if (iwm == 2) Tair = 0.5 * (thl0_d(i,j  ,k)*mask_c_d(i,j  ,k)*(2.-mask_c_d(i,j-1,k)) &
                                      + thl0_d(i,j-1,k)*mask_c_d(i,j-1,k)*(2.-mask_c_d(i,j  ,k)))
          case default
-           ! Deliberately the same stencil as case (2): interp_velocity_w on the
-           ! host is a copy of interp_velocity_v. Reproduced rather than
-           ! corrected, so that the two paths agree; see the note in the commit.
-           ux = 0.25 * (u0_d(i,j,k) + u0_d(i+1,j,k) + u0_d(i,j-1,k) + u0_d(i+1,j-1,k))
-           uy = v0_d(i,j,k)
-           uz = 0.25 * (w0_d(i,j,k) + w0_d(i,j,k+1) + w0_d(i,j-1,k) + w0_d(i,j-1,k+1))
-           if (iwm == 2) Tair = 0.5 * (thl0_d(i,j,k  )*mask_c_d(i,j,k  )*(2.-mask_c_d(i,j,k-1)) &
-                                    +  thl0_d(i,j,k-1)*mask_c_d(i,j,k-1)*(2.-mask_c_d(i,j,k  )))
+           ! Same expressions as the host's interp_velocity_w / interp_temperature_w:
+           ! zh(k) is not midway between zf(k-1) and zf(k) on a stretched grid, so
+           ! level k is weighted by dzf(k-1) and level k-1 by dzf(k); a solid
+           ! neighbour (mask_c = 0) drops out of the temperature interpolation.
+           ux = 0.5 * ((u0_d(i,j,k  ) + u0_d(i+1,j,k  ))*dzf_d(k-1) &
+                     + (u0_d(i,j,k-1) + u0_d(i+1,j,k-1))*dzf_d(k  )) / (2.*dzh_d(k))
+           uy = 0.5 * ((v0_d(i,j,k  ) + v0_d(i,j+1,k  ))*dzf_d(k-1) &
+                     + (v0_d(i,j,k-1) + v0_d(i,j+1,k-1))*dzf_d(k  )) / (2.*dzh_d(k))
+           uz = w0_d(i,j,k)
+           if (iwm == 2) then
+             wk  = dzf_d(k-1)*mask_c_d(i,j,k  )
+             wkm = dzf_d(k  )*mask_c_d(i,j,k-1)
+             if (wk + wkm > 0.) then
+               Tair = (thl0_d(i,j,k)*wk + thl0_d(i,j,k-1)*wkm) / (wk + wkm)
+             else
+               Tair = 0.
+             end if
+           end if
          end select
        else
          ux = trilinear_device(u0_d, recids_u(sec,1), recids_u(sec,2), recids_u(sec,3), &
@@ -829,7 +839,12 @@ module modibm
 
        stress_dir = sign(stress_dir, sig)
 
-       momvol = stress_dir * area * dxdydzfi_d(k)
+       ! w lives on zh(k), so its control volume is dzh(k) thick; u and v live on zf(k)
+       if (align == 3) then
+         momvol = stress_dir * area * dxdydzhi_d(k)
+       else
+         momvol = stress_dir * area * dxdydzfi_d(k)
+       end if
 
        !$acc atomic update
        rhs(i,j,k) = rhs(i,j,k) - momvol
@@ -984,8 +999,8 @@ module modibm
      use modglobal,  only : ib, ie, ih, jb, je, jh, kb, ke, kh, &
                             eps1, grav, prandtlturb, &
                             ltempeq, lmoist, iwalltemp, iwallmoist, lEB
-     use modcuda,    only : u0_d, v0_d, w0_d, thl0_d, qt0_d, pres0_d, dxdydzhi_d
-     use modibmdata, only : bctfxm, bctfxp, bctfyp, bctfz, &
+     use modcuda,    only : u0_d, v0_d, w0_d, thl0_d, qt0_d, pres0_d, dxdydzfi_d
+     use modibmdata, only : bctfxm, bctfxp, bctfym, bctfyp, bctfz, &
                             bcqfxm, bcqfxp, bcqfyp, bcqfym, bcqfz
      implicit none
 
@@ -1123,9 +1138,7 @@ module modibm
            else if (abs(ny-1.) < eps1 .and. abs(nx) < eps1 .and. abs(nz) < eps1) then
              flux = bctfyp
            else if (abs(ny+1.) < eps1 .and. abs(nx) < eps1 .and. abs(nz) < eps1) then
-             ! bctfxm, not bctfym: reproduced from the host, where it looks like
-             ! a typo but changing it here would break agreement between them.
-             flux = bctfxm
+             flux = bctfym
            else if (abs(nz-1.) < eps1 .and. abs(nx) < eps1 .and. abs(ny) < eps1) then
              flux = bctfz
            end if
@@ -1174,7 +1187,7 @@ module modibm
            f_htc(fac) = f_htc(fac) + htc * area
          end if
 
-         hflux_sec(sec) = flux * area * dxdydzhi_d(k)
+         hflux_sec(sec) = flux * area * dxdydzfi_d(k)   ! scalar cell volume dx*dy*dzf(k), as the host
 
          totheat = totheat + flux*area
 
@@ -1213,7 +1226,7 @@ module modibm
 
            totq = totq + flux*area
 
-           qflux_sec(sec) = flux * area * dxdydzhi_d(k)
+           qflux_sec(sec) = flux * area * dxdydzfi_d(k)
 
            if (leb_l) then
              !$acc atomic update
@@ -1639,7 +1652,7 @@ module modibm
 
    subroutine initibmwallfun(fname_bnd, fname_sec, dir, bound_info)
      use modglobal, only : ifinput, ib, itot, ih, jb, jtot, jh, kb, ke, ktot, kh, &
-                           xf, yf, zf, xh, yh, zh, dx, dy, dzf, xhat, yhat, zhat, eps1
+                           xf, yf, zf, xh, yh, zh, dx, dy, xhat, yhat, zhat, eps1
      use modmpi,    only : myid, comm3d, MY_REAL, mpierr
      use initfac,   only : facnorm, facz0
      use decomp_2d, only : zstart, zend
@@ -1664,7 +1677,7 @@ module modibm
      real, dimension(6,3) :: inter
      real, dimension(6) :: inter_dists
      real :: xc, yc, zc, xl, yl, zl, xu, yu, zu
-     integer n, m, norm_align, dir_align, pos, p
+     integer n, m, norm_align, dir_align, pos, p, kc
      character(80) :: chmess
 
      integer, dimension(:), allocatable :: ids_loc
@@ -1780,8 +1793,20 @@ module modibm
            xu = xc + dx/2.
            yl = yc - dy/2.
            yu = yc + dy/2.
-           zl = zc - dzf(1)/2. ! assumes equidistant
-           zu = zc + dzf(1)/2. ! assumes equidistant
+           ! vertical edges from the grid itself, so that stretched grids are handled:
+           ! a cell centred on zf(kc) spans zh(kc)..zh(kc+1); one centred on zh(kc) spans zf(kc-1)..zf(kc)
+           kc = bound_info%bndpts(m,3)
+           if (dir_align == 3) then
+             if (kc > kb) then
+               zl = zf(kc-1)
+             else
+               zl = 2.*zh(kb) - zf(kb) ! mirror image of zf(kb) below the bottom face
+             end if
+             zu = zf(kc)
+           else
+             zl = zh(kc)
+             zu = zh(kc+1)
+           end if
 
            ! points on planes
            pxl = (/xl, yc, zc/)
@@ -1792,7 +1817,9 @@ module modibm
            pzu = (/xc, yc, zu/)
 
            p0 = (/xc, yc, zc/)
-           p1 = p0 + norm * sqrt(3.)*(dx*dy*dzf(1))**(1./3.)
+           ! segment as long as the cell diagonal, so it always leaves the cell. This is never shorter
+           ! than the former sqrt(3)*(dx*dy*dz)**(1/3), so intersections found before are unchanged.
+           p1 = p0 + norm * sqrt(dx**2 + dy**2 + (zu - zl)**2)
 
            call plane_line_intersection(xhat, pxl, p0, p1, inter(1,:), check(1), inter_dists(1))
            call plane_line_intersection(xhat, pxu, p0, p1, inter(2,:), check(2), inter_dists(2))
@@ -3170,7 +3197,7 @@ module modibm
 
    subroutine ibmwallfun
      use modglobal, only : libm, iwallmom, xhat, yhat, zhat, ltempeq, lmoist, &
-                           ib, ie, ih, ihc, jb, je, jh, jhc, kb, ke, kh, khc, nsv, totheatflux, totqflux, nfcts, rk3step, timee, nfcts, lwritefac, dt, dtfac, tfac, tnextfac
+                           ib, ie, ih, ihc, jb, je, jh, jhc, kb, ke, kh, khc, nsv, totheatflux, totqflux, nfcts, rk3step, timee, lwritefac, dt, dtfac, tfac, tnextfac
      use modfields, only : thl0, qt0, sv0, up, vp, wp, thlp, qtp, svp, &
                            tau_x, tau_y, tau_z, thl_flux
      use modmpi, only : myid
@@ -3342,7 +3369,7 @@ module modibm
 #if !defined(_GPU) || defined(UDALES_DEBUG)
    subroutine wallfunmom(dir, rhs, bound_info)
      use modglobal, only : ib, ie, ih, jb, je, jh, kb, ke, kh, &
-                           dxdydzfi, iwallmom, xhat, yhat, zhat, vec0, nfcts, lwritefac, rk3step
+                           dxdydzfi, dxdydzhi, iwallmom, xhat, yhat, zhat, vec0, nfcts, lwritefac, rk3step
      use modfields, only : u0, v0, w0, thl0
      use initfac,   only : facT, facnorm, faca
      use modmpi,    only : comm3d, mpi_sum, mpierr, my_real
@@ -3355,7 +3382,7 @@ module modibm
      real dist, stress, stress_dir, area, momvol, Tair, logdz, &
           utan, ctm, a, a_is, a_xn, a_yn, a_zn, stress_ix, stress_iy, stress_iz
      real, dimension(3) :: uvec, norm, strm, span, stressvec
-     logical :: valid
+     logical :: valid, lwgrid
      real, dimension(1:nfcts) :: fac_tau_loc, fac_tau
      !real, dimension(:), allocatable :: fac_tau, fac_pres
 
@@ -3373,6 +3400,9 @@ module modibm
        interp_velocity_ptr => interp_velocity_w
        interp_temperature_ptr => interp_temperature_w
      end select
+
+     ! w lives on zh(k), so its control volume is dzh(k) thick; u and v live on zf(k) (dzf(k)).
+     lwgrid = (alignment(dir) == 3)
 
      fac_tau_loc = 0.
 
@@ -3462,7 +3492,12 @@ module modibm
 
        ! dxdydzfi is 1/(dx*dy*dzf(k)), formed once in initglobal. The device
        ! kernel multiplies by the same array, so the two stay bit-identical.
-       momvol = stress_dir * area * dxdydzfi(k)
+       ! w lives on zh(k), so its control volume is dzh(k) thick; u and v live on zf(k)
+       if (lwgrid) then
+         momvol = stress_dir * area * dxdydzhi(k)
+       else
+         momvol = stress_dir * area * dxdydzfi(k)
+       end if
        rhs(i,j,k) = rhs(i,j,k) - momvol
        fac_tau_loc(fac) = fac_tau_loc(fac) + stress_dir * area ! output stresses on facets
      end do
@@ -3489,12 +3524,12 @@ module modibm
 
 
    subroutine wallfunheat
-     use modglobal, only : dxdydzhi, &
+     use modglobal, only : dxdydzfi, &
                            xhat, yhat, zhat, vec0, ltempeq, lmoist, iwalltemp, iwallmoist, lEB, lwritefac, nfcts, rk3step, totheatflux, totqflux
      use modfields, only : u0, v0, w0, thl0, thlp, qt0, qtp, pres0
      use initfac,   only : facT, facnorm, fachf, facef, facqsat, fachurel, facf, faclGR, faca
      use modmpi,    only : comm3d, mpi_sum, mpierr, my_real
-     use modibmdata, only : bctfxm, bctfxp, bctfyp, bctfz
+     use modibmdata, only : bctfxm, bctfxp, bctfym, bctfyp, bctfz
 
      integer i, j, k, sec, fac
      real :: dist, flux, area, Tair, utan, cth, htc, logdz, cveg, hurel, qtair, qwall, resa, resc, ress
@@ -3567,7 +3602,7 @@ module modibm
              flux = bctfyp
            !elseif (all(abs(norm + yhat) < eps1)) then
            elseif (is_equal(norm, -yhat)) then
-             flux = bctfxm
+             flux = bctfym
            !elseif (all(abs(norm - zhat) < eps1)) then
            elseif (is_equal(norm, zhat)) then
              flux = bctfz
@@ -3587,7 +3622,8 @@ module modibm
          ! flux [Km/s]
          ! fluid volumetric sensible heat source/sink = flux * area / volume [K/s]
          ! facet sensible heat flux = volumetric heat capacity of air * flux * sectionarea / facetarea [W/m^2]
-         thlp(i,j,k) = thlp(i,j,k) - flux * area * dxdydzhi(k)
+         ! volume of the scalar cell centred on zf(k) is dx*dy*dzf(k) (dzh(k) is the centre-to-centre distance)
+         thlp(i,j,k) = thlp(i,j,k) - flux * area * dxdydzfi(k)
 
          totheatflux = totheatflux + flux*area ! [Km^3s^-1] This sums the flux over all facets (unconditional, mirrors totqflux; decouples periodicEBcorr from lEB)
 
@@ -3627,7 +3663,7 @@ module modibm
          ! fluid volumetric latent heat source/sink = flux * area / volume [kg/kg / s]
          ! facet latent heat flux = volumetric heat capacity of air * flux * sectionarea / facetarea [W/m^2]
          totqflux = totqflux + flux*area ! [Km^3s^-1] This sums the flux over all facets
-         qtp(i,j,k) = qtp(i,j,k) - flux * area * dxdydzhi(k)
+         qtp(i,j,k) = qtp(i,j,k) - flux * area * dxdydzfi(k)
 
          if (lEB) then
            facef(fac) = facef(fac) + flux * area ! [Km^2/s] (will be divided by facetarea(fac) in modEB)
@@ -3773,7 +3809,7 @@ module modibm
 
      interp_velocity_u(1) = u0(i,j,k)
      interp_velocity_u(2) = 0.25 * (v0(i,j,k) + v0(i,j+1,k) + v0(i-1,j,k) + v0(i-1,j+1,k))
-     interp_velocity_u(3) = 0.25 * (w0(i,j,k) + w0(i,j,k+1) + w0(i-1,j,k) + w0(i-1,j,k+1)) !only for equidistant grid!
+     interp_velocity_u(3) = 0.25 * (w0(i,j,k) + w0(i,j,k+1) + w0(i-1,j,k) + w0(i-1,j,k+1)) ! zf(k) is the midpoint of zh(k), zh(k+1): exact on any grid
 
      return
    end function interp_velocity_u
@@ -3787,7 +3823,7 @@ module modibm
 
      interp_velocity_v(1) = 0.25 * (u0(i,j,k) + u0(i+1,j,k) + u0(i,j-1,k) + u0(i+1,j-1,k))
      interp_velocity_v(2) = v0(i,j,k)
-     interp_velocity_v(3) = 0.25 * (w0(i,j,k) + w0(i,j,k+1) + w0(i,j-1,k) + w0(i,j-1,k+1)) !only for equidistant grid!
+     interp_velocity_v(3) = 0.25 * (w0(i,j,k) + w0(i,j,k+1) + w0(i,j-1,k) + w0(i,j-1,k+1)) ! zf(k) is the midpoint of zh(k), zh(k+1): exact on any grid
 
      return
    end function interp_velocity_v
@@ -3795,13 +3831,18 @@ module modibm
 
    function interp_velocity_w(i, j, k)
      ! interpolates the velocity at w-grid location i,j,k
+     use modglobal, only :  dzf, dzh
      use modfields, only :  u0, v0, w0
      real ::  interp_velocity_w(3)
      integer, intent(in) :: i, j, k
 
-     interp_velocity_w(1) = 0.25 * (u0(i,j,k) + u0(i+1,j,k) + u0(i,j-1,k) + u0(i+1,j-1,k))
-     interp_velocity_w(2) = v0(i,j,k)
-     interp_velocity_w(3) = 0.25 * (w0(i,j,k) + w0(i,j,k+1) + w0(i,j-1,k) + w0(i,j-1,k+1)) !only for equidistant grid!
+     ! zh(k) is not midway between zf(k-1) and zf(k) on a stretched grid: linear
+     ! interpolation weights level k by dzf(k-1) and level k-1 by dzf(k) (sum 2*dzh(k))
+     interp_velocity_w(1) = 0.5 * ((u0(i,j,k  ) + u0(i+1,j,k  ))*dzf(k-1) &
+                                 + (u0(i,j,k-1) + u0(i+1,j,k-1))*dzf(k  )) / (2.*dzh(k))
+     interp_velocity_w(2) = 0.5 * ((v0(i,j,k  ) + v0(i,j+1,k  ))*dzf(k-1) &
+                                 + (v0(i,j,k-1) + v0(i,j+1,k-1))*dzf(k  )) / (2.*dzh(k))
+     interp_velocity_w(3) = w0(i,j,k)
 
      return
    end function interp_velocity_w
@@ -3849,12 +3890,21 @@ module modibm
 
    real function interp_temperature_w(i, j, k)
      ! interpolates the temperature at w-grid location i,j,k
+     use modglobal, only :  dzf
      use modfields, only :  thl0
      integer, intent(in) :: i, j, k
+     real :: wk, wkm
 
-     !interp_temperature_w = 0.5 * (thl0(i,j,k) + thl0(i,j,k-1))
-     interp_temperature_w = 0.5 * (thl0(i,j,k  )*mask_c(i,j,k  )*(2.-mask_c(i,j,k-1)) &
-                                +  thl0(i,j,k-1)*mask_c(i,j,k-1)*(2.-mask_c(i,j,k  )))
+     ! linear interpolation between zf(k-1) and zf(k) to zh(k) weights level k by
+     ! dzf(k-1) and level k-1 by dzf(k); a solid neighbour (mask_c = 0) drops out and
+     ! the fluid value is used on its own, as before
+     wk  = dzf(k-1)*mask_c(i,j,k  )
+     wkm = dzf(k  )*mask_c(i,j,k-1)
+     if (wk + wkm > 0.) then
+       interp_temperature_w = (thl0(i,j,k)*wk + thl0(i,j,k-1)*wkm) / (wk + wkm)
+     else
+       interp_temperature_w = 0.
+     end if
 
      return
    end function interp_temperature_w

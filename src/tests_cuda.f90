@@ -649,16 +649,16 @@ contains
                flux_lower = cf*v_test_h(i,j,k)*dyi
                tendency = tendency + flux_upper + flux_lower
 
+               ! upwind cell's dzf: the face value is reconstructed over half of that cell
                if (w_test_h(i,j,k+1) > 0.) then
                   d1 = (input_h(i,j,k) - input_h(i,j,k-1))*dzhci(k)
                   d2 = (input_h(i,j,k+1) - input_h(i,j,k))*dzhci(k+1)
-                  cf = input_h(i,j,k)
+                  cf = input_h(i,j,k) + dzfc(k)*kappa_rlim_host(d1, d2)
                else
                   d1 = (input_h(i,j,k+1) - input_h(i,j,k+2))*dzhci(k+2)
                   d2 = (input_h(i,j,k) - input_h(i,j,k+1))*dzhci(k+1)
-                  cf = input_h(i,j,k+1)
+                  cf = input_h(i,j,k+1) + dzfc(k+1)*kappa_rlim_host(d1, d2)
                end if
-               cf = cf + dzfc(k+1)*kappa_rlim_host(d1, d2)
                flux_upper = -cf*w_test_h(i,j,k+1)*dzfci(k)
 
                flux_lower = 0.
@@ -666,13 +666,12 @@ contains
                   if (w_test_h(i,j,k) > 0.) then
                      d1 = (input_h(i,j,k-1) - input_h(i,j,k-2))*dzhci(k-1)
                      d2 = (input_h(i,j,k) - input_h(i,j,k-1))*dzhci(k)
-                     cf = input_h(i,j,k-1)
+                     cf = input_h(i,j,k-1) + dzfc(k-1)*kappa_rlim_host(d1, d2)
                   else
                      d1 = (input_h(i,j,k) - input_h(i,j,k+1))*dzhci(k+1)
                      d2 = (input_h(i,j,k-1) - input_h(i,j,k))*dzhci(k)
-                     cf = input_h(i,j,k)
+                     cf = input_h(i,j,k) + dzfc(k)*kappa_rlim_host(d1, d2)
                   end if
-                  cf = cf + dzfc(k)*kappa_rlim_host(d1, d2)
                   flux_lower = cf*w_test_h(i,j,k)*dzfci(k)
                end if
                expected(i,j,k) = tendency + flux_upper + flux_lower

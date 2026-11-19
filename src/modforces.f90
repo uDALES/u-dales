@@ -264,8 +264,8 @@ module modforces
       if (lvinf) then
         !$acc kernels default(present)
         do k=kb,ke
-          do i=ib,ie
-            do j=jb,je
+          do j=jb,je
+            do i=ib,ie
 #if defined(_GPU)
               vp_d(i,j,k) = vp_d(i,j,k) - (1./dt) * (v0av_d(ke) - Vinf)
 #else
@@ -1180,7 +1180,7 @@ module modforces
   !
   ! use initfac, only :  max_height_index
   !use modglobal, only: ltempeq, lperiodicEBcorr, ib, ie, jb, je, kb, ke, imax, jtot
-  use modglobal, only : ltempeq, lmoist, lperiodicEBcorr, ib, ie, jb, je, ke,&
+  use modglobal, only : ltempeq, lmoist, lperiodicEBcorr, ib, ie, jb, je, ke, itot, jtot,&
                           totheatflux,sinkbase, totqflux, &
                           zh, fraction,xlen,ylen,dzf
 #if defined(_GPU)
@@ -1190,8 +1190,8 @@ module modforces
 #endif
   use modmpi, only : comm3d, mpierr, MY_REAL, MPI_SUM
   !
-  integer :: i, j, k, M
-  real :: tot_Tflux, tot_qflux, R_theta,R_q, H_proj, E_proj, R_theta_scaled,R_q_scaled, abl_height,phi_theta_t,phi_q_t  !, !tot_qflux !, sink_points
+  integer :: i, j, k
+  real :: tot_Tflux, tot_qflux, latent_heat_out,R_theta,R_q, H_proj, E_proj, R_theta_scaled,R_q_scaled, abl_height,phi_theta_t,phi_q_t,sink_depth  !, !tot_qflux !, sink_points
   !
   !write(*,*) 'lperiodicEBcorr ', lperiodicEBcorr
   !write(*,*) 'fraction', fraction
@@ -1222,10 +1222,13 @@ module modforces
   abl_height = zh(ke+1)/fraction ! We reverse engineer the ABL height from domain height and fraction
   R_theta = H_proj/abl_height ![Ks^-1] This is the forcing F\theta from Grylls 2021
   R_q = E_proj/abl_height
- ! Ke is the number of points in the vertical over which we would apply R if we included the canopy
-  M = ke - (sinkbase+1) +1 ! The number of points over which we will apply rscaled. We only apply the forcing above the canopy so it has to be made bigger.
-  R_theta_scaled = R_theta * ke/(M) ! [Ks^-1]The forcing is scaled up beacuse we do not apply it to the whole volume, only to points above the canopy. We add one to sinkbase to be above the buildings and add 1 to (ke-(sinkbase+1)) to correctly count the points.
-  R_q_scaled = R_q * ke/(M)
+  ! R is only applied above the canopy, between zh(sinkbase+1) and zh(ke+1), so it is scaled up
+  ! by (domain depth)/(sink-layer depth) to keep its vertical integral equal to fraction*H_proj.
+  ! This is a ratio of heights, not of level counts: the two agree (ke/(ke-sinkbase)) only on an
+  ! equidistant grid, and the level count over- or under-removes heat on a stretched grid.
+  sink_depth = zh(ke+1) - zh(sinkbase+1)
+  R_theta_scaled = R_theta * zh(ke+1)/sink_depth ! [Ks^-1]
+  R_q_scaled = R_q * zh(ke+1)/sink_depth
   !phi_theta_t = 0 ! For debugging the flux profile !(1-fraction)*H_proj! The heat flux out the top of the domain.
   phi_theta_t = (1-fraction)*tot_Tflux/(xlen*ylen*dzf(ke)) ![Ks^-1]
   phi_q_t = (1-fraction)*tot_qflux/(xlen*ylen*dzf(ke))
@@ -1254,9 +1257,9 @@ module modforces
      end do
      !$acc end parallel loop
 #else
-     do i = ib,ie
+     do k = sinkbase +1 , ke ! Only apply the correction over the volume above the buildings
        do j = jb,je
-         do k = sinkbase +1 , ke!max_height_index +1 , ke ! Only apply the correction over the volume above the buidlings
+         do i = ib,ie
            !thlp(i,j,k) = thlp(i,j,k) + fraction*tot_Tflux*(zh(k+1)-zh(k))/(imax*jtot*(zh(ke+1) - zh(max_height_index+1)))
            !thlp(i,j,k) = thlp(i,j,k) - fraction*tot_Tflux/(itot*jtot*(ke-sinkbase)) ! Most recent working version pre M changes cew216 20240112
            thlp(i,j,k) = thlp(i,j,k) + R_theta_scaled
@@ -1265,8 +1268,8 @@ module modforces
      end do
    !end if
   !sensible_heat_out = (1-fraction)*tot_Tflux/(itot*jtot)
-    do i = ib,ie
-      do j = jb,je
+    do j = jb,je
+      do i = ib,ie
         thlp(i,j,ke) = thlp(i,j,ke) + phi_theta_t
       end do
     end do
@@ -1295,17 +1298,19 @@ module modforces
     end do
     !$acc end parallel loop
 #else
-    do i = ib,ie
-       do j = jb,je
-        do k = sinkbase +1,ke ! Only apply the correction over the volume above the buidlings
+    ! i innermost (column-major; see #330)
+    do k = sinkbase +1,ke ! Only apply the correction over the volume above the buidlings
+      do j = jb,je
+        do i = ib,ie
           !qtp(i,j,k) = qtp(i,j,k) + fraction*tot_qflux*(zh(k+1)-zh(k))/(imax*jtot*(zh(ke+1) - zh(max_height_index+1)))
           !qtp(i,j,k) = qtp(i,j,k) - fraction*tot_qflux/(itot*jtot*(ke-sinkbase))
           qtp(i,j,k) = qtp(i,j,k) + R_q_scaled
         end do
       end do
     end do
-     do i = ib,ie
-       do j = jb,je
+    latent_heat_out = (1-fraction)*tot_qflux/(itot*jtot*(zh(ke+1)-zh(ke)))
+    do j = jb,je
+      do i = ib,ie
         qtp(i,j,ke) = qtp(i,j,ke) + phi_q_t
       end do
     end do
@@ -1360,7 +1365,11 @@ module modforces
 #endif
       implicit none
       integer :: i, j, k, ig
+#if !defined(_GPU)
+      integer :: il
       real :: vs
+      real, dimension(ib:ie) :: sinfac
+#endif
 
       if (ds > 0) then
 
@@ -1368,18 +1377,22 @@ module modforces
          call shiftedPBCs_cuda<<<griddim,blockdim>>>(ds, itot, xlen, pi)
          call checkCUDA( cudaGetLastError(), 'shiftedPBCs_cuda' )
 #else
-         do i = ib,ie
+         ! ig > itot/2 selects a contiguous local range il..ie; precompute the
+         ! i-dependent sine once per column and run i innermost (see #330)
+         il = max(ib, int(itot/2) - zstart(1) + 2)
+         do i = il,ie
             ig = i + zstart(1) - 1 ! global i position
-            if (ig > int(itot/2)) then
-               do j = jb,je
-                  do k = kb,ke
-                     vs = 0.5 * pi * ds / (0.5*xlen) * u0av(k) * sin(pi*(xh(ig)-xh(int(itot/2))) / (0.5*xlen))
-                     up(i,j,k) = up(i,j,k) - vs * (u0(i,j,k) - u0(i,j-1,k)) * dyi
-                     vp(i,j,k) = vp(i,j,k) - vs * (v0(i,j,k) - v0(i,j-1,k)) * dyi
-                     wp(i,j,k) = wp(i,j,k) - vs * (w0(i,j,k) - w0(i,j-1,k)) * dyi
-                  end do
+            sinfac(i) = sin(pi*(xh(ig)-xh(int(itot/2))) / (0.5*xlen))
+         end do
+         do k = kb,ke
+            do j = jb,je
+               do i = il,ie
+                  vs = 0.5 * pi * ds / (0.5*xlen) * u0av(k) * sinfac(i)
+                  up(i,j,k) = up(i,j,k) - vs * (u0(i,j,k) - u0(i,j-1,k)) * dyi
+                  vp(i,j,k) = vp(i,j,k) - vs * (v0(i,j,k) - v0(i,j-1,k)) * dyi
+                  wp(i,j,k) = wp(i,j,k) - vs * (w0(i,j,k) - w0(i,j-1,k)) * dyi
                end do
-            end if
+            end do
          end do
 #endif
 

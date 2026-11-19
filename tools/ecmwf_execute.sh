@@ -20,7 +20,7 @@
 ## Submit a uDALES run on the ECMWF Atos HPC2020 (Slurm).
 ## Build first with: tools/build_executable.sh ecmwf release
 
-set -e
+set -euo pipefail
 
 if (( $# < 1 ))
 then
@@ -51,11 +51,11 @@ else
 fi
 
 ## check if required variables are set
-if [ -z "$DA_WORKDIR" ]; then
+if [ -z "${DA_WORKDIR:-}" ]; then
     echo "Output top-level directory DA_WORKDIR must be set inside $inputdir/config.sh"
     exit 1
 fi;
-if [ -z "$DA_BUILD" ]; then
+if [ -z "${DA_BUILD:-}" ]; then
     echo "Executable DA_BUILD must be set inside $inputdir/config.sh"
     exit 1
 fi;
@@ -64,21 +64,21 @@ if [ ! -x "$DA_BUILD" ]; then
     echo "Build it first with: tools/build_executable.sh ecmwf release"
     exit 1
 fi
-if [ -z "$DA_TOOLSDIR" ]; then
+if [ -z "${DA_TOOLSDIR:-}" ]; then
     echo "Script directory DA_TOOLSDIR must be set inside $inputdir/config.sh"
     exit 1
 fi;
-if [ -z $NNODE ]; then
+if [ -z "${NNODE:-}" ]; then
     echo "Number of nodes NNODE must be set inside $inputdir/config.sh"
     echo "Product of NNODE and NCPU set in $inputdir/config.sh must be equal to the product of nprocx and nprocy set in $inputdir/namoptions.$exp"
     exit 1
 fi;
-if [ -z $NCPU ]; then
+if [ -z "${NCPU:-}" ]; then
     echo "Number of MPI ranks on each node NCPU must be set inside $inputdir/config.sh"
     echo "Product of NNODE and NCPU set in $inputdir/config.sh must be equal to the product of nprocx and nprocy set in $inputdir/namoptions.$exp"
     exit 1
 fi;
-if [ -z $WALLTIME ]; then
+if [ -z "${WALLTIME:-}" ]; then
     echo "Wall clock time WALLTIME (HH:MM:SS, at most 48:00:00) must be set inside $inputdir/config.sh"
     exit 1
 fi;
@@ -169,6 +169,17 @@ fi
 ## set the output directory
 outdir="$DA_WORKDIR/$exp"
 
+## Refuse to run into an existing output directory. uDALES never removes,
+## modifies or overwrites existing results; that decision stays with the user.
+if [ -e "$outdir" ]; then
+    echo "ERROR: output directory $outdir already exists." >&2
+    echo "       uDALES does not remove, modify or overwrite existing results." >&2
+    echo "       To run a new case, give it a case number that has no output directory yet." >&2
+    echo "       To rerun case $exp on purpose, move or delete its output directory yourself first, e.g." >&2
+    echo "         mv $outdir ${outdir}_old        or        rm -r $outdir" >&2
+    exit 1
+fi
+
 ## create output directory and copy the inputs, and the executable with them:
 ## $DA_BUILD normally lives in the repo on $HOME, whose I/O bandwidth is
 ## throttled from the compute nodes, and ECMWF support advise against 2048 ranks
@@ -176,7 +187,7 @@ outdir="$DA_WORKDIR/$exp"
 ## so a rebuild while the job is queued cannot change it.
 mkdir -p "$outdir"
 cp -r -P "$inputdir"/* "$outdir"
-cp "$DA_BUILD" "$outdir/u-dales"
+cp --preserve=mode "$DA_BUILD" "$outdir/u-dales"
 pushd "$outdir"
 
 echo "writing job.$exp.slurm"
@@ -205,6 +216,7 @@ fi
 cat <<EOF > "job.$exp.slurm"
 #!/bin/bash
 ${sbatch_directives}
+set -eo pipefail
 module load prgenv/intel intel/2021.4.0 hpcx-openmpi/2.21.3 netcdf4/4.10.0 fftw/3.3.10
 export OMP_NUM_THREADS=1
 srun "$outdir/u-dales" "$outdir/namoptions.$exp" >> "$outdir/output.$exp.log" 2>&1

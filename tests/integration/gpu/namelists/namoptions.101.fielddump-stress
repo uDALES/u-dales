@@ -70,7 +70,7 @@ nsv          = 0
 &OUTPUT
 lfielddump   = .true.
 tfielddump   = 0.5
-fieldvars    = 'u0,v0,w0,tx,ty,tz,hf,di'
+fieldvars    = 'u0,v0,w0,tx,ty,tz,hf,di,ux,vy,wz,pd,pu,pv,pw,rs,du,dv,dw'
 ltdump       = .false.
 lxytdump     = .false.
 tstatstart   = 0.0

@@ -50,7 +50,8 @@ if lmypolyfortran
     in_mypoly_fortran_path = [folder '/IBM_preproc_fortran/'];
     addpath(in_mypoly_fortran_path)
     cd(in_mypoly_fortran_path);
-    system('gfortran -O2 -fopenmp in_mypoly_functions.f90 ibm_necessary_functions.f90 IBM_flagging.f90 -o pre.exe');
+    % in_mypoly_functions.f90 is shared with the Python route
+    system('gfortran -O2 -fopenmp ../../python/fortran/ibm_preproc/in_mypoly_functions.f90 ibm_necessary_functions.f90 IBM_flagging.f90 -o pre.exe');
     copyfile('pre.exe', fpath)
     delete pre.exe in_mypoly_functions.mod ibm_necessary_functions.mod
 
@@ -912,10 +913,14 @@ if lmatchFacetsToCellsFortran
 else
     %% Facet sections
     disp('Determining facet sections using MATLAB.')
+    % Vertical cell edges, valid on stretched grids: cells centred on zf(k) span
+    % the faces zh(k)..zh(k+1); cells centred on zh(k) (w grid) span zf(k-1)..zf(k).
+    zedges_c = [zgrid_w(:).', 2*zgrid_c(end) - zgrid_w(end)];
+    zedges_w = [2*zgrid_w(1) - zgrid_c(1), zgrid_c(:).'];
     if (calculate_facet_sections_uvw)
         % u
         facet_sections_u = matchFacetsToCells(...
-            TR, fluid_IB_u, solid_IB_u, fluid_IB_xyz_u, solid_IB_xyz_u, xgrid_u, ygrid_u, zgrid_u, diag_neighbs, periodic_x, periodic_y);
+            TR, fluid_IB_u, solid_IB_u, fluid_IB_xyz_u, solid_IB_xyz_u, xgrid_u, ygrid_u, zgrid_u, diag_neighbs, periodic_x, periodic_y, zedges_c);
 
         % For debugging - area 'visible' to fluid for each facet.
         area_facets_u = zeros(nfcts,1);
@@ -933,7 +938,7 @@ else
 
         % v
         facet_sections_v = matchFacetsToCells(...
-            TR, fluid_IB_v, solid_IB_v, fluid_IB_xyz_v, solid_IB_xyz_v, xgrid_v, ygrid_v, zgrid_v, diag_neighbs, periodic_x, periodic_y);
+            TR, fluid_IB_v, solid_IB_v, fluid_IB_xyz_v, solid_IB_xyz_v, xgrid_v, ygrid_v, zgrid_v, diag_neighbs, periodic_x, periodic_y, zedges_c);
         area_facets_v = zeros(nfcts,1);
         for n=1:nfcts
             area_facets_v(n) = sum(facet_sections_v(facet_sections_v(:,1)==n, 2));
@@ -949,7 +954,7 @@ else
 
         % w
         facet_sections_w = matchFacetsToCells(...
-            TR, fluid_IB_w, solid_IB_w, fluid_IB_xyz_w, solid_IB_xyz_w, xgrid_w, ygrid_w, zgrid_w, diag_neighbs, periodic_x, periodic_y);
+            TR, fluid_IB_w, solid_IB_w, fluid_IB_xyz_w, solid_IB_xyz_w, xgrid_w, ygrid_w, zgrid_w, diag_neighbs, periodic_x, periodic_y, zedges_w);
         area_facets_w = zeros(nfcts,1);
         for n=1:nfcts
             area_facets_w(n) = sum(facet_sections_w(facet_sections_w(:,1)==n, 2));
@@ -971,7 +976,7 @@ else
     % c
     if (calculate_facet_sections_c)
         facet_sections_c = matchFacetsToCells(...
-            TR, fluid_IB_c, solid_IB_c, fluid_IB_xyz_c, solid_IB_xyz_c, xgrid_c, ygrid_c, zgrid_c, diag_neighbs, periodic_x, periodic_y);
+            TR, fluid_IB_c, solid_IB_c, fluid_IB_xyz_c, solid_IB_xyz_c, xgrid_c, ygrid_c, zgrid_c, diag_neighbs, periodic_x, periodic_y, zedges_c);
         area_facets_c = zeros(nfcts,1);
         for n=1:nfcts
             area_facets_c(n) = sum(facet_sections_c(facet_sections_c(:,1)==n, 2));

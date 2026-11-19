@@ -44,7 +44,10 @@ if(CMAKE_Fortran_COMPILER_ID MATCHES "GNU")
     # -fdefault-real-8 also widens DOUBLE PRECISION to 16 bytes, which made every
     # `dble(...)` and `1d0` literal software-emulated quad precision that was then
     # truncated straight back to real(8) on assignment.
-    set(CMAKE_Fortran_FLAGS "-fdefault-real-8 -fdefault-double-8 -ffree-line-length-none -ffpe-trap=invalid,zero,overflow -std=f2008 -cpp" CACHE STRING "Fortran flags" FORCE)
+    # FPE trapping lives in Debug only: in Release it forbids speculative/masked
+    # FP operations and thereby blocks SIMD vectorization across the whole code
+    # (https://github.com/uDALES/u-dales/issues/330).
+    set(CMAKE_Fortran_FLAGS "-fdefault-real-8 -fdefault-double-8 -ffree-line-length-none -std=f2008 -cpp" CACHE STRING "Fortran flags" FORCE)
     # -Wno-compare-reals: -Wextra flags every REAL equality test, and most of the
     # ones here are deliberate. tests.f90 asserts that a precomputed value is bit
     # for bit what it replaced, that an interpolation endpoint is exactly the
@@ -52,8 +55,10 @@ if(CMAKE_Fortran_COMPILER_ID MATCHES "GNU")
     # /= or == on purpose and would be destroyed by a tolerance. Sixty-nine
     # warnings that must all be ignored teach the reader to ignore the whole
     # build log, which is what an unused variable then hides in.
-    set(CMAKE_Fortran_FLAGS_DEBUG "-g -fbacktrace -O0 -finit-real=nan -fcheck=all -Wall -Wextra -Wuninitialized -Warray-bounds -Wconversion -Wno-compare-reals" CACHE STRING "Fortran debug flags" FORCE)
-    set(CMAKE_Fortran_FLAGS_RELEASE "-O3" CACHE STRING "Fortran release flags" FORCE)
+    set(CMAKE_Fortran_FLAGS_DEBUG "-g -fbacktrace -O0 -ffpe-trap=invalid,zero,overflow -finit-real=nan -fcheck=all -Wall -Wextra -Wuninitialized -Warray-bounds -Wconversion -Wno-compare-reals" CACHE STRING "Fortran debug flags" FORCE)
+    # -march=native assumes build and compute nodes share the same architecture;
+    # -fno-math-errno lets gfortran vectorize sqrt/log etc.
+    set(CMAKE_Fortran_FLAGS_RELEASE "-O3 -march=native -fno-math-errno" CACHE STRING "Fortran release flags" FORCE)
 elseif(CMAKE_Fortran_COMPILER_ID MATCHES "Intel")
     # FIXME: `-heap-arrays 10` required as using Intel Fortran
     # means they are stored on the stack (by default), whereas GNU Fortran stores
@@ -72,24 +77,32 @@ elseif(CMAKE_Fortran_COMPILER_ID MATCHES "Intel")
     # variation comes from FFTW planning with FFTW_MEASURE in modpois, which
     # picks the transform algorithm by timing it, and is independent of these
     # flags.
-    set(CMAKE_Fortran_FLAGS "-r8 -fpe0 -fp-model precise -heap-arrays 10 -fpp" CACHE STRING "Fortran flags" FORCE)
+    set(CMAKE_Fortran_FLAGS "-r8 -fp-model precise -heap-arrays 10 -fpp" CACHE STRING "Fortran flags" FORCE)
     # #7712 (unused variables/imports) and the non-MPI #8889 (own procedures now
     # in modules; FFTW declared EXTERNAL) are fixed in the source. The remaining
     # #8889 are all MPI calls: Intel's F90 `use mpi` module does not provide the
     # explicit interfaces -warn all wants for choice-buffer routines (MPI_BCAST,
     # MPI_ALLREDUCE, ...) on any compiler available here (only an mpi_f08
     # migration would), so #8889 stays suppressed to keep regression logs readable.
+    # -fpe0 (FPE trapping) lives in Debug only; see the GNU note above (#330).
     set(
         CMAKE_Fortran_FLAGS_DEBUG
-        "-g -traceback -O0 -init=snan -CB -check bounds,format,output_conversion,pointers,uninit -warn all -diag-disable=8889"
+        "-g -traceback -O0 -fpe0 -init=snan -CB -check bounds,format,output_conversion,pointers,uninit -warn all -diag-disable=8889"
         CACHE STRING "Fortran debug flags"
         FORCE
     )
+    # -march=core-avx2 rather than -xHost/-xCORE-AVX2: the -x variants embed a
+    # GenuineIntel CPU check and refuse to run (or underdispatch) on AMD nodes.
+    # master adds -march=core-avx2 here; with ifort 2023.1 on HX1 (intel/2023a) that
+    # flag, together with -fp-model precise, aborts the compiler at the link-time
+    # optimisation stage ("internal compiler error: internal abort", error #10014),
+    # reproducibly, while -O3 alone builds cleanly. Kept at -O3 until the combination
+    # is understood; -fp-model precise is what the Release restart round trip relies on.
     set(CMAKE_Fortran_FLAGS_RELEASE "-O3" CACHE STRING "Fortran release flags" FORCE)
 elseif(CMAKE_Fortran_COMPILER_ID MATCHES "Cray")
     # https://pubs.cray.com/content/S-3901/8.5/cray-fortran-reference-manual-85
-    set(CMAKE_Fortran_FLAGS "-s real64 -N 1023 -K trap=divz,inv,ovf -eZ" CACHE STRING "Fortran flags" FORCE)
-    set(CMAKE_Fortran_FLAGS_DEBUG "-G0 -O0 -ei -R bcdps -m 0" CACHE STRING "Fortran debug flags" FORCE)
+    set(CMAKE_Fortran_FLAGS "-s real64 -N 1023" CACHE STRING "Fortran flags" FORCE)
+    set(CMAKE_Fortran_FLAGS_DEBUG "-G0 -O0 -ei -R bcdps -m 0 -K trap=divz,inv,ovf" CACHE STRING "Fortran debug flags" FORCE)
     set(CMAKE_Fortran_FLAGS_RELEASE "-O3" CACHE STRING "Fortran release flags" FORCE)
 elseif(CMAKE_Fortran_COMPILER_ID MATCHES "NVHPC")
     # nvlink resolves device symbols per compute capability, and 2decomp-fft is a

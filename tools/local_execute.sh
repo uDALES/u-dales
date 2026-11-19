@@ -19,12 +19,12 @@
 
 # Usage: ./tools/local_execute.sh <PATH_TO_CASE>
 
-set -e
+set -euo pipefail
 
 if (( $# < 1 ))
 then
     echo "The path to case folder must be set."
-    exit
+    exit 1
 fi
 
 ## go to experiment directory
@@ -42,24 +42,24 @@ if [ -f config.sh ]; then
 fi
 
 ## check if required variables are set
-if [ -z "$DA_WORKDIR" ]; then
+if [ -z "${DA_WORKDIR:-}" ]; then
     echo "Output top-level directory DA_WORKDIR must be set inside $inputdir/config.sh"
-    exit
+    exit 1
 fi;
-if [ -z "$DA_BUILD" ]; then
+if [ -z "${DA_BUILD:-}" ]; then
     echo "Executable DA_BUILD must be set inside $inputdir/config.sh"
-    exit
+    exit 1
 fi;
 if [ ! -x "$DA_BUILD" ]; then
     echo "Executable DA_BUILD=$DA_BUILD does not exist or is not executable"
     echo "Build it first with: tools/build_executable.sh common release"
     exit 1
 fi
-if [ -z "$DA_TOOLSDIR" ]; then
+if [ -z "${DA_TOOLSDIR:-}" ]; then
     echo "Script directory DA_TOOLSDIR must be set inside $inputdir/config.sh"
-    exit
+    exit 1
 fi;
-if [ -z $NCPU ]; then
+if [ -z "${NCPU:-}" ]; then
     echo "Number of CPU cores NCPU must be set inside $inputdir/config.sh"
     echo "NCPU must be equal to the product of nprocx and nprocy set in $inputdir/namoptions.$exp"
     exit 1
@@ -70,10 +70,21 @@ outdir="$DA_WORKDIR/$exp"
 
 echo "Starting job for case $exp..."
 
+## Refuse to run into an existing output directory. uDALES never removes,
+## modifies or overwrites existing results; that decision stays with the user.
+if [ -e "$outdir" ]; then
+    echo "ERROR: output directory $outdir already exists." >&2
+    echo "       uDALES does not remove, modify or overwrite existing results." >&2
+    echo "       To run a new case, give it a case number that has no output directory yet." >&2
+    echo "       To rerun case $exp on purpose, move or delete its output directory yourself first, e.g." >&2
+    echo "         mv $outdir ${outdir}_old        or        rm -r $outdir" >&2
+    exit 1
+fi
+
 ## copy files to output directory
 mkdir -p "$outdir"
 cp -r ./* "$outdir"
-cp "$DA_BUILD" "$outdir/u-dales"
+cp -p "$DA_BUILD" "$outdir/u-dales"  # -p, not --preserve: macOS cp has no long options
 
 ## Check if the build supports GPU (CUDA)
 GPU_ENABLED=false
@@ -88,12 +99,15 @@ fi
 ## go to execution and output directory
 pushd "$outdir"
 
-## execute program with mpi (the copy of the executable made above; bind.sh
-## gives each rank its own GPU on a GPU build)
+## execute program with mpi: one rank per CPU, never oversubscribed (tools/mpi_env.sh
+## resolves the launcher and fails with the requested and available counts otherwise).
+## On a GPU build bind.sh gives each rank its own GPU.
+source "$DA_TOOLSDIR/mpi_env.sh"
+mpi_preflight "$NCPU" || exit 1
 if [ "$GPU_ENABLED" = true ]; then
-    mpiexec -n "$NCPU" --oversubscribe ./bind.sh ./u-dales "namoptions.$exp" 2>&1 | tee -a "output.$exp.log"
+    "$MPIEXEC" $MPI_LAUNCH_EXTRA_ARGS -n "$NCPU" ./bind.sh ./u-dales "namoptions.$exp" 2>&1 | tee -a "output.$exp.log"
 else
-    mpiexec -n "$NCPU" --oversubscribe ./u-dales "namoptions.$exp" 2>&1 | tee -a "output.$exp.log"
+    "$MPIEXEC" $MPI_LAUNCH_EXTRA_ARGS -n "$NCPU" ./u-dales "namoptions.$exp" 2>&1 | tee -a "output.$exp.log"
 fi
 
 ## Merge output files across outputs.

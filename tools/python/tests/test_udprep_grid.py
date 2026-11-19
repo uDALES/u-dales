@@ -60,6 +60,24 @@ class TestGridSection(unittest.TestCase):
         np.testing.assert_allclose(sim.xt, section.xt)
         np.testing.assert_allclose(sim.xm, section.xm)
 
+    def test_xygrid_has_itot_jtot_points_for_awkward_float_steps(self):
+        # np.arange(0, xlen, xlen/itot) returns itot+1 faces for these pairs,
+        # the last one at the domain top.
+        for itot, xlen in ((120, 5.5), (120, 11.0), (120, 21.0)):
+            with self.subTest(itot=itot, xlen=xlen):
+                self.assertEqual(np.arange(0.0, xlen, xlen / itot).size, itot + 1)
+                section, sim = make_grid_section(itot=itot, xlen=xlen, jtot=itot, ylen=xlen)
+                section._refresh_derived_grid_params()
+                section.generate_xygrid()
+
+                dx = xlen / itot
+                for faces, centres in ((sim.xm, sim.xt), (sim.ym, sim.yt)):
+                    self.assertEqual(faces.size, itot)
+                    self.assertEqual(centres.size, itot)
+                    np.testing.assert_allclose(faces, np.arange(itot) * dx)
+                    np.testing.assert_allclose(centres, faces + 0.5 * dx)
+                    self.assertLess(faces[-1], xlen)
+
     def test_generate_zgrid_uniform_matches_expected_faces_and_centers(self):
         section, sim = make_grid_section()
         section._refresh_derived_grid_params()
@@ -70,6 +88,22 @@ class TestGridSection(unittest.TestCase):
         np.testing.assert_allclose(section.dzt, [2.0, 2.0, 2.0, 2.0, 2.0])
         np.testing.assert_allclose(sim.zm, section.zm)
         np.testing.assert_allclose(sim.zt, section.zt)
+
+    def test_uniform_zgrid_has_ktot_levels_for_awkward_float_steps(self):
+        # np.arange(0, zsize, zsize/ktot) returns ktot+1 faces for these pairs,
+        # which used to give a zero top spacing.
+        for ktot, zsize in ((112, 75.0), (112, 150.0), (112, 300.0)):
+            with self.subTest(ktot=ktot, zsize=zsize):
+                self.assertEqual(np.arange(0.0, zsize, zsize / ktot).size, ktot + 1)
+                section, sim = make_grid_section(ktot=ktot, zsize=zsize)
+                section._refresh_derived_grid_params()
+                section.generate_zgrid()
+
+                self.assertEqual(sim.zm.size, ktot)
+                self.assertEqual(sim.zt.size, ktot)
+                self.assertEqual(sim.dzt.size, ktot)
+                np.testing.assert_allclose(sim.dzt, zsize / ktot)
+                np.testing.assert_allclose(sim.zt, sim.zm + 0.5 * zsize / ktot)
 
     def test_refresh_derived_params_uses_computed_hlin_when_not_set(self):
         section, _ = make_grid_section(hlin=None, lzstretch=True, lstretchexp=True)
@@ -262,6 +296,46 @@ class TestGridSection(unittest.TestCase):
         section._refresh_derived_grid_params()
         with self.assertWarns(RuntimeWarning):
             section.generate_zgrid()
+
+    def test_warn_large_spacing_checks_the_largest_not_the_last(self):
+        # A double-tanh stretch is finest at both ends, so the largest spacing
+        # sits in the middle of the stretched region.
+        section, _ = make_grid_section(dzlin=1.0)
+        with self.assertWarns(RuntimeWarning):
+            section._warn_large_top_spacing(np.array([1.0, 2.0, 4.0, 2.0, 1.0]), 1.0)
+
+        import warnings
+
+        with warnings.catch_warnings():
+            warnings.simplefilter("error")
+            section._warn_large_top_spacing(np.array([1.0, 2.0, 2.9, 2.0, 1.0]), 1.0)
+
+    def test_stretched_grid_round_trips_through_profile_reconstruction(self):
+        # prof.inp carries only the cell centres zt. The solver — and the
+        # postprocessing loader via udgrid.z_grid_from_profile — rebuild the
+        # faces with the recursion zh(1)=0, zh(k+1)=2*zf(k)-zh(k). The faces
+        # and spacings the generator produced must survive that round trip
+        # exactly, otherwise preprocessing and postprocessing use different
+        # grids for the same case.
+        import udgrid
+
+        section, sim = make_grid_section(
+            lzstretch=1,
+            lstretchexpcheck=1,
+            zsize=100.0,
+            ktot=64,
+            hlin=20.0,
+            dzlin=1.0,
+        )
+        section._refresh_derived_grid_params()
+        section.generate_zgrid()
+
+        zm_back, dzt_back = udgrid.z_grid_from_profile(sim.zt, 100.0)
+
+        self.assertFalse(np.allclose(np.diff(sim.zt), np.diff(sim.zt)[0]),
+                         "fixture must actually be stretched")
+        np.testing.assert_allclose(zm_back, sim.zm, rtol=0, atol=1e-9)
+        np.testing.assert_allclose(dzt_back, sim.dzt, rtol=0, atol=1e-9)
 
 if __name__ == "__main__":
     unittest.main()

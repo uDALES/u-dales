@@ -48,8 +48,9 @@ fi
 MPI_LAUNCH_EXTRA_ARGS="${MPI_LAUNCH_EXTRA_ARGS:-}"
 MPI_VERSION_OUTPUT="$("$MPIEXEC" --version 2>/dev/null || true)"
 
+# Open MPI: keep its session directory under TMPDIR (the default can exceed the
+# socket path length on macOS). uDALES never oversubscribes, so no --oversubscribe.
 if printf '%s\n' "$MPI_VERSION_OUTPUT" | grep -Eqi "Open MPI|OpenRTE"; then
-    MPI_LAUNCH_EXTRA_ARGS="--oversubscribe ${MPI_LAUNCH_EXTRA_ARGS}"
     TMPDIR="${TMPDIR:-/tmp}"
     export TMPDIR
     export OMPI_MCA_prte_tmpdir_base="${OMPI_MCA_prte_tmpdir_base:-$TMPDIR}"

@@ -1,8 +1,16 @@
 {
   "description": "Deterministic same-commit CPU/GPU parity cases for uDALES",
   "tolerances": {
-    "default": {"atol": 1e-6, "rtol": 1e-6},
-    "variables": {"time": {"atol": 1e-12, "rtol": 1e-12}}
+    "default": {
+      "atol": 1e-06,
+      "rtol": 1e-06
+    },
+    "variables": {
+      "time": {
+        "atol": 1e-12,
+        "rtol": 1e-12
+      }
+    }
   },
   "selections": {
     "smoke": [
@@ -10,7 +18,9 @@
       "thermo-scalar-wall",
       "temperature-kappa",
       "stability-wall",
-      "surface-energy-balance"
+      "surface-energy-balance",
+      "stretched-one-equation",
+      "stretched-temperature-kappa"
     ],
     "scalar-sources": [
       "thermo-scalar-wall",
@@ -46,7 +56,10 @@
       "fielddump-stress-fields",
       "fielddump-stress-partial",
       "statsdump-averages",
-      "statsdump-slices"
+      "statsdump-slices",
+      "stretched-one-equation",
+      "stretched-temperature-kappa",
+      "stretched-surface-energy-balance"
     ],
     "mpi": [
       "dry-two-rank-x",
@@ -96,7 +109,10 @@
       "dry-poisson-fft-two-rank-y",
       "dry-poisson-fft-four-rank-xy",
       "ibm-scalar-wall-two-rank-x",
-      "vegetation-sveg-two-rank-x"
+      "vegetation-sveg-two-rank-x",
+      "stretched-one-equation",
+      "stretched-temperature-kappa",
+      "stretched-surface-energy-balance"
     ]
   },
   "cases": [
@@ -106,9 +122,23 @@
       "base_case": "tests/regression/david_tests/cases/103",
       "namelist": "tests/integration/gpu/namelists/namoptions.103.dry",
       "nprocs": 1,
-      "required_outputs": ["fielddump", "tdump", "xytdump"],
-      "coverage": ["momentum", "second-order-advection", "Vreman-subgrid", "neutral-bottom-wall", "ipoiss-3"],
-      "namelist_assertions": {"ipoiss": 3, "ltempeq": false, "lvreman": true},
+      "required_outputs": [
+        "fielddump",
+        "tdump",
+        "xytdump"
+      ],
+      "coverage": [
+        "momentum",
+        "second-order-advection",
+        "Vreman-subgrid",
+        "neutral-bottom-wall",
+        "ipoiss-3"
+      ],
+      "namelist_assertions": {
+        "ipoiss": 3,
+        "ltempeq": false,
+        "lvreman": true
+      },
       "timeout_seconds": 180
     },
     {
@@ -122,9 +152,29 @@
         "tests/integration/gpu/fixtures/scalar_sources/scalarsourcep.inp.1.103"
       ],
       "nprocs": 1,
-      "required_outputs": ["fielddump", "tdump", "xytdump"],
-      "coverage": ["thermodynamics", "moisture", "second-order-thermodynamic-advection", "Kappa-scalar-advection", "scalar-point-source", "fixed-temperature-wall", "ipoiss-0"],
-      "namelist_assertions": {"ltempeq": true, "lmoist": true, "iadv_thl": 2, "nsv": 1, "lscasrc": true, "nscasrc": 1, "BCbotT": 2},
+      "required_outputs": [
+        "fielddump",
+        "tdump",
+        "xytdump"
+      ],
+      "coverage": [
+        "thermodynamics",
+        "moisture",
+        "second-order-thermodynamic-advection",
+        "Kappa-scalar-advection",
+        "scalar-point-source",
+        "fixed-temperature-wall",
+        "ipoiss-0"
+      ],
+      "namelist_assertions": {
+        "ltempeq": true,
+        "lmoist": true,
+        "iadv_thl": 2,
+        "nsv": 1,
+        "lscasrc": true,
+        "nscasrc": 1,
+        "BCbotT": 2
+      },
       "timeout_seconds": 180
     },
     {
@@ -137,9 +187,26 @@
         "tests/integration/gpu/fixtures/scalar.inp.103"
       ],
       "nprocs": 1,
-      "required_outputs": ["fielddump", "tdump", "xytdump"],
-      "coverage": ["profile-nudging", "velocity-nudging", "thermodynamic-nudging", "scalar-nudging"],
-      "namelist_assertions": {"lnudge": true, "lnudgevel": true, "nnudge": 1, "tnudge": 1.0, "ltempeq": true, "lmoist": true, "nsv": 1},
+      "required_outputs": [
+        "fielddump",
+        "tdump",
+        "xytdump"
+      ],
+      "coverage": [
+        "profile-nudging",
+        "velocity-nudging",
+        "thermodynamic-nudging",
+        "scalar-nudging"
+      ],
+      "namelist_assertions": {
+        "lnudge": true,
+        "lnudgevel": true,
+        "nnudge": 1,
+        "tnudge": 1.0,
+        "ltempeq": true,
+        "lmoist": true,
+        "nsv": 1
+      },
       "timeout_seconds": 180
     },
     {
@@ -153,9 +220,25 @@
         "tests/integration/gpu/fixtures/timedepnudge.inp.103"
       ],
       "nprocs": 1,
-      "required_outputs": ["fielddump", "tdump", "xytdump"],
-      "coverage": ["time-dependent-nudging", "profile-nudging", "velocity-nudging", "thermodynamic-nudging"],
-      "namelist_assertions": {"ltimedepnudge": true, "ntimedepnudge": 3, "lnudge": true, "lnudgevel": true, "ltempeq": true, "lmoist": true},
+      "required_outputs": [
+        "fielddump",
+        "tdump",
+        "xytdump"
+      ],
+      "coverage": [
+        "time-dependent-nudging",
+        "profile-nudging",
+        "velocity-nudging",
+        "thermodynamic-nudging"
+      ],
+      "namelist_assertions": {
+        "ltimedepnudge": true,
+        "ntimedepnudge": 3,
+        "lnudge": true,
+        "lnudgevel": true,
+        "ltempeq": true,
+        "lmoist": true
+      },
       "timeout_seconds": 180
     },
     {
@@ -163,11 +246,50 @@
       "case_id": 103,
       "base_case": "tests/regression/david_tests/cases/103",
       "namelist": "tests/integration/gpu/namelists/namoptions.103.temperature-kappa",
-      "overrides": ["tests/integration/gpu/fixtures/prof.inp.103"],
+      "overrides": [
+        "tests/integration/gpu/fixtures/prof.inp.103"
+      ],
       "nprocs": 1,
-      "required_outputs": ["fielddump", "tdump", "xytdump"],
-      "coverage": ["Kappa-temperature-advection", "temperature-tendency-copy", "extended-temperature-halos"],
-      "namelist_assertions": {"ltempeq": true, "iadv_thl": 7},
+      "required_outputs": [
+        "fielddump",
+        "tdump",
+        "xytdump"
+      ],
+      "coverage": [
+        "Kappa-temperature-advection",
+        "temperature-tendency-copy",
+        "extended-temperature-halos"
+      ],
+      "namelist_assertions": {
+        "ltempeq": true,
+        "iadv_thl": 7
+      },
+      "timeout_seconds": 180
+    },
+    {
+      "name": "stretched-temperature-kappa",
+      "case_id": 103,
+      "base_case": "tests/regression/david_tests/cases/103",
+      "namelist": "tests/integration/gpu/namelists/namoptions.103.temperature-kappa",
+      "overrides": [
+        "tests/integration/gpu/fixtures/prof.inp.103",
+        "tests/integration/gpu/fixtures/stretched/prof.inp.103"
+      ],
+      "nprocs": 1,
+      "required_outputs": [
+        "fielddump",
+        "tdump",
+        "xytdump"
+      ],
+      "coverage": [
+        "stretched-vertical-grid",
+        "Kappa-temperature-advection",
+        "Kappa-vertical-face-reconstruction"
+      ],
+      "namelist_assertions": {
+        "ltempeq": true,
+        "iadv_thl": 7
+      },
       "timeout_seconds": 180
     },
     {
@@ -175,11 +297,55 @@
       "case_id": 103,
       "base_case": "tests/regression/david_tests/cases/103",
       "namelist": "tests/integration/gpu/namelists/namoptions.103.one-equation",
-      "overrides": ["tests/integration/gpu/fixtures/oneeqn/prof.inp.103"],
+      "overrides": [
+        "tests/integration/gpu/fixtures/oneeqn/prof.inp.103"
+      ],
       "nprocs": 1,
-      "required_outputs": ["fielddump", "tdump", "xytdump"],
-      "coverage": ["one-equation-SGS", "TKE-advection", "TKE-sources", "TKE-diffusion", "TKE-integration"],
-      "namelist_assertions": {"loneeqn": true, "lvreman": false, "iadv_tke": 2},
+      "required_outputs": [
+        "fielddump",
+        "tdump",
+        "xytdump"
+      ],
+      "coverage": [
+        "one-equation-SGS",
+        "TKE-advection",
+        "TKE-sources",
+        "TKE-diffusion",
+        "TKE-integration"
+      ],
+      "namelist_assertions": {
+        "loneeqn": true,
+        "lvreman": false,
+        "iadv_tke": 2
+      },
+      "timeout_seconds": 180
+    },
+    {
+      "name": "stretched-one-equation",
+      "case_id": 103,
+      "base_case": "tests/regression/david_tests/cases/103",
+      "namelist": "tests/integration/gpu/namelists/namoptions.103.one-equation",
+      "overrides": [
+        "tests/integration/gpu/fixtures/stretched/prof.inp.103"
+      ],
+      "nprocs": 1,
+      "required_outputs": [
+        "fielddump",
+        "tdump",
+        "xytdump"
+      ],
+      "coverage": [
+        "stretched-vertical-grid",
+        "one-equation-SGS",
+        "TKE-top-boundary",
+        "TKE-diffusion",
+        "TKE-integration"
+      ],
+      "namelist_assertions": {
+        "loneeqn": true,
+        "lvreman": false,
+        "iadv_tke": 2
+      },
       "timeout_seconds": 180
     },
     {
@@ -193,9 +359,31 @@
         "tests/integration/gpu/fixtures/scalar_sources/scalarsourcep.inp.1.103"
       ],
       "nprocs": 1,
-      "required_outputs": ["fielddump", "tdump", "xytdump", "initd", "inits"],
-      "coverage": ["restart-pull-handover", "restart-during-run", "restart-file-parity", "one-equation-SGS", "thermodynamics", "moisture"],
-      "namelist_assertions": {"trestart": 0.5, "runtime": 2.0, "lfielddump": true, "tfielddump": 1.0, "loneeqn": true, "ltempeq": true, "lmoist": true, "nsv": 1},
+      "required_outputs": [
+        "fielddump",
+        "tdump",
+        "xytdump",
+        "initd",
+        "inits"
+      ],
+      "coverage": [
+        "restart-pull-handover",
+        "restart-during-run",
+        "restart-file-parity",
+        "one-equation-SGS",
+        "thermodynamics",
+        "moisture"
+      ],
+      "namelist_assertions": {
+        "trestart": 0.5,
+        "runtime": 2.0,
+        "lfielddump": true,
+        "tfielddump": 1.0,
+        "loneeqn": true,
+        "ltempeq": true,
+        "lmoist": true,
+        "nsv": 1
+      },
       "timeout_seconds": 180
     },
     {
@@ -208,9 +396,24 @@
         "tests/integration/gpu/fixtures/scalar.inp.103"
       ],
       "nprocs": 1,
-      "required_outputs": ["fielddump", "tdump", "xytdump"],
-      "coverage": ["fixed-bottom-heat-flux", "fixed-bottom-moisture-flux", "fixed-bottom-scalar-flux", "bottom-tendency-kernels"],
-      "namelist_assertions": {"BCbotT": 1, "BCbotq": 1, "BCbots": 1, "wtsurf": 0.015, "nsv": 1},
+      "required_outputs": [
+        "fielddump",
+        "tdump",
+        "xytdump"
+      ],
+      "coverage": [
+        "fixed-bottom-heat-flux",
+        "fixed-bottom-moisture-flux",
+        "fixed-bottom-scalar-flux",
+        "bottom-tendency-kernels"
+      ],
+      "namelist_assertions": {
+        "BCbotT": 1,
+        "BCbotq": 1,
+        "BCbots": 1,
+        "wtsurf": 0.015,
+        "nsv": 1
+      },
       "timeout_seconds": 180
     },
     {
@@ -218,11 +421,27 @@
       "case_id": 103,
       "base_case": "tests/regression/david_tests/cases/103",
       "namelist": "tests/integration/gpu/namelists/namoptions.103.stability-wall",
-      "overrides": ["tests/integration/gpu/fixtures/prof.inp.103"],
+      "overrides": [
+        "tests/integration/gpu/fixtures/prof.inp.103"
+      ],
       "nprocs": 1,
-      "required_outputs": ["fielddump", "tdump", "xytdump"],
-      "coverage": ["non-neutral-flat-bottom-wall", "Uno-momentum", "Uno-heat", "wall-flux-atomic-reduction"],
-      "namelist_assertions": {"BCbotm": 2, "BCbotT": 2, "iwallmom": 2, "iwalltemp": 2},
+      "required_outputs": [
+        "fielddump",
+        "tdump",
+        "xytdump"
+      ],
+      "coverage": [
+        "non-neutral-flat-bottom-wall",
+        "Uno-momentum",
+        "Uno-heat",
+        "wall-flux-atomic-reduction"
+      ],
+      "namelist_assertions": {
+        "BCbotm": 2,
+        "BCbotT": 2,
+        "iwallmom": 2,
+        "iwalltemp": 2
+      },
       "timeout_seconds": 180
     },
     {
@@ -236,9 +455,27 @@
         "tests/integration/gpu/fixtures/forcing/lscale.inp.103"
       ],
       "nprocs": 1,
-      "required_outputs": ["fielddump", "tdump", "xytdump"],
-      "coverage": ["Coriolis", "large-scale-forcing", "subsidence", "radiative-tendency", "shifted-PBC", "fixuinf-1", "gravity-damping-1"],
-      "namelist_assertions": {"lcoriol": true, "lprofforc": false, "ifixuinf": 1, "igrw_damp": 1, "ds": 1.0},
+      "required_outputs": [
+        "fielddump",
+        "tdump",
+        "xytdump"
+      ],
+      "coverage": [
+        "Coriolis",
+        "large-scale-forcing",
+        "subsidence",
+        "radiative-tendency",
+        "shifted-PBC",
+        "fixuinf-1",
+        "gravity-damping-1"
+      ],
+      "namelist_assertions": {
+        "lcoriol": true,
+        "lprofforc": false,
+        "ifixuinf": 1,
+        "igrw_damp": 1,
+        "ds": 1.0
+      },
       "timeout_seconds": 180
     },
     {
@@ -246,11 +483,24 @@
       "case_id": 103,
       "base_case": "tests/regression/david_tests/cases/103",
       "namelist": "tests/integration/gpu/namelists/namoptions.103.profile-forcing",
-      "overrides": ["tests/integration/gpu/fixtures/forcing/lscale.inp.103"],
+      "overrides": [
+        "tests/integration/gpu/fixtures/forcing/lscale.inp.103"
+      ],
       "nprocs": 1,
-      "required_outputs": ["fielddump", "tdump", "xytdump"],
-      "coverage": ["profile-Coriolis-forcing", "geostrophic-profile", "profile-pressure-gradient"],
-      "namelist_assertions": {"lcoriol": true, "lprofforc": true},
+      "required_outputs": [
+        "fielddump",
+        "tdump",
+        "xytdump"
+      ],
+      "coverage": [
+        "profile-Coriolis-forcing",
+        "geostrophic-profile",
+        "profile-pressure-gradient"
+      ],
+      "namelist_assertions": {
+        "lcoriol": true,
+        "lprofforc": true
+      },
       "timeout_seconds": 180
     },
     {
@@ -263,9 +513,20 @@
         "tests/integration/gpu/fixtures/forcing/lscale.inp.103"
       ],
       "nprocs": 1,
-      "required_outputs": ["fielddump", "tdump", "xytdump"],
-      "coverage": ["gravity-damping-2", "geostrophic-sponge", "thermal-and-moisture-sponge"],
-      "namelist_assertions": {"igrw_damp": 2, "ksp": 5},
+      "required_outputs": [
+        "fielddump",
+        "tdump",
+        "xytdump"
+      ],
+      "coverage": [
+        "gravity-damping-2",
+        "geostrophic-sponge",
+        "thermal-and-moisture-sponge"
+      ],
+      "namelist_assertions": {
+        "igrw_damp": 2,
+        "ksp": 5
+      },
       "timeout_seconds": 180
     },
     {
@@ -273,11 +534,24 @@
       "case_id": 103,
       "base_case": "tests/regression/david_tests/cases/103",
       "namelist": "tests/integration/gpu/namelists/namoptions.103.gravity-3",
-      "overrides": ["tests/integration/gpu/fixtures/prof.inp.103"],
+      "overrides": [
+        "tests/integration/gpu/fixtures/prof.inp.103"
+      ],
       "nprocs": 1,
-      "required_outputs": ["fielddump", "tdump", "xytdump"],
-      "coverage": ["gravity-damping-3", "mean-flow-sponge", "thermal-and-moisture-sponge"],
-      "namelist_assertions": {"igrw_damp": 3, "ksp": 5},
+      "required_outputs": [
+        "fielddump",
+        "tdump",
+        "xytdump"
+      ],
+      "coverage": [
+        "gravity-damping-3",
+        "mean-flow-sponge",
+        "thermal-and-moisture-sponge"
+      ],
+      "namelist_assertions": {
+        "igrw_damp": 3,
+        "ksp": 5
+      },
       "timeout_seconds": 180
     },
     {
@@ -285,11 +559,27 @@
       "case_id": 103,
       "base_case": "tests/regression/david_tests/cases/103",
       "namelist": "tests/integration/gpu/namelists/namoptions.103.boundary-x-profile",
-      "overrides": ["tests/integration/gpu/fixtures/prof.inp.103"],
+      "overrides": [
+        "tests/integration/gpu/fixtures/prof.inp.103"
+      ],
       "nprocs": 1,
-      "required_outputs": ["fielddump", "tdump", "xytdump"],
-      "coverage": ["X-profile-inflow", "X-convective-outflow", "pressure-top-boundary", "temperature-and-moisture-profile-boundaries"],
-      "namelist_assertions": {"BCxm": 2, "BCxT": 2, "BCxq": 2, "BCtopm": 3},
+      "required_outputs": [
+        "fielddump",
+        "tdump",
+        "xytdump"
+      ],
+      "coverage": [
+        "X-profile-inflow",
+        "X-convective-outflow",
+        "pressure-top-boundary",
+        "temperature-and-moisture-profile-boundaries"
+      ],
+      "namelist_assertions": {
+        "BCxm": 2,
+        "BCxT": 2,
+        "BCxq": 2,
+        "BCtopm": 3
+      },
       "timeout_seconds": 180
     },
     {
@@ -297,11 +587,27 @@
       "case_id": 103,
       "base_case": "tests/regression/david_tests/cases/103",
       "namelist": "tests/integration/gpu/namelists/namoptions.103.boundary-y-profile",
-      "overrides": ["tests/integration/gpu/fixtures/prof.inp.103"],
+      "overrides": [
+        "tests/integration/gpu/fixtures/prof.inp.103"
+      ],
       "nprocs": 1,
-      "required_outputs": ["fielddump", "tdump", "xytdump"],
-      "coverage": ["Y-profile-inflow", "Y-convective-outflow", "pressure-top-boundary", "temperature-and-moisture-profile-boundaries"],
-      "namelist_assertions": {"BCym": 2, "BCyT": 2, "BCyq": 2, "BCtopm": 3},
+      "required_outputs": [
+        "fielddump",
+        "tdump",
+        "xytdump"
+      ],
+      "coverage": [
+        "Y-profile-inflow",
+        "Y-convective-outflow",
+        "pressure-top-boundary",
+        "temperature-and-moisture-profile-boundaries"
+      ],
+      "namelist_assertions": {
+        "BCym": 2,
+        "BCyT": 2,
+        "BCyq": 2,
+        "BCtopm": 3
+      },
       "timeout_seconds": 180
     },
     {
@@ -314,9 +620,25 @@
         "tests/integration/gpu/fixtures/scalar.inp.103"
       ],
       "nprocs": 1,
-      "required_outputs": ["fielddump", "tdump", "xytdump"],
-      "coverage": ["top-no-slip", "nonzero-top-temperature-flux", "nonzero-top-moisture-flux", "nonzero-top-scalar-flux"],
-      "namelist_assertions": {"BCtopm": 2, "BCtopT": 1, "BCtopq": 1, "BCtops": 1, "wttop": -0.00001, "wqtop": 0.000001},
+      "required_outputs": [
+        "fielddump",
+        "tdump",
+        "xytdump"
+      ],
+      "coverage": [
+        "top-no-slip",
+        "nonzero-top-temperature-flux",
+        "nonzero-top-moisture-flux",
+        "nonzero-top-scalar-flux"
+      ],
+      "namelist_assertions": {
+        "BCtopm": 2,
+        "BCtopT": 1,
+        "BCtopq": 1,
+        "BCtops": 1,
+        "wttop": -1e-05,
+        "wqtop": 1e-06
+      },
       "timeout_seconds": 180
     },
     {
@@ -324,11 +646,24 @@
       "case_id": 103,
       "base_case": "tests/regression/david_tests/cases/103",
       "namelist": "tests/integration/gpu/namelists/namoptions.103.chemistry",
-      "overrides": ["tests/integration/gpu/fixtures/chemistry/scalar.inp.103"],
+      "overrides": [
+        "tests/integration/gpu/fixtures/chemistry/scalar.inp.103"
+      ],
       "nprocs": 1,
-      "required_outputs": ["fielddump", "tdump", "xytdump"],
-      "coverage": ["three-species-chemistry", "NO-NO2-O3-null-cycle", "Kappa-multi-scalar-advection"],
-      "namelist_assertions": {"nsv": 3, "lchem": true},
+      "required_outputs": [
+        "fielddump",
+        "tdump",
+        "xytdump"
+      ],
+      "coverage": [
+        "three-species-chemistry",
+        "NO-NO2-O3-null-cycle",
+        "Kappa-multi-scalar-advection"
+      ],
+      "namelist_assertions": {
+        "nsv": 3,
+        "lchem": true
+      },
       "timeout_seconds": 180
     },
     {
@@ -336,11 +671,28 @@
       "case_id": 101,
       "base_case": "tests/cases/101",
       "namelist": "tests/integration/gpu/namelists/namoptions.101.ibm-scalar",
-      "overrides": ["tests/integration/gpu/fixtures/scalar_sources/scalarsourcel.inp.1.101"],
+      "overrides": [
+        "tests/integration/gpu/fixtures/scalar_sources/scalarsourcel.inp.1.101"
+      ],
       "nprocs": 1,
-      "required_outputs": ["fielddump", "tdump", "xytdump"],
-      "coverage": ["immersed-boundary", "iomomflux", "iotflux", "obcTfluxA", "scalar-extended-halos", "scalar-line-source"],
-      "namelist_assertions": {"nsv": 1, "lscasrcl": true, "nscasrcl": 1},
+      "required_outputs": [
+        "fielddump",
+        "tdump",
+        "xytdump"
+      ],
+      "coverage": [
+        "immersed-boundary",
+        "iomomflux",
+        "iotflux",
+        "obcTfluxA",
+        "scalar-extended-halos",
+        "scalar-line-source"
+      ],
+      "namelist_assertions": {
+        "nsv": 1,
+        "lscasrcl": true,
+        "nscasrcl": 1
+      },
       "timeout_seconds": 600
     },
     {
@@ -349,9 +701,20 @@
       "base_case": "tests/cases/100",
       "namelist": "tests/integration/gpu/namelists/namoptions.100.ibm-reconstruction",
       "nprocs": 1,
-      "required_outputs": ["fielddump", "tdump", "xytdump"],
-      "coverage": ["immersed-boundary", "ibm-wall-function-reconstruction", "ibm-cell-index"],
-      "namelist_assertions": {"libm": true, "iwallmom": 2},
+      "required_outputs": [
+        "fielddump",
+        "tdump",
+        "xytdump"
+      ],
+      "coverage": [
+        "immersed-boundary",
+        "ibm-wall-function-reconstruction",
+        "ibm-cell-index"
+      ],
+      "namelist_assertions": {
+        "libm": true,
+        "iwallmom": 2
+      },
       "timeout_seconds": 2400
     },
     {
@@ -360,8 +723,15 @@
       "base_case": "tests/cases/526",
       "namelist": "tests/integration/processor_boundaries/namoptions.526.serial",
       "nprocs": 1,
-      "required_outputs": ["tdump", "treedump"],
-      "coverage": ["vegetation", "tree-forcing", "tree-output"],
+      "required_outputs": [
+        "tdump",
+        "treedump"
+      ],
+      "coverage": [
+        "vegetation",
+        "tree-forcing",
+        "tree-output"
+      ],
       "timeout_seconds": 900
     },
     {
@@ -370,9 +740,20 @@
       "base_case": "tests/cases/526",
       "namelist": "tests/integration/gpu/namelists/namoptions.526.sveg",
       "nprocs": 1,
-      "required_outputs": ["tdump", "treedump"],
-      "coverage": ["vegetation", "tree-forcing", "tree-sveg-radiation", "tree-output"],
-      "namelist_assertions": {"ltrees": true, "itree_mode": 2},
+      "required_outputs": [
+        "tdump",
+        "treedump"
+      ],
+      "coverage": [
+        "vegetation",
+        "tree-forcing",
+        "tree-sveg-radiation",
+        "tree-output"
+      ],
+      "namelist_assertions": {
+        "ltrees": true,
+        "itree_mode": 2
+      },
       "timeout_seconds": 900
     },
     {
@@ -384,9 +765,20 @@
         "tests/integration/gpu/fixtures/scalar.inp.526"
       ],
       "nprocs": 1,
-      "required_outputs": ["tdump", "treedump"],
-      "coverage": ["vegetation", "tree-forcing", "tree-scalar-deposition", "tree-output"],
-      "namelist_assertions": {"ltrees": true, "nsv": 1},
+      "required_outputs": [
+        "tdump",
+        "treedump"
+      ],
+      "coverage": [
+        "vegetation",
+        "tree-forcing",
+        "tree-scalar-deposition",
+        "tree-output"
+      ],
+      "namelist_assertions": {
+        "ltrees": true,
+        "nsv": 1
+      },
       "timeout_seconds": 900
     },
     {
@@ -398,9 +790,57 @@
         "tests/integration/gpu/fixtures/Tfacinit.inp.064"
       ],
       "nprocs": 1,
-      "required_outputs": ["fielddump", "tdump", "xytdump", "facEB", "facT", "fac"],
-      "coverage": ["surface-energy-balance", "sparse-view-factors", "periodic-EB-correction", "thermal-and-moisture-walls", "facet-heat-flux-handover", "facet-stress-output"],
-      "namelist_assertions": {"lwritefac": true},
+      "required_outputs": [
+        "fielddump",
+        "tdump",
+        "xytdump",
+        "facEB",
+        "facT",
+        "fac"
+      ],
+      "coverage": [
+        "surface-energy-balance",
+        "sparse-view-factors",
+        "periodic-EB-correction",
+        "thermal-and-moisture-walls",
+        "facet-heat-flux-handover",
+        "facet-stress-output"
+      ],
+      "namelist_assertions": {
+        "lwritefac": true
+      },
+      "timeout_seconds": 900
+    },
+    {
+      "name": "stretched-surface-energy-balance",
+      "case_id": 64,
+      "base_case": "tests/integration/gpu/fixtures/stretched/064",
+      "namelist": "tests/integration/gpu/namelists/namoptions.064.seb-stretched",
+      "overrides": [
+        "tests/integration/gpu/fixtures/Tfacinit.inp.064"
+      ],
+      "nprocs": 1,
+      "required_outputs": [
+        "fielddump",
+        "tdump",
+        "xytdump",
+        "facEB",
+        "facT",
+        "fac"
+      ],
+      "coverage": [
+        "stretched-vertical-grid",
+        "surface-energy-balance",
+        "immersed-boundary-wall-functions",
+        "wall-function-cell-volumes",
+        "periodic-EB-correction",
+        "thermal-and-moisture-walls",
+        "facet-heat-flux-handover",
+        "facet-stress-output"
+      ],
+      "namelist_assertions": {
+        "lwritefac": true
+      },
       "timeout_seconds": 900
     },
     {
@@ -413,9 +853,21 @@
         "tests/integration/gpu/fixtures/heatpump/heatpump.inp.103"
       ],
       "nprocs": 1,
-      "required_outputs": ["fielddump", "tdump", "xytdump"],
-      "coverage": ["heat-pump-temperature-tendency", "heat-pump-fan-velocity"],
-      "namelist_assertions": {"lheatpump": true, "lfan_hp": true, "nhppoints": 1, "ltempeq": true},
+      "required_outputs": [
+        "fielddump",
+        "tdump",
+        "xytdump"
+      ],
+      "coverage": [
+        "heat-pump-temperature-tendency",
+        "heat-pump-fan-velocity"
+      ],
+      "namelist_assertions": {
+        "lheatpump": true,
+        "lfan_hp": true,
+        "nhppoints": 1,
+        "ltempeq": true
+      },
       "timeout_seconds": 180
     },
     {
@@ -424,9 +876,20 @@
       "base_case": "tests/cases/101",
       "namelist": "tests/integration/gpu/namelists/namoptions.101.fielddump-stress",
       "nprocs": 1,
-      "required_outputs": ["fielddump"],
-      "coverage": ["fielddump-wall-stress", "fielddump-heat-flux", "fielddump-divergence"],
-      "namelist_assertions": {"libm": true, "ltempeq": true},
+      "required_outputs": [
+        "fielddump"
+      ],
+      "coverage": [
+        "fielddump-divergence",
+        "fielddump-heat-flux",
+        "fielddump-poisson-diagnostics",
+        "fielddump-velocity-derivatives",
+        "fielddump-wall-stress"
+      ],
+      "namelist_assertions": {
+        "libm": true,
+        "ltempeq": true
+      },
       "timeout_seconds": 600
     },
     {
@@ -435,9 +898,16 @@
       "base_case": "tests/cases/101",
       "namelist": "tests/integration/gpu/namelists/namoptions.101.fielddump-stress-partial",
       "nprocs": 1,
-      "required_outputs": ["fielddump"],
-      "coverage": ["fielddump-partial-stress-selection"],
-      "namelist_assertions": {"libm": true, "ltempeq": true},
+      "required_outputs": [
+        "fielddump"
+      ],
+      "coverage": [
+        "fielddump-partial-stress-selection"
+      ],
+      "namelist_assertions": {
+        "libm": true,
+        "ltempeq": true
+      },
       "timeout_seconds": 600
     },
     {
@@ -450,9 +920,27 @@
         "tests/integration/gpu/fixtures/statsdump/prof.inp.101"
       ],
       "nprocs": 1,
-      "required_outputs": ["ydump", "ytdump", "xydump", "xytdump", "mintdump"],
-      "coverage": ["statsdump-y-average", "statsdump-y-time-average", "statsdump-xy-average", "statsdump-minimum"],
-      "namelist_assertions": {"lydump": true, "lytdump": true, "lxydump": true, "lmintdump": true, "lmoist": true, "nsv": 3},
+      "required_outputs": [
+        "ydump",
+        "ytdump",
+        "xydump",
+        "xytdump",
+        "mintdump"
+      ],
+      "coverage": [
+        "statsdump-y-average",
+        "statsdump-y-time-average",
+        "statsdump-xy-average",
+        "statsdump-minimum"
+      ],
+      "namelist_assertions": {
+        "lydump": true,
+        "lytdump": true,
+        "lxydump": true,
+        "lmintdump": true,
+        "lmoist": true,
+        "nsv": 3
+      },
       "timeout_seconds": 600
     },
     {
@@ -465,9 +953,22 @@
         "tests/integration/gpu/fixtures/statsdump/prof.inp.101"
       ],
       "nprocs": 1,
-      "required_outputs": ["kslicedump", "islicedump", "jslicedump"],
-      "coverage": ["statsdump-k-slice", "statsdump-i-slice", "statsdump-j-slice"],
-      "namelist_assertions": {"lkslicedump": true, "lislicedump": true, "ljslicedump": true, "lmoist": true},
+      "required_outputs": [
+        "kslicedump",
+        "islicedump",
+        "jslicedump"
+      ],
+      "coverage": [
+        "statsdump-k-slice",
+        "statsdump-i-slice",
+        "statsdump-j-slice"
+      ],
+      "namelist_assertions": {
+        "lkslicedump": true,
+        "lislicedump": true,
+        "ljslicedump": true,
+        "lmoist": true
+      },
       "timeout_seconds": 600
     },
     {
@@ -481,9 +982,24 @@
       ],
       "nprocs": 2,
       "minimum_gpus": 2,
-      "required_outputs": ["fielddump"],
-      "coverage": ["scalar-point-source", "multi-GPU", "X-decomposition", "global-source-position"],
-      "namelist_assertions": {"nprocx": 2, "nprocy": 1, "itot": 8, "jtot": 8, "nsv": 1, "lscasrc": true, "nscasrc": 1},
+      "required_outputs": [
+        "fielddump"
+      ],
+      "coverage": [
+        "scalar-point-source",
+        "multi-GPU",
+        "X-decomposition",
+        "global-source-position"
+      ],
+      "namelist_assertions": {
+        "nprocx": 2,
+        "nprocy": 1,
+        "itot": 8,
+        "jtot": 8,
+        "nsv": 1,
+        "lscasrc": true,
+        "nscasrc": 1
+      },
       "output_assertions": [
         {
           "type": "global_peak",
@@ -491,9 +1007,16 @@
           "variable": "sca1",
           "record": -1,
           "minimum_value": 0.1,
-          "expected_coordinates": {"xt": 6.5, "yt": 4.5, "zt": 1.5},
-          "coordinate_atol": 1e-6,
-          "expected_rank": [1, 0]
+          "expected_coordinates": {
+            "xt": 6.5,
+            "yt": 4.5,
+            "zt": 1.5
+          },
+          "coordinate_atol": 1e-06,
+          "expected_rank": [
+            1,
+            0
+          ]
         }
       ],
       "timeout_seconds": 300
@@ -509,9 +1032,24 @@
       ],
       "nprocs": 2,
       "minimum_gpus": 2,
-      "required_outputs": ["fielddump"],
-      "coverage": ["scalar-line-source", "multi-GPU", "Y-decomposition", "global-source-position"],
-      "namelist_assertions": {"nprocx": 1, "nprocy": 2, "itot": 8, "jtot": 8, "nsv": 1, "lscasrcl": true, "nscasrcl": 1},
+      "required_outputs": [
+        "fielddump"
+      ],
+      "coverage": [
+        "scalar-line-source",
+        "multi-GPU",
+        "Y-decomposition",
+        "global-source-position"
+      ],
+      "namelist_assertions": {
+        "nprocx": 1,
+        "nprocy": 2,
+        "itot": 8,
+        "jtot": 8,
+        "nsv": 1,
+        "lscasrcl": true,
+        "nscasrcl": 1
+      },
       "output_assertions": [
         {
           "type": "global_peak",
@@ -519,9 +1057,15 @@
           "variable": "sca1",
           "record": -1,
           "minimum_value": 0.1,
-          "expected_coordinates": {"xt": 4.5, "yt": 6.5},
-          "coordinate_atol": 1e-6,
-          "expected_rank": [0, 1]
+          "expected_coordinates": {
+            "xt": 4.5,
+            "yt": 6.5
+          },
+          "coordinate_atol": 1e-06,
+          "expected_rank": [
+            0,
+            1
+          ]
         }
       ],
       "timeout_seconds": 300
@@ -533,9 +1077,21 @@
       "namelist": "tests/integration/gpu/namelists/namoptions.103.mpi",
       "nprocs": 2,
       "minimum_gpus": 2,
-      "required_outputs": ["fielddump", "tdump", "xytdump"],
-      "coverage": ["multi-GPU", "MPI-X-halos", "X-decomposition", "ipoiss-0"],
-      "namelist_assertions": {"nprocx": 2, "nprocy": 1},
+      "required_outputs": [
+        "fielddump",
+        "tdump",
+        "xytdump"
+      ],
+      "coverage": [
+        "multi-GPU",
+        "MPI-X-halos",
+        "X-decomposition",
+        "ipoiss-0"
+      ],
+      "namelist_assertions": {
+        "nprocx": 2,
+        "nprocy": 1
+      },
       "timeout_seconds": 300
     },
     {
@@ -545,9 +1101,21 @@
       "namelist": "tests/integration/gpu/namelists/namoptions.103.mpi-y",
       "nprocs": 2,
       "minimum_gpus": 2,
-      "required_outputs": ["fielddump", "tdump", "xytdump"],
-      "coverage": ["multi-GPU", "MPI-Y-halos", "Y-decomposition", "ipoiss-0"],
-      "namelist_assertions": {"nprocx": 1, "nprocy": 2},
+      "required_outputs": [
+        "fielddump",
+        "tdump",
+        "xytdump"
+      ],
+      "coverage": [
+        "multi-GPU",
+        "MPI-Y-halos",
+        "Y-decomposition",
+        "ipoiss-0"
+      ],
+      "namelist_assertions": {
+        "nprocx": 1,
+        "nprocy": 2
+      },
       "timeout_seconds": 300
     },
     {
@@ -557,9 +1125,21 @@
       "namelist": "tests/integration/gpu/namelists/namoptions.103.mpi-xy",
       "nprocs": 4,
       "minimum_gpus": 4,
-      "required_outputs": ["fielddump", "tdump", "xytdump"],
-      "coverage": ["multi-GPU", "MPI-X-and-Y-halos", "two-dimensional-decomposition", "ipoiss-0"],
-      "namelist_assertions": {"nprocx": 2, "nprocy": 2},
+      "required_outputs": [
+        "fielddump",
+        "tdump",
+        "xytdump"
+      ],
+      "coverage": [
+        "multi-GPU",
+        "MPI-X-and-Y-halos",
+        "two-dimensional-decomposition",
+        "ipoiss-0"
+      ],
+      "namelist_assertions": {
+        "nprocx": 2,
+        "nprocy": 2
+      },
       "timeout_seconds": 300
     },
     {
@@ -569,9 +1149,22 @@
       "namelist": "tests/integration/gpu/namelists/namoptions.103.poisson-mpi",
       "nprocs": 2,
       "minimum_gpus": 2,
-      "required_outputs": ["fielddump", "tdump", "xytdump"],
-      "coverage": ["multi-GPU", "X-decomposition", "ipoiss-3", "spectral-pencil-local-bounds"],
-      "namelist_assertions": {"ipoiss": 3, "nprocx": 2, "nprocy": 1},
+      "required_outputs": [
+        "fielddump",
+        "tdump",
+        "xytdump"
+      ],
+      "coverage": [
+        "multi-GPU",
+        "X-decomposition",
+        "ipoiss-3",
+        "spectral-pencil-local-bounds"
+      ],
+      "namelist_assertions": {
+        "ipoiss": 3,
+        "nprocx": 2,
+        "nprocy": 1
+      },
       "timeout_seconds": 300
     },
     {
@@ -581,9 +1174,22 @@
       "namelist": "tests/integration/gpu/namelists/namoptions.103.poisson-mpi-y",
       "nprocs": 2,
       "minimum_gpus": 2,
-      "required_outputs": ["fielddump", "tdump", "xytdump"],
-      "coverage": ["multi-GPU", "Y-decomposition", "ipoiss-3", "spectral-pencil-local-bounds"],
-      "namelist_assertions": {"ipoiss": 3, "nprocx": 1, "nprocy": 2},
+      "required_outputs": [
+        "fielddump",
+        "tdump",
+        "xytdump"
+      ],
+      "coverage": [
+        "multi-GPU",
+        "Y-decomposition",
+        "ipoiss-3",
+        "spectral-pencil-local-bounds"
+      ],
+      "namelist_assertions": {
+        "ipoiss": 3,
+        "nprocx": 1,
+        "nprocy": 2
+      },
       "timeout_seconds": 300
     },
     {
@@ -593,9 +1199,22 @@
       "namelist": "tests/integration/gpu/namelists/namoptions.103.poisson-mpi-xy",
       "nprocs": 4,
       "minimum_gpus": 4,
-      "required_outputs": ["fielddump", "tdump", "xytdump"],
-      "coverage": ["multi-GPU", "two-dimensional-decomposition", "ipoiss-3", "spectral-pencil-local-bounds"],
-      "namelist_assertions": {"ipoiss": 3, "nprocx": 2, "nprocy": 2},
+      "required_outputs": [
+        "fielddump",
+        "tdump",
+        "xytdump"
+      ],
+      "coverage": [
+        "multi-GPU",
+        "two-dimensional-decomposition",
+        "ipoiss-3",
+        "spectral-pencil-local-bounds"
+      ],
+      "namelist_assertions": {
+        "ipoiss": 3,
+        "nprocx": 2,
+        "nprocy": 2
+      },
       "timeout_seconds": 300
     },
     {
@@ -603,12 +1222,31 @@
       "case_id": 101,
       "base_case": "tests/cases/101",
       "namelist": "tests/integration/gpu/namelists/namoptions.101.ibm-scalar-mpi-x",
-      "overrides": ["tests/integration/gpu/fixtures/scalar_sources/scalarsourcel.inp.1.101"],
+      "overrides": [
+        "tests/integration/gpu/fixtures/scalar_sources/scalarsourcel.inp.1.101"
+      ],
       "nprocs": 2,
       "minimum_gpus": 2,
-      "required_outputs": ["fielddump", "tdump", "xytdump"],
-      "coverage": ["immersed-boundary", "multi-GPU", "X-decomposition", "ibm-mask-halos", "scalar-extended-halos", "scalar-line-source"],
-      "namelist_assertions": {"nprocx": 2, "nprocy": 1, "libm": true, "nsv": 1, "lscasrcl": true},
+      "required_outputs": [
+        "fielddump",
+        "tdump",
+        "xytdump"
+      ],
+      "coverage": [
+        "immersed-boundary",
+        "multi-GPU",
+        "X-decomposition",
+        "ibm-mask-halos",
+        "scalar-extended-halos",
+        "scalar-line-source"
+      ],
+      "namelist_assertions": {
+        "nprocx": 2,
+        "nprocy": 1,
+        "libm": true,
+        "nsv": 1,
+        "lscasrcl": true
+      },
       "timeout_seconds": 600
     },
     {
@@ -616,11 +1254,29 @@
       "case_id": 101,
       "base_case": "tests/cases/101",
       "namelist": "tests/integration/gpu/namelists/namoptions.101.statsdump-tke",
-      "overrides": ["tests/integration/gpu/fixtures/statsdump/scalar.inp.101", "tests/integration/gpu/fixtures/statsdump/prof.inp.101"],
+      "overrides": [
+        "tests/integration/gpu/fixtures/statsdump/scalar.inp.101",
+        "tests/integration/gpu/fixtures/statsdump/prof.inp.101"
+      ],
       "nprocs": 1,
-      "required_outputs": ["xydump", "xytdump", "mintdump", "tkedump"],
-      "coverage": ["statsdump-tke-budget", "statsdump-xy-average", "statsdump-minimum"],
-      "namelist_assertions": {"ltkedump": true, "lxytdump": true, "lydump": false, "lytdump": false, "nprocx": 1},
+      "required_outputs": [
+        "xydump",
+        "xytdump",
+        "mintdump",
+        "tkedump"
+      ],
+      "coverage": [
+        "statsdump-tke-budget",
+        "statsdump-xy-average",
+        "statsdump-minimum"
+      ],
+      "namelist_assertions": {
+        "ltkedump": true,
+        "lxytdump": true,
+        "lydump": false,
+        "lytdump": false,
+        "nprocx": 1
+      },
       "timeout_seconds": 600
     },
     {
@@ -628,12 +1284,29 @@
       "case_id": 101,
       "base_case": "tests/cases/101",
       "namelist": "tests/integration/gpu/namelists/namoptions.101.statsdump-tke-mpi-x",
-      "overrides": ["tests/integration/gpu/fixtures/statsdump/scalar.inp.101", "tests/integration/gpu/fixtures/statsdump/prof.inp.101"],
+      "overrides": [
+        "tests/integration/gpu/fixtures/statsdump/scalar.inp.101",
+        "tests/integration/gpu/fixtures/statsdump/prof.inp.101"
+      ],
       "nprocs": 2,
       "minimum_gpus": 2,
-      "required_outputs": ["xydump", "xytdump", "mintdump", "tkedump"],
-      "coverage": ["statsdump-tke-budget", "multi-GPU", "X-decomposition", "tke-statistics-halos"],
-      "namelist_assertions": {"ltkedump": true, "nprocx": 2, "nprocy": 1},
+      "required_outputs": [
+        "xydump",
+        "xytdump",
+        "mintdump",
+        "tkedump"
+      ],
+      "coverage": [
+        "statsdump-tke-budget",
+        "multi-GPU",
+        "X-decomposition",
+        "tke-statistics-halos"
+      ],
+      "namelist_assertions": {
+        "ltkedump": true,
+        "nprocx": 2,
+        "nprocy": 1
+      },
       "timeout_seconds": 600
     },
     {
@@ -643,160 +1316,610 @@
       "namelist": "tests/integration/gpu/namelists/namoptions.526.sveg-mpi-x",
       "nprocs": 2,
       "minimum_gpus": 2,
-      "required_outputs": ["tdump", "treedump"],
-      "coverage": ["vegetation", "tree-forcing", "tree-sveg-radiation", "multi-GPU", "X-decomposition", "vegetation-halos"],
-      "namelist_assertions": {"ltrees": true, "itree_mode": 2, "nprocx": 2, "nprocy": 1},
+      "required_outputs": [
+        "tdump",
+        "treedump"
+      ],
+      "coverage": [
+        "vegetation",
+        "tree-forcing",
+        "tree-sveg-radiation",
+        "multi-GPU",
+        "X-decomposition",
+        "vegetation-halos"
+      ],
+      "namelist_assertions": {
+        "ltrees": true,
+        "itree_mode": 2,
+        "nprocx": 2,
+        "nprocy": 1
+      },
       "timeout_seconds": 900
     }
   ],
   "unsupported_gpu_options": {
-    "ipoiss": [2],
-    "lpurif": [true],
-    "lqlnr": [true]
+    "ipoiss": [
+      2
+    ],
+    "lpurif": [
+      true
+    ],
+    "lqlnr": [
+      true
+    ]
   },
   "ported_routines": {
     "cuda": {
-      "src/modadvection.f90:advecc_2nd_cuda": ["thermo-scalar-wall", "one-equation-sgs"],
-      "src/modadvection.f90:advecu_2nd_cuda": ["dry-poisson-fft"],
-      "src/modadvection.f90:advecv_2nd_cuda": ["dry-poisson-fft"],
-      "src/modadvection.f90:advecw_2nd_cuda": ["dry-poisson-fft"],
-      "src/modadvection.f90:advecc_kappa_reset_cuda": ["debug-device-selftests", "thermo-scalar-wall", "temperature-kappa", "chemistry"],
-      "src/modadvection.f90:advecc_kappa_ducdx_cuda": ["debug-device-selftests", "thermo-scalar-wall", "temperature-kappa", "chemistry"],
-      "src/modadvection.f90:advecc_kappa_dvcdy_cuda": ["debug-device-selftests", "thermo-scalar-wall", "temperature-kappa", "chemistry"],
-      "src/modadvection.f90:advecc_kappa_dwcdz_cuda": ["debug-device-selftests", "thermo-scalar-wall", "temperature-kappa", "chemistry"],
-      "src/modadvection.f90:advecc_kappa_add_cuda": ["debug-device-selftests", "thermo-scalar-wall", "temperature-kappa", "chemistry"],
-      "src/modadvection.f90:rlim_cuda": ["debug-device-selftests", "temperature-kappa"],
-      "src/modadvection.f90:advecc_upw_cuda": ["debug-device-selftests"],
-      "src/modboundary.f90:bcpup_pwp_BCtopm_xslip_cuda": ["dry-poisson-fft", "top-flux-noslip"],
-      "src/modboundary.f90:bcpup_pwp_BCtopm_pressure_cuda": ["boundary-x-profile", "boundary-y-profile"],
-      "src/modboundary.f90:bcpup_pup_BCxm_periodic_cuda": ["dry-poisson-fft"],
-      "src/modboundary.f90:bcpup_pup_BCxm_profile_cuda": ["boundary-x-profile"],
-      "src/modboundary.f90:bcpup_pup_BCxm_driver_cuda": ["debug-device-selftests"],
-      "src/modboundary.f90:bcpup_pvp_BCym_periodic_cuda": ["dry-poisson-fft"],
-      "src/modboundary.f90:bcpup_pvp_BCym_profile_cuda": ["boundary-y-profile"],
-      "src/modcuda.f90:tidandstride": ["debug-device-selftests", "dry-poisson-fft"],
-      "src/modcuda.f90:initfield": ["debug-device-selftests"],
-      "src/modcuda.f90:thlptothlpc_cuda": ["debug-device-selftests", "temperature-kappa"],
-      "src/modcuda.f90:thlpctothlp_cuda": ["debug-device-selftests", "temperature-kappa"],
-      "src/modforces.f90:forces_cuda": ["active-forcing"],
-      "src/modforces.f90:coriolis_cuda": ["active-forcing"],
-      "src/modforces.f90:profforc_cuda": ["profile-forcing"],
-      "src/modforces.f90:lstend_cuda": ["active-forcing"],
-      "src/modforces.f90:shiftedPBCs_cuda": ["active-forcing"],
-      "src/modibm.f90:bottom_set_tau_cuda": ["dry-poisson-fft"],
-      "src/modibm.f90:bottom_update_thlp_cuda": ["fixed-surface-fluxes"],
-      "src/modibm.f90:bottom_update_qtp_cuda": ["fixed-surface-fluxes"],
-      "src/modibm.f90:bottom_update_svp_cuda": ["fixed-surface-fluxes"],
-      "src/modibm.f90:bottom_update_tau_cuda": ["dry-poisson-fft", "stability-wall"],
-      "src/modpois.f90:compute_pup_cuda": ["dry-poisson-fft", "thermo-scalar-wall"],
-      "src/modpois.f90:compute_p_cuda": ["dry-poisson-fft", "thermo-scalar-wall"],
-      "src/modpois.f90:tderive_update_upvpwp_cuda": ["dry-poisson-fft", "thermo-scalar-wall"],
-      "src/modpois.f90:tderive_update_wptop_cuda": ["boundary-x-profile", "boundary-y-profile"],
-      "src/modsubgrid.f90:closure_cuda": ["dry-poisson-fft", "one-equation-sgs"],
-      "src/modsubgrid.f90:sources_cuda": ["one-equation-sgs"],
-      "src/modsubgrid.f90:sources_sum_cuda": ["one-equation-sgs"],
-      "src/modsubgrid.f90:diffc_cuda": ["thermo-scalar-wall", "chemistry"],
-      "src/modsubgrid.f90:diffe_cuda": ["one-equation-sgs"],
-      "src/modsubgrid.f90:diffu_cuda": ["dry-poisson-fft"],
-      "src/modsubgrid.f90:diffv_cuda": ["dry-poisson-fft"],
-      "src/modsubgrid.f90:diffw_cuda": ["dry-poisson-fft"],
-      "src/modwallfunctions.f90:wfuno_cuda": ["stability-wall", "ibm-scalar-wall"],
-      "src/modwallfunctions.f90:unoh_cuda": ["stability-wall", "ibm-scalar-wall"],
-      "src/modwallfunctions.f90:unom_cuda": ["stability-wall", "ibm-scalar-wall"],
-      "src/modwallfunctions.f90:wfmneutral_cuda": ["dry-poisson-fft", "fixed-surface-fluxes"]
+      "src/modadvection.f90:advecc_2nd_cuda": [
+        "thermo-scalar-wall",
+        "one-equation-sgs"
+      ],
+      "src/modadvection.f90:advecu_2nd_cuda": [
+        "dry-poisson-fft"
+      ],
+      "src/modadvection.f90:advecv_2nd_cuda": [
+        "dry-poisson-fft"
+      ],
+      "src/modadvection.f90:advecw_2nd_cuda": [
+        "dry-poisson-fft"
+      ],
+      "src/modadvection.f90:advecc_kappa_reset_cuda": [
+        "debug-device-selftests",
+        "thermo-scalar-wall",
+        "temperature-kappa",
+        "chemistry"
+      ],
+      "src/modadvection.f90:advecc_kappa_ducdx_cuda": [
+        "debug-device-selftests",
+        "thermo-scalar-wall",
+        "temperature-kappa",
+        "chemistry"
+      ],
+      "src/modadvection.f90:advecc_kappa_dvcdy_cuda": [
+        "debug-device-selftests",
+        "thermo-scalar-wall",
+        "temperature-kappa",
+        "chemistry"
+      ],
+      "src/modadvection.f90:advecc_kappa_dwcdz_cuda": [
+        "debug-device-selftests",
+        "thermo-scalar-wall",
+        "temperature-kappa",
+        "chemistry"
+      ],
+      "src/modadvection.f90:advecc_kappa_add_cuda": [
+        "debug-device-selftests",
+        "thermo-scalar-wall",
+        "temperature-kappa",
+        "chemistry"
+      ],
+      "src/modadvection.f90:rlim_cuda": [
+        "debug-device-selftests",
+        "temperature-kappa"
+      ],
+      "src/modadvection.f90:advecc_upw_cuda": [
+        "debug-device-selftests"
+      ],
+      "src/modboundary.f90:bcpup_pwp_BCtopm_xslip_cuda": [
+        "dry-poisson-fft",
+        "top-flux-noslip"
+      ],
+      "src/modboundary.f90:bcpup_pwp_BCtopm_pressure_cuda": [
+        "boundary-x-profile",
+        "boundary-y-profile"
+      ],
+      "src/modboundary.f90:bcpup_pup_BCxm_periodic_cuda": [
+        "dry-poisson-fft"
+      ],
+      "src/modboundary.f90:bcpup_pup_BCxm_profile_cuda": [
+        "boundary-x-profile"
+      ],
+      "src/modboundary.f90:bcpup_pup_BCxm_driver_cuda": [
+        "debug-device-selftests"
+      ],
+      "src/modboundary.f90:bcpup_pvp_BCym_periodic_cuda": [
+        "dry-poisson-fft"
+      ],
+      "src/modboundary.f90:bcpup_pvp_BCym_profile_cuda": [
+        "boundary-y-profile"
+      ],
+      "src/modcuda.f90:tidandstride": [
+        "debug-device-selftests",
+        "dry-poisson-fft"
+      ],
+      "src/modcuda.f90:initfield": [
+        "debug-device-selftests"
+      ],
+      "src/modcuda.f90:thlptothlpc_cuda": [
+        "debug-device-selftests",
+        "temperature-kappa"
+      ],
+      "src/modcuda.f90:thlpctothlp_cuda": [
+        "debug-device-selftests",
+        "temperature-kappa"
+      ],
+      "src/modforces.f90:forces_cuda": [
+        "active-forcing"
+      ],
+      "src/modforces.f90:coriolis_cuda": [
+        "active-forcing"
+      ],
+      "src/modforces.f90:profforc_cuda": [
+        "profile-forcing"
+      ],
+      "src/modforces.f90:lstend_cuda": [
+        "active-forcing"
+      ],
+      "src/modforces.f90:shiftedPBCs_cuda": [
+        "active-forcing"
+      ],
+      "src/modibm.f90:bottom_set_tau_cuda": [
+        "dry-poisson-fft"
+      ],
+      "src/modibm.f90:bottom_update_thlp_cuda": [
+        "fixed-surface-fluxes"
+      ],
+      "src/modibm.f90:bottom_update_qtp_cuda": [
+        "fixed-surface-fluxes"
+      ],
+      "src/modibm.f90:bottom_update_svp_cuda": [
+        "fixed-surface-fluxes"
+      ],
+      "src/modibm.f90:bottom_update_tau_cuda": [
+        "dry-poisson-fft",
+        "stability-wall"
+      ],
+      "src/modpois.f90:compute_pup_cuda": [
+        "dry-poisson-fft",
+        "thermo-scalar-wall"
+      ],
+      "src/modpois.f90:compute_p_cuda": [
+        "dry-poisson-fft",
+        "thermo-scalar-wall"
+      ],
+      "src/modpois.f90:tderive_update_upvpwp_cuda": [
+        "dry-poisson-fft",
+        "thermo-scalar-wall"
+      ],
+      "src/modpois.f90:tderive_update_wptop_cuda": [
+        "boundary-x-profile",
+        "boundary-y-profile"
+      ],
+      "src/modsubgrid.f90:closure_cuda": [
+        "dry-poisson-fft",
+        "one-equation-sgs"
+      ],
+      "src/modsubgrid.f90:sources_cuda": [
+        "one-equation-sgs"
+      ],
+      "src/modsubgrid.f90:sources_sum_cuda": [
+        "one-equation-sgs"
+      ],
+      "src/modsubgrid.f90:diffc_cuda": [
+        "thermo-scalar-wall",
+        "chemistry"
+      ],
+      "src/modsubgrid.f90:diffe_cuda": [
+        "one-equation-sgs"
+      ],
+      "src/modsubgrid.f90:diffu_cuda": [
+        "dry-poisson-fft"
+      ],
+      "src/modsubgrid.f90:diffv_cuda": [
+        "dry-poisson-fft"
+      ],
+      "src/modsubgrid.f90:diffw_cuda": [
+        "dry-poisson-fft"
+      ],
+      "src/modwallfunctions.f90:wfuno_cuda": [
+        "stability-wall",
+        "ibm-scalar-wall"
+      ],
+      "src/modwallfunctions.f90:unoh_cuda": [
+        "stability-wall",
+        "ibm-scalar-wall"
+      ],
+      "src/modwallfunctions.f90:unom_cuda": [
+        "stability-wall",
+        "ibm-scalar-wall"
+      ],
+      "src/modwallfunctions.f90:wfmneutral_cuda": [
+        "dry-poisson-fft",
+        "fixed-surface-fluxes"
+      ]
     },
     "openacc": {
-      "src/modboundary.f90:xm_periodic_device": ["debug-device-selftests", "dry-poisson-fft", "one-equation-sgs"],
-      "src/modboundary.f90:xT_periodic_device": ["debug-device-selftests", "thermo-scalar-wall", "temperature-kappa"],
-      "src/modboundary.f90:xq_periodic_device": ["debug-device-selftests", "thermo-scalar-wall"],
-      "src/modboundary.f90:xs_periodic_device": ["debug-device-selftests", "thermo-scalar-wall"],
-      "src/modboundary.f90:ym_periodic_device": ["debug-device-selftests", "dry-poisson-fft", "one-equation-sgs"],
-      "src/modboundary.f90:yT_periodic_device": ["debug-device-selftests", "thermo-scalar-wall", "temperature-kappa"],
-      "src/modboundary.f90:yq_periodic_device": ["debug-device-selftests", "thermo-scalar-wall"],
-      "src/modboundary.f90:ys_periodic_device": ["debug-device-selftests", "thermo-scalar-wall"],
-      "src/modcuda.f90:gatherPlane_u0": ["debug-device-selftests"],
-      "src/modcuda.f90:gatherPlane_v0": ["debug-device-selftests"],
-      "src/modcuda.f90:gatherPlane_w0": ["debug-device-selftests"],
-      "src/modcuda.f90:gatherPlane_thl0": ["debug-device-selftests"],
-      "src/modcuda.f90:gatherPlane_qt0": ["debug-device-selftests"],
-      "src/modcuda.f90:gatherPlane_sv0": ["debug-device-selftests"],
-      "src/modboundary.f90:bottom_w_device": ["debug-device-selftests", "dry-poisson-fft", "thermo-scalar-wall"],
-      "src/modboundary.f90:topw_zero_device": ["debug-device-selftests", "dry-poisson-fft", "top-flux-noslip"],
-      "src/modboundary.f90:tope12_device": ["debug-device-selftests", "one-equation-sgs"],
-      "src/modboundary.f90:fluxtop_uv_device": ["debug-device-selftests", "dry-poisson-fft", "boundary-x-profile"],
-      "src/modboundary.f90:valuetop_uv_device": ["debug-device-selftests", "top-flux-noslip"],
-      "src/modboundary.f90:fluxtop_thl_device": ["debug-device-selftests", "thermo-scalar-wall", "top-flux-noslip"],
-      "src/modboundary.f90:valuetop_thl_device": ["debug-device-selftests", "ibm-scalar-wall", "statsdump-averages"],
-      "src/modboundary.f90:topthl0c_device": ["debug-device-selftests", "temperature-kappa"],
-      "src/modboundary.f90:fluxtop_qt_device": ["debug-device-selftests", "thermo-scalar-wall", "top-flux-noslip"],
-      "src/modboundary.f90:valuetop_qt_device": ["debug-device-selftests"],
-      "src/modboundary.f90:fluxtop_sv_device": ["debug-device-selftests", "thermo-scalar-wall", "top-flux-noslip"],
-      "src/modboundary.f90:valuetop_sv_device": ["debug-device-selftests"],
-      "src/modboundary.f90:xmi_profile_device": ["debug-device-selftests", "boundary-x-profile"],
-      "src/modboundary.f90:xmi_driver_device": ["debug-device-selftests"],
-      "src/modboundary.f90:xTi_profile_device": ["debug-device-selftests", "boundary-x-profile"],
-      "src/modboundary.f90:xTi_driver_device": ["debug-device-selftests"],
-      "src/modboundary.f90:xqi_profile_device": ["debug-device-selftests", "boundary-x-profile"],
-      "src/modboundary.f90:xqi_driver_device": ["debug-device-selftests"],
-      "src/modboundary.f90:xsi_profile_device": ["debug-device-selftests", "ibm-scalar-wall", "statsdump-averages"],
-      "src/modboundary.f90:xsi_custom_device": ["debug-device-selftests"],
-      "src/modboundary.f90:xsi_driver_device": ["debug-device-selftests"],
-      "src/modboundary.f90:xmo_convective_device": ["debug-device-selftests", "boundary-x-profile"],
-      "src/modboundary.f90:xTo_convective_device": ["debug-device-selftests", "boundary-x-profile"],
-      "src/modboundary.f90:xqo_convective_device": ["debug-device-selftests", "boundary-x-profile"],
-      "src/modboundary.f90:xso_convective_device": ["debug-device-selftests", "ibm-scalar-wall", "statsdump-averages"],
-      "src/modboundary.f90:ymi_profile_device": ["debug-device-selftests", "boundary-y-profile"],
-      "src/modboundary.f90:yTi_profile_device": ["debug-device-selftests", "boundary-y-profile"],
-      "src/modboundary.f90:yqi_profile_device": ["debug-device-selftests", "boundary-y-profile"],
-      "src/modboundary.f90:ysi_profile_device": ["debug-device-selftests"],
-      "src/modboundary.f90:ymo_convective_device": ["debug-device-selftests", "boundary-y-profile"],
-      "src/modboundary.f90:yTo_convective_device": ["debug-device-selftests", "boundary-y-profile"],
-      "src/modboundary.f90:yqo_convective_device": ["debug-device-selftests", "boundary-y-profile"],
-      "src/modboundary.f90:yso_convective_device": ["debug-device-selftests"],
-      "src/modboundary.f90:closurebc": ["dry-poisson-fft", "top-flux-noslip"],
-      "src/modboundary.f90:bcp": ["boundary-x-profile", "boundary-y-profile"],
-      "src/modboundary.f90:grwdamp": ["active-forcing", "gravity-damping-2", "gravity-damping-3"],
-      "src/modchecksim.f90:courant_local": ["debug-device-selftests"],
-      "src/modchecksim.f90:diffnr_local": ["debug-device-selftests"],
-      "src/modchecksim.f90:div_local": ["debug-device-selftests"],
-      "src/modchem.f90:chem": ["chemistry"],
-      "src/modforces.f90:fixuinf1": ["active-forcing"],
-      "src/modpois.f90:solve_poisson": ["dry-poisson-fft", "thermo-scalar-wall"],
-      "src/modmpi.f90:halo_exchange_device": ["dry-two-rank-x", "dry-two-rank-y", "dry-four-rank-xy", "dry-poisson-fft-two-rank-x", "dry-poisson-fft-two-rank-y", "dry-poisson-fft-four-rank-xy", "ibm-scalar-wall-two-rank-x", "statsdump-tke-two-rank-x", "vegetation-sveg-two-rank-x"],
-      "src/modpois.f90:tderive": ["dry-poisson-fft", "thermo-scalar-wall"],
-      "src/modcuda.f90:avexy_ibm_device": ["debug-device-selftests", "surface-energy-balance", "ibm-scalar-wall"],
-      "src/modcuda.f90:sumy_ibm_column_device": ["debug-device-selftests"],
-      "src/modcuda.f90:sumx_ibm_column_device": ["debug-device-selftests"],
-      "src/modforces.f90:nudge": ["debug-device-selftests", "nudging"],
-      "src/modforces.f90:periodicEBcorr": ["debug-device-selftests", "surface-energy-balance"],
-      "src/modforces.f90:add_uniform_device": ["debug-device-selftests", "surface-energy-balance", "ibm-scalar-wall"],
-      "src/modibm.f90:diffu_corr_device": ["debug-device-selftests", "ibm-scalar-wall", "ibm-reconstruction"],
-      "src/modibm.f90:diffv_corr_device": ["debug-device-selftests", "ibm-scalar-wall", "ibm-reconstruction"],
-      "src/modibm.f90:diffw_corr_device": ["debug-device-selftests", "ibm-scalar-wall", "ibm-reconstruction"],
-      "src/modibm.f90:diffc_corr_device": ["debug-device-selftests", "ibm-scalar-wall"],
-      "src/modibm.f90:wallfunmom_device": ["debug-device-selftests", "ibm-scalar-wall", "ibm-reconstruction"],
-      "src/modibm.f90:wallfunheat_device": ["debug-device-selftests", "ibm-scalar-wall", "surface-energy-balance"],
-      "src/modibm.f90:scatter_flux_device": ["ibm-scalar-wall", "surface-energy-balance"],
-      "src/modibm.f90:solid_device": ["debug-device-selftests", "ibm-scalar-wall", "ibm-reconstruction"],
-      "src/modibm.f90:solid_masked_device": ["debug-device-selftests", "ibm-scalar-wall", "surface-energy-balance"],
-      "src/modibm.f90:advecc2nd_corr_conservative_device": ["debug-device-selftests", "ibm-scalar-wall"],
-      "src/modibm.f90:advecc2nd_corr_liberal_device": ["debug-device-selftests", "ibm-scalar-wall"],
-      "src/modibm.f90:copy_tendency_device": ["ibm-scalar-wall", "ibm-reconstruction"],
-      "src/modibm.f90:accumulate_delta_device": ["ibm-scalar-wall", "ibm-reconstruction"],
-      "src/modscalsource.f90:scalsource": ["thermo-scalar-wall", "ibm-scalar-wall", "scalar-point-two-rank-x", "scalar-line-two-rank-y"],
-      "src/modtstep.f90:tstep_integrate": ["dry-poisson-fft", "thermo-scalar-wall", "one-equation-sgs"],
-      "src/modtimedep.f90:timedepnudge_device": ["debug-device-selftests", "timedep-nudging"],
-      "src/modtstep.f90:tstep_limits": ["debug-device-selftests", "ibm-reconstruction", "vegetation-deposition"],
-      "src/modcuda.f90:integrateFacFluxDevice": ["debug-device-selftests", "surface-energy-balance"],
-      "src/vegetation.f90:vegetation_forcing_device": ["debug-device-selftests", "vegetation", "vegetation-sveg"],
-      "src/vegetation.f90:vegetation_canopy_device": ["debug-device-selftests", "vegetation", "vegetation-sveg"],
-      "src/vegetation.f90:vegetation_deposition_device": ["debug-device-selftests", "vegetation-deposition"],
-    "src/heatpump.f90:heatpump": ["debug-device-selftests", "heatpump"],
-      "src/modcuda.f90:avexy_ibm_c_device": ["debug-device-selftests", "thermo-scalar-wall", "chemistry"],
-      "src/modthermodynamics.f90:thermo_device": ["debug-device-selftests", "thermo-scalar-wall", "nudging"],
-      "src/modthermodynamics.f90:calc_halflev_device": ["debug-device-selftests", "thermo-scalar-wall", "temperature-kappa", "stability-wall"],
-      "src/modthermodynamics.f90:calthv_device": ["debug-device-selftests", "thermo-scalar-wall", "temperature-kappa", "stability-wall"],
-      "src/modthermodynamics.f90:avexy_thv0_device": ["debug-device-selftests", "thermo-scalar-wall", "temperature-kappa", "stability-wall"]
+      "src/modboundary.f90:xm_periodic_device": [
+        "debug-device-selftests",
+        "dry-poisson-fft",
+        "one-equation-sgs"
+      ],
+      "src/modboundary.f90:xT_periodic_device": [
+        "debug-device-selftests",
+        "thermo-scalar-wall",
+        "temperature-kappa"
+      ],
+      "src/modboundary.f90:xq_periodic_device": [
+        "debug-device-selftests",
+        "thermo-scalar-wall"
+      ],
+      "src/modboundary.f90:xs_periodic_device": [
+        "debug-device-selftests",
+        "thermo-scalar-wall"
+      ],
+      "src/modboundary.f90:ym_periodic_device": [
+        "debug-device-selftests",
+        "dry-poisson-fft",
+        "one-equation-sgs"
+      ],
+      "src/modboundary.f90:yT_periodic_device": [
+        "debug-device-selftests",
+        "thermo-scalar-wall",
+        "temperature-kappa"
+      ],
+      "src/modboundary.f90:yq_periodic_device": [
+        "debug-device-selftests",
+        "thermo-scalar-wall"
+      ],
+      "src/modboundary.f90:ys_periodic_device": [
+        "debug-device-selftests",
+        "thermo-scalar-wall"
+      ],
+      "src/modcuda.f90:gatherPlane_u0": [
+        "debug-device-selftests"
+      ],
+      "src/modcuda.f90:gatherPlane_v0": [
+        "debug-device-selftests"
+      ],
+      "src/modcuda.f90:gatherPlane_w0": [
+        "debug-device-selftests"
+      ],
+      "src/modcuda.f90:gatherPlane_thl0": [
+        "debug-device-selftests"
+      ],
+      "src/modcuda.f90:gatherPlane_qt0": [
+        "debug-device-selftests"
+      ],
+      "src/modcuda.f90:gatherPlane_sv0": [
+        "debug-device-selftests"
+      ],
+      "src/modboundary.f90:bottom_w_device": [
+        "debug-device-selftests",
+        "dry-poisson-fft",
+        "thermo-scalar-wall"
+      ],
+      "src/modboundary.f90:topw_zero_device": [
+        "debug-device-selftests",
+        "dry-poisson-fft",
+        "top-flux-noslip"
+      ],
+      "src/modboundary.f90:tope12_device": [
+        "debug-device-selftests",
+        "one-equation-sgs"
+      ],
+      "src/modboundary.f90:tope12_zeroflux_device": [
+        "debug-device-selftests",
+        "one-equation-sgs",
+        "stretched-one-equation"
+      ],
+      "src/modboundary.f90:fluxtop_uv_device": [
+        "debug-device-selftests",
+        "dry-poisson-fft",
+        "boundary-x-profile"
+      ],
+      "src/modboundary.f90:valuetop_uv_device": [
+        "debug-device-selftests",
+        "top-flux-noslip"
+      ],
+      "src/modboundary.f90:fluxtop_thl_device": [
+        "debug-device-selftests",
+        "thermo-scalar-wall",
+        "top-flux-noslip"
+      ],
+      "src/modboundary.f90:valuetop_thl_device": [
+        "debug-device-selftests",
+        "ibm-scalar-wall",
+        "statsdump-averages"
+      ],
+      "src/modboundary.f90:topthl0c_device": [
+        "debug-device-selftests",
+        "temperature-kappa"
+      ],
+      "src/modboundary.f90:fluxtop_qt_device": [
+        "debug-device-selftests",
+        "thermo-scalar-wall",
+        "top-flux-noslip"
+      ],
+      "src/modboundary.f90:valuetop_qt_device": [
+        "debug-device-selftests"
+      ],
+      "src/modboundary.f90:fluxtop_sv_device": [
+        "debug-device-selftests",
+        "thermo-scalar-wall",
+        "top-flux-noslip"
+      ],
+      "src/modboundary.f90:valuetop_sv_device": [
+        "debug-device-selftests"
+      ],
+      "src/modboundary.f90:xmi_profile_device": [
+        "debug-device-selftests",
+        "boundary-x-profile"
+      ],
+      "src/modboundary.f90:xmi_driver_device": [
+        "debug-device-selftests"
+      ],
+      "src/modboundary.f90:xTi_profile_device": [
+        "debug-device-selftests",
+        "boundary-x-profile"
+      ],
+      "src/modboundary.f90:xTi_driver_device": [
+        "debug-device-selftests"
+      ],
+      "src/modboundary.f90:xqi_profile_device": [
+        "debug-device-selftests",
+        "boundary-x-profile"
+      ],
+      "src/modboundary.f90:xqi_driver_device": [
+        "debug-device-selftests"
+      ],
+      "src/modboundary.f90:xsi_profile_device": [
+        "debug-device-selftests",
+        "ibm-scalar-wall",
+        "statsdump-averages"
+      ],
+      "src/modboundary.f90:xsi_custom_device": [
+        "debug-device-selftests"
+      ],
+      "src/modboundary.f90:xsi_driver_device": [
+        "debug-device-selftests"
+      ],
+      "src/modboundary.f90:xmo_convective_device": [
+        "debug-device-selftests",
+        "boundary-x-profile"
+      ],
+      "src/modboundary.f90:xTo_convective_device": [
+        "debug-device-selftests",
+        "boundary-x-profile"
+      ],
+      "src/modboundary.f90:xqo_convective_device": [
+        "debug-device-selftests",
+        "boundary-x-profile"
+      ],
+      "src/modboundary.f90:xso_convective_device": [
+        "debug-device-selftests",
+        "ibm-scalar-wall",
+        "statsdump-averages"
+      ],
+      "src/modboundary.f90:ymi_profile_device": [
+        "debug-device-selftests",
+        "boundary-y-profile"
+      ],
+      "src/modboundary.f90:yTi_profile_device": [
+        "debug-device-selftests",
+        "boundary-y-profile"
+      ],
+      "src/modboundary.f90:yqi_profile_device": [
+        "debug-device-selftests",
+        "boundary-y-profile"
+      ],
+      "src/modboundary.f90:ysi_profile_device": [
+        "debug-device-selftests"
+      ],
+      "src/modboundary.f90:ymo_convective_device": [
+        "debug-device-selftests",
+        "boundary-y-profile"
+      ],
+      "src/modboundary.f90:yTo_convective_device": [
+        "debug-device-selftests",
+        "boundary-y-profile"
+      ],
+      "src/modboundary.f90:yqo_convective_device": [
+        "debug-device-selftests",
+        "boundary-y-profile"
+      ],
+      "src/modboundary.f90:yso_convective_device": [
+        "debug-device-selftests"
+      ],
+      "src/modboundary.f90:closurebc": [
+        "dry-poisson-fft",
+        "top-flux-noslip"
+      ],
+      "src/modboundary.f90:bcp": [
+        "boundary-x-profile",
+        "boundary-y-profile"
+      ],
+      "src/modboundary.f90:grwdamp": [
+        "active-forcing",
+        "gravity-damping-2",
+        "gravity-damping-3"
+      ],
+      "src/modchecksim.f90:courant_local": [
+        "debug-device-selftests"
+      ],
+      "src/modchecksim.f90:diffnr_local": [
+        "debug-device-selftests"
+      ],
+      "src/modchecksim.f90:div_local": [
+        "debug-device-selftests"
+      ],
+      "src/modchem.f90:chem": [
+        "chemistry"
+      ],
+      "src/modforces.f90:fixuinf1": [
+        "active-forcing"
+      ],
+      "src/modpois.f90:solve_poisson": [
+        "dry-poisson-fft",
+        "thermo-scalar-wall"
+      ],
+      "src/modmpi.f90:halo_exchange_device": [
+        "dry-two-rank-x",
+        "dry-two-rank-y",
+        "dry-four-rank-xy",
+        "dry-poisson-fft-two-rank-x",
+        "dry-poisson-fft-two-rank-y",
+        "dry-poisson-fft-four-rank-xy",
+        "ibm-scalar-wall-two-rank-x",
+        "statsdump-tke-two-rank-x",
+        "vegetation-sveg-two-rank-x"
+      ],
+      "src/modpois.f90:tderive": [
+        "dry-poisson-fft",
+        "thermo-scalar-wall"
+      ],
+      "src/modcuda.f90:avexy_ibm_device": [
+        "debug-device-selftests",
+        "surface-energy-balance",
+        "ibm-scalar-wall"
+      ],
+      "src/modcuda.f90:sumy_ibm_column_device": [
+        "debug-device-selftests"
+      ],
+      "src/modcuda.f90:sumx_ibm_column_device": [
+        "debug-device-selftests"
+      ],
+      "src/modforces.f90:nudge": [
+        "debug-device-selftests",
+        "nudging"
+      ],
+      "src/modforces.f90:periodicEBcorr": [
+        "debug-device-selftests",
+        "surface-energy-balance"
+      ],
+      "src/modforces.f90:add_uniform_device": [
+        "debug-device-selftests",
+        "surface-energy-balance",
+        "ibm-scalar-wall"
+      ],
+      "src/modibm.f90:diffu_corr_device": [
+        "debug-device-selftests",
+        "ibm-scalar-wall",
+        "ibm-reconstruction"
+      ],
+      "src/modibm.f90:diffv_corr_device": [
+        "debug-device-selftests",
+        "ibm-scalar-wall",
+        "ibm-reconstruction"
+      ],
+      "src/modibm.f90:diffw_corr_device": [
+        "debug-device-selftests",
+        "ibm-scalar-wall",
+        "ibm-reconstruction"
+      ],
+      "src/modibm.f90:diffc_corr_device": [
+        "debug-device-selftests",
+        "ibm-scalar-wall"
+      ],
+      "src/modibm.f90:wallfunmom_device": [
+        "debug-device-selftests",
+        "ibm-scalar-wall",
+        "ibm-reconstruction"
+      ],
+      "src/modibm.f90:wallfunheat_device": [
+        "debug-device-selftests",
+        "ibm-scalar-wall",
+        "surface-energy-balance"
+      ],
+      "src/modibm.f90:scatter_flux_device": [
+        "ibm-scalar-wall",
+        "surface-energy-balance"
+      ],
+      "src/modibm.f90:solid_device": [
+        "debug-device-selftests",
+        "ibm-scalar-wall",
+        "ibm-reconstruction"
+      ],
+      "src/modibm.f90:solid_masked_device": [
+        "debug-device-selftests",
+        "ibm-scalar-wall",
+        "surface-energy-balance"
+      ],
+      "src/modibm.f90:advecc2nd_corr_conservative_device": [
+        "debug-device-selftests",
+        "ibm-scalar-wall"
+      ],
+      "src/modibm.f90:advecc2nd_corr_liberal_device": [
+        "debug-device-selftests",
+        "ibm-scalar-wall"
+      ],
+      "src/modibm.f90:copy_tendency_device": [
+        "ibm-scalar-wall",
+        "ibm-reconstruction"
+      ],
+      "src/modibm.f90:accumulate_delta_device": [
+        "ibm-scalar-wall",
+        "ibm-reconstruction"
+      ],
+      "src/modscalsource.f90:scalsource": [
+        "thermo-scalar-wall",
+        "ibm-scalar-wall",
+        "scalar-point-two-rank-x",
+        "scalar-line-two-rank-y"
+      ],
+      "src/modtstep.f90:tstep_integrate": [
+        "dry-poisson-fft",
+        "thermo-scalar-wall",
+        "one-equation-sgs"
+      ],
+      "src/modtimedep.f90:timedepnudge_device": [
+        "debug-device-selftests",
+        "timedep-nudging"
+      ],
+      "src/modtstep.f90:tstep_limits": [
+        "debug-device-selftests",
+        "ibm-reconstruction",
+        "vegetation-deposition"
+      ],
+      "src/modcuda.f90:integrateFacFluxDevice": [
+        "debug-device-selftests",
+        "surface-energy-balance"
+      ],
+      "src/vegetation.f90:vegetation_forcing_device": [
+        "debug-device-selftests",
+        "vegetation",
+        "vegetation-sveg"
+      ],
+      "src/vegetation.f90:vegetation_canopy_device": [
+        "debug-device-selftests",
+        "vegetation",
+        "vegetation-sveg"
+      ],
+      "src/vegetation.f90:vegetation_deposition_device": [
+        "debug-device-selftests",
+        "vegetation-deposition"
+      ],
+      "src/heatpump.f90:heatpump": [
+        "debug-device-selftests",
+        "heatpump"
+      ],
+      "src/modcuda.f90:avexy_ibm_c_device": [
+        "debug-device-selftests",
+        "thermo-scalar-wall",
+        "chemistry"
+      ],
+      "src/modthermodynamics.f90:thermo_device": [
+        "debug-device-selftests",
+        "thermo-scalar-wall",
+        "nudging"
+      ],
+      "src/modthermodynamics.f90:calc_halflev_device": [
+        "debug-device-selftests",
+        "thermo-scalar-wall",
+        "temperature-kappa",
+        "stability-wall"
+      ],
+      "src/modthermodynamics.f90:calthv_device": [
+        "debug-device-selftests",
+        "thermo-scalar-wall",
+        "temperature-kappa",
+        "stability-wall"
+      ],
+      "src/modthermodynamics.f90:avexy_thv0_device": [
+        "debug-device-selftests",
+        "thermo-scalar-wall",
+        "temperature-kappa",
+        "stability-wall"
+      ]
     }
   }
 }

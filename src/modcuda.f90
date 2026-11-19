@@ -24,7 +24,8 @@ module modcuda
                              dpdxl, dpdyl, thv0h, thvh, thlpcar, &
                              dudxls, dudyls, dvdxls, dvdyls, dthldxls, dthldyls, dqtdxls, dqtdyls, dqtdtls, &
                              uprof, vprof, thlprof, qtprof, svprof, e12prof, &
-                             IIc, IIu, IIv, scalar_source_tendency
+                             IIc, IIu, IIv, scalar_source_tendency, &
+                             p, pup, pvp, pwp
    use modsubgriddata, only: lsmagorinsky, lvreman, loneeqn, ldelta, lbuoycorr, &
                              ekm, ekh, &
                              sbshr, sbbuo, sbdiss, zlt, damp, csz, &
@@ -169,7 +170,8 @@ module modcuda
                          F_E120 = 15, F_E12M = 16, F_EKM = 17, F_EKH = 18, &
                          F_TAUX = 19, F_TAUY = 20, F_TAUZ = 21, F_THLFLUX = 22, &
                          F_QL0 = 23, F_QL0H = 24, &
-                         F_COUNT = 24
+                         F_P = 25, F_PUP = 26, F_PVP = 27, F_PWP = 28, &
+                         F_COUNT = 28
    logical :: pulled(F_COUNT) = .false.
 #if defined(UDALES_DEBUG)
    ! Neither assertion below means anything before the time loop starts.
@@ -1247,6 +1249,39 @@ module modcuda
          pulled(F_THLFLUX) = .true.
       end subroutine pull_thl_flux
 
+      !> The pressure correction and the predicted velocities of the last
+      !! Poisson solve, for the fielddump diagnostics pd/pu/pv/pw and the rhs
+      !! terms rs/du/dv/dw that modfielddump rebuilds from them on the host
+      !! (modpois::poisson_rhs_diagnostic). Nothing else reads the host copies
+      !! on a GPU build.
+      subroutine pull_p
+         implicit none
+         if (pulled(F_P)) return
+         p = p_d
+         pulled(F_P) = .true.
+      end subroutine pull_p
+
+      subroutine pull_pup
+         implicit none
+         if (pulled(F_PUP)) return
+         pup = pup_d
+         pulled(F_PUP) = .true.
+      end subroutine pull_pup
+
+      subroutine pull_pvp
+         implicit none
+         if (pulled(F_PVP)) return
+         pvp = pvp_d
+         pulled(F_PVP) = .true.
+      end subroutine pull_pvp
+
+      subroutine pull_pwp
+         implicit none
+         if (pulled(F_PWP)) return
+         pwp = pwp_d
+         pulled(F_PWP) = .true.
+      end subroutine pull_pwp
+
       !> Bring down what fielddump is about to read.
       subroutine updateHostForFielddump
          implicit none
@@ -1271,6 +1306,13 @@ module modcuda
          if (fielddump_wants('ty')) call pull_tau_y
          if (fielddump_wants('tz')) call pull_tau_z
          if (ltempeq .and. fielddump_wants('hf')) call pull_thl_flux
+
+         ! Poisson diagnostics are computed at dump time on the host from these
+         ! (modfielddump::compute_derived), so they come down only when asked for.
+         if (fielddump_wants('pd')) call pull_p
+         if (fielddump_wants('pu') .or. fielddump_wants('rs') .or. fielddump_wants('du')) call pull_pup
+         if (fielddump_wants('pv') .or. fielddump_wants('rs') .or. fielddump_wants('dv')) call pull_pvp
+         if (fielddump_wants('pw') .or. fielddump_wants('rs') .or. fielddump_wants('dw')) call pull_pwp
 
 #if defined(UDALES_DEBUG)
          call assertHostMatchesDevice('fielddump')
@@ -1685,6 +1727,13 @@ module modcuda
             if (fielddump_wants('tz')) call check3(label, 'tau_z', tau_z, tau_z_d)
             if (ltempeq .and. fielddump_wants('hf')) &
                call check3(label, 'thl_flux', thl_flux, thl_flux_d)
+            if (fielddump_wants('pd')) call check3(label, 'p', p, p_d)
+            if (fielddump_wants('pu') .or. fielddump_wants('rs') .or. fielddump_wants('du')) &
+               call check3(label, 'pup', pup, pup_d)
+            if (fielddump_wants('pv') .or. fielddump_wants('rs') .or. fielddump_wants('dv')) &
+               call check3(label, 'pvp', pvp, pvp_d)
+            if (fielddump_wants('pw') .or. fielddump_wants('rs') .or. fielddump_wants('dw')) &
+               call check3(label, 'pwp', pwp, pwp_d)
 
          case ('statsdump')
             ! The previous-stage fields, both diffusivities and the pressure.

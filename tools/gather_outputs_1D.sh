@@ -17,14 +17,14 @@
 
 # Copyright (C) 2016-2019 the uDALES Team.
 
-set -e
+set -euo pipefail
 
 if (( $# == 1 )) ; then
     datapath=$1
     expnr="${datapath: -3}"  ## set experiment number via path
 else
-	echo "error: call scipt as `basename $0` experiment-directory."
-	exit 0
+	echo "error: call script as `basename $0` experiment-directory."
+	exit 1
 fi
 
 # Absolute path to this script directory
@@ -33,7 +33,7 @@ scriptdir=$(pwd -L)
 popd > /dev/null
 toolsdir=${scriptdir}  # assume same directory for nco_concatenate_field.sh
 
-if [ -z $LOCAL_EXECUTE ]; then
+if [ -z "${LOCAL_EXECUTE:-}" ]; then
     echo "cluster"
     module load intel/2024a UDUNITS/2.2.28-GCCcore-13.3.0 NCO/5.2.9-foss-2024a
 fi;
@@ -77,6 +77,6 @@ for file in *dump.*.000.${expnr}.nc ; do
 
 done
 
-if [ -z $LOCAL_EXECUTE ]; then
+if [ -z "${LOCAL_EXECUTE:-}" ]; then
     module unload intel/2024a UDUNITS/2.2.28-GCCcore-13.3.0 NCO/5.2.9-foss-2024a
 fi;

@@ -58,7 +58,7 @@ if(BUILD_PREPROCESSING_DIRECTSHORTWAVE_F2PY)
             "${_directshortwave_source}"
             "${_directshortwave_wrapper}"
             --noopt
-            --f90flags=-O3\ -ffree-line-length-none
+            --f90flags=-O3\ -fdefault-real-8\ -fdefault-double-8\ -ffree-line-length-none
     WORKING_DIRECTORY "${_directshortwave_target_dir}"
     DEPENDS "${_directshortwave_signature}" "${_directshortwave_source}" "${_directshortwave_wrapper}"
     COMMENT "Building directshortwave_f2py in ${_directshortwave_target_dir}"
@@ -68,6 +68,8 @@ if(BUILD_PREPROCESSING_DIRECTSHORTWAVE_F2PY)
   add_custom_target(directshortwave_f2py ALL DEPENDS "${_directshortwave_output}")
 endif()
 
+# Both f2py modules are compiled with -fdefault-real-8 -fdefault-double-8, like the
+# solver, so default "real" is 8 bytes; the .pyf signatures declare real(kind=8) to match.
 if(BUILD_PREPROCESSING_IBM_F2PY)
   execute_process(
     COMMAND "${_python_executable}" -c "import sysconfig; print(sysconfig.get_config_var('EXT_SUFFIX') or '.so')"
@@ -104,7 +106,7 @@ if(BUILD_PREPROCESSING_IBM_F2PY)
             "${CMAKE_CURRENT_SOURCE_DIR}/../python/fortran/ibm_preproc/IBM_preproc_module.f90"
             "${_ibm_f2py_wrapper}"
             --build-dir "${_ibm_f2py_build_dir}"
-            --f90flags=-O3\ -fopenmp\ -ffree-line-length-none\ -I${_ibm_fortran_module_dir}
+            --f90flags=-O3\ -fopenmp\ -fdefault-real-8\ -fdefault-double-8\ -ffree-line-length-none\ -I${_ibm_fortran_module_dir}
             -lgomp
     WORKING_DIRECTORY "${_ibm_f2py_target_dir}"
     DEPENDS "${_ibm_f2py_signature}" "${_ibm_f2py_wrapper}" ${_ibm_f2py_sources}

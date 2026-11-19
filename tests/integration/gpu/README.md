@@ -15,7 +15,7 @@ been stable for a suitable period.
 
 | Selection | Cases | Intended use |
 | --- | --- | --- |
-| `smoke` | four 8 x 8 x 8 cases plus the surface-energy-balance case | Debug development and trusted pull requests |
+| `smoke` | four 8 x 8 x 8 cases, the surface-energy-balance case and two 8 x 8 x 8 cases on a stretched vertical grid | Debug development and trusted pull requests |
 | `scalar-sources` | two serial and two two-rank cases | scalar-source parity and global positioning |
 | `nightly` | 29 serial cases | single-GPU scheduled regression |
 | `mpi` | dry (`ipoiss` 0 and 3), scalar-source, IBM, TKE-statistics and vegetation two-rank cases | manually dispatched two-GPU check |
@@ -318,3 +318,15 @@ after this workflow is merged to that branch.
 6. Run the matrix validator and the hardware-independent unit tests.
 
 Generated outputs and binaries must not be committed.
+
+### Stretched vertical grid fixtures
+
+`fixtures/stretched/prof.inp.103` is the case-103 profile on a geometrically
+stretched grid (dz ratio 3 top to bottom, same height), used by the
+`stretched-one-equation` and `stretched-temperature-kappa` cases.
+`fixtures/stretched/064/` is the energy-balance case 064 preprocessed by the
+Python route with `lzstretch` (linear 0.5 m spacing to 8 m, exponential above,
+the recipe of `tests/integration/stretched_grid`), used by
+`stretched-surface-energy-balance`. These are the cases that tell a stretched-grid
+formula from an equidistant one: on a uniform grid the wall-function volumes,
+the vertical interpolation weights and the kappa face reconstruction coincide.

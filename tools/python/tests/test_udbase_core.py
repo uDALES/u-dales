@@ -596,6 +596,33 @@ class TestGridHelpers(unittest.TestCase):
         np.testing.assert_allclose(zm, [0, 5, 10, 15])
         np.testing.assert_allclose(dzt, [5, 5, 5, 5])
 
+    def test_z_grid_from_profile_matches_solver_recursion_on_stretched_grid(self):
+        # The solver (modglobal) rebuilds faces as zh(1)=0, zh(k+1)=2*zf(k)-zh(k),
+        # so each centre is the midpoint of its OWN faces. Construct a stretched
+        # grid from known faces and require the reconstruction to return exactly
+        # those faces and thicknesses — midpoints of adjacent centres would not.
+        import udgrid
+
+        faces = np.array([0.0, 1.0, 2.0, 3.0, 4.5, 6.75, 10.125, 15.1875])
+        zt = 0.5 * (faces[:-1] + faces[1:])
+        zm, dzt = udgrid.z_grid_from_profile(zt, float(faces[-1]))
+
+        np.testing.assert_allclose(zm, faces[:-1], rtol=0, atol=1e-12)
+        np.testing.assert_allclose(dzt, np.diff(faces), rtol=0, atol=1e-12)
+        # the midpoint-of-centres reconstruction differs on this grid, so this
+        # test discriminates against it
+        zm_midpoints = np.concatenate([[0.0], 0.5 * (zt[:-1] + zt[1:])])
+        self.assertGreater(np.abs(zm_midpoints - faces[:-1]).max(), 0.1)
+
+    def test_z_grid_from_profile_warns_when_top_disagrees_with_zsize(self):
+        import udgrid
+
+        zt = np.array([2.0, 14.0])  # recursion top = 24, not 20
+        with self.assertWarns(RuntimeWarning):
+            zm, dzt = udgrid.z_grid_from_profile(zt, 20.0)
+        np.testing.assert_allclose(zm, [0.0, 4.0])
+        np.testing.assert_allclose(dzt, [4.0, 20.0])
+
 class TestNamoptionsParsing(unittest.TestCase):
     """Pure namelist parsing (udconfig)."""
 

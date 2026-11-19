@@ -17,7 +17,7 @@
 
 # Copyright (C) 2016-2019 the uDALES Team.
 
-set -e
+set -euo pipefail
 
 if (( $# == 2 )) ; then
     datapath1=$1
@@ -26,10 +26,10 @@ if (( $# == 2 )) ; then
     expnr2="${datapath2: -3}"  ## set experiment number via path
 else
 	echo "error: call scipt as `basename $0` experiment-1-directory experiment-2-directory for appending two experiments."
-	exit 0
+	exit 1
 fi
 
-if [ -z $LOCAL_EXECUTE ]; then
+if [ -z "${LOCAL_EXECUTE:-}" ]; then
     echo "cluster"
     module load intel/2024a UDUNITS/2.2.28-GCCcore-13.3.0 NCO/5.2.9-foss-2024a
 fi;
@@ -76,6 +76,8 @@ for file in $dumpslist ; do
     told=0
     counter=0
     tcut=""  # setting tcut to empty string, testing later whether it stays like that
+    tcont=""
+    tdouble=0
     overlap=0  # setting overlap to false
     for t in $times; do
         if [[ $told -lt $t ]] ; then  # as long as monotone increase
@@ -97,6 +99,10 @@ for file in $dumpslist ; do
     done
     
     if [[ ! -z $tcut ]] ; then  # testing if tcut is not empty
+        if [[ -z $tcont ]] ; then
+            echo "Time overlap at $tdouble s is not resolved before the end of the appended file; nothing cut."
+            exit 1
+        fi
         echo "Time overlap occurred."
         echo "Take field until time index $tcut and continue with index $tcont. Cutting file now." 
         
@@ -111,6 +117,6 @@ for file in $dumpslist ; do
 
 done
        
-if [ -z $LOCAL_EXECUTE ]; then
+if [ -z "${LOCAL_EXECUTE:-}" ]; then
     module unload intel/2024a UDUNITS/2.2.28-GCCcore-13.3.0 NCO/5.2.9-foss-2024a
 fi;

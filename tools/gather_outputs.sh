@@ -17,14 +17,14 @@
 
 # Copyright (C) 2016-2019 the uDALES Team.
 
-set -e
+set -euo pipefail
 
 if (( $# == 1 )) ; then
     datapath=$1
     expnr="${datapath: -3}"  ## set experiment number via path
 else
 	echo "error: call script as `basename $0` experiment-directory."
-	exit 0
+	exit 1
 fi
 
 # Absolute path to this script directory

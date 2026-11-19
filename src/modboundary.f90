@@ -287,9 +287,12 @@ contains
         call fluxtop(v0, ekm, 0.0)
         w0(:, :, ke + 1) = 0.0
         wm(:, :, ke + 1) = 0.0
+        ! Zero flux, matching the momentum condition above: a free-slip lid is
+        ! a symmetry plane, not a place for subgrid energy to leave the domain.
+        ! Same condition as the ground (modibm.f90, subroutine bottom).
         if (loneeqn) then
-          e120(:, :, ke + 1) = e12min
-          e12m(:, :, ke + 1) = e12min
+          e120(:, :, ke + 1) = e120(:, :, ke)
+          e12m(:, :, ke + 1) = e12m(:, :, ke)
         end if
      case(BCtopm_noslip)
         !no-slip = fixed velocity at wall
@@ -299,14 +302,22 @@ contains
         call valuetop(v0, Vinf)
         w0(:, :, ke + 1) = 0.0
         wm(:, :, ke + 1) = 0.0
+        ! Dirichlet, matching the momentum condition above: the subgrid TKE
+        ! goes to zero at a solid wall, and e12min is the floor the one-equation
+        ! model is kept above. This branch previously set no condition at all.
+        if (loneeqn) then
+          e120(:, :, ke + 1) = e12min
+          e12m(:, :, ke + 1) = e12min
+        end if
       case(BCtopm_pressure)
          call fluxtop(um, ekm, 0.0)
          call fluxtop(u0, ekm, 0.0)
          call fluxtop(vm, ekm, 0.0)
          call fluxtop(v0, ekm, 0.0)
+         ! Zero flux: an open top is not a wall. See BCtopm_freeslip above.
          if (loneeqn) then
-           e120(:, :, ke + 1) = e12min
-           e12m(:, :, ke + 1) = e12min
+           e120(:, :, ke + 1) = e120(:, :, ke)
+           e12m(:, :, ke + 1) = e12m(:, :, ke)
          end if
          ! w considered in modpois
       case default
@@ -565,14 +576,18 @@ contains
         !free-slip = zero-flux
         call fluxtop_uv_device
         call topw_zero_device
-        if (loneeqn) call tope12_device
+        ! Zero flux, matching the momentum condition (same as the host, #374)
+        if (loneeqn) call tope12_zeroflux_device
      case(BCtopm_noslip)
         !no-slip = fixed velocity at wall
         call valuetop_uv_device
         call topw_zero_device
+        ! Dirichlet: the subgrid TKE goes to its floor at a solid wall
+        if (loneeqn) call tope12_device
      case(BCtopm_pressure)
         call fluxtop_uv_device
-        if (loneeqn) call tope12_device
+        ! Zero flux: an open top is not a wall
+        if (loneeqn) call tope12_zeroflux_device
         ! w considered in modpois
      case default
         write(0, *) "ERROR: top boundary type for velocity undefined"
@@ -998,16 +1013,16 @@ contains
          vm(ie + m, :, :) = vm(ib - 1 + m, :, :)
          wm(ib - m, :, :) = wm(ie + 1 - m, :, :)
          wm(ie + m, :, :) = wm(ib - 1 + m, :, :)
-      end do
 
-      if (loneeqn) then
-         do m = 1, ih
+         if (loneeqn) then
             e120(ib - m, :, :) = e120(ie + 1 - m, :, :)
             e120(ie + m, :, :) = e120(ib - 1 + m, :, :)
             e12m(ib - m, :, :) = e12m(ie + 1 - m, :, :)
             e12m(ie + m, :, :) = e12m(ib - 1 + m, :, :)
-         end do
-      end if
+         end if
+      end do
+
+      return
    end subroutine xm_periodic
 #if defined(_GPU)
    subroutine xm_periodic_device
@@ -1211,16 +1226,16 @@ contains
          vm(:, je + m, :) = vm(:, jb - 1 + m, :)
          wm(:, jb - m, :) = wm(:, je + 1 - m, :)
          wm(:, je + m, :) = wm(:, jb - 1 + m, :)
-      end do
 
-      if (loneeqn) then
-         do m = 1, jh
+         if (loneeqn) then
             e120(:, jb - m, :) = e120(:, je + 1 - m, :)
             e120(:, je + m, :) = e120(:, jb - 1 + m, :)
             e12m(:, jb - m, :) = e12m(:, je + 1 - m, :)
             e12m(:, je + m, :) = e12m(:, jb - 1 + m, :)
-         end do
-      end if
+         end if
+      end do
+
+      return
    end subroutine ym_periodic
 #if defined(_GPU)
    subroutine ym_periodic_device
@@ -3517,6 +3532,24 @@ contains
       end do
       !$acc end parallel loop
    end subroutine tope12_device
+
+   !> Zero-flux top condition for the SGS TKE: the ghost level equals the top
+   !! interior level, which in diffe makes the top face flux vanish. Host
+   !! counterpart: the BCtopm_freeslip / BCtopm_pressure branches of boundary.
+   subroutine tope12_zeroflux_device
+      use modglobal, only : ib, ie, ih, jb, je, jh, ke
+      use modcuda,   only : e120_d, e12m_d
+      implicit none
+      integer :: i, j
+      !$acc parallel loop collapse(2) default(present)
+      do j = jb - jh, je + jh
+         do i = ib - ih, ie + ih
+            e120_d(i, j, ke + 1) = e120_d(i, j, ke)
+            e12m_d(i, j, ke + 1) = e12m_d(i, j, ke)
+         end do
+      end do
+      !$acc end parallel loop
+   end subroutine tope12_zeroflux_device
 #endif
 
 

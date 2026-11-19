@@ -58,14 +58,21 @@ defaults to the directory containing `write_inputs.sh` and `DA_EXPDIR` defaults
 to the parent directory of the case directory unless these are set in
 `config.sh` or the calling environment.
 
-When submitting preprocessing to an Imperial HPC compute node with
-`tools/write_inputs.sh <route> <case-directory> c`, the wrapper uses
+`tools/write_inputs.sh <route> <case-directory> [start] [system]` runs the
+preprocessing on the current node in the background (`start` `l`, the default),
+in the foreground with the exit code returned (`f`), or on a compute node
+through the scheduler of `system` (`c`): PBS with `icl`, Slurm with `ecmwf`.
+
+When submitting preprocessing to a compute node with
+`tools/write_inputs.sh <route> <case-directory> c <system>`, the wrapper uses
 `PREPROC_WALLTIME="24:00:00"` and `PREPROC_MEM="128gb"` unless these are set in
-`config.sh` or the calling environment. These control the preprocessing PBS job
+`config.sh` or the calling environment. These control the preprocessing job
 only and are separate from the solver job `WALLTIME` and `MEM` settings used by
-`tools/hpc_execute.sh`. `PREPROC_MEM` must be written as a number followed by
-lowercase `gb`, such as `128gb`; a unitless value such as `128` is rejected
-before PBS submission. Unless `VIEW3D_MAX_DENSE_MATRIX_GIB` is set explicitly,
+`tools/hpc_execute.sh` and `tools/ecmwf_execute.sh`. `PREPROC_MEM` must be
+written as a number followed by lowercase `gb`, such as `128gb`; a unitless
+value such as `128` is rejected before submission. On ECMWF the job is charged
+to `PREPROC_ACCOUNT` (default `spnlthee`) and queued on `PREPROC_QOS` (default
+`nf`); the MATLAB route is not available there. Unless `VIEW3D_MAX_DENSE_MATRIX_GIB` is set explicitly,
 `tools/view3d_config.sh` derives the View3D dense-matrix guard from the
 preprocessing memory request: requests above `16gb` leave 16 GiB for overhead,
 while smaller requests use the requested GiB value.
@@ -73,6 +80,12 @@ while smaller requests use the requested GiB value.
 ## Batch Execution
 
 Use `ud_run` rather than writing a new launcher command from scratch:
+
+All execute scripts create the output directory `$DA_WORKDIR/<expnr>` and copy the
+inputs and the executable into it. If that directory already exists they exit
+with an error and leave it untouched: uDALES never removes, modifies or
+overwrites existing results. To rerun a case on purpose, move or delete its
+output directory yourself first (or use a new case number).
 
 ```bash
 ./bin/ud_run icl sim <case-directory>      # or hx1 on HX1
@@ -171,6 +184,30 @@ and compiles with `mpif90`. ECMWF recommend hpcx-openmpi over intel-mpi in
 general; hpcx has an `INTEL/2021.4` flavour, so `mpif90` still wraps the same
 `ifort`. The netCDF C and Fortran libraries share one
 prefix (`/usr/local/apps/netcdf4/4.10.0/INTEL/2021.4`).
+
+Set up the Python tooling and build the preprocessing tools on a login node
+(this loads `prgenv/gnu gcc/14.2.0 python3/3.13.16-01 cmake/4.2.4`; the
+system `python3` is 3.6 and too old):
+
+```bash
+bash tools/python/setup_venv.sh ecmwf               # venv + View3D + f2py modules
+./tools/build_preprocessing.sh ecmwf preprocessing_tools   # rebuild the tools only
+```
+
+Preprocess a case as a Slurm job, and run the preprocessing test suite as one
+job that builds, writes and compares (Python route only on ECMWF):
+
+```bash
+./tools/write_inputs.sh -p <case-directory> c ecmwf
+tests/system/ud_test_preprocess.sh -p 990 991 <ref-data-path> ecmwf
+```
+
+Both use `PREPROC_ACCOUNT` (default `spnlthee`), `PREPROC_QOS` (default `nf`),
+`PREPROC_WALLTIME` and `PREPROC_MEM` from the environment; the suite's defaults
+are 4 hours and `32gb`, write_inputs' 24 hours and `128gb`. The job loads the
+same GNU modules as the build, because View3D and the f2py modules link
+`libgfortran` and `libgomp` from that `gcc`. The suite's job output is
+`logdir/test_inputs.console.log`; follow it with `tail -f`.
 
 Run and gather:
 

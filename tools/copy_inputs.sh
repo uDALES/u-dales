@@ -21,7 +21,7 @@
 # new sim: "copy_inputs.sh path/1 2" or "copy_inputs.sh path/1 2 c"
 # continue with new sim  "copy_inputs.sh path/1 2 w"
 
-set -e
+set -euo pipefail
 
 if (( $# < 2 )) ; then
   echo "usage: `basename $0` sim#1_local_path sim#2 (start)"
@@ -49,11 +49,11 @@ pushd $1
 	fi
 
 	## check if required variables are set
-	if [ -z $DA_EXPDIR ]; then
+	if [ -z "${DA_EXPDIR:-}" ]; then
 		echo "Experiment directory DA_EXPDIR must be set $inputdir/config.sh"
 		exit 1
 	fi;
-  if [ -z $DA_WORKDIR ]; then
+  if [ -z "${DA_WORKDIR:-}" ]; then
 		echo "Experiment directory DA_WORKDIR must be set $inputdir/config.sh"
 		exit 1
 	fi;
@@ -83,12 +83,8 @@ else
   mkdir -p $DA_EXPDIR/$tar
 fi
 
-if [ -d $DA_WORKDIR/$tar ]; then
-  echo "target directory $tar already exists in $DA_WORKDIR"
-else
-  mkdir -p $DA_WORKDIR/$tar
-  echo "Creating target work directory, $tar, in $DA_WORKDIR"
-fi
+# The output directory $DA_WORKDIR/$tar is NOT created here: the execute scripts
+# create it at run time and refuse to run if it already exists.
 
 # test if original simulation exists
 if [ ! -d $DA_EXPDIR/$src ]; then
@@ -145,6 +141,18 @@ $varname = $value" "$DA_EXPDIR/$tar/namoptions.$tar"
     fi
 }
 
+# newest file matching a glob, by modification time. A bash loop rather than
+# "ls -t | head -1": with many files ls is killed by SIGPIPE when head closes
+# the pipe, which under pipefail fails the pipeline.
+newest_file() {
+    local f newest=""
+    for f in "$@"; do
+        [ -f "$f" ] || continue
+        if [ -z "$newest" ] || [ "$f" -nt "$newest" ]; then newest=$f; fi
+    done
+    echo "$newest"
+}
+
 # change simulation number in namoptions
 update_namoptions 'iexpnr' $tar '&RUN'
 
@@ -156,7 +164,7 @@ if [ $start == "c" ]; then
 # warmstart: link newest warmstart files
 elif [ $start == "w" ]; then
   # momentum warmstart files (minimum requirement for warmstarts)
-  startfilen=$(ls -t $DA_WORKDIR/$src"/initd"* | head -1)
+  startfilen=$(newest_file "$DA_WORKDIR/$src"/initd*)
   if [ -z "$startfilen" ]; then
     echo "no restart files found in $DA_WORKDIR/$src"
     echo "exit"
@@ -175,7 +183,7 @@ elif [ $start == "w" ]; then
   scalarwarmstart=$DA_WORKDIR/$src"/inits"*
   if compgen -G "$scalarwarmstart" > /dev/null; then
 
-    scalarfilen=$(ls -t $DA_WORKDIR/$src"/inits"* | head -1)
+    scalarfilen=$(newest_file "$DA_WORKDIR/$src"/inits*)
       
     # create links
     scalarfilen=${scalarfilen##*/}  # retain the part after the last slash

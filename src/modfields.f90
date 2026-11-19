@@ -50,10 +50,6 @@ module modfields
   real, allocatable,         target :: w0(:,:,:)        !<   z-component of velocity at time step t
   real, allocatable,         target :: pres0(:,:,:)     !<   pressure at time step t
 #endif 
-  real, allocatable, target :: div(:,:,:)
-  real, allocatable, target :: dudx(:,:,:)
-  real, allocatable, target :: dvdy(:,:,:)
-  real, allocatable, target :: dwdz(:,:,:)
 
   real, allocatable :: u0h(:,:,:)        !<   x-component of velocity at time step t
   real, allocatable :: uinit(:,:,:)
@@ -582,11 +578,6 @@ contains
     ! call alloc_z(wp); wp = 0.
     call alloc_z(pres0); pres0 = 0.
 
-    call alloc_z(div, opt_levels=(/0,0,0/))
-    call alloc_z(dudx, opt_levels=(/0,0,0/))
-    call alloc_z(dvdy, opt_levels=(/0,0,0/))
-    call alloc_z(dwdz, opt_levels=(/0,0,0/))
-
     ! Always have to allocate these, even if ltempeq/lmoist = .false.
     call alloc_z(thlm); thlm = 0.
     !allocate(thlm(ib-ihc:ie+ihc,jb-jhc:je+jhc,kb-khc:ke+khc)); thlm = 0.
@@ -819,7 +810,7 @@ contains
           scar=0.;scarl=0.
     end if
 
-    if (ltkedump) then ! this is currently not usable
+    if (ltkedump) then ! disabled: initstatsdump aborts on ltkedump, see issue #352
       ! allocate averaged variables
       allocate(uav(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh))
       allocate(vav(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh))

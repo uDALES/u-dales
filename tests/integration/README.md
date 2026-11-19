@@ -22,6 +22,8 @@ Current contents:
 - `directshortwave/` for committed direct shortwave cases, including no-tree
   reference case `100` and tree case `525`
 - `ibm_sparse_input/` for MPI validation of the sparse IBM input reader on committed case `101`
+- `execute_output_dir/` for the run wrappers' refusal to run into an existing
+  output directory (and `copy_inputs.sh` not creating one); solver and MPI are stubbed
 - `mpi_operators/` for direct MPI validation of `avexy_ibm`, `avey_ibm`,
   `sumx_ibm`, and `sumy_ibm` on committed case `100`
 - `poisson/` for validation of both Poisson solvers (`ipoiss` 0 and 3) against

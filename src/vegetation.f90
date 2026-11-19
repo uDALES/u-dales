@@ -106,7 +106,7 @@ contains
   !! LAD/drag fields with halo exchanges, and precompute staggered face
   !! lists used by vegetation_forcing.
   subroutine init_vegetation
-    use modglobal,  only : ltrees,ltreedump,itree_mode,TREE_MODE_SVEG,TREE_MODE_LEGACY_SEB,ib,ie,jb,je,kb,ke,ih,jh,kh,cexpnr,nsv
+    use modglobal,  only : ltrees,ltreedump,itree_mode,TREE_MODE_SVEG,TREE_MODE_LEGACY_SEB,ib,ie,jb,je,kb,ke,ih,jh,kh,cexpnr,nsv,dzf,dzh
     use modmpi,     only : myid,comm3d,mpierr,MY_REAL
 #if defined(_GPU)
     use modmpi,     only : halo_exchange_device
@@ -364,9 +364,12 @@ contains
       veg_vp = 0.
     end if
 
-    ! w-faces (k-1/k); no z-halos, so start at kb+1
+    ! w-faces (k-1/k); no z-halos, so start at kb+1. zh(k) is not midway between
+    ! zf(k-1) and zf(k) on a stretched grid: weight level k by dzf(k-1), k-1 by dzf(k)
     dcoef_f = 0.0
-    dcoef_f(:,:,kb+1:ke) = 0.5*(dcoef_3d(ib:ie, jb:je, kb:ke-1) + dcoef_3d(ib:ie, jb:je, kb+1:ke))
+    do k = kb+1, ke
+      dcoef_f(:,:,k) = (dcoef_3d(ib:ie, jb:je, k)*dzf(k-1) + dcoef_3d(ib:ie, jb:je, k-1)*dzf(k)) / (2.*dzh(k))
+    end do
     mask_f = (dcoef_f > 0.0)
     npts_w = count(mask_f)
     if (npts_w > 0) then
@@ -504,7 +507,7 @@ contains
   !! tests_cuda.f90::test_vegetation_forcing can run it against the device
   !! branch on identical inputs rather than against hand-written expectations.
   subroutine vegetation_forcing_host
-    use modglobal,  only : lmoist,ltempeq,nsv,itree_mode,TREE_MODE_SVEG,TREE_MODE_LEGACY_SEB,Qstar
+    use modglobal,  only : lmoist,ltempeq,nsv,itree_mode,TREE_MODE_SVEG,TREE_MODE_LEGACY_SEB,Qstar,dzf,dzh
     use modfields,  only : um,vm,wm,up,vp,wp,svp,svm
     implicit none
     integer :: i,j,k,m,n
@@ -545,10 +548,11 @@ contains
       j = ijk_w(mf,2)
       k = ijk_w(mf,3)
       dcoefv = dcoef_w(mf)
+      ! u, v at the w face zh(k): weight level k by dzf(k-1) and level k-1 by dzf(k)
       veg_wp(mf) = - dcoefv * wm(i,j,k) * &
                          sqrt( wm(i,j,k)**2 &
-                         + (0.25*(um(i,j,k) + um(i+1,j,k) + um(i,j,k-1) + um(i+1,j,k-1)))**2 &
-                         + (0.25*(vm(i,j,k) + vm(i,j+1,k) + vm(i,j,k-1) + vm(i,j+1,k-1)))**2 )
+                         + (0.5*((um(i,j,k) + um(i+1,j,k))*dzf(k-1) + (um(i,j,k-1) + um(i+1,j,k-1))*dzf(k))/(2.*dzh(k)))**2 &
+                         + (0.5*((vm(i,j,k) + vm(i,j+1,k))*dzf(k-1) + (vm(i,j,k-1) + vm(i,j+1,k-1))*dzf(k))/(2.*dzh(k)))**2 )
       wp(i,j,k) = wp(i,j,k) + veg_wp(mf)
     end do
 
@@ -713,7 +717,8 @@ contains
   !! repeated point being added twice there.
   subroutine vegetation_forcing_device
     use modglobal, only : lmoist,ltempeq,nsv,itree_mode,TREE_MODE_SVEG,TREE_MODE_LEGACY_SEB,Qstar
-    use modcuda,   only : um_d, vm_d, wm_d, up_d, vp_d, wp_d
+    use modcuda,   only : um_d, vm_d, wm_d, up_d, vp_d, wp_d, &
+                         dzf_d, dzh_d
     implicit none
     integer :: i, j, k, mf
     real :: dcoefv
@@ -752,10 +757,11 @@ contains
       j = ijk_w_d(mf,2)
       k = ijk_w_d(mf,3)
       dcoefv = dcoef_w_d(mf)
+      ! u, v at the w face zh(k): weight level k by dzf(k-1) and level k-1 by dzf(k) (as the host)
       veg_wp_d(mf) = - dcoefv * wm_d(i,j,k) * &
                          sqrt( wm_d(i,j,k)**2 &
-                         + (0.25*(um_d(i,j,k) + um_d(i+1,j,k) + um_d(i,j,k-1) + um_d(i+1,j,k-1)))**2 &
-                         + (0.25*(vm_d(i,j,k) + vm_d(i,j+1,k) + vm_d(i,j,k-1) + vm_d(i,j+1,k-1)))**2 )
+                         + (0.5*((um_d(i,j,k) + um_d(i+1,j,k))*dzf_d(k-1) + (um_d(i,j,k-1) + um_d(i+1,j,k-1))*dzf_d(k))/(2.*dzh_d(k)))**2 &
+                         + (0.5*((vm_d(i,j,k) + vm_d(i,j+1,k))*dzf_d(k-1) + (vm_d(i,j,k-1) + vm_d(i,j+1,k-1))*dzf_d(k))/(2.*dzh_d(k)))**2 )
       wp_d(i,j,k) = wp_d(i,j,k) + veg_wp_d(mf)
     end do
     !$acc end parallel loop

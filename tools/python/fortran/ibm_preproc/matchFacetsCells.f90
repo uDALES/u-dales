@@ -129,15 +129,18 @@ module matchFacets2Cells
 
    subroutine matchFacetsToCells(connectivityList, faceNormal, nFaces, vertices, nVertices, &
       fluid_IB, solid_IB, fluid_IB_xyz, nfluid_IB, &
-      xgrid, ygrid, zgrid, itot, jtot, ktot, &
+      xgrid, ygrid, zgrid, zedges, itot, jtot, ktot, &
       diag_neighbs, periodic_x, periodic_y, n_threads, &
       secfacids, secbndptids, secareas, bnddst, nfacsecs)
 
+    ! zedges(k), zedges(k+1): bottom and top of the cell centred on zgrid(k). They are passed in
+    ! rather than taken as zgrid -+ dz/2, because on a stretched grid the faces of a cell-centred
+    ! grid are not midway between neighbouring centres.
     use, intrinsic :: ieee_arithmetic
     integer, intent(in) :: nFaces, nVertices, nfluid_IB, itot, jtot, ktot, n_threads
     integer, intent(in) :: connectivityList(nFaces,3)
     real   , intent(in) :: faceNormal(nFaces,3), vertices(nVertices,3), fluid_IB_xyz(nfluid_IB,3)
-    real   , intent(in) :: xgrid(itot), ygrid(jtot), zgrid(ktot)
+    real   , intent(in) :: xgrid(itot), ygrid(jtot), zgrid(ktot), zedges(ktot+1)
     logical, intent(in), dimension(itot,jtot,ktot) :: fluid_IB, solid_IB
     logical, intent(in) :: diag_neighbs, periodic_x, periodic_y
     integer, dimension(:), allocatable, intent(out) :: secfacids, secbndptids
@@ -153,7 +156,10 @@ module matchFacets2Cells
     integer :: bnd_first, bnd_last, bnd_idx, cand_pos, cand_code, candidate_ids(27)
     real :: dx, dy, dz, xmin, xmax, ymin, ymax, zmin, zmax, xl, xu, yl, yu, zl, zu, tol, &
             planes(6,4), area, area_miss, xproj, yproj, zproj, proj, projVec(3), projArea, &
-            dist, dists(27), angle, angles(27), BI(3), BIs(27,3)
+            dist, dists(27), angle, angles(27), BI(3), BIs(27,3), scores(27), best_score, score_threshold
+    ! Candidate flux points whose scores agree to within this relative tolerance
+    ! are treated as tied, and the first one wins (see below).
+    real, parameter :: score_tol = 1.e-6
     real, dimension(3) :: xyz, xyz1
     integer :: n, m, i, j, k, p, dir, ids(2), thread_id
 
@@ -182,7 +188,7 @@ module matchFacets2Cells
 
     dx = xgrid(2)-xgrid(1)
     dy = ygrid(2)-ygrid(1)
-    dz = zgrid(2)-zgrid(1)
+    dz = zgrid(2)-zgrid(1) ! only a common length scale in the neighbour weighting below
 
     tol = 1e-8 ! machine precision errors
     area_miss = 0.0 ! Initialize for OpenMP reduction
@@ -192,8 +198,7 @@ module matchFacets2Cells
     x_edges(itot+1) = xgrid(itot) + dx/2.
     y_edges(1:jtot) = ygrid - dy/2.
     y_edges(jtot+1) = ygrid(jtot) + dy/2.
-    z_edges(1:ktot) = zgrid - dz/2.
-    z_edges(ktot+1) = zgrid(ktot) + dz/2.
+    z_edges = zedges
 
     call buildBoundaryIndex(fluid_IB, solid_IB, itot, jtot, ktot, diag_neighbs, bidx)
 
@@ -206,7 +211,7 @@ module matchFacets2Cells
     !$OMP         il, iu, jl, ju, kl, ku, xl, xu, yl, yu, zl, zu, planes, &
     !$OMP         clipVertices, nClipVertices, &
     !$OMP         xproj, yproj, zproj, proj, projVec, projArea, &
-    !$OMP         area, dist, dists, angle, angles, BI, BIs, &
+    !$OMP         area, dist, dists, angle, angles, BI, BIs, scores, best_score, score_threshold, &
     !$OMP         xyz, xyz1, search_adj, id, loc, candidate_ids, &
     !$OMP         bnd_first, bnd_last, bnd_idx, cand_pos, cand_code, &
     !$OMP         i, j, k, m, p, dir, ids, thread_id) &
@@ -288,8 +293,8 @@ module matchFacets2Cells
                xu = xgrid(i) + dx/2. + tol
                yl = ygrid(j) - dy/2. - tol
                yu = ygrid(j) + dy/2. + tol
-               zl = zgrid(k) - dz/2. - tol
-               zu = zgrid(k) + dz/2. + tol
+               zl = z_edges(k) - tol
+               zu = z_edges(k+1) + tol
 
                planes(1,:) = (/ 1., 0., 0., xu/)
                planes(2,:) = (/-1., 0., 0.,-xl/)
@@ -401,9 +406,38 @@ module matchFacets2Cells
                   !    end if
                   ! end do
 
-                  id = maxloc(abs(angles) / (dists / (dx*dy*dz)**(1./3.)), 1)
-                  dist = dists(id)
-                  BI = BIs(id,:)
+                  ! Pick the candidate that maximises |angle| / normalised distance.
+                  ! Candidates that are mirror images of each other about the
+                  ! facet (for example the cells above and below a section lying
+                  ! on a horizontal cell face) have identical scores in exact
+                  ! arithmetic, but differ in the last bit in floating point, so
+                  ! a plain maxloc() would choose between them by round-off noise.
+                  ! Treat scores within score_tol of the best as tied and take the
+                  ! first, which is what the MATLAB implementation's max() does.
+                  scores = abs(angles) / (dists / (dx*dy*dz)**(1./3.))
+                  best_score = -huge(best_score)
+                  do p = 1, size(scores)
+                     if (.not. isnan(scores(p))) best_score = max(best_score, scores(p))
+                  end do
+                  if (best_score > huge(best_score)) then
+                     score_threshold = best_score ! a zero-distance candidate wins outright
+                  else
+                     score_threshold = best_score - score_tol*abs(best_score)
+                  end if
+                  id = 0
+                  do p = 1, size(scores)
+                     if (isnan(scores(p))) cycle
+                     if (scores(p) >= score_threshold) then
+                        id = p
+                        exit
+                     end if
+                  end do
+                  if (id == 0) then
+                     dist = ieee_value(dist, ieee_quiet_nan)
+                  else
+                     dist = dists(id)
+                     BI = BIs(id,:)
+                  end if
 
                   if (isnan(dist)) then
                      !write(*,*) "facet ", n, " in cell ", i, j, k, " could not find a cell to give flux to"

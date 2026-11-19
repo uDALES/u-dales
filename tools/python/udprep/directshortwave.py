@@ -1284,13 +1284,13 @@ class DirectShortwaveSolver:
 
         if self.method == "scanline_f2py":
             self._scanline_facet_points_f2py = np.asfortranarray(
-                self._scanline_facet_points, dtype=np.float32
+                self._scanline_facet_points, dtype=np.float64
             )
             self._scanline_face_normals_f2py = np.asfortranarray(
-                self._scanline_face_normals, dtype=np.float32
+                self._scanline_face_normals, dtype=np.float64
             )
             self._scanline_vertices_f2py = np.asfortranarray(
-                self._scanline_vertices, dtype=np.float32
+                self._scanline_vertices, dtype=np.float64
             )
 
         if self.method == "moller":
@@ -1789,7 +1789,7 @@ class DirectShortwaveSolver:
                 raise RuntimeError("gfortran not found for legacy scanline execution")
             exe_path = td_path / "DS.exe"
             subprocess.run(
-                [compiler, "-O3", str(source), "-o", str(exe_path)],
+                [compiler, "-O3", "-fdefault-real-8", "-fdefault-double-8", str(source), "-o", str(exe_path)],
                 check=True,
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,

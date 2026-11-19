@@ -34,10 +34,10 @@ use modglobal, only : ipoiss, POISS_FFT2D, POISS_FFT2D_2DECOMP, POISS_FFT3D, &
                       BCxm, BCym, BCzp, BCxm_periodic, BCym_periodic
 #if defined(_GPU)
 use modcuda,   only : pup_d, pvp_d, pwp_d, p_d
-#else
-use modfields, only : pup, pvp, pwp
 #endif
-use modfields, only : p
+! The host arrays exist on both builds; on a GPU build they are the landing
+! site of updateHostForFielddump for the Poisson diagnostics.
+use modfields, only : p, pup, pvp, pwp
 implicit none
 
 include "fftw3.f"
@@ -47,16 +47,14 @@ include "fftw3.f"
 external :: dfftw_plan_dft_r2c_1d, dfftw_plan_dft_c2r_1d, dfftw_plan_r2r_1d, dfftw_execute
 
 private
-public :: initpois,poisson,solve_poisson,exitpois,p,rhs,dpupdx,dpvpdy,dpwpdz,xyzrt,sp,Fxy,Fxyz,pij
+public :: initpois,poisson,solve_poisson,exitpois,poisson_rhs_diagnostic,p,pup,pvp,pwp,xyzrt,sp,pij
 save
-  real, allocatable, target :: rhs(:,:,:)   ! rhs of pressure solver
-  real, allocatable, target :: dpupdx(:,:,:)
-  real, allocatable, target :: dpvpdy(:,:,:)
-  real, allocatable, target :: dpwpdz(:,:,:)
 
   real,    allocatable :: px(:,:,:), py(:,:,:), pz(:,:,:)
+  ! persistent work array of solmpj (was a full-3D automatic array per call: repeated
+  ! allocation cost and a stack hazard -- #330)
+  real,    allocatable :: d_solmpj(:,:,:)
   complex, allocatable :: Fx(:,:,:), Fz(:,:,:)
-  real, allocatable, target :: Fxy(:,:,:), Fxyz(:,:,:)
 
   real, allocatable :: xrt(:), yrt(:), zrt(:)
   real, allocatable, target :: xyzrt(:,:,:), bxyzrt(:,:,:)
@@ -106,20 +104,20 @@ contains
 #endif
 
 #if defined(_GPU)
-    allocate(pup_d(ib-ih:ie+ih,jb-jh:je+jh,kb:ke+kh))
-    allocate(pvp_d(ib-ih:ie+ih,jb-jh:je+jh,kb:ke+kh))
-    allocate(pwp_d(ib-ih:ie+ih,jb-jh:je+jh,kb:ke+kh))
-    allocate(p_d(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh))
-#else
-    allocate(pup(ib-ih:ie+ih,jb-jh:je+jh,kb:ke+kh))
-    allocate(pvp(ib-ih:ie+ih,jb-jh:je+jh,kb:ke+kh))
-    allocate(pwp(ib-ih:ie+ih,jb-jh:je+jh,kb:ke+kh))
+    allocate(pup_d(ib-ih:ie+ih,jb-jh:je+jh,kb:ke+kh)); pup_d = 0.
+    allocate(pvp_d(ib-ih:ie+ih,jb-jh:je+jh,kb:ke+kh)); pvp_d = 0.
+    allocate(pwp_d(ib-ih:ie+ih,jb-jh:je+jh,kb:ke+kh)); pwp_d = 0.
+    allocate(p_d(ib-ih:ie+ih,jb-jh:je+jh,kb-kh:ke+kh)); p_d = 0.
 #endif
-    call alloc_z(p)
-    ! call alloc_z(rhs, opt_levels=(/0,0,0/))
-    ! call alloc_z(dpupdx)
-    ! call alloc_z(dpvpdy)
-    ! call alloc_z(dpwpdz)
+    ! The host arrays exist on both builds: the solver works on them on a CPU
+    ! build, and on a GPU build fielddump's pd/pu/pv/pw/rs/du/dv/dw diagnostics
+    ! read them after updateHostForFielddump has pulled the device copies.
+    ! Zeroed so that those diagnostics are defined at the initial dump, before
+    ! the first solve (#330).
+    allocate(pup(ib-ih:ie+ih,jb-jh:je+jh,kb:ke+kh)); pup = 0.
+    allocate(pvp(ib-ih:ie+ih,jb-jh:je+jh,kb:ke+kh)); pvp = 0.
+    allocate(pwp(ib-ih:ie+ih,jb-jh:je+jh,kb:ke+kh)); pwp = 0.
+    call alloc_z(p); p = 0.
 
     allocate(pij(kb:ke+kh))
 
@@ -476,15 +474,14 @@ contains
           do j=1,xsize(2)
             Sxr = px(:,j,k)
             call dfftw_execute(plan_r2fc_x)
-            px(1,j,k) = REAL(Sxfc(0))
+            px(1,j,k) = REAL(Sxfc(0))*fac
             do i=1,itot/2-1
-              px(2*i,j,k) = REAL(Sxfc(i))
-              px(2*i+1,j,k) = AIMAG(Sxfc(i))
+              px(2*i,j,k) = REAL(Sxfc(i))*fac
+              px(2*i+1,j,k) = AIMAG(Sxfc(i))*fac
             end do
-            px(itot,j,k) = REAL(Sxfc(itot/2))
+            px(itot,j,k) = REAL(Sxfc(itot/2))*fac
           end do
         end do
-        px = px*fac
       else
         fac = 1./sqrt(2.*itot)
         do k=1,xsize(3)
@@ -509,15 +506,14 @@ contains
           do k=1,ysize(3)
             Syr = py(i,:,k)
             call dfftw_execute(plan_r2fc_y)
-            py(i,1,k) = REAL(Syfc(0))
+            py(i,1,k) = REAL(Syfc(0))*fac
             do j=1,jtot/2-1
-              py(i,2*j,k) = REAL(Syfc(j))
-              py(i,2*j+1,k) = AIMAG(Syfc(j))
+              py(i,2*j,k) = REAL(Syfc(j))*fac
+              py(i,2*j+1,k) = AIMAG(Syfc(j))*fac
             end do
-            py(i,jtot,k) = REAL(Syfc(jtot/2))
+            py(i,jtot,k) = REAL(Syfc(jtot/2))*fac
           end do
         end do
-        py = py*fac
       else
         fac = 1./sqrt(2.*jtot)
         do i=1,ysize(1)
@@ -944,6 +940,61 @@ contains
     ! end do
   end subroutine fillps
 
+  !> Right-hand side of the last pressure solve, or one of its terms, for fielddump.
+  !!
+  !! which = 0 returns the divergence of the predicted velocity (equation 5.72),
+  !! i.e. the rhs the solver last received; 1, 2 and 3 return its x, y and z
+  !! terms. fillps leaves pup/pvp/pwp in place with their halos set by bcpup and
+  !! nothing writes them until the next fillps, so recomputing here reproduces
+  !! the rhs of the last substep exactly. Before the first solve they are zero.
+  subroutine poisson_rhs_diagnostic(which, out)
+    use modglobal, only : ib,ie,jb,je,kb,ke,dxi,dyi,dzfi
+    implicit none
+    integer, intent(in)  :: which
+    real,    intent(out) :: out(ib:ie,jb:je,kb:ke)
+    integer i,j,k
+
+    select case (which)
+    case (0)
+      do k=kb,ke
+        do j=jb,je
+          do i=ib,ie
+            out(i,j,k) = ( pup(i+1,j,k)-pup(i,j,k) ) * dxi &
+                       + ( pvp(i,j+1,k)-pvp(i,j,k) ) * dyi &
+                       + ( pwp(i,j,k+1)-pwp(i,j,k) ) * dzfi(k)
+          end do
+        end do
+      end do
+    case (1)
+      do k=kb,ke
+        do j=jb,je
+          do i=ib,ie
+            out(i,j,k) = ( pup(i+1,j,k)-pup(i,j,k) ) * dxi
+          end do
+        end do
+      end do
+    case (2)
+      do k=kb,ke
+        do j=jb,je
+          do i=ib,ie
+            out(i,j,k) = ( pvp(i,j+1,k)-pvp(i,j,k) ) * dyi
+          end do
+        end do
+      end do
+    case (3)
+      do k=kb,ke
+        do j=jb,je
+          do i=ib,ie
+            out(i,j,k) = ( pwp(i,j,k+1)-pwp(i,j,k) ) * dzfi(k)
+          end do
+        end do
+      end do
+    case default
+      write(0, *) 'ERROR: poisson_rhs_diagnostic: which must be 0, 1, 2 or 3, got ', which
+      stop 1
+    end select
+  end subroutine poisson_rhs_diagnostic
+
 #if defined(_GPU)
   attributes(global) subroutine tderive_update_upvpwp_cuda(dxi, dyi)
     use modcuda, only: ie_d, je_d, kb_d, ke_d, up_d, vp_d, wp_d, p_d, dzhi_d, tidandstride
@@ -1029,11 +1080,16 @@ contains
     call tderive_update_upvpwp_cuda<<<griddim,blockdim>>>(dxi, dyi)
     call checkCUDA( cudaGetLastError(), 'tderive_update_upvpwp_cuda' )
 #else
-    do i=ib,ie
-      do j=jb,je
+    ! i innermost (column-major; see #330)
+    do j=jb,je
+      do i=ib,ie
         up(i,j,kb) = up(i,j,kb)-(p(i,j,kb)-p(i-1,j,kb))*dxi
         vp(i,j,kb) = vp(i,j,kb)-(p(i,j,kb)-p(i,j-1,kb))*dyi
-        do k=kb+1,ke
+      end do
+    end do
+    do k=kb+1,ke
+      do j=jb,je
+        do i=ib,ie
           up(i,j,k) = up(i,j,k)-(p(i,j,k)-p(i-1,j,k))*dxi
           vp(i,j,k) = vp(i,j,k)-(p(i,j,k)-p(i,j-1,k))*dyi
           wp(i,j,k) = wp(i,j,k)-(p(i,j,k)-p(i,j,k-1))*dzhi(k)
@@ -1116,17 +1172,20 @@ contains
     implicit none
 
     !real, allocatable, dimension(:,:,:) :: px, py, pz
-    real, dimension(imax,jmax,ktot) :: d
     real, dimension(imax,jmax,ktot), intent(INOUT) :: x
     !real, allocatable, dimension(:) :: FFTI, FFTJ, winew, wjnew
     real    z,ak,bk,bbk
     integer i, j, k
 
+    ! persistent work array (was a full-3D automatic array per call: repeated
+    ! allocation cost and a stack hazard -- #330)
+    if (.not. allocated(d_solmpj)) allocate(d_solmpj(imax,jmax,ktot))
+
     do j=1,zsize(2)
       do i=1,zsize(1)
         !z         = 1./(b(1)+xyzrt(i,j,1))
         z         = 1./(bxyzrt(i,j,1))
-        d(i,j,1)  = c(1)*z
+        d_solmpj(i,j,1)  = c(1)*z
         x(i,j,1) = x(i,j,1)*z
       end do
     end do
@@ -1136,8 +1195,8 @@ contains
         do i=1,zsize(1)
           !bbk       = b(k)+xyzrt(i,j,k)
           bbk       = bxyzrt(i,j,k)
-          z         = 1./(bbk-a(k)*d(i,j,k-1))
-          d(i,j,k)  = c(k)*z
+          z         = 1./(bbk-a(k)*d_solmpj(i,j,k-1))
+          d_solmpj(i,j,k)  = c(k)*z
           x(i,j,k) = (x(i,j,k)-a(k)*x(i,j,k-1))*z
         end do
       end do
@@ -1149,7 +1208,7 @@ contains
       do i=1,zsize(1)
         !bbk = bk + xyzrt(i,j,ktot)
         bbk = bxyzrt(i,j,ktot)
-        z        = bbk-ak*d(i,j,ktot-1)
+        z        = bbk-ak*d_solmpj(i,j,ktot-1)
         !if(z/=0.) then
           x(i,j,ktot) = (x(i,j,ktot)-ak*x(i,j,ktot-1))/z
         !else
@@ -1162,7 +1221,7 @@ contains
     do k=zsize(3)-1,1,-1
       do j=1,zsize(2)
         do i=1,zsize(1)
-          x(i,j,k) = x(i,j,k)-d(i,j,k)*x(i,j,k+1)
+          x(i,j,k) = x(i,j,k)-d_solmpj(i,j,k)*x(i,j,k+1)
         end do
       end do
     end do
