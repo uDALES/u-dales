@@ -899,8 +899,11 @@ to `[t - tstatsdump, t)`. Incomplete or subset radiation files are rejected;
 outside the fixed pedestrian mask every field is written with `_FillValue`.
 Negative humidity is rejected, never clipped. The only new physical
 evaluation is solar geometry at the midpoint of each averaging window using
-the existing `udprep.solar` SPA routine, with the site longitude, latitude
-and elevation and the UTC start date from `namoptions`. The output azimuth is
+the `udprep.solar.solar_position` routine shared with the preprocessing, with
+the site longitude, latitude and elevation and the UTC start date from
+`namoptions`. The namelist option `isolarpos` selects the algorithm for both
+stages: 1 is the NREL Solar Position Algorithm port (Reda and Andreas, 2004),
+2 is pvlib. The output azimuth is
 clockwise from true north in radians.
 
 The grid is the model grid: `x` and `y` are the scalar cell centres `xt` and

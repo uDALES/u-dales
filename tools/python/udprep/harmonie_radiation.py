@@ -32,7 +32,7 @@ from .radiation_timing import (
     benchmark_metadata,
     timed_stage,
 )
-from .solar import nsun_from_angles, solar_position_python
+from .solar import nsun_from_angles, solar_position, solar_position_backend
 from .shortwave_forcing import write_shortwave_forcing
 
 
@@ -89,6 +89,7 @@ class NamelistRadiationConfig:
     timezone: float
     elevation: float
     xazimuth: float
+    isolarpos: int = 1
 
 
 @dataclass(frozen=True)
@@ -252,6 +253,7 @@ def radiation_config_from_case_dir(case_dir: Path) -> NamelistRadiationConfig:
         timezone=float(_required(values, "timezone")),
         elevation=float(_required(values, "elevation")),
         xazimuth=float(_required(values, "xazimuth")),
+        isolarpos=int(values.get("isolarpos", 1)),
     )
 
 
@@ -621,15 +623,15 @@ def prepare_shortwave_atmosphere(
 
     for idx, time_value in enumerate(times):
         when = start + timedelta(seconds=float(time_value))
-        sp = solar_position_python(
+        zen, azimuth = solar_position(
             when,
             float(radiation.longitude),
             float(radiation.latitude),
             float(radiation.timezone),
             float(radiation.elevation),
+            backend=solar_position_backend(radiation.isolarpos),
         )
-        zen = float(sp["zenith"])
-        az_local = float(sp["azimuth"]) - float(radiation.xazimuth)
+        az_local = azimuth - float(radiation.xazimuth)
         this_dni, this_dsky = split_global_horizontal_erbs(float(ghi[idx]), zen, when)
         zenith[idx] = zen
         azimuth_local[idx] = az_local

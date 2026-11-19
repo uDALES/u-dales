@@ -19,7 +19,7 @@ import f90nml
 from netCDF4 import Dataset
 
 from udconfig import parse_namoptions
-from udprep.solar import solar_position_python
+from udprep.solar import solar_position, solar_position_backend
 from .heights import bracketing_levels, configured_receptor_heights, height_tag, validate_heights
 from .schedule import StatsSchedule, read_stats_schedule, validate_statistics_times
 
@@ -237,7 +237,8 @@ def write_exchange_heights(sim, *, heights: tuple[float, ...] | None = None,
     atmospheric and radiative quantities are not recalculated. Solar angles
     alone are evaluated with the existing SPA routine, at the midpoint of each
     averaging window, from the site longitude, latitude and elevation and the
-    UTC start date in namoptions.
+    UTC start date in namoptions, with the solar-position backend selected by
+    the namelist option ``isolarpos`` exactly as in the preprocessing.
     """
     case = Path(sim.path)
     source_dir = case if input_dir is None else Path(input_dir)
@@ -258,6 +259,7 @@ def write_exchange_heights(sim, *, heights: tuple[float, ...] | None = None,
         if key not in options or not np.isfinite(float(options[key])):
             raise ValueError(f"Solar {key} must be explicitly configured")
     site = {key: float(options[key]) for key in ("longitude", "latitude", "elevation")}
+    backend = solar_position_backend(options.get("isolarpos", 1))
     paths = {h: target_dir / f"thermal_comfort_inputs_udales.{height_tag(h)}.{sim.expnr}.nc"
              for h in selected}
     if not overwrite and any(path.exists() for path in paths.values()):
@@ -291,12 +293,12 @@ def write_exchange_heights(sim, *, heights: tuple[float, ...] | None = None,
                 if np.any(atm & ~mask) or np.any(atm & (np.asarray(ds["processed_mask"][:]) != 1)):
                     raise ValueError(f"{kind} does not cover every atmospheric-valid receptor")
             midpoints = schedule.window_midpoints(times)
-            solar = [solar_position_python(start + timedelta(seconds=float(t)),
-                                           site["longitude"], site["latitude"],
-                                           0.0, site["elevation"])
+            solar = [solar_position(start + timedelta(seconds=float(t)),
+                                    site["longitude"], site["latitude"],
+                                    0.0, site["elevation"], backend=backend)
                      for t in midpoints]
-            zenith = np.deg2rad([float(state["zenith"]) for state in solar])
-            azimuth = np.mod(np.deg2rad([float(state["azimuth"]) for state in solar]), 2 * np.pi)
+            zenith = np.deg2rad([state[0] for state in solar])
+            azimuth = np.mod(np.deg2rad([state[1] for state in solar]), 2 * np.pi)
             if not np.isfinite(zenith).all() or not np.isfinite(azimuth).all():
                 raise ValueError("Solar geometry is not finite")
             fd, name = tempfile.mkstemp(prefix=f".{path.name}.", suffix=".tmp", dir=target_dir)
@@ -350,7 +352,11 @@ def write_exchange_heights(sim, *, heights: tuple[float, ...] | None = None,
                     out.horizontal_grid_spacing_m = f"x={dx:g}, y={dy:g}"
                     out.vertical_grid_spacing_m = ",".join(f"{dz:.9g}" for dz in np.asarray(sim.dzt))
                     out.vertical_interpolation_method = "linear in physical height between scalar centres"
-                    out.solar_geometry = "udprep.solar SPA at the midpoint of each averaging window"
+                    out.solar_geometry = (
+                        ("NREL SPA (udprep.solar port)" if backend == "python" else "pvlib")
+                        + " at the midpoint of each averaging window; namelist isolarpos="
+                        + str(int(options.get("isolarpos", 1)))
+                    )
                     out.source_files = ", ".join(path.name for path in sources.values())
                     for kind, names in (("atmosphere", _ATMOSPHERE),
                                         ("shortwave", _SHORTWAVE), ("longwave", _LONGWAVE)):

@@ -18,7 +18,10 @@ if TYPE_CHECKING:
     # Only for annotations; the real import is lazy (numba JIT kernels) so this
     # module can be imported without triggering compilation.
     from .directshortwave import DirectShortwaveSolver
-from .solar import nsun_from_angles, solar_position_python, solar_state, solar_strength_ashrae
+from .solar import (
+    nsun_from_angles, solar_position, solar_position_backend, solar_state,
+    solar_strength_ashrae,
+)
 from .shortwave_forcing import write_shortwave_forcing
 from udgeom.view3d import (
     ViewFactorRepairLimits,
@@ -255,7 +258,7 @@ class RadiationSection(Section):
         time_of_day: datetime | None = None,
     ) -> Dict[str, Any]:
         """
-        Compute solar position using the Python SPA port.
+        Solar zenith and azimuth (degrees) with the backend selected by ``isolarpos``.
 
         Parameters
         ----------
@@ -271,22 +274,30 @@ class RadiationSection(Section):
                 self.minute,
                 self.second,
             )
-        return solar_position_python(
+        return solar_position(
             time_of_day,
             self.longitude,
             self.latitude,
             self.timezone,
             self.elevation,
+            backend=self.solar_backend,
         )
+
+    @property
+    def solar_backend(self) -> str:
+        """Solar-position backend name from the namelist option ``isolarpos``."""
+        return solar_position_backend(getattr(self, "isolarpos", 1))
 
     def calc_solar_state(
         self,
         *,
-        backend: str = "python",
+        backend: str | None = None,
         time_of_day: datetime | None = None,
     ) -> Tuple[np.ndarray, float, float, float, float]:
         """
         Compute solar state (nsun, zenith, azimuth, I, Dsky) based on isolar.
+
+        ``backend`` defaults to the namelist option ``isolarpos``.
 
         Returns
         -------
@@ -324,7 +335,7 @@ class RadiationSection(Section):
                 self.timezone,
                 self.elevation,
                 xazimuth=self.xazimuth,
-                backend=backend,
+                backend=self.solar_backend if backend is None else backend,
             )
 
         if self.isolar == 3:
@@ -1195,7 +1206,7 @@ class RadiationSection(Section):
             kind="timedep" if timedep else "single",
             year=g("year"), month=g("month"), day=g("day"),
             hour=g("hour"), minute=g("minute"), second=g("second"),
-            isolar=g("isolar"),
+            isolar=g("isolar"), isolarpos=g("isolarpos", 1),
             solarzenith=g("solarzenith"), solarazimuth=g("solarazimuth"),
             xazimuth=g("xazimuth"), I=g("I"), Dsky=g("Dsky"),
             longitude=g("longitude"), latitude=g("latitude"),
@@ -1217,15 +1228,8 @@ class RadiationSection(Section):
             return nsun, zenith, azimuth, self.I, self.Dsky
 
         if self.isolar == 2:
-            sp = solar_position_python(
-                time_of_day,
-                self.longitude,
-                self.latitude,
-                self.timezone,
-                self.elevation,
-            )
-            zenith = float(sp["zenith"])
-            azimuth = float(sp["azimuth"]) - self.xazimuth
+            zenith, azimuth = self.solar_position(time_of_day)
+            azimuth = azimuth - self.xazimuth
             nsun = nsun_from_angles(zenith, azimuth)
             irradiance, dsky = solar_strength_ashrae(time_of_day.month, zenith)
             return nsun, zenith, azimuth, float(irradiance), float(dsky)

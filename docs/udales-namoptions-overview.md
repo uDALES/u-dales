@@ -357,6 +357,7 @@ BCs at the bottom (BCbot; only effective if not covered with ground facets): 1 =
 | ifacsec | 1 | 1 or 2 | Option for facet section calculation. 1: Fortran (default, fast), 2: MATLAB (useful for debugging | - |
 | ishortwave   | MATLAB: 1; Python: 3 | 1, 2, 3, or 4 | Option for shortwave radiation calculation. 1: scanline rasterization in both toolchains (MATLAB standalone Fortran executable; Python f2py wrapper). 2: MATLAB-only scanline debug implementation. 3: Python-only facsec method. 4: Python-only moller method. MATLAB errors on 3/4; Python errors on 2. | -  |
 | isolar       | 1        | 1 , 2, 3| Option for solar radiation, 1 uses custom values, 2 uses lattitude and lonigtude, 3 uses weather file.             | -  |
+| isolarpos    | 1        | 1 or 2 | Solar-position algorithm used with `isolar = 2`, by the time-dependent shortwave preprocessing and by the thermal-comfort postprocessing: 1 is the built-in port of the NREL Solar Position Algorithm (Reda and Andreas, 2004, *Solar Energy* 76, 577-589); 2 is `pvlib.solarposition.get_solarposition` (requires the `pvlib` package). | - |
 | view3d_out   | MATLAB: 0; Python: 2 | 0 , 1 , 2                    | Output format for View3D: 0 is text, 1 is binary, 2 is sparse text.                   | - |
 | maxD         | Inf      |   `REAL` > 0   | Maximum distance to check view factors, otherwise they are zero.    | - |
 | xazimuth     | 90       |  `REAL`    | The azimuthal angle of the x-axis (with respect to North).     | [degrees]  |

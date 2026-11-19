@@ -13,7 +13,7 @@ import numpy as np
 from udcomf.udcomf_export import (
     _ATMOSPHERE, _SHORTWAVE, _LONGWAVE, write_exchange_heights,
 )
-from udprep.solar import solar_position_python
+from udprep.solar import solar_position, solar_position_python
 
 
 def _fixture(root: Path):
@@ -85,6 +85,25 @@ class TestExchange(unittest.TestCase):
                     midpoint, 2.33, 48.86, 0., 35.
                 )["azimuth"]) % (2 * np.pi)
                 self.assertAlmostEqual(float(ds["solar_azimuth"][0]), expected_azimuth)
+
+    def test_isolarpos_selects_the_preprocessing_solar_backend(self):
+        with TemporaryDirectory() as tmp:
+            sim = _fixture(Path(tmp))
+            options = sim.path / "namoptions.001"
+            options.write_text(options.read_text(encoding="ascii").replace(
+                " tstatsdump=600.", " tstatsdump=600.\n isolarpos=2"
+            ), encoding="ascii")
+            path = write_exchange_heights(sim)[1.1]
+            with Dataset(path) as ds:
+                midpoint = datetime(2023, 8, 21, tzinfo=timezone.utc) + timedelta(seconds=1500)
+                _, expected = solar_position(midpoint, 2.33, 48.86, 0., 35., backend="pvlib")
+                self.assertAlmostEqual(float(ds["solar_azimuth"][0]), np.deg2rad(expected) % (2 * np.pi))
+                self.assertIn("pvlib", ds.solar_geometry)
+                self.assertIn("isolarpos=2", ds.solar_geometry)
+            options.write_text(options.read_text(encoding="ascii").replace("isolarpos=2", "isolarpos=7"),
+                               encoding="ascii")
+            with self.assertRaisesRegex(ValueError, "isolarpos"):
+                write_exchange_heights(sim, overwrite=True)
 
     def test_writes_separate_files_per_saved_height(self):
         with TemporaryDirectory() as tmp:
