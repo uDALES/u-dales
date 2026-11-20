@@ -33,7 +33,6 @@ class TestThermalComfortExamples(unittest.TestCase):
     def test_calculate_parser_defaults_to_all_indices(self):
         args = self.calculate.build_parser().parse_args(["a.nc"])
         self.assertEqual(args.indices, ("mrt", "pet", "utci", "wbgt"))
-        self.assertEqual(args.tile_x, 64)
         args = self.calculate.build_parser().parse_args(["--indices", "wbgt,mrt", "a.nc", "b.nc"])
         self.assertEqual(args.indices, ("mrt", "wbgt"))
         self.assertEqual(len(args.exchange_files), 2)

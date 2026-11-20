@@ -128,7 +128,7 @@ alter the physics.
 | `udcomf/checkpoints.py` | Exact preceding-window integration, atomic per-record/per-tile radiation checkpoints, manifest validation, and NetCDF consolidation. |
 | `udcomf/udcomf_export.py` | Preflight audit and the per-height exchange writer. |
 | `udcomf/thermalcomfort/physics.py` | MRT radiation equation and globe/wick heat- and mass-balance physics. |
-| `udcomf/thermalcomfort/indices.py` | Strict exchange validation, tiled PET/UTCI/WBGT/MRT calculation, flags, metadata, and atomic final output. |
+| `udcomf/thermalcomfort/indices.py` | Strict exchange validation, record-by-record MRT/PET/UTCI/WBGT calculation, flags, metadata, and atomic final output. |
 | `udcomf/VALIDATION.md` | Verification matrix, fixed references, tolerances, scientific scope, and remaining physical validation. |
 | `examples/thermal_comfort/` | Runnable uDALES-specific and model-neutral command-line workflows. |
 

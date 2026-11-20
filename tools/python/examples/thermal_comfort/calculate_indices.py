@@ -29,9 +29,6 @@ Options
                          file, edit it and pass the copy here. The file must
                          contain all keys and no others.
     --output FILE        Output path; allowed only with one exchange file.
-    --tile-x N           Width in x-cells of the slabs processed at once
-                         (memory use only; results do not depend on it).
-                         Default: 64.
     --overwrite          Replace an existing output file.
 
 Examples
@@ -96,10 +93,6 @@ def build_parser() -> argparse.ArgumentParser:
         "--output", type=Path, default=None,
         help="Output NetCDF path; valid only with one exchange file.",
     )
-    parser.add_argument(
-        "--tile-x", type=int, default=64,
-        help="Width in x-cells of the slabs processed at once; default: 64.",
-    )
     parser.add_argument("--overwrite", action="store_true")
     return parser
 
@@ -128,7 +121,6 @@ def main(argv: list[str] | None = None) -> int:
                 parameters=parameters,
                 indices=args.indices,
                 overwrite=args.overwrite,
-                tile_x=args.tile_x,
             )
             print(f"Thermal-comfort indices ({', '.join(args.indices)}): {result}")
     except (
