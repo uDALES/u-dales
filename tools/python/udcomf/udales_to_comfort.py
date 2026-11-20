@@ -79,28 +79,39 @@ at the midpoint of that window.
 from __future__ import annotations
 
 import argparse
+import logging
 from pathlib import Path
 import sys
 
+# Run as a file from inside the udcomf package directory, Python would put that
+# directory first on sys.path, where udcomf.py shadows the udcomf package.
+_HERE = Path(__file__).resolve().parent
+if sys.path and Path(sys.path[0]).resolve() == _HERE:
+    sys.path[0] = str(_HERE.parent)
+
 from udbase import UDBase
+from udcomf.logs import configure as configure_logging, header, stage_logger
 from udcomf.udcomf_export import check_comfort_preflight
 from udcomf.sources import MERGED_FACETS, MERGED_STATISTICS
 from udcomf.udcomf_io import merge_facet_outputs, merge_statistics_outputs
 
+PIPELINE_ERRORS = (
+    FileNotFoundError, FileExistsError, OSError, RuntimeError, TypeError, ValueError,
+)
 
-def build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(
-        description=(
-            "Generate height-specific atmosphere/radiation files and exchange "
-            "input files for the comfort indices from existing uDALES outputs."
-        )
-    )
+
+def add_case_arguments(parser: argparse.ArgumentParser) -> None:
+    """The case and the receptor heights; shared with the one-step wrapper."""
     parser.add_argument("--case-dir", type=Path, required=True,
                         help="uDALES case directory; all outputs are written here.")
     parser.add_argument(
         "--heights", type=float, nargs="+", required=True,
         help="Receptor heights (m) to process; each must be saved by the simulation.",
     )
+
+
+def add_arguments(parser: argparse.ArgumentParser) -> None:
+    """Options of the uDALES-to-exchange step; shared with the one-step wrapper."""
     parser.add_argument(
         "--statistics-source", choices=("stats_t", "stats_tkslice"), default="stats_t",
         help=(
@@ -118,54 +129,70 @@ def build_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument(
         "--skip-atmosphere", action="store_true",
-        help="Reuse existing pedestrian_atmosphere files from the output directory.",
+        help="Reuse existing pedestrian_atmosphere files of the case.",
     )
     parser.add_argument(
         "--skip-radiation", action="store_true",
-        help="Reuse existing pedestrian_shortwave/longwave files from the output directory.",
+        help="Reuse existing pedestrian_shortwave/longwave files of the case.",
     )
-    parser.add_argument("--tile-size", type=int, default=256)
-    parser.add_argument("--n-mu", type=int, default=8)
-    parser.add_argument("--n-azimuth", type=int, default=32)
+    parser.add_argument("--tile-size", type=int, default=256,
+                        help="Receptors traced per radiation tile (checkpoint unit); default: 256.")
+    parser.add_argument("--n-mu", type=int, default=8,
+                        help="Zenith quadrature points of the receptor radiation; default: 8.")
+    parser.add_argument("--n-azimuth", type=int, default=32,
+                        help="Azimuth quadrature points of the receptor radiation; default: 32.")
     parser.add_argument(
         "--max-gap", type=float, default=None,
         help="Maximum accepted source interval in seconds for a complete radiation window.",
     )
     parser.add_argument(
         "--checkpoint-root", type=Path, default=None,
-        help="Radiation checkpoint directory; default: case checkpoint directory.",
+        help="Radiation checkpoint directory; default: inside the case.",
     )
     parser.add_argument(
         "--no-resume", action="store_true",
         help="Do not reuse matching radiation tile checkpoints.",
     )
+
+
+def add_overwrite_argument(parser: argparse.ArgumentParser) -> None:
     parser.add_argument(
         "--overwrite", action="store_true",
-        help="Replace generated atmospheric, radiation, and exchange files.",
+        help="Replace generated atmosphere, radiation and exchange files.",
     )
+
+
+def build_parser() -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(
+        description=(
+            "Generate height-specific atmosphere/radiation files and exchange "
+            "input files for the comfort indices from existing uDALES outputs."
+        )
+    )
+    add_case_arguments(parser)
+    add_arguments(parser)
+    add_overwrite_argument(parser)
     return parser
 
 
-def _print_preflight(report) -> None:
-    print("Comfort preflight:")
-    print(
-        "  receptor heights: "
-        + ", ".join(f"{value:g} m" for value in report.receptor_heights_m)
-    )
+def log_preflight(report) -> None:
+    log = stage_logger("preflight")
+    header("preflight", "checking namoptions and gathered files of %s", report.case_dir)
+    log.info("receptor heights: %s", ", ".join(f"{value:g} m" for value in report.receptor_heights_m))
     schedule = report.schedule
-    print(
-        f"  statistics      : tstatsdump={schedule.tstatsdump:g} s, "
-        f"tstatsgap={schedule.tstatsgap:g} s, tstatstart={schedule.tstatstart:g} s, "
-        f"first dump at {report.first_dump_s:g} s"
-    )
+    log.info("statistics: tstatsdump=%g s, tstatsgap=%g s, tstatstart=%g s, first dump at %g s",
+             schedule.tstatsdump, schedule.tstatsgap, schedule.tstatstart, report.first_dump_s)
     for caution in report.cautions:
-        print(f"  CAUTION: {caution}")
+        log.warning("CAUTION: %s", caution)
     for blocker in report.blockers:
-        print(f"  BLOCKER: {blocker}")
+        log.error("BLOCKER: %s", blocker)
 
 
-def main(argv: list[str] | None = None) -> int:
-    args = build_parser().parse_args(argv)
+def run(args: argparse.Namespace) -> dict[float, Path]:
+    """Run preflight, merges, atmosphere, radiation and exchange; return the exchange files.
+
+    Raises one of ``PIPELINE_ERRORS`` on any failure.
+    """
     case = args.case_dir.expanduser().resolve()
     checkpoint_root = (
         None if args.checkpoint_root is None
@@ -176,80 +203,75 @@ def main(argv: list[str] | None = None) -> int:
     gathered_source = args.statistics_source
     statistics_source = MERGED_STATISTICS if data_sources else gathered_source
     facet_source = MERGED_FACETS if data_sources else "facEB"
+    log = stage_logger("pipeline")
 
-    try:
-        report = check_comfort_preflight(case)
-        _print_preflight(report)
-        if not report.ready:
-            raise ValueError("Comfort preflight has blockers; no postprocessing was started")
+    report = check_comfort_preflight(case)
+    log_preflight(report)
+    if not report.ready:
+        raise ValueError("Comfort preflight has blockers; no postprocessing was started")
 
-        if data_sources:
-            for path in data_sources:
-                if not path.is_dir():
-                    raise ValueError(f"--data-source must be a case directory: {path}")
-            merged = merge_facet_outputs(case, data_sources)
-            print(
-                f"Merged facet t and LWout of {len(merged.source_cases)} segments into "
-                f"{merged.path.name} ({merged.record_count} records)"
-            )
-            merged = merge_statistics_outputs(case, data_sources, source=gathered_source)
-            print(
-                f"Merged the comfort subset of {len(merged.source_cases)} {gathered_source} "
-                f"segments into {merged.path.name} ({merged.record_count} records, scalar levels "
-                f"{list(k + 1 for k in merged.selected_levels)})"
-            )
-            print(f"This run reads {statistics_source} and {facet_source}")
+    if data_sources:
+        header("merge", "merging %d warm-start segment(s) into %s", len(data_sources), case.name)
+        for path in data_sources:
+            if not path.is_dir():
+                raise ValueError(f"--data-source must be a case directory: {path}")
+        merge_facet_outputs(case, data_sources)
+        merge_statistics_outputs(case, data_sources, source=gathered_source)
+        stage_logger("merge").info("this run reads %s and %s", statistics_source, facet_source)
 
-        sim = UDBase(case.name, case, load_geometry=not args.skip_radiation)
-        times = sim.comf.statistics_times(statistics_source)
-        schedule = sim.comf.schedule
-        irregular = schedule.off_schedule(times)
-        print(
-            f"Statistics records: {times.size} from t = {times[0]:g} s to {times[-1]:g} s, "
-            f"each a {schedule.tstatsdump:g} s mean"
+    sim = UDBase(case.name, case, load_geometry=not args.skip_radiation)
+    times = sim.comf.statistics_times(statistics_source)
+    schedule = sim.comf.schedule
+    irregular = schedule.off_schedule(times)
+    log.info("statistics records: %d from t = %g s to %g s, each a %g s mean (%s)",
+             times.size, times[0], times[-1], schedule.tstatsdump, statistics_source)
+    if irregular.any():
+        log.info("%d record(s) are not on the tstatstart + n*(tstatsdump + tstatsgap) schedule, "
+                 "as happens after a warm start inside a window; they remain full-length means",
+                 int(irregular.sum()))
+
+    header("atmosphere", "%s: receptor-level means at %s",
+           "reusing existing files" if args.skip_atmosphere else "writing",
+           ", ".join(f"{h:g} m" for h in heights))
+    if not args.skip_atmosphere:
+        sim.comf.atmosphere.write_heights(
+            source=statistics_source, heights=heights, overwrite=args.overwrite,
         )
-        if irregular.any():
-            print(
-                f"  NOTE: {int(irregular.sum())} record(s) are not on the "
-                "tstatstart + n*(tstatsdump + tstatsgap) schedule, as happens after a warm "
-                "start inside a window; they remain full-length means"
-            )
-        if not args.skip_atmosphere:
-            outputs = sim.comf.atmosphere.write_heights(
-                source=statistics_source,
-                heights=heights,
-                overwrite=args.overwrite,
-            )
-            for height, path in outputs.items():
-                print(f"Atmosphere {height:g} m: {path}")
 
-        if not args.skip_radiation:
-            outputs = sim.comf.radiation.write_heights(
-                times,
-                duration=schedule.tstatsdump,
-                heights=heights,
-                checkpoint_root=checkpoint_root,
-                tile_size=args.tile_size,
-                n_mu=args.n_mu,
-                n_azimuth=args.n_azimuth,
-                max_gap=args.max_gap,
-                resume=not args.no_resume,
-                overwrite=args.overwrite,
-                facet_source=facet_source,
-            )
-            for height, kinds in outputs.items():
-                for kind, path in kinds.items():
-                    print(f"{kind.capitalize()} {height:g} m: {path}")
+    header("radiation", "%s: receptor shortwave and longwave planes",
+           "reusing existing files" if args.skip_radiation else "tracing")
+    if not args.skip_radiation:
+        sim.comf.radiation.write_heights(
+            times,
+            duration=schedule.tstatsdump,
+            heights=heights,
+            checkpoint_root=checkpoint_root,
+            tile_size=args.tile_size,
+            n_mu=args.n_mu,
+            n_azimuth=args.n_azimuth,
+            max_gap=args.max_gap,
+            resume=not args.no_resume,
+            overwrite=args.overwrite,
+            facet_source=facet_source,
+        )
 
-        exchange = sim.comf.export_exchange(heights=heights, overwrite=args.overwrite)
-        print("Exchange files written to:")
-        for height, path in exchange.items():
-            print(f"  {height:g} m: {path}")
-    except (
-        FileNotFoundError, FileExistsError, OSError, RuntimeError, TypeError, ValueError,
-    ) as exc:
-        print(f"ERROR: {exc}", file=sys.stderr)
+    header("exchange", "assembling exchange files")
+    exchange = sim.comf.export_exchange(heights=heights, overwrite=args.overwrite)
+    return exchange
+
+
+def main(argv: list[str] | None = None) -> int:
+    args = build_parser().parse_args(argv)
+    configure_logging(None)
+    log = stage_logger("pipeline")
+    try:
+        exchange = run(args)
+    except PIPELINE_ERRORS as exc:
+        log.error("%s", exc)
         return 1
+    header("pipeline", "exchange files written to:")
+    for height, path in exchange.items():
+        log.info("%g m: %s", height, path)
     return 0
 
 

@@ -22,6 +22,9 @@ from udconfig import parse_namoptions
 from udprep.solar import solar_position, solar_position_backend
 from .heights import bracketing_levels, configured_receptor_heights, height_tag, validate_heights
 from .schedule import StatsSchedule, read_stats_schedule, validate_statistics_times
+from .logs import stage_logger
+
+log = stage_logger("exchange")
 
 
 @dataclass(frozen=True)
@@ -385,6 +388,7 @@ def write_exchange_heights(sim, *, heights: tuple[float, ...] | None = None,
                 if path.exists() and not overwrite:
                     raise FileExistsError(f"Exchange output appeared during export: {path}")
                 os.replace(temporary, path)
+                log.info("%g m: %d record(s) -> %s", height, len(times), path.name)
             finally:
                 temporary.unlink(missing_ok=True)
     return paths

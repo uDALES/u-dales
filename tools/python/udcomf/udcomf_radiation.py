@@ -17,7 +17,10 @@ import numpy as np
 
 from udprep.solar import nsun_from_angles
 from .heights import configured_receptor_heights, height_tag, validate_heights
+from .logs import stage_logger
 from .sources import FACET_SOURCES, load_facets
+
+log = stage_logger("radiation")
 
 if TYPE_CHECKING:
     from udbase import UDBase
@@ -947,6 +950,12 @@ class UDComfRadiation:
                 time_index for time_index in range(len(windows))
                 if checkpoints.read(time_index, tile_index, (length, len(names))) is None
             ])
+        n_tiles = len(missing)
+        todo = [tile_index for tile_index, times_missing in enumerate(missing) if times_missing]
+        log.info("%g m %s: %d receptor(s) in %d tile(s), %d record(s), %d incomplete window(s); "
+                 "%d tile(s) to trace, %d resumed from checkpoints",
+                 float(grid.z.flat[0]), kind, len(indices), n_tiles, len(windows),
+                 sum(not window.complete for window in windows), len(todo), n_tiles - len(todo))
         if any(missing):
             complete_windows = [
                 windows[time_index] for tile in missing for time_index in tile
@@ -984,10 +993,14 @@ class UDComfRadiation:
                     checkpoints.write_counts(tile_index, ray_counts)
                 for time_index, tile_values in values.items():
                     checkpoints.write(time_index, tile_index, tile_values)
-        return consolidate_radiation(
+                done = todo.index(tile_index) + 1
+                log.info("%s tile %d/%d done (%d %%)", kind, done, len(todo), round(100 * done / len(todo)))
+        result = consolidate_radiation(
             output, checkpoints, grid, indices, names, windows, tile_size,
             duration=duration, overwrite=overwrite,
         )
+        log.info("%g m %s -> %s", float(grid.z.flat[0]), kind, result.name)
+        return result
 
     def write_heights(
         self, times: np.ndarray, *,

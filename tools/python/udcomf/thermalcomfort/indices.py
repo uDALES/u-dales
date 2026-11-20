@@ -11,11 +11,14 @@ import tempfile
 from netCDF4 import Dataset
 import numpy as np
 
+from ..logs import stage_logger
 from .parameters import ComfortParameters
 from .physics import (
     EPSILON, mean_radiant_temperature, saturation_pressure_pa, sensor_temperatures,
     vapour_pressure_pa, wet_bulb_globe_temperature,
 )
+
+log = stage_logger("indices")
 
 
 _ATMOSPHERE = {"ta": "K", "pabs": "Pa", "qv": "kg kg-1",
@@ -465,6 +468,9 @@ def calculate_indices(input_path: Path, *, output_path: Path | None = None,
             if output.exists() and not overwrite:
                 raise FileExistsError(f"Comfort output appeared during calculation: {output}")
             os.replace(temporary, output)
+            flagged = {label: n for label, n in counts.items() if n}
+            log.info("%s -> %s (%s; %d record(s); flagged cells: %s)", source_path.name, output.name,
+                     " ".join(selected), nt, flagged or "none")
         finally:
             temporary.unlink(missing_ok=True)
     return output

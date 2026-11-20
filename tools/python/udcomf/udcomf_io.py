@@ -15,8 +15,11 @@ import numpy as np
 
 from udconfig import parse_namoptions
 from .heights import bracketing_levels, configured_receptor_heights
+from .logs import stage_logger
 from .schedule import read_stats_schedule
 from .sources import MERGED_FACETS, MERGED_STATISTICS
+
+log = stage_logger("merge")
 
 
 @dataclass(frozen=True)
@@ -168,6 +171,10 @@ def merge_facet_outputs(
     finally:
         temp_path.unlink(missing_ok=True)
 
+    log.info("facets: %d segment(s) %s -> %s (%d records, gaps %s s)",
+             len(segments), list(cases), output.name,
+             sum(len(segment.times) for segment in segments),
+             ", ".join(f"{gap:g}" for gap in gaps) or "none")
     return FacetMergeResult(
         path=output,
         source_cases=cases,
@@ -387,6 +394,10 @@ def merge_statistics_outputs(
     finally:
         temp_path.unlink(missing_ok=True)
 
+    log.info("statistics (%s): %d segment(s) %s -> %s (%d records, scalar levels %s, gaps %s s)",
+             source, len(segments), [s.case for s in segments], output.name,
+             sum(segment.times.size for segment in segments), [k + 1 for k in levels],
+             ", ".join(f"{gap:g}" for gap in gaps) or "none")
     return StatisticsMergeResult(
         path=output,
         source_cases=tuple(segment.case for segment in segments),

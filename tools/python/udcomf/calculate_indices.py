@@ -50,9 +50,21 @@ import argparse
 from pathlib import Path
 import sys
 
+# Run as a file from inside the udcomf package directory, Python would put that
+# directory first on sys.path, where udcomf.py shadows the udcomf package.
+_HERE = Path(__file__).resolve().parent
+if sys.path and Path(sys.path[0]).resolve() == _HERE:
+    sys.path[0] = str(_HERE.parent)
+
+from udcomf.logs import configure as configure_logging, header, stage_logger
 from udcomf.thermalcomfort import (
     DEFAULT_PARAMETERS_PATH, INDEX_NAMES, ComfortParameters, calculate_indices,
     selected_indices,
+)
+
+INDEX_ERRORS = (
+    FileNotFoundError, FileExistsError, ImportError, OSError, RuntimeError, TypeError,
+    ValueError,
 )
 
 
@@ -70,14 +82,8 @@ def parse_indices(text: str) -> tuple[str, ...]:
         raise argparse.ArgumentTypeError(str(exc)) from exc
 
 
-def build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(
-        description=(
-            "Calculate native-grid MRT, PET, UTCI and WBGT from one or more "
-            "thermal-comfort exchange files."
-        )
-    )
-    parser.add_argument("exchange_files", type=Path, nargs="+")
+def add_arguments(parser: argparse.ArgumentParser) -> None:
+    """Options of the index step; shared with the one-step wrapper."""
     parser.add_argument(
         "--indices", type=parse_indices, default=INDEX_NAMES, metavar="LIST",
         help=(
@@ -89,37 +95,57 @@ def build_parser() -> argparse.ArgumentParser:
         "--parameters", type=Path, default=None,
         help=f"Complete comfort-parameter JSON; default: {DEFAULT_PARAMETERS_PATH.name}.",
     )
-    parser.add_argument("--overwrite", action="store_true")
+
+
+def build_parser() -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(
+        description=(
+            "Calculate native-grid MRT, PET, UTCI and WBGT from one or more "
+            "thermal-comfort exchange files."
+        )
+    )
+    parser.add_argument("exchange_files", type=Path, nargs="+")
+    add_arguments(parser)
+    parser.add_argument("--overwrite", action="store_true",
+                        help="Replace existing index files.")
     return parser
+
+
+def run(exchange_files, *, indices, parameters: Path | None, overwrite: bool) -> list[Path]:
+    """Calculate the selected indices for every exchange file; return the index files.
+
+    Raises one of ``INDEX_ERRORS`` on any failure.
+    """
+    header("indices", "calculating %s for %d exchange file(s) with parameters %s",
+           ", ".join(indices), len(exchange_files),
+           DEFAULT_PARAMETERS_PATH.name if parameters is None else parameters)
+    config = load_comfort_parameters(parameters)
+    seen: set[Path] = set()
+    results: list[Path] = []
+    for source in exchange_files:
+        source = Path(source).expanduser().resolve()
+        if source in seen:
+            raise ValueError(f"Duplicate exchange input: {source}")
+        seen.add(source)
+        results.append(calculate_indices(
+            source, parameters=config, indices=indices, overwrite=overwrite,
+        ))
+    return results
 
 
 def main(argv: list[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
-
+    configure_logging(None)
+    log = stage_logger("pipeline")
     try:
-        parameters = load_comfort_parameters(args.parameters)
-        seen: set[Path] = set()
-        results: list[Path] = []
-        for source in args.exchange_files:
-            source = source.expanduser().resolve()
-            if source in seen:
-                raise ValueError(f"Duplicate exchange input: {source}")
-            seen.add(source)
-            results.append(calculate_indices(
-                source,
-                parameters=parameters,
-                indices=args.indices,
-                overwrite=args.overwrite,
-            ))
-        print(f"Thermal-comfort indices ({', '.join(args.indices)}) written to:")
-        for result in results:
-            print(f"  {result}")
-    except (
-        FileNotFoundError, FileExistsError, ImportError, OSError,
-        RuntimeError, TypeError, ValueError,
-    ) as exc:
-        print(f"ERROR: {exc}", file=sys.stderr)
+        results = run(args.exchange_files, indices=args.indices,
+                      parameters=args.parameters, overwrite=args.overwrite)
+    except INDEX_ERRORS as exc:
+        log.error("%s", exc)
         return 1
+    header("pipeline", "thermal-comfort indices (%s) written to:", ", ".join(args.indices))
+    for result in results:
+        log.info("%s", result)
     return 0
 
 

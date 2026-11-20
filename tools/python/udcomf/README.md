@@ -1,8 +1,9 @@
 # Thermal-comfort postprocessing
 
-Runnable command-line examples for the complete uDALES-to-exchange workflow
-and the model-neutral MRT/PET/UTCI/WBGT calculation are in
-[`tools/python/examples/thermal_comfort`](../examples/thermal_comfort/README.md).
+The one-command user route (`tools/ud_run_thermal_comfort.sh`, which runs
+`udcomf/ud_run_thermal_comfort.py`) and the two step scripts are described in
+[`WORKFLOW.md`](WORKFLOW.md) beside this file; a short user guide and a
+tutorial notebook are in `tools/python/examples/thermal_comfort/`.
 
 This document is also the technical handoff for the implementation. It records
 the package boundaries, solver and preprocessing changes, physical equations,
@@ -131,7 +132,9 @@ alter the physics.
 | `udcomf/thermalcomfort/physics.py` | MRT radiation equation and globe/wick heat- and mass-balance physics. |
 | `udcomf/thermalcomfort/indices.py` | Strict exchange validation, record-by-record MRT/PET/UTCI/WBGT calculation, flags, metadata, and atomic final output. |
 | `udcomf/VALIDATION.md` | Verification matrix, fixed references, tolerances, scientific scope, and remaining physical validation. |
-| `examples/thermal_comfort/` | Runnable uDALES-specific and model-neutral command-line workflows. |
+| `udcomf/ud_run_thermal_comfort.py` | One-command wrapper: preflight, warm-start merge, atmosphere, radiation, exchange and indices, with one log of the chain; launched by `tools/ud_run_thermal_comfort.sh`. |
+| `udcomf/udales_to_comfort.py`, `udcomf/calculate_indices.py` | The two steps the wrapper calls; runnable on their own; see `WORKFLOW.md`. |
+| `udcomf/logs.py` | Stage loggers (`preflight`, `merge`, `atmosphere`, `radiation`, `exchange`, `indices`) and the indented log format; configured only by the wrappers. |
 
 `udnetcdf.py` is not a second uDALES case abstraction. It is the low-level
 load-and-close helper that `UDBase` itself uses. Selective `time_index` and
@@ -667,7 +670,7 @@ preflight and merge interfaces derive `namoptions.<expnr>` from that name.
 PY=tools/python/.venv/bin/python
 CASE=/path/to/experiments/1
 
-$PY tools/python/examples/thermal_comfort/udales_to_comfort.py \
+$PY tools/python/udcomf/udales_to_comfort.py \
   --case-dir "$CASE" \
   --heights 1.1 1.5 \
   --statistics-source stats_tkslice \
@@ -679,7 +682,7 @@ $PY tools/python/examples/thermal_comfort/udales_to_comfort.py \
 5. Apply the index calculation to one or several exchange files:
 
 ```bash
-$PY tools/python/examples/thermal_comfort/calculate_indices.py \
+$PY tools/python/udcomf/calculate_indices.py \
   "$CASE/thermal_comfort_inputs.h1p1.1.nc"
 ```
 
@@ -688,7 +691,7 @@ plane files already exist and match the requested case, heights, records, and
 settings. Existing outputs are not replaced without explicit `--overwrite`.
 Radiation checkpoint resume is enabled by default. The full command set,
 custom person parameters, warm-start example, and `nohup` command are in the
-runnable example README linked at the top of this document.
+`WORKFLOW.md` beside this document.
 
 ## Performance and operational limits
 

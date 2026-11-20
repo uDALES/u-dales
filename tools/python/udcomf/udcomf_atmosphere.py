@@ -13,6 +13,9 @@ import numpy as np
 from .heights import bracketing_levels, configured_receptor_heights, height_tag, validate_heights
 from .schedule import read_stats_schedule, validate_statistics_times
 from .sources import STATISTICS_SOURCES, load_statistics
+from .logs import stage_logger
+
+log = stage_logger("atmosphere")
 
 if TYPE_CHECKING:
     from udbase import UDBase
@@ -159,6 +162,7 @@ class UDComfAtmosphere:
             datasets.clear()
             for height, path in paths.items():
                 temporary[height].replace(path)
+                log.info("%g m: %d record(s) from %s -> %s", height, record_times.size, source, path.name)
         finally:
             for ds in datasets.values():
                 ds.close()
