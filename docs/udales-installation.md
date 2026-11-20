@@ -128,6 +128,17 @@ popd
 
 You can compile in parallel mode by passing Make the `j` flag followed by the number of CPU cores to use. For example, to compile with 2 cores do `make -j2`.
 
+After a successful build, the executable is at `u-dales/build/<debug|release>/u-dales`, matching the build type you asked for, and the last line of the build log prints its full path. The wrapper scripts use `DA_BUILD`, so point `DA_BUILD` at that executable.
+
+Adding `u-dales/bin` to your `PATH` is optional. It holds the helper commands (`ud_run`, `ud_nml2json`, ...) but not the solver, which stays in the build tree. To run them by name, you can add:
+
+```sh
+export UD_TOPDIR=$(pwd)/u-dales
+export PATH="$UD_TOPDIR/bin:$PATH"
+```
+
+`UDALES` is not required by the current wrapper scripts or tests.
+
 ## Build on HPCs
 
 On the supported HPC systems, `tools/build_executable.sh` loads the right modules for you. Run it from the u-dales directory, with the system name and `debug` or `release`:

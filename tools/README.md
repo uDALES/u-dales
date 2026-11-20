@@ -34,6 +34,7 @@ descriptive with a numeric suffix (`benchmark-standard-900`).
 | run on ICL HPC (PBS) | `hpc_execute.sh <case_path>` | writes a PBS job from config.sh and submits it |
 | run on ARCHER2 (Slurm) | `archer_execute.sh <case_path>` | Slurm equivalent |
 | merge outputs | `gather_outputs.sh <exp_dir>` (+ `hpc_gather.sh`, `archer_gather.sh`) | merges per-rank NetCDF via NCO (`nco_concatenate_field*.sh`) |
+| thermal comfort | `ud_run_thermal_comfort.sh <case_path> [l\|f\|c] [common\|icl\|ecmwf] -- --heights H ...` | MRT/PET/UTCI/WBGT maps from a gathered case in one command (background, foreground or scheduler job); options after `--` go to `python/udcomf/ud_run_thermal_comfort.py`; resources via `COMFORT_NCPU`/`COMFORT_MEM`/`COMFORT_WALLTIME` in `config.sh`; guide in `python/examples/thermal_comfort/` |
 | join two runs | `append_outputs.sh <exp1_dir> <exp2_dir>` | concatenate outputs across a restart |
 | driver/inflow | `generate_synthetic_inflow.sh`, `link_driver_files.sh` | precursor/driver-simulation workflows |
 

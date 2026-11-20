@@ -412,7 +412,7 @@ If `isolar = 1`, then the solar radiation is determined by:
 - `I`: direct normal irradiance (DNI) (W/m^2). Default: 800.
 - `Dsky`: diffuse sky irradiance (W/m^2). Default: 418.8041. (Dsk in uDALES v1).
 
-If `isolar = 2`, then the solar position is calculated according to the NOAA solar position algorithm, and `I` and `Dsky` are determined by the ASHRAE clear-sky model, and the spacetime location is specified by:
+If `isolar = 2`, then the solar position is calculated with the NREL Solar Position Algorithm (SPA; Reda and Andreas, 2004, *Solar Energy* 76, 577-589), ported from the MATLAB implementation in `tools/SEB/SPA`, and `I` and `Dsky` are determined by the ASHRAE clear-sky model. Setting `isolarpos = 2` uses `pvlib.solarposition.get_solarposition` instead of the SPA port; the thermal-comfort postprocessing reads the same option, so both stages always use one algorithm. The spacetime location is specified by:
 
 - `year`, e.g. 2023.
 - `month`, where e.g. 6 corresponds to June.
@@ -433,3 +433,5 @@ If `isolar = 3`, then the parameters are specified in a file containing weather 
 - `hour`. Default: 0.
 
 The solar parameters can also be varied in time using the `ltimedepsw` switch. This occurs on a timescale `dtSP`, which is equal to `dtEB` by default.
+
+Shortwave preprocessing also saves `shortwave_forcing.<expnr>.nc` in the case directory. Its `time` coordinate is seconds since `simulation_start`; `dni` is direct **normal** irradiance and `dsky` is diffuse **horizontal** sky irradiance, both in W/m^2. The file also records solar zenith and the local azimuth used by the facet calculation. The HARMONIE `ssrd` converter includes `ghi` (global horizontal irradiance); its `dni` and `dsky` are derived from `ghi` with the Erbs split, not separate native HARMONIE fields. The archive stores atmospheric inputs before shading and facet reflections and is for postprocessing, not an additional uDALES solver input.

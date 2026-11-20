@@ -8,13 +8,17 @@ UDBase so file IO is separable from case state; UDBase keeps a thin wrapper.
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Optional, Union
+import operator
+from typing import Optional, Sequence, Union
 
 import numpy as np
 import xarray as xr
 
 
-def load_ncdata(filename: Path, var: Optional[str]) -> Union[xr.Dataset, np.ndarray]:
+def load_ncdata(
+    filename: Path, var: Optional[str], *, time_index: Optional[int] = None,
+    vertical_indices: Optional[Sequence[int]] = None,
+) -> Union[xr.Dataset, np.ndarray]:
     """
     Helper method to load NetCDF data using xarray.
     
@@ -39,6 +43,11 @@ def load_ncdata(filename: Path, var: Optional[str]) -> Union[xr.Dataset, np.ndar
         Path to NetCDF file
     var : str, optional
         Variable to extract. If None, displays available variables.
+    time_index : int, optional
+        Select a single record along ``time`` before loading the variable.
+    vertical_indices : sequence of int, optional
+        Select zero-based ``zt`` levels before loading; avoids reading a full
+        3-D statistics record when only a few planes are needed.
     
     Returns
     -------
@@ -50,7 +59,28 @@ def load_ncdata(filename: Path, var: Optional[str]) -> Union[xr.Dataset, np.ndar
 
     # Open inside a context manager so the file handle is always released,
     # rather than kept alive implicitly by the returned object.
+    if (time_index is not None or vertical_indices is not None) and var is None:
+        raise ValueError("time_index and vertical_indices require a variable name")
     with xr.open_dataset(filename) as ds:
+        if time_index is not None or vertical_indices is not None:
+            if var not in ds:
+                raise KeyError(f"Variable '{var}' not found in {filename.name}")
+            data_var = ds[var]
+            if time_index is not None:
+                if "time" not in data_var.dims:
+                    raise ValueError(f"Variable '{var}' has no time dimension")
+                index = operator.index(time_index)
+                if not 0 <= index < ds.sizes["time"]:
+                    raise IndexError(f"time_index {index} outside 0..{ds.sizes['time'] - 1}")
+                data_var = data_var.isel(time=index)
+            if vertical_indices is not None:
+                if "zt" not in data_var.dims:
+                    raise ValueError(f"Variable '{var}' has no zt dimension")
+                levels = [operator.index(value) for value in vertical_indices]
+                if not levels or any(index < 0 or index >= ds.sizes["zt"] for index in levels):
+                    raise IndexError("vertical_indices lie outside the zt dimension")
+                data_var = data_var.isel(zt=levels)
+            return data_var.transpose(*reversed(data_var.dims)).values
         # Transpose all data variables to match MATLAB's column-major
         # convention (reverse dimension order for variables with 2+ dims).
         transposed_vars = {}

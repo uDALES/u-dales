@@ -17,10 +17,12 @@ Set up the paths and variables for running the simulation, for example with the 
 # top-level project directory.
 
 export DA_TOOLSDIR=$(pwd)/u-dales/tools # Directory of scripts
-export DA_BUILD=$(pwd)/u-dales/build/release/u-dales # Build file
+export DA_BUILD=$(pwd)/u-dales/build/release/u-dales # Executable
 export NCPU=2 # Number of CPUs to use for a simulation
 export DA_WORKDIR=$(pwd)/outputs # Output top-level directory
 ```
+
+The build prints the full path of the executable it created, so you can copy it straight from the build log into `DA_BUILD`.
 
 <!-- omit in toc -->
 ## Run

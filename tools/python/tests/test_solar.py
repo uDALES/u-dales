@@ -57,5 +57,22 @@ class TestSolar(unittest.TestCase):
         self.assertLess(max(i_diff), 100.0)
         self.assertLess(max(dsky_diff), 100.0)
 
+    def test_solar_position_entry_point_matches_backends_and_maps_isolarpos(self):
+        when = datetime(2023, 8, 21, 12, 0, 0)
+        zen_py, az_py = solar.solar_position(when, 2.33, 48.86, 0.0, 35.0, backend="python")
+        spa = solar.solar_position_python(when, 2.33, 48.86, 0.0, 35.0)
+        self.assertEqual((zen_py, az_py), (float(spa["zenith"]), float(spa["azimuth"])))
+        zen_pv, az_pv = solar.solar_position(when, 2.33, 48.86, 0.0, 35.0, backend="pvlib")
+        self.assertLess(_angle_diff_deg(zen_py, zen_pv), 0.1)
+        self.assertLess(_angle_diff_deg(az_py, az_pv), 0.1)
+        self.assertNotEqual((zen_py, az_py), (zen_pv, az_pv))
+        self.assertEqual(solar.solar_position_backend(1), "python")
+        self.assertEqual(solar.solar_position_backend(2), "pvlib")
+        with self.assertRaisesRegex(ValueError, "isolarpos"):
+            solar.solar_position_backend(3)
+        with self.assertRaises(ValueError):
+            solar.solar_position(when, 2.33, 48.86, 0.0, 35.0, backend="other")
+
+
 if __name__ == "__main__":
     unittest.main()

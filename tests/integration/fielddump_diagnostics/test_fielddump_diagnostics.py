@@ -4,9 +4,10 @@
 The divergence of the corrected velocity (``di``) and its terms (``ux``,
 ``vy``, ``wz``), and the right-hand side of the Poisson equation (``rs``)
 and its terms (``du``, ``dv``, ``dw``), are not stored by the model.  They
-are rebuilt from ``u0, v0, w0`` and from the predicted velocities
-``pup, pvp, pwp`` when fielddump writes them (``modfielddump.compute_derived``
-and ``modpois.poisson_rhs_diagnostic``).  This test runs the small case 300
+are rebuilt from ``um, vm, wm`` and from the predicted velocities
+``pup, pvp, pwp`` when the instantaneous field output writes them
+(``instant.compute_derived`` in out_instants.f90 and
+``modpois.poisson_rhs_diagnostic``).  This test runs the small case 300
 on a 2x2 decomposition with every such code requested and checks that
 
 * each derivative field equals the finite difference of the field it is
@@ -117,16 +118,16 @@ def _write_case(run_dir: Path, with_dump: bool) -> None:
         text, n = re.subn(rf"(?m)^(\s*{key}\s*=\s*).*$", lambda m: m.group(1) + value, text)
         if n != 1:
             raise RuntimeError(f"expected exactly one '{key}' setting in namoptions.{CASE_ID}, found {n}")
-    for key in ("tfielddump", "fieldvars"):
+    for key in ("tinstantdump", "fieldvars"):
         if re.search(rf"(?m)^\s*{key}\s*=", text):
             raise RuntimeError(f"namoptions.{CASE_ID} already sets '{key}'; the test expects to add it")
     text, n = re.subn(
         r"(?m)^(\s*lfielddump\s*=.*)$",
-        lambda m: m.group(1) + f"\ntfielddump   = {TFIELDDUMP:g}\nfieldvars    = '{FIELDVARS}'",
+        lambda m: m.group(1) + f"\ntinstantdump = {TFIELDDUMP:g}\nfieldvars    = '{FIELDVARS}'",
         text,
     )
     if n != 1:
-        raise RuntimeError("could not add tfielddump/fieldvars after lfielddump")
+        raise RuntimeError("could not add tinstantdump/fieldvars after lfielddump")
     path.write_text(text, encoding="utf-8")
 
 
@@ -144,7 +145,7 @@ def _read_real(run_dir: Path, key: str) -> float:
 
 
 class _Rank:
-    """One rank's fielddump, every variable as float64 (time, z, y, x)."""
+    """One x-processor column's ins_field file (y-merged), every variable as float64 (time, z, y, x)."""
 
     def __init__(self, path: Path) -> None:
         self.path = path
@@ -163,9 +164,10 @@ class _Rank:
 
 
 def _ranks(run_dir: Path) -> List[_Rank]:
-    files = sorted(run_dir.glob(f"fielddump.*.{CASE_ID}.nc"))
-    if len(files) != NPROCX * NPROCY:
-        raise RuntimeError(f"expected {NPROCX * NPROCY} fielddump files in {run_dir}, found {len(files)}")
+    # out_instants writes one y-merged file per x-processor column
+    files = sorted(run_dir.glob(f"ins_field.*.{CASE_ID}.nc"))
+    if len(files) != NPROCX:
+        raise RuntimeError(f"expected {NPROCX} ins_field files in {run_dir}, found {len(files)}")
     return [_Rank(f) for f in files]
 
 

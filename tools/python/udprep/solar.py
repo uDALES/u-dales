@@ -1,9 +1,12 @@
 """
 Solar position + irradiance helpers (ported from tools/SEB/SPA + ASHRAE.m).
 
-Backends:
-- python: direct port of MATLAB SPA implementation.
-- pvlib: use pvlib for angles, ASHRAE for irradiance.
+Solar-position backends, selected by the namelist option ``isolarpos``:
+- python (isolarpos = 1): direct port of the NREL Solar Position Algorithm
+  (SPA; Reda and Andreas, 2004, Solar Energy 76, 577-589) from the MATLAB
+  implementation in tools/SEB/SPA.
+- pvlib (isolarpos = 2): pvlib.solarposition.get_solarposition.
+Irradiance for isolar = 2 always uses the ASHRAE clear-sky model.
 """
 from __future__ import annotations
 
@@ -1148,6 +1151,63 @@ def nsun_from_angles(zenith_deg: float, azimuth_deg: float) -> np.ndarray:
     return nsun
 
 
+SOLAR_POSITION_BACKENDS = {1: "python", 2: "pvlib"}
+
+
+def solar_position_backend(isolarpos: Any) -> str:
+    """Map the namelist option ``isolarpos`` to a solar-position backend name."""
+    try:
+        key = int(isolarpos)
+    except (TypeError, ValueError) as exc:
+        raise ValueError(f"isolarpos must be an integer, got {isolarpos!r}") from exc
+    if key not in SOLAR_POSITION_BACKENDS:
+        raise ValueError(
+            f"isolarpos must be one of {sorted(SOLAR_POSITION_BACKENDS)} "
+            f"(1: NREL SPA port, 2: pvlib), got {key}"
+        )
+    return SOLAR_POSITION_BACKENDS[key]
+
+
+def solar_position(
+    time_of_day: datetime,
+    longitude: float,
+    latitude: float,
+    timezone: float,
+    elevation: float,
+    *,
+    backend: str = "python",
+) -> Tuple[float, float]:
+    """
+    Solar zenith and azimuth (degrees; azimuth clockwise from true north).
+
+    This is the single entry point used by the preprocessing and by the
+    thermal-comfort postprocessing, so both evaluate the sun with the same
+    algorithm for a given ``isolarpos``.
+    """
+    backend_key = backend.strip().lower()
+    if backend_key == "python":
+        spa = solar_position_python(time_of_day, longitude, latitude, timezone, elevation)
+        return float(spa["zenith"]), float(spa["azimuth"])
+    if backend_key == "pvlib":
+        try:
+            import pandas as pd
+            import pvlib
+        except ImportError as exc:
+            raise DependencyError(
+                "The pvlib solar-position backend (isolarpos = 2) requires pvlib. "
+                "Install it with: pip install pvlib"
+            ) from exc
+        tzinfo = dt_timezone(timedelta(hours=timezone))
+        if time_of_day.tzinfo is None:
+            time_of_day = time_of_day.replace(tzinfo=tzinfo)
+        else:
+            time_of_day = time_of_day.astimezone(tzinfo)
+        times = pd.DatetimeIndex([time_of_day])
+        sp = pvlib.solarposition.get_solarposition(times, latitude, longitude, altitude=elevation)
+        return float(sp["zenith"].iloc[0]), float(sp["azimuth"].iloc[0])
+    raise ValueError(f"Unknown solar backend: {backend}")
+
+
 def solar_state_python(
     time_of_day: datetime,
     longitude: float,
@@ -1160,9 +1220,8 @@ def solar_state_python(
     """
     Solar state using the Python SPA port + ASHRAE clear-sky.
     """
-    spa = solar_position_python(time_of_day, longitude, latitude, timezone, elevation)
-    zenith = float(spa["zenith"])
-    azimuth = float(spa["azimuth"])
+    zenith, azimuth = solar_position(time_of_day, longitude, latitude, timezone, elevation,
+                                     backend="python")
     azimuth_local = azimuth - float(xazimuth)
     nsun = nsun_from_angles(zenith, azimuth_local)
     I, Dsky = solar_strength_ashrae(time_of_day.month, zenith)
@@ -1181,24 +1240,8 @@ def solar_state_pvlib(
     """
     Solar state using pvlib for angles + ASHRAE for irradiance.
     """
-    try:
-        import pandas as pd
-        import pvlib
-    except ImportError as exc:
-        raise DependencyError(
-            "The pvlib solar-position backend requires pvlib. Install it with: pip install pvlib"
-        ) from exc
-
-    tzinfo = dt_timezone(timedelta(hours=timezone))
-    if time_of_day.tzinfo is None:
-        time_of_day = time_of_day.replace(tzinfo=tzinfo)
-    else:
-        time_of_day = time_of_day.astimezone(tzinfo)
-
-    times = pd.DatetimeIndex([time_of_day])
-    sp = pvlib.solarposition.get_solarposition(times, latitude, longitude, altitude=elevation)
-    zenith = float(sp["zenith"].iloc[0])
-    azimuth = float(sp["azimuth"].iloc[0])
+    zenith, azimuth = solar_position(time_of_day, longitude, latitude, timezone, elevation,
+                                     backend="pvlib")
     azimuth_local = azimuth - float(xazimuth)
     nsun = nsun_from_angles(zenith, azimuth_local)
     I, Dsky = solar_strength_ashrae(time_of_day.month, zenith)
