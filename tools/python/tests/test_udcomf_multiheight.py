@@ -85,13 +85,13 @@ class TestMultiheightComfort(unittest.TestCase):
                     self.assertEqual(int(ds["valid_mask"][1, 1]), 0)
                     self.assertTrue(np.isnan(ds["ta"][1, 1, 0]))
             with self.assertRaises(FileExistsError):
-                sim.comf.atmosphere.write_heights()
+                sim.comf.atmosphere.write_heights(source="stats_tkslice")
 
     def test_missing_brackets_fail_without_outputs(self):
         with TemporaryDirectory() as tmp:
             sim = _case(Path(tmp), omit_second_level=True)
             with self.assertRaisesRegex(ValueError, "bracketing scalar levels"):
-                sim.comf.atmosphere.write_heights()
+                sim.comf.atmosphere.write_heights(source="stats_tkslice")
             self.assertFalse(list(sim.path.glob("pedestrian_atmosphere.*.nc")))
 
     def test_window_bounds_follow_tstatsdump_and_default_to_all_records(self):
@@ -101,13 +101,27 @@ class TestMultiheightComfort(unittest.TestCase):
             namelist = f90nml.read(path)
             namelist["output"]["tstatsdump"] = 600.0
             namelist.write(path, force=True)
-            paths = sim.comf.atmosphere.write_heights()
+            paths = sim.comf.atmosphere.write_heights(source="stats_tkslice")
             with Dataset(paths[1.1]) as ds:
                 np.testing.assert_allclose(ds["time"][:], [3600., 7200.])
                 np.testing.assert_allclose(ds["time_bounds"][:], [[3000., 3600.], [6600., 7200.]])
                 self.assertEqual(float(ds.averaging_window_s), 600.)
-            np.testing.assert_allclose(sim.comf.statistics_times(), [3600., 7200.])
+            np.testing.assert_allclose(sim.comf.statistics_times("stats_tkslice"), [3600., 7200.])
             self.assertEqual(sim.comf.schedule.tstatsdump, 600.)
+
+    def test_merged_statistics_source_is_read_directly(self):
+        import shutil
+        with TemporaryDirectory() as tmp:
+            sim = _case(Path(tmp))
+            reference = sim.comf.atmosphere.write_heights(source="stats_tkslice")[1.1]
+            shutil.copy(sim.path / "stats_tkslice.001.nc", sim.path / "merged_stats_tkslice.001.nc")
+            sim.load_stat_tkslice = None  # the merged file must not go through UDBase
+            merged = sim.comf.atmosphere.write_heights(
+                source="merged_stats_tkslice", output_dir=Path(tmp) / "merged")[1.1]
+            with Dataset(reference) as a, Dataset(merged) as b:
+                for name in ("ta", "qv", "ws_local", "time"):
+                    np.testing.assert_array_equal(a[name][:], b[name][:])
+            np.testing.assert_allclose(sim.comf.statistics_times("merged_stats_tkslice"), [3600., 7200.])
 
     def test_rejects_overlapping_statistics_windows(self):
         with TemporaryDirectory() as tmp:
@@ -115,7 +129,7 @@ class TestMultiheightComfort(unittest.TestCase):
             with Dataset(sim.path / "stats_tkslice.001.nc", "r+") as ds:
                 ds["time"][1] = 4000.
             with self.assertRaisesRegex(ValueError, "windows overlap"):
-                sim.comf.atmosphere.write_heights()
+                sim.comf.atmosphere.write_heights(source="stats_tkslice")
 
     def test_does_not_clip_small_negative_qv(self):
         with TemporaryDirectory() as tmp:
@@ -124,7 +138,7 @@ class TestMultiheightComfort(unittest.TestCase):
                 ds["qt"][0, :, 0, 0] = 0.001
                 ds["ql"][0, :, 0, 0] = 0.001000001
             with self.assertRaisesRegex(ValueError, "qv must be nonnegative"):
-                sim.comf.atmosphere.write_heights()
+                sim.comf.atmosphere.write_heights(source="stats_tkslice")
             self.assertFalse(list(sim.path.glob("pedestrian_atmosphere.*.nc")))
 
     def test_full_stats_selects_only_bracketing_levels(self):
@@ -174,7 +188,7 @@ class TestMultiheightComfort(unittest.TestCase):
                 dst.createVariable("receptor_height", "f4").assignValue(1.1)
                 dst.createVariable("ws_local", "f4", ("time", "yt", "xt"))[:] = src["ws_local"][:, 0]
             replacement.replace(source_path)
-            paths = sim.comf.atmosphere.write_heights()
+            paths = sim.comf.atmosphere.write_heights(source="stats_tkslice")
             self.assertEqual(set(paths), {1.1})
             with Dataset(paths[1.1]) as ds:
                 self.assertEqual(float(ds["ws_local"][0, 0, 0]), 1.0)

@@ -91,7 +91,7 @@ Python preprocessing
                 v
 uDALES simulation
   stats_t.<expnr>.nc or stats_tkslice.<expnr>.nc
-  facEB.<expnr>.nc and facT.<expnr>.nc
+  facEB.<expnr>.nc
                 |
                 v
 uDALES-specific udcomf stage
@@ -122,7 +122,8 @@ alter the physics.
 | `udcomf/udcomf.py` | Thin facade holding the shared `UDBase` state and entry points for merge and exchange export. |
 | `udcomf/heights.py` | Reads and validates scalar or multi-height namelist configuration, finds the scalar levels bracketing a height, and creates stable file tags such as `h1p1`. |
 | `udcomf/schedule.py` | Reads `tstatstart`, `tstatsdump`, `tstatsgap` and `tsample` with the solver defaults, derives window bounds and midpoints from saved record times, and checks that records do not overlap. |
-| `udcomf/udcomf_io.py` | Streams and merges warm-start `facEB`/`facT` segments, and the comfort subset of warm-start statistics into one `stats_tkslice` file, preserving real gaps and rejecting overlaps/schema changes. |
+| `udcomf/udcomf_io.py` | Merges warm-start segments into `merged_facEB` (facet `t` and `LWout` only) and `merged_stats_tkslice` (the comfort subset), preserving real gaps and rejecting overlaps/schema changes. |
+| `udcomf/sources.py` | Names of the statistics and facet files the pipeline can read (`stats_t`, `stats_tkslice`, `merged_stats_tkslice`; `facEB`, `merged_facEB`) and one loader for them. |
 | `udcomf/udcomf_atmosphere.py` | Extracts `ta`, `pabs`, `qv`, `ws_local`, and `ws_10` from gathered `stats_t` or `stats_tkslice`. |
 | `udcomf/udcomf_radiation.py` | Builds receptor grids, traces first-hit rays, and calculates six shortwave and six longwave receiving-plane irradiances plus local DNI. |
 | `udcomf/checkpoints.py` | Exact preceding-window integration, atomic per-record/per-tile radiation checkpoints, manifest validation, and NetCDF consolidation. |
@@ -282,7 +283,7 @@ unless an explicit input/output directory is passed:
 | `timedepsw.inp.<expnr>` | Facet absorbed net shortwave after uDALES preprocessing shading/reflection. |
 | `facEB.<expnr>.nc` | Facet timestamps and emitted `LWout`; also carries archived SEB output. |
 | `timedeplw.inp.<expnr>` | Downward sky-longwave forcing interpolated to facet-output times. |
-| `facT.<expnr>.nc` | Paired and preserved during warm-start merging for schema/time consistency, although receptor longwave uses archived `facEB.LWout`. |
+| `facT.<expnr>.nc` | Not read by the comfort pipeline; receptor longwave uses `facEB.LWout`. |
 
 Do not rerun preprocessing or the LES merely to duplicate a quantity already
 present in these files. Receptor radiation is calculated after the LES because
@@ -654,11 +655,12 @@ preflight and merge interfaces derive `namoptions.<expnr>` from that name.
    `timedeplw.inp.<expnr>` exist and are populated.
 2. Run uDALES with the output settings above, then gather `stats_t` or
    `stats_tkslice` and all required facet output.
-3. If the LES used warm starts under several case numbers, merge paired
-   `facEB`/`facT` files with `sim.comf.prepare_facet_outputs(...)` or the CLI's
-   repeated `--facet-source` option, and merge the comfort subset of the
-   statistics with `sim.comf.prepare_statistics_outputs(...)` or the repeated
-   `--stats-source` option. Never fill restart gaps.
+3. If the LES used warm starts under several case numbers, merge the facet
+   `t` and `LWout` records with `sim.comf.prepare_facet_outputs(...)` and the
+   comfort subset of the statistics with
+   `sim.comf.prepare_statistics_outputs(...)`; the CLI does both from the
+   repeated `--data-source` case directories and then reads the resulting
+   `merged_facEB` and `merged_stats_tkslice` files. Never fill restart gaps.
 4. Generate atmospheric planes, both radiation sets, and exchange files:
 
 ```bash
@@ -667,6 +669,7 @@ CASE=/path/to/experiments/1
 
 $PY tools/python/examples/thermal_comfort/udales_to_comfort.py \
   --case-dir "$CASE" \
+  --heights 1.1 1.5 \
   --statistics-source stats_tkslice \
   --tile-size 256 \
   --n-mu 8 \
@@ -743,36 +746,46 @@ file names, and restart details that are useful during real case processing.
 
 ## Warm-start facet outputs
 
-When a simulation was restarted under several case numbers, merge its paired
-`facEB` and `facT` outputs before loading longwave states. Pass case directories
-to `sim.comf.prepare_facet_outputs(case_paths=[...])`. If the files were copied
-into one directory, pass the `facEB.<case>.nc` paths instead; matching `facT`
-files are found beside them. The same operation is available without loading
-the full `UDBase` case:
+When a simulation was restarted under several case numbers, merge the facet
+longwave source of its `facEB` outputs before loading longwave states. Pass
+case directories (the case itself included if its own records belong to the
+chain) to `sim.comf.prepare_facet_outputs(case_paths=[...])`; copied
+`facEB.<case>.nc` paths are accepted too. Only the facet timestamps `t` and
+the emitted longwave `LWout` are merged, because they are the only facEB
+quantities any index needs; `facT` is not read by the pipeline and is not
+merged. The same operation is available without loading the full `UDBase`
+case:
 
 ```python
 from pathlib import Path
 from udcomf.udcomf_io import merge_facet_outputs
 
-case = Path("/path/to/experiments/1")
-sources = [case / f"facEB.{number}.nc" for number in (2, 3, 4)]
+case = Path("/path/to/experiments/4")
+sources = [case.parent / str(number) for number in (1, 2, 3, 4)]
 result = merge_facet_outputs(case, sources)
 ```
 
-This writes `facEB.1.nc` and `facT.1.nc` without changing the sources.
+This writes `merged_facEB.4.nc` without changing the sources. Pass
+`facet_source="merged_facEB"` to `sim.comf.radiation.write_heights(...)` or
+`load_longwave_state(...)` to read it instead of `facEB`.
 
 ## Warm-start statistics
 
-The atmospheric stage reads one gathered statistics file. For a chain of warm
+The atmospheric stage reads one statistics file. For a chain of warm
 starts, merge only what the comfort pipeline needs with
 `sim.comf.prepare_statistics_outputs(case_paths=[...])` or
-`merge_statistics_outputs(case, sources)`. Each source is a case directory
-(its gathered `stats_tkslice.<case>.nc`, or `stats_t.<case>.nc` if that is
-all it has) or such a file. The merge keeps `tha`, `pabs`, `qt` and `ql` at the
-scalar levels bracketing the destination's configured receptor heights, plus
-`ws_local`, `ws_10` and the coordinates, and writes them record by record to
-`stats_tkslice.<destination>.nc`. Full 3-D `stats_t` chains are never
-concatenated whole.
+`merge_statistics_outputs(case, sources, source=...)`. `source` names the
+gathered file read from every segment, `stats_t` (default) or
+`stats_tkslice`; it must exist in each segment and no other file is tried.
+Each source path is a case directory or that file itself; the destination's
+own file may be one of them.
+The merge keeps `tha`, `pabs`, `qt` and `ql` at the scalar levels bracketing
+the destination's configured receptor heights, plus `ws_local`, `ws_10` and
+the coordinates, and writes them record by record to
+`merged_stats_tkslice.<destination>.nc`, leaving the gathered files
+untouched. Full 3-D `stats_t` chains are never concatenated whole. Pass
+`source="merged_stats_tkslice"` to `sim.comf.atmosphere.write_heights(...)`
+and `sim.comf.statistics_times(...)` to read it.
 
 Segments are ordered by saved time. `tstatsdump` must agree between the
 destination and every source `namoptions`, the grid and receptor-height
@@ -780,8 +793,7 @@ coordinates must match, and two records whose averaging windows overlap are an
 error. Gaps are preserved and recorded, together with the first and last
 record of every segment, in the global attributes `udcomf_merged_cases`,
 `udcomf_segment_first_times`, `udcomf_segment_last_times` and
-`udcomf_boundary_gaps_seconds`. The destination's own statistics file cannot
-be a source; copy or rename it first.
+`udcomf_boundary_gaps_seconds`. The merged file itself cannot be a source.
 
 A warm start never shortens an averaging window: the solver restarts its
 accumulators from zero and writes the next record only after `tstatsdump`
@@ -791,8 +803,9 @@ after the restart until the schedule re-anchors at the next window. The CLI
 reports such off-schedule records; they are valid.
 The merge sorts segments by saved simulation time, rejects overlaps and schema
 mismatches, and preserves restart gaps exactly; it does not interpolate or
-claim that an averaging window crossing a gap is complete. Existing merged
-files are not replaced unless `overwrite=True` is explicit.
+claim that an averaging window crossing a gap is complete. The merged files
+are rebuilt on every call; they are cheap and determined entirely by the
+segments.
 
 ## Shortwave
 
@@ -835,7 +848,7 @@ namelist parser. The first list entry must equal `receptor_height`. The
 `udprep/defaults.json` scalar stays unchanged: preprocessing inputs are not
 receptor-specific.
 
-After gathering `stats_tkslice` (or `stats_t`) and merging warm-start facet
+After gathering `stats_t` (or `stats_tkslice`) and merging warm-start facet
 outputs, process all saved heights without changing the case configuration:
 
 ```python
@@ -843,18 +856,17 @@ import numpy as np
 from udbase import UDBase
 
 sim = UDBase(1, "/path/to/experiments/1", load_geometry=True)
-times = sim.comf.statistics_times("stats_tkslice")   # every saved record
-atmosphere = sim.comf.atmosphere.write_heights(
-    times, source="stats_tkslice"
-)
+times = sim.comf.statistics_times()                  # every saved record of stats_t
+atmosphere = sim.comf.atmosphere.write_heights()     # source="stats_t" by default
 radiation = sim.comf.radiation.write_heights(
     times, duration=sim.comf.schedule.tstatsdump,
     tile_size=256, n_mu=8, n_azimuth=32, resume=True,
 )
 ```
 
-Pass a subset of `times` to process fewer records; the radiation `duration`
-defaults to `tstatsdump` from `namoptions` when omitted.
+Pass `source="stats_tkslice"` to both calls to read the receptor-level slice
+file instead. The radiation `duration` defaults to `tstatsdump` from
+`namoptions` when omitted.
 
 Each height has its own `pedestrian_atmosphere.h<height>.<expnr>.nc`,
 `pedestrian_shortwave.h<height>.<expnr>.nc`, and

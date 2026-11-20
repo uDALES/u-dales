@@ -24,11 +24,19 @@ class TestThermalComfortExamples(unittest.TestCase):
         cls.prepare = _load_script("udales_to_comfort")
         cls.calculate = _load_script("calculate_indices")
 
-    def test_prepare_parser_needs_only_the_case_directory(self):
-        args = self.prepare.build_parser().parse_args(["--case-dir", "/some/case"])
-        self.assertEqual(args.statistics_source, "stats_tkslice")
-        self.assertEqual(args.facet_source, [])
-        self.assertEqual(args.stats_source, [])
+    def test_prepare_parser_requires_case_and_heights(self):
+        with self.assertRaises(SystemExit):
+            self.prepare.build_parser().parse_args(["--case-dir", "/some/case"])
+        args = self.prepare.build_parser().parse_args(
+            ["--case-dir", "/some/case", "--heights", "1.1", "1.5"])
+        self.assertEqual(args.heights, [1.1, 1.5])
+        self.assertEqual(args.statistics_source, "stats_t")
+        self.assertEqual(args.data_source, [])
+        args = self.prepare.build_parser().parse_args(
+            ["--case-dir", "/c/4", "--heights", "1.1", "--data-source", "/c/1", "--data-source", "/c/2"])
+        self.assertEqual([p.name for p in args.data_source], ["1", "2"])
+        with self.assertRaises(SystemExit):
+            self.prepare.build_parser().parse_args(["--case-dir", "/c", "--heights", "1", "--output-dir", "x"])
 
     def test_calculate_parser_defaults_to_all_indices(self):
         args = self.calculate.build_parser().parse_args(["a.nc"])

@@ -77,8 +77,8 @@ def default_output_path(input_path: Path) -> Path:
     input_path = Path(input_path)
     if not input_path.name.startswith(_INPUT_PREFIX):
         raise ValueError(
-            f"Exchange file name must start with {_INPUT_PREFIX} to derive an output name; "
-            f"pass an explicit output path for {input_path.name}"
+            f"Exchange file name must start with {_INPUT_PREFIX}; the result is written "
+            f"beside it with that prefix replaced by {_OUTPUT_PREFIX}: {input_path.name}"
         )
     return input_path.with_name(_OUTPUT_PREFIX + input_path.name[len(_INPUT_PREFIX):])
 

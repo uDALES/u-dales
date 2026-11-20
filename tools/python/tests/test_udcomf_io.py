@@ -10,32 +10,26 @@ from netCDF4 import Dataset
 import numpy as np
 
 from udcomf import UDComf
-from udcomf.udcomf_io import merge_facet_outputs
+from udcomf.sources import load_facets, load_statistics
+from udcomf.udcomf_io import merge_facet_outputs, merge_statistics_outputs
 
 
-def _write_segment(directory, case, times, *, facets=2, layers=2):
+def _write_segment(directory, case, times, *, facets=2, with_temperature=False):
     directory.mkdir(exist_ok=True)
-    for kind in ("facEB", "facT"):
-        with Dataset(directory / f"{kind}.{case}.nc", "w") as ds:
+    with Dataset(directory / f"facEB.{case}.nc", "w") as ds:
+        ds.createDimension("time", None)
+        ds.createDimension("fct", facets)
+        ds.createVariable("fct", "i4", ("fct",))
+        ds.createVariable("t", "f4", ("time",))[:] = times
+        for name in ("LWout", "netsw", "LWin", "hf"):
+            var = ds.createVariable(name, "f4", ("time", "fct"), fill_value=-999.)
+            var[:] = np.asarray(times)[:, None] + np.arange(facets)[None, :]
+            var.units = "W m-2"
+    if with_temperature:
+        with Dataset(directory / f"facT.{case}.nc", "w") as ds:
             ds.createDimension("time", None)
             ds.createDimension("fct", facets)
-            if kind == "facT":
-                ds.createDimension("lyr", layers)
-            ds.createVariable("fct", "i4", ("fct",))
             ds.createVariable("t", "f4", ("time",))[:] = times
-            if kind == "facEB":
-                for name in ("LWout", "netsw"):
-                    ds.createVariable(name, "f4", ("time", "fct"), fill_value=-999.)[:] = (
-                        np.asarray(times)[:, None] + np.arange(facets)[None, :]
-                    )
-            else:
-                ds.createVariable("lyr", "i4", ("lyr",))
-                for name in ("T", "dTdz"):
-                    ds.createVariable(name, "f4", ("time", "lyr", "fct"))[:] = (
-                        np.asarray(times)[:, None, None]
-                        + np.arange(layers)[None, :, None]
-                        + np.arange(facets)[None, None, :]
-                    )
 
 
 class TestFacetOutputMerge(unittest.TestCase):
@@ -49,34 +43,41 @@ class TestFacetOutputMerge(unittest.TestCase):
             "&WALLS\n nfcts = 2\n nfaclyrs = 1\n/\n", encoding="ascii"
         )
 
-    def test_merges_directories_and_copied_files_in_time_order(self):
+    def test_merges_only_t_and_lwout_in_time_order(self):
         first = self.root / "312"
         _write_segment(first, 312, [0, 300])
-        _write_segment(self.destination, 313, [650, 950])
-        copied_eb = self.destination / "facEB.313.nc"
-        sim = types.SimpleNamespace(path=self.destination)
+        _write_segment(self.destination, 305, [650, 950])   # the case's own records
+        sim = types.SimpleNamespace(path=self.destination, expnr="305")
 
-        result = UDComf(sim).prepare_facet_outputs([copied_eb, first])
+        result = UDComf(sim).prepare_facet_outputs([self.destination, first])
 
-        self.assertEqual(result.source_cases, ("312", "313"))
+        self.assertEqual(result.path.name, "merged_facEB.305.nc")
+        self.assertEqual(result.source_cases, ("312", "305"))
         self.assertEqual(result.record_count, 4)
         self.assertEqual(result.boundary_gaps, (350.,))
-        for kind in ("facEB", "facT"):
-            with Dataset(self.destination / f"{kind}.305.nc") as ds:
-                np.testing.assert_array_equal(ds.variables["t"][:], [0, 300, 650, 950])
-                self.assertEqual(json.loads(ds.getncattr("udcomf_merged_cases")), ["312", "313"])
-                self.assertEqual(len(ds.dimensions["fct"]), 2)
-                np.testing.assert_array_equal(ds.variables["fct"][:].data,
-                                              [-2147483647, -2147483647])
-                if kind == "facEB":
-                    np.testing.assert_array_equal(ds.variables["LWout"][2, :], [650, 651])
-                else:
-                    np.testing.assert_array_equal(ds.variables["T"][3, :, :],
-                                                  [[950, 951], [951, 952]])
-        with Dataset(copied_eb) as source:
-            self.assertEqual(len(source.dimensions["time"]), 2)
-        with self.assertRaises(FileExistsError):
-            merge_facet_outputs(self.destination, [first, copied_eb])
+        with Dataset(result.path) as ds:
+            self.assertEqual(set(ds.variables), {"t", "LWout"})
+            self.assertEqual(set(ds.dimensions), {"time", "fct"})
+            np.testing.assert_array_equal(ds["t"][:], [0, 300, 650, 950])
+            np.testing.assert_array_equal(ds["LWout"][:, 1], [1, 301, 651, 951])
+            self.assertEqual(ds["LWout"].units, "W m-2")
+            self.assertEqual(json.loads(ds.getncattr("udcomf_merged_cases")), ["312", "305"])
+            self.assertEqual(json.loads(ds.getncattr("udcomf_boundary_gaps_seconds")), [350.])
+        # the sources are untouched, and the merged file is readable as a facet source
+        with Dataset(self.destination / "facEB.305.nc") as ds:
+            self.assertIn("netsw", ds.variables)
+        np.testing.assert_array_equal(load_facets(sim, "merged_facEB", "t"), [0, 300, 650, 950])
+        self.assertEqual(load_facets(sim, "merged_facEB", "LWout", time_index=2).shape, (2,))
+        # merged files are rebuilt on every call
+        again = merge_facet_outputs(self.destination, [first])
+        self.assertEqual(again.record_count, 2)
+
+    def test_does_not_need_fact(self):
+        first = self.root / "312"
+        _write_segment(first, 312, [0, 300], with_temperature=False)
+        result = merge_facet_outputs(self.destination, [first])
+        self.assertFalse((self.destination / "facT.305.nc").exists())
+        self.assertEqual(result.record_count, 2)
 
     def test_rejects_overlapping_times_before_writing(self):
         first = self.root / "312"
@@ -85,32 +86,32 @@ class TestFacetOutputMerge(unittest.TestCase):
         _write_segment(second, 313, [300, 600])
         with self.assertRaisesRegex(ValueError, "overlap"):
             merge_facet_outputs(self.destination, [first, second])
-        self.assertFalse((self.destination / "facEB.305.nc").exists())
+        self.assertFalse((self.destination / "merged_facEB.305.nc").exists())
 
     def test_rejects_incompatible_facet_count(self):
         first = self.root / "312"
-        _write_segment(first, 312, [0], facets=3)
-        with self.assertRaisesRegex(ValueError, "Facet or layer dimensions"):
+        _write_segment(first, 312, [0, 300], facets=3)
+        with self.assertRaisesRegex(ValueError, "Facet dimension"):
             merge_facet_outputs(self.destination, [first])
 
     def test_rejects_incompatible_variable_schema(self):
         first = self.root / "312"
         second = self.root / "313"
-        _write_segment(first, 312, [0])
-        _write_segment(second, 313, [300])
+        _write_segment(first, 312, [0, 300])
+        _write_segment(second, 313, [600, 900])
         with Dataset(second / "facEB.313.nc", "a") as ds:
-            ds.createVariable("extra", "f4", ("time", "fct"))[:] = [[1, 2]]
-        with self.assertRaisesRegex(ValueError, "Incompatible eb_path NetCDF schema"):
+            ds.renameVariable("LWout", "LWout_old")
+            ds.createVariable("LWout", "f8", ("time", "fct"))[:] = 1.0
+        with self.assertRaisesRegex(ValueError, "schema"):
             merge_facet_outputs(self.destination, [first, second])
-        self.assertFalse((self.destination / "facEB.305.nc").exists())
+        self.assertFalse((self.destination / "merged_facEB.305.nc").exists())
 
-    def test_rejects_unpaired_temperature_times(self):
+    def test_merged_file_cannot_be_a_source(self):
         first = self.root / "312"
         _write_segment(first, 312, [0, 300])
-        with Dataset(first / "facT.312.nc", "a") as ds:
-            ds.variables["t"][1] = 301
-        with self.assertRaisesRegex(ValueError, "timestamps must match"):
-            merge_facet_outputs(self.destination, [first])
+        result = merge_facet_outputs(self.destination, [first])
+        with self.assertRaises(ValueError):
+            merge_facet_outputs(self.destination, [first, result.path])
 
 
 def _write_stats_segment(directory, case, times, *, levels=(0.75, 2.25, 5.25, 9.75),
@@ -158,17 +159,17 @@ class TestStatisticsOutputMerge(unittest.TestCase):
         )
 
     def test_merges_subset_levels_in_time_order_and_records_segments(self):
-        from udcomf.udcomf_io import merge_statistics_outputs
         _write_stats_segment(self.root / "312", 312, [3600., 7200.])
-        _write_stats_segment(self.root / "313", 313, [14400., 18000.], name="stats_t")
-        result = merge_statistics_outputs(self.destination, [self.root / "313", self.root / "312"])
+        _write_stats_segment(self.root / "313", 313, [14400., 18000.])
+        result = merge_statistics_outputs(
+            self.destination, [self.root / "313", self.root / "312"], source="stats_tkslice")
         self.assertEqual(result.source_cases, ("312", "313"))
         self.assertEqual(result.record_count, 4)
         self.assertEqual(result.selected_levels, (0, 1))
         self.assertEqual(result.boundary_gaps, (14400. - 900. - 7200.,))
         with Dataset(result.path) as ds:
             ds.set_auto_mask(False)
-            self.assertEqual(result.path.name, "stats_tkslice.305.nc")
+            self.assertEqual(result.path.name, "merged_stats_tkslice.305.nc")
             np.testing.assert_array_equal(ds["time"][:], [3600., 7200., 14400., 18000.])
             np.testing.assert_allclose(ds["zt"][:], [0.75, 2.25])
             self.assertNotIn("u", ds.variables)
@@ -182,31 +183,54 @@ class TestStatisticsOutputMerge(unittest.TestCase):
             self.assertEqual(json.loads(ds.getncattr("udcomf_selected_scalar_levels")), [1, 2])
             self.assertEqual(ds.getncattr("udcomf_averaging_window_s"), 900.)
             self.assertEqual(ds.title, "fixture")
-        with self.assertRaises(FileExistsError):
+        # merged files are rebuilt on every call
+        again = merge_statistics_outputs(self.destination, [self.root / "312"], source="stats_tkslice")
+        self.assertEqual(again.record_count, 2)
+
+    def test_reads_only_the_requested_file_type_without_fallback(self):
+        _write_stats_segment(self.root / "312", 312, [3600.])                   # stats_tkslice only
+        _write_stats_segment(self.root / "313", 313, [7200.], name="stats_t")  # stats_t only
+        with self.assertRaisesRegex(FileNotFoundError, "stats_t file is missing for case 312"):
             merge_statistics_outputs(self.destination, [self.root / "312", self.root / "313"])
+        with self.assertRaisesRegex(FileNotFoundError, "stats_tkslice file is missing for case 313"):
+            merge_statistics_outputs(self.destination, [self.root / "312", self.root / "313"],
+                                     source="stats_tkslice")
+        result = merge_statistics_outputs(self.destination, [self.root / "313"])
+        self.assertEqual(result.source_files[0].name, "stats_t.313.nc")
+        self.assertEqual(result.path.name, "merged_stats_tkslice.305.nc")
+        with self.assertRaises(ValueError):
+            merge_statistics_outputs(self.destination, [self.root / "313"], source="stats_x")
 
     def test_rejects_overlapping_windows_and_mismatched_tstatsdump(self):
-        from udcomf.udcomf_io import merge_statistics_outputs
+        kw = dict(source="stats_tkslice")
         _write_stats_segment(self.root / "312", 312, [3600., 7200.])
         _write_stats_segment(self.root / "313", 313, [7900., 8800.])
         with self.assertRaisesRegex(ValueError, "windows overlap"):
-            merge_statistics_outputs(self.destination, [self.root / "312", self.root / "313"])
+            merge_statistics_outputs(self.destination, [self.root / "312", self.root / "313"], **kw)
         _write_stats_segment(self.root / "314", 314, [14400.], tstatsdump=600.)
         with self.assertRaisesRegex(ValueError, "tstatsdump differs"):
-            merge_statistics_outputs(self.destination, [self.root / "312", self.root / "314"])
-        self.assertFalse((self.destination / "stats_tkslice.305.nc").exists())
+            merge_statistics_outputs(self.destination, [self.root / "312", self.root / "314"], **kw)
+        self.assertFalse((self.destination / "merged_stats_tkslice.305.nc").exists())
 
-    def test_rejects_missing_bracketing_level_and_destination_as_source(self):
-        from udcomf.udcomf_io import merge_statistics_outputs
+    def test_rejects_missing_bracketing_level_and_merged_file_as_source(self):
+        kw = dict(source="stats_tkslice")
         _write_stats_segment(self.root / "312", 312, [3600.], levels=(2.25, 5.25))
         with self.assertRaisesRegex(ValueError, "lacks the scalar level"):
-            merge_statistics_outputs(self.destination, [self.root / "312"])
+            merge_statistics_outputs(self.destination, [self.root / "312"], **kw)
         _write_stats_segment(self.destination, 305, [3600.])
-        with self.assertRaisesRegex(ValueError, "cannot also be a warm-start source"):
-            merge_statistics_outputs(self.destination, [self.destination / "stats_tkslice.305.nc"])
+        # the case's own statistics may be a segment; the merged output may not
+        result = merge_statistics_outputs(self.destination, [self.destination], **kw)
+        self.assertEqual(result.source_cases, ("305",))
+        with self.assertRaises(ValueError):   # merged_* is not a stats_tkslice source name
+            merge_statistics_outputs(self.destination, [result.path], **kw)
 
-    def test_facade_entry_point(self):
+    def test_facade_entry_point_and_merged_source_loader(self):
         _write_stats_segment(self.root / "312", 312, [3600.])
-        sim = types.SimpleNamespace(path=self.destination)
-        result = UDComf(sim).prepare_statistics_outputs([self.root / "312"])
+        sim = types.SimpleNamespace(path=self.destination, expnr="305")
+        result = UDComf(sim).prepare_statistics_outputs([self.root / "312"], source="stats_tkslice")
         self.assertEqual(result.record_count, 1)
+        self.assertEqual(result.path.name, "merged_stats_tkslice.305.nc")
+        np.testing.assert_array_equal(load_statistics(sim, "merged_stats_tkslice", "time"), [3600.])
+        self.assertEqual(load_statistics(sim, "merged_stats_tkslice", "ws_10", time_index=0).shape, (3, 2))
+        with self.assertRaises(ValueError):
+            load_statistics(sim, "stats_x", "time")

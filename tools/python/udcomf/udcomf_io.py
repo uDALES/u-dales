@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-from contextlib import ExitStack
 from dataclasses import dataclass
 import json
 import os
@@ -17,13 +16,14 @@ import numpy as np
 from udconfig import parse_namoptions
 from .heights import bracketing_levels, configured_receptor_heights
 from .schedule import read_stats_schedule
+from .sources import MERGED_FACETS, MERGED_STATISTICS
 
 
 @dataclass(frozen=True)
 class FacetMergeResult:
-    eb_path: Path
-    temperature_path: Path
+    path: Path
     source_cases: tuple[str, ...]
+    source_files: tuple[Path, ...]
     record_count: int
     first_time: float
     last_time: float
@@ -34,11 +34,14 @@ class FacetMergeResult:
 class _Segment:
     case: str
     eb_path: Path
-    temperature_path: Path
     times: np.ndarray
 
 
-def _source_paths(case_path: Path) -> tuple[str, Path, Path]:
+# Facet merge: only what the pedestrian longwave stage reads from facEB.
+_FACET_FIELDS = ("t", "LWout")
+
+
+def _source_paths(case_path: Path) -> tuple[str, Path]:
     path = Path(case_path).expanduser().resolve()
     if path.is_dir():
         case = path.name
@@ -48,104 +51,65 @@ def _source_paths(case_path: Path) -> tuple[str, Path, Path]:
         eb_path = path
     else:
         raise ValueError(f"Expected a case directory or facEB.<case>.nc path: {path}")
-    temperature_path = eb_path.with_name(f"facT.{case}.nc")
-    if not eb_path.is_file() or not temperature_path.is_file():
-        raise FileNotFoundError(f"Paired facEB/facT files are required for {case} in {eb_path.parent}")
-    return case, eb_path, temperature_path
+    if not eb_path.is_file():
+        raise FileNotFoundError(f"facEB file is required for {case} in {eb_path.parent}")
+    return case, eb_path
 
 
-def _schema(ds: Dataset) -> tuple:
-    return (
-        tuple((name, len(dim)) for name, dim in ds.dimensions.items() if name != "time"),
-        tuple(
-            (name, str(var.datatype), var.dimensions,
-             tuple((attr, str(var.getncattr(attr))) for attr in var.ncattrs()))
-            for name, var in ds.variables.items()
-        ),
+def _facet_schema(ds: Dataset) -> tuple:
+    return tuple(
+        (name, str(ds.variables[name].datatype), ds.variables[name].dimensions)
+        for name in _FACET_FIELDS
     )
 
 
-def _inspect_segment(case: str, eb_path: Path, temperature_path: Path,
-                     nfcts: int, nfaclyrs: int) -> _Segment:
-    with Dataset(eb_path) as eb, Dataset(temperature_path) as temperature:
-        if ("fct" not in eb.dimensions or "fct" not in temperature.dimensions
-                or len(eb.dimensions["fct"]) != nfcts
-                or len(temperature.dimensions["fct"]) != nfcts
-                or "lyr" not in temperature.dimensions
-                or len(temperature.dimensions["lyr"]) != nfaclyrs + 1):
-            raise ValueError(f"Facet or layer dimensions do not match the destination case: {case}")
-        required = ((eb, ("t", "LWout", "netsw")),
-                    (temperature, ("t", "T", "dTdz")))
-        for ds, names in required:
-            if "time" not in ds.dimensions:
-                raise ValueError(f"Missing time dimension in {ds.filepath()}")
-            for name in names:
-                if name not in ds.variables or ds.variables[name].dimensions[0] != "time":
-                    raise ValueError(f"Missing or malformed {name} in {ds.filepath()}")
+def _inspect_segment(case: str, eb_path: Path, nfcts: int) -> _Segment:
+    with Dataset(eb_path) as eb:
+        if "fct" not in eb.dimensions or len(eb.dimensions["fct"]) != nfcts:
+            raise ValueError(f"Facet dimension does not match the destination case: {case}")
+        if "time" not in eb.dimensions:
+            raise ValueError(f"Missing time dimension in {eb_path}")
+        for name in _FACET_FIELDS:
+            if name not in eb.variables or eb.variables[name].dimensions[0] != "time":
+                raise ValueError(f"Missing or malformed {name} in {eb_path}")
+        if eb.variables["LWout"].dimensions != ("time", "fct"):
+            raise ValueError(f"LWout must be dimensioned (time, fct) in {eb_path}")
         times = np.asarray(eb.variables["t"][:], dtype=float)
-        temperature_times = np.asarray(temperature.variables["t"][:], dtype=float)
         if (times.ndim != 1 or times.size == 0 or not np.isfinite(times).all()
-                or np.any(np.diff(times) <= 0) or not np.array_equal(times, temperature_times)):
-            raise ValueError(f"facEB and facT timestamps must match and increase in case {case}")
-    return _Segment(case, eb_path, temperature_path, times)
-
-
-def _create_output(source: Dataset, path: Path, source_cases: tuple[str, ...],
-                   boundary_gaps: tuple[float, ...]) -> Dataset:
-    output = Dataset(path, "w", format=source.data_model)
-    try:
-        for name, dim in source.dimensions.items():
-            output.createDimension(name, None if name == "time" else len(dim))
-        for name, var in source.variables.items():
-            options = {}
-            if "_FillValue" in var.ncattrs():
-                options["fill_value"] = var.getncattr("_FillValue")
-            chunks = var.chunking()
-            if isinstance(chunks, list):
-                options["chunksizes"] = tuple(chunks)
-            filters = var.filters()
-            for key in ("zlib", "complevel", "shuffle", "fletcher32"):
-                if key in filters:
-                    options[key] = filters[key]
-            result = output.createVariable(name, var.datatype, var.dimensions, **options)
-            result.setncatts({key: var.getncattr(key) for key in var.ncattrs()
-                              if key != "_FillValue"})
-            if "time" not in var.dimensions:
-                result[:] = var[:]
-        output.setncatts({key: source.getncattr(key) for key in source.ncattrs()})
-        output.setncattr("udcomf_merged_cases", json.dumps(source_cases))
-        output.setncattr("udcomf_boundary_gaps_seconds", json.dumps(boundary_gaps))
-        return output
-    except BaseException:
-        output.close()
-        raise
+                or np.any(np.diff(times) <= 0)):
+            raise ValueError(f"facEB timestamps must be finite and increasing in case {case}")
+    return _Segment(case, eb_path, times)
 
 
 def merge_facet_outputs(
-    destination_case: Path, case_paths: Sequence[Path], *, overwrite: bool = False,
+    destination_case: Path, case_paths: Sequence[Path],
 ) -> FacetMergeResult:
-    """Merge paired warm-start facEB/facT files without filling time gaps.
+    """Merge the longwave source of warm-start facEB files into one file.
 
-    Each source is a case directory or a copied ``facEB.<case>.nc`` file. The
-    output is ``facEB.<destination>.nc`` and ``facT.<destination>.nc`` in the
-    destination directory. Records are ordered by their saved simulation time;
-    overlapping or duplicate timestamps are rejected, and sources are never
-    modified. The merge copies one time record at a time to bound memory use.
+    Only the facet timestamps ``t`` and the emitted longwave ``LWout`` are
+    kept: these are the only facEB quantities the comfort indices need (MRT,
+    and through it PET and UTCI, and the WBGT sensor balances). facT is not
+    read by any index and is not merged. Each source is a case directory or a
+    ``facEB.<case>.nc`` file; the destination's own facEB may be a source. The
+    output is ``merged_facEB.<destination>.nc`` in the destination directory,
+    replaced on every call because it is a cheap deterministic function of the
+    sources, which are never modified. Records are ordered by saved simulation
+    time, overlapping or duplicate timestamps are rejected, and gaps are
+    preserved. One time record is copied at a time to bound memory use.
     """
     destination = Path(destination_case).expanduser().resolve()
     if isinstance(case_paths, (str, Path)) or not case_paths:
         raise ValueError("case_paths must be a nonempty sequence of paths")
     options = parse_namoptions(destination / f"namoptions.{destination.name}")
     nfcts = int(options["nfcts"])
-    nfaclyrs = int(options["nfaclyrs"])
     segments = []
     seen = set()
     for path in case_paths:
-        case, eb_path, temperature_path = _source_paths(Path(path))
+        case, eb_path = _source_paths(Path(path))
         if eb_path in seen:
             raise ValueError(f"Duplicate warm-start source: {eb_path}")
         seen.add(eb_path)
-        segments.append(_inspect_segment(case, eb_path, temperature_path, nfcts, nfaclyrs))
+        segments.append(_inspect_segment(case, eb_path, nfcts))
     segments.sort(key=lambda segment: segment.times[0])
     gaps = []
     for previous, current in zip(segments, segments[1:]):
@@ -153,67 +117,61 @@ def merge_facet_outputs(
         if gap <= 0:
             raise ValueError(f"Warm-start records overlap: {previous.case} and {current.case}")
         gaps.append(gap)
+    reference = None
+    for segment in segments:
+        with Dataset(segment.eb_path) as ds:
+            schema = _facet_schema(ds)
+        if reference is None:
+            reference = schema
+        elif schema != reference:
+            raise ValueError(f"Incompatible facEB variable schema in case {segment.case}")
 
-    for kind in ("eb_path", "temperature_path"):
-        reference = None
-        for segment in segments:
-            with Dataset(getattr(segment, kind)) as ds:
-                schema = _schema(ds)
-            if reference is None:
-                reference = schema
-            elif schema != reference:
-                raise ValueError(f"Incompatible {kind} NetCDF schema in case {segment.case}")
+    output = destination / f"{MERGED_FACETS}.{destination.name}.nc"
+    if any(segment.eb_path == output for segment in segments):
+        raise ValueError("The merged facet file cannot also be a warm-start source")
 
-    eb_output = destination / f"facEB.{destination.name}.nc"
-    temperature_output = destination / f"facT.{destination.name}.nc"
-    if any(path in (eb_output, temperature_output) for segment in segments
-           for path in (segment.eb_path, segment.temperature_path)):
-        raise ValueError("Destination files cannot also be warm-start sources")
-    if not overwrite and (eb_output.exists() or temperature_output.exists()):
-        raise FileExistsError("Merged facet output already exists; use overwrite=True to replace it")
-
-    temp_paths = []
+    fd, name = tempfile.mkstemp(prefix=f".{output.name}.", suffix=".tmp", dir=destination)
+    os.close(fd)
+    temp_path = Path(name)
     try:
-        for output in (eb_output, temperature_output):
-            fd, name = tempfile.mkstemp(prefix=f".{output.name}.", suffix=".tmp", dir=destination)
-            os.close(fd)
-            temp_paths.append(Path(name))
         cases = tuple(segment.case for segment in segments)
-        with ExitStack() as stack:
-            first_eb = stack.enter_context(Dataset(segments[0].eb_path))
-            first_temperature = stack.enter_context(Dataset(segments[0].temperature_path))
-            first_eb.set_auto_mask(False)
-            first_temperature.set_auto_mask(False)
-            out_eb = stack.enter_context(_create_output(first_eb, temp_paths[0], cases, tuple(gaps)))
-            out_temperature = stack.enter_context(
-                _create_output(first_temperature, temp_paths[1], cases, tuple(gaps))
-            )
+        with Dataset(segments[0].eb_path) as first, Dataset(temp_path, "w", format="NETCDF4") as out:
+            first.set_auto_mask(False)
+            out.createDimension("time", None)
+            out.createDimension("fct", nfcts)
+            for var_name in _FACET_FIELDS:
+                var = first.variables[var_name]
+                options = {}
+                if "_FillValue" in var.ncattrs():
+                    options["fill_value"] = var.getncattr("_FillValue")
+                if var_name == "LWout":
+                    options.update(zlib=True, complevel=3)
+                result = out.createVariable(var_name, var.datatype, var.dimensions, **options)
+                result.setncatts({key: var.getncattr(key) for key in var.ncattrs()
+                                  if key != "_FillValue"})
+            out.setncattr("udcomf_merged_cases", json.dumps(cases))
+            out.setncattr("udcomf_source_files", json.dumps([s.eb_path.name for s in segments]))
+            out.setncattr("udcomf_segment_first_times", json.dumps([float(s.times[0]) for s in segments]))
+            out.setncattr("udcomf_segment_last_times", json.dumps([float(s.times[-1]) for s in segments]))
+            out.setncattr("udcomf_boundary_gaps_seconds", json.dumps(gaps))
+            out.setncattr("udcomf_contents", "facet timestamps t and emitted longwave LWout only")
             offset = 0
             for segment in segments:
-                with Dataset(segment.eb_path) as eb, Dataset(segment.temperature_path) as temperature:
+                with Dataset(segment.eb_path) as eb:
                     eb.set_auto_mask(False)
-                    temperature.set_auto_mask(False)
-                    for source, target in ((eb, out_eb), (temperature, out_temperature)):
-                        for name, variable in source.variables.items():
-                            if "time" not in variable.dimensions:
-                                continue
-                            if variable.dimensions[0] != "time":
-                                raise ValueError(f"Time must be the first dimension of {name}")
-                            for i in range(segment.times.size):
-                                target.variables[name][offset + i, ...] = variable[i, ...]
+                    for var_name in _FACET_FIELDS:
+                        variable = eb.variables[var_name]
+                        for i in range(segment.times.size):
+                            out.variables[var_name][offset + i, ...] = variable[i, ...]
                 offset += segment.times.size
-        if not overwrite and (eb_output.exists() or temperature_output.exists()):
-            raise FileExistsError("Destination appeared while writing merged facet output")
-        os.replace(temp_paths[0], eb_output)
-        os.replace(temp_paths[1], temperature_output)
+        os.replace(temp_path, output)
     finally:
-        for path in temp_paths:
-            path.unlink(missing_ok=True)
+        temp_path.unlink(missing_ok=True)
 
     return FacetMergeResult(
-        eb_path=eb_output,
-        temperature_path=temperature_output,
+        path=output,
         source_cases=cases,
+        source_files=tuple(segment.eb_path for segment in segments),
         record_count=sum(len(segment.times) for segment in segments),
         first_time=float(segments[0].times[0]),
         last_time=float(segments[-1].times[-1]),
@@ -226,7 +184,7 @@ def merge_facet_outputs(
 _STATS_COORDS = ("time", "zt", "yt", "xt", "receptor_height")
 _STATS_LEVEL_FIELDS = ("tha", "pabs", "qt", "ql")
 _STATS_PLANE_FIELDS = ("ws_local", "ws_10")
-_STATS_NAMES = ("stats_tkslice", "stats_t")
+_STATS_NAMES = ("stats_t", "stats_tkslice")
 
 
 @dataclass(frozen=True)
@@ -249,24 +207,22 @@ class _StatsSegment:
     level_indices: tuple[int, ...]
 
 
-def _statistics_source(case_path: Path) -> tuple[str, Path]:
+def _statistics_source(case_path: Path, source: str) -> tuple[str, Path]:
+    """The ``source.<case>.nc`` file of a segment; no other file is tried."""
     path = Path(case_path).expanduser().resolve()
+    prefix = f"{source}."
     if path.is_dir():
         case = path.name
-        for name in _STATS_NAMES:
-            candidate = path / f"{name}.{case}.nc"
-            if candidate.is_file():
-                return case, candidate
-        raise FileNotFoundError(f"No gathered stats_tkslice or stats_t file for case {case} in {path}")
-    if path.suffix == ".nc":
-        for name in _STATS_NAMES:
-            prefix = f"{name}."
-            if path.name.startswith(prefix):
-                case = path.name[len(prefix):-len(".nc")]
-                if not path.is_file():
-                    raise FileNotFoundError(f"Statistics file is missing: {path}")
-                return case, path
-    raise ValueError(f"Expected a case directory or stats_t[kslice].<case>.nc path: {path}")
+        candidate = path / f"{source}.{case}.nc"
+        if not candidate.is_file():
+            raise FileNotFoundError(f"Gathered {source} file is missing for case {case}: {candidate}")
+        return case, candidate
+    if path.suffix == ".nc" and path.name.startswith(prefix):
+        case = path.name[len(prefix):-len(".nc")]
+        if not path.is_file():
+            raise FileNotFoundError(f"Statistics file is missing: {path}")
+        return case, path
+    raise ValueError(f"Expected a case directory or {source}.<case>.nc path: {path}")
 
 
 def _inspect_statistics_segment(case: str, path: Path, z_needed: np.ndarray,
@@ -326,17 +282,22 @@ def _same_coordinates(segments: Sequence[_StatsSegment]) -> None:
 
 
 def merge_statistics_outputs(
-    destination_case: Path, case_paths: Sequence[Path], *, overwrite: bool = False,
+    destination_case: Path, case_paths: Sequence[Path], *, source: str = "stats_t",
 ) -> StatisticsMergeResult:
-    """Merge the comfort subset of warm-start statistics into one stats_tkslice file.
+    """Merge the comfort subset of warm-start statistics into one file.
 
-    Each source is a case directory (its gathered ``stats_tkslice`` or
-    ``stats_t`` file is used) or such a file. Only ``tha``, ``pabs``, ``qt``
-    and ``ql`` at the scalar levels bracketing the destination's receptor
-    heights, plus ``ws_local`` and ``ws_10``, are kept. Records are ordered by
-    saved time; overlapping averaging windows are rejected and gaps are
-    preserved. The output is ``stats_tkslice.<destination>.nc``.
+    ``source`` names the gathered file read from every segment, ``stats_t``
+    (default) or ``stats_tkslice``; it must exist in each segment and no
+    other file is tried. Each source path is a case directory or the
+    ``source.<case>.nc`` file itself; the destination's own file may be a
+    segment. Only ``tha``, ``pabs``, ``qt`` and ``ql`` at the scalar levels
+    bracketing the destination's receptor heights, plus ``ws_local`` and
+    ``ws_10``, are kept. Records are ordered by saved time; overlapping
+    averaging windows are rejected and gaps are preserved. The output is
+    always ``merged_stats_tkslice.<destination>.nc``, replaced on every call.
     """
+    if source not in _STATS_NAMES:
+        raise ValueError(f"source must be one of {list(_STATS_NAMES)}")
     destination = Path(destination_case).expanduser().resolve()
     if isinstance(case_paths, (str, Path)) or not case_paths:
         raise ValueError("case_paths must be a nonempty sequence of paths")
@@ -351,7 +312,7 @@ def merge_statistics_outputs(
     segments = []
     seen = set()
     for path in case_paths:
-        case, stats_path = _statistics_source(Path(path))
+        case, stats_path = _statistics_source(Path(path), source)
         if stats_path in seen:
             raise ValueError(f"Duplicate warm-start source: {stats_path}")
         seen.add(stats_path)
@@ -367,11 +328,9 @@ def merge_statistics_outputs(
         gaps.append(gap)
     _same_coordinates(segments)
 
-    output = destination / f"stats_tkslice.{destination.name}.nc"
+    output = destination / f"{MERGED_STATISTICS}.{destination.name}.nc"
     if any(segment.path == output for segment in segments):
-        raise ValueError("The destination stats_tkslice file cannot also be a warm-start source")
-    if not overwrite and output.exists():
-        raise FileExistsError("Merged statistics output already exists; use overwrite=True to replace it")
+        raise ValueError("The merged statistics file cannot also be a warm-start source")
 
     fd, name = tempfile.mkstemp(prefix=f".{output.name}.", suffix=".tmp", dir=destination)
     os.close(fd)
@@ -424,8 +383,6 @@ def merge_statistics_outputs(
                                 selector[0] = i
                                 out.variables[var_name][offset + i, ...] = var[tuple(selector)]
                     offset += segment.times.size
-        if not overwrite and output.exists():
-            raise FileExistsError("Destination appeared while writing merged statistics")
         os.replace(temp_path, output)
     finally:
         temp_path.unlink(missing_ok=True)

@@ -8,10 +8,11 @@ Usage
     EXCHANGE_FILE        One or more exchange NetCDF files, for example the
                          thermal_comfort_inputs.h<height>.<expnr>.nc files
                          written by udales_to_comfort.py. Each file is processed
-                         on its own and its result is written beside it as
-                         thermal_comfort_indices.h<height>.<expnr>.nc (the
-                         "thermal_comfort_inputs" prefix replaced). A file whose
-                         name does not start with that prefix needs --output.
+                         on its own and its result is written in the same
+                         directory as thermal_comfort_indices.h<height>.<expnr>.nc
+                         (the "thermal_comfort_inputs" prefix replaced). File
+                         names must start with that prefix. The full path of
+                         every result is printed at the end.
 
 Options
 -------
@@ -28,7 +29,6 @@ Options
                          comfort_defaults.json. To change a value, copy that
                          file, edit it and pass the copy here. The file must
                          contain all keys and no others.
-    --output FILE        Output path; allowed only with one exchange file.
     --overwrite          Replace an existing output file.
 
 Examples
@@ -36,7 +36,7 @@ Examples
     python calculate_indices.py case/thermal_comfort_inputs.h1p1.001.nc
     python calculate_indices.py --indices mrt,wbgt case/thermal_comfort_inputs.h*.001.nc
     python calculate_indices.py --parameters my_parameters.json \\
-        --output mrt_only.nc --indices mrt case/thermal_comfort_inputs.h1p1.001.nc
+        --indices mrt case/thermal_comfort_inputs.h1p1.001.nc
 
 Each exchange file must carry the model grid with cell bounds, the pedestrian
 mask, the receptor height, time bounds, per-record solar angles and the
@@ -89,40 +89,31 @@ def build_parser() -> argparse.ArgumentParser:
         "--parameters", type=Path, default=None,
         help=f"Complete comfort-parameter JSON; default: {DEFAULT_PARAMETERS_PATH.name}.",
     )
-    parser.add_argument(
-        "--output", type=Path, default=None,
-        help="Output NetCDF path; valid only with one exchange file.",
-    )
     parser.add_argument("--overwrite", action="store_true")
     return parser
 
 
 def main(argv: list[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
-    if args.output is not None and len(args.exchange_files) != 1:
-        print("ERROR: --output can be used only with one exchange file", file=sys.stderr)
-        return 2
 
     try:
         parameters = load_comfort_parameters(args.parameters)
         seen: set[Path] = set()
+        results: list[Path] = []
         for source in args.exchange_files:
             source = source.expanduser().resolve()
             if source in seen:
                 raise ValueError(f"Duplicate exchange input: {source}")
             seen.add(source)
-            output = (
-                None if args.output is None
-                else args.output.expanduser().resolve()
-            )
-            result = calculate_indices(
+            results.append(calculate_indices(
                 source,
-                output_path=output,
                 parameters=parameters,
                 indices=args.indices,
                 overwrite=args.overwrite,
-            )
-            print(f"Thermal-comfort indices ({', '.join(args.indices)}): {result}")
+            ))
+        print(f"Thermal-comfort indices ({', '.join(args.indices)}) written to:")
+        for result in results:
+            print(f"  {result}")
     except (
         FileNotFoundError, FileExistsError, ImportError, OSError,
         RuntimeError, TypeError, ValueError,

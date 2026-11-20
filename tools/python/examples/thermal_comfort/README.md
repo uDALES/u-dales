@@ -40,8 +40,9 @@ values as global attributes. No other metadata file is read.
 ## uDALES outputs to exchange files
 
 The case directory name must be its experiment number and contain gathered
-`stats_tkslice.<expnr>.nc` or `stats_t.<expnr>.nc`, complete facet output, and
-the inputs documented in `tools/python/udcomf/README.md`.
+`stats_t.<expnr>.nc` (the default `--statistics-source`) or
+`stats_tkslice.<expnr>.nc` (`--statistics-source stats_tkslice`), complete
+facet output, and the inputs documented in `tools/python/udcomf/README.md`.
 
 ```bash
 PY=tools/python/.venv/bin/python
@@ -49,38 +50,44 @@ CASE=/path/to/experiments/1
 
 $PY tools/python/examples/thermal_comfort/udales_to_comfort.py \
   --case-dir "$CASE" \
+  --heights 1.1 1.5 \
   --statistics-source stats_tkslice \
   --tile-size 256 \
   --n-mu 8 \
   --n-azimuth 32
 ```
 
-All `receptor_heights` configured in `namoptions` are processed by default.
-Use `--heights 1.1 1.5 2.0` to select a configured subset. Existing final files
-are never replaced unless `--overwrite` is supplied. Matching radiation tile
-checkpoints are reused by default; `--no-resume` disables that behavior.
+`--heights` is required and lists the receptor heights to process; each must
+be one of the `receptor_heights` saved by the simulation. All outputs are
+written into the case directory. Existing final files are never replaced
+unless `--overwrite` is supplied. Matching radiation tile checkpoints are
+reused by default; `--no-resume` disables that behavior.
 
 For a simulation that was warm-started under several case numbers, repeat
-`--facet-source` for each source case or `facEB` file, and `--stats-source`
-for each source case or gathered `stats_tkslice`/`stats_t` file. The facet
-merge writes complete `facEB`/`facT` files; the statistics merge keeps only
-the comfort subset (`tha`, `pabs`, `qt`, `ql` at the scalar levels bracketing
-the configured receptor heights, `ws_local`, `ws_10`) and writes it as
-`stats_tkslice.<expnr>.nc` of the case:
+`--data-source` with the case directory of each segment, including the case
+itself if its own records belong to the chain. From every directory the files
+`facEB.<case>.nc` and `<statistics-source>.<case>.nc` are read following the
+uDALES naming rule; the statistics file is the one named by
+`--statistics-source` (default `stats_t`) and must exist in every segment, no
+other file is tried. Only what the indices need is merged:
+the facet timestamps `t` and emitted longwave `LWout` into
+`merged_facEB.<expnr>.nc`, and the comfort subset of the statistics (`tha`,
+`pabs`, `qt`, `ql` at the scalar levels bracketing the requested receptor
+heights, `ws_local`, `ws_10`) into `merged_stats_tkslice.<expnr>.nc`. The
+gathered files are never modified and `facT` is not needed. The rest of the
+run reads the two merged files:
 
 ```bash
 $PY tools/python/examples/thermal_comfort/udales_to_comfort.py \
   --case-dir "$CASE" \
-  --facet-source "$CASE/facEB.2.nc" \
-  --facet-source "$CASE/facEB.3.nc" \
-  --facet-source "$CASE/facEB.4.nc" \
-  --stats-source /path/to/experiments/2 \
-  --stats-source /path/to/experiments/3 \
-  --stats-source /path/to/experiments/4
+  --heights 1.1 \
+  --data-source /path/to/experiments/1 \
+  --data-source /path/to/experiments/2 \
+  --data-source "$CASE"
 ```
 
-The merged files must not already exist in the case unless
-`--overwrite-merge` is given, and the case's own files cannot be sources.
+The merged files are rebuilt on every run with `--data-source`; they are
+cheap and a deterministic function of the segments.
 
 When the pedestrian atmosphere and both radiation files already exist and
 have passed their earlier checks, assemble only the exchange files with:
@@ -88,6 +95,7 @@ have passed their earlier checks, assemble only the exchange files with:
 ```bash
 $PY tools/python/examples/thermal_comfort/udales_to_comfort.py \
   --case-dir "$CASE" \
+  --heights 1.1 1.5 \
   --skip-atmosphere \
   --skip-radiation
 ```
@@ -98,6 +106,7 @@ For a long headless radiation run:
 LOG="$CASE/udcomf_postprocess.log"
 nohup "$PY" -u tools/python/examples/thermal_comfort/udales_to_comfort.py \
   --case-dir "$CASE" \
+  --heights 1.1 1.5 \
   --statistics-source stats_tkslice \
   > "$LOG" 2>&1 < /dev/null &
 printf 'PID %s, log %s\n' "$!" "$LOG"
@@ -135,8 +144,9 @@ $PY tools/python/examples/thermal_comfort/calculate_indices.py \
 The output `thermal_comfort_indices.h<height>.<expnr>.nc` contains one
 `(x,y,time)` record per exchange record for each selected index in degrees
 Celsius, globe and natural-wet-bulb temperatures when WBGT is selected, and
-validity flags. An exchange file whose name does not start with
-`thermal_comfort_inputs` needs `--output`.
+validity flags. It is always written in the directory of its exchange file,
+whose name must start with `thermal_comfort_inputs`; the script prints the
+full path of every result when it finishes.
 
 `--indices` takes a comma-separated subset. Only the exchange fields those
 indices need must be present:

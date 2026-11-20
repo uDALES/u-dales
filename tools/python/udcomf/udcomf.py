@@ -29,26 +29,27 @@ class UDComf:
 
         return read_stats_schedule(Path(self.sim.path))
 
-    def statistics_times(self, source: str = "stats_tkslice") -> np.ndarray:
-        """Saved record times of the gathered statistics file, validated for use."""
+    def statistics_times(self, source: str = "stats_t") -> np.ndarray:
+        """Saved record times of the chosen statistics file, validated for use.
+
+        ``source`` is ``stats_t``, ``stats_tkslice`` or ``merged_stats_tkslice``.
+        """
         from .schedule import validate_statistics_times
+        from .sources import load_statistics
 
-        if source not in ("stats_t", "stats_tkslice"):
-            raise ValueError("source must be stats_t or stats_tkslice")
-        load = self.sim.load_stat_t if source == "stats_t" else self.sim.load_stat_tkslice
-        return validate_statistics_times(load("time"), self.schedule)
+        return validate_statistics_times(load_statistics(self.sim, source, "time"), self.schedule)
 
-    def prepare_facet_outputs(self, case_paths, *, overwrite: bool = False):
-        """Merge facEB/facT warm starts into this case for comfort postprocessing."""
+    def prepare_facet_outputs(self, case_paths):
+        """Merge facEB t and LWout of warm-start segments into merged_facEB of this case."""
         from .udcomf_io import merge_facet_outputs
 
-        return merge_facet_outputs(Path(self.sim.path), case_paths, overwrite=overwrite)
+        return merge_facet_outputs(Path(self.sim.path), case_paths)
 
-    def prepare_statistics_outputs(self, case_paths, *, overwrite: bool = False):
-        """Merge the comfort subset of warm-start statistics into stats_tkslice of this case."""
+    def prepare_statistics_outputs(self, case_paths, *, source: str = "stats_t"):
+        """Merge the comfort subset of each segment's ``source`` file into merged_stats_tkslice."""
         from .udcomf_io import merge_statistics_outputs
 
-        return merge_statistics_outputs(Path(self.sim.path), case_paths, overwrite=overwrite)
+        return merge_statistics_outputs(Path(self.sim.path), case_paths, source=source)
 
     def export_exchange(self, **kwargs):
         """Write one exchange input file per requested height."""

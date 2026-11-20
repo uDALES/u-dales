@@ -17,6 +17,7 @@ import numpy as np
 
 from udprep.solar import nsun_from_angles
 from .heights import configured_receptor_heights, height_tag, validate_heights
+from .sources import FACET_SOURCES, load_facets
 
 if TYPE_CHECKING:
     from udbase import UDBase
@@ -450,15 +451,16 @@ class UDComfRadiation:
             facet_exitance=exitance,
         )
 
-    def load_longwave_state(self, time_index: int) -> LongwaveState:
+    def load_longwave_state(self, time_index: int, *, facet_source: str = "facEB") -> LongwaveState:
         """Read one EB record and interpolate saved sky LW to its timestamp.
 
         uDALES writes LWout=emissivity*sigma*T_surface**4 after updating facet
         temperature. LWin is emissivity-weighted absorption, not a source
-        radiance for pedestrian receptors.
+        radiance for pedestrian receptors. ``facet_source`` is ``facEB`` or
+        the warm-start ``merged_facEB``.
         """
         index = operator.index(time_index)
-        times = np.asarray(self.sim.load_fac_eb("t"), dtype=float)
+        times = np.asarray(load_facets(self.sim, facet_source, "t"), dtype=float)
         if times.ndim != 1 or not 0 <= index < len(times):
             raise IndexError("Facet EB time_index is outside the archive")
         if not np.isfinite(times).all() or np.any(np.diff(times) <= 0):
@@ -474,7 +476,7 @@ class UDComfRadiation:
             raise ValueError("Sky longwave forcing must be finite, nonnegative, and ordered")
         if not forcing_times.size or time < forcing_times[0] or time > forcing_times[-1]:
             raise ValueError("Facet EB timestamp is outside saved sky longwave forcing")
-        exitance = np.asarray(self.sim.load_fac_eb("LWout", time_index=index), dtype=float)
+        exitance = np.asarray(load_facets(self.sim, facet_source, "LWout", time_index=index), dtype=float)
         if exitance.ndim != 1 or not np.isfinite(exitance).all() or np.any(exitance < 0):
             raise ValueError("Facet emitted longwave exitance must be finite and nonnegative")
         return LongwaveState(
@@ -722,7 +724,8 @@ class UDComfRadiation:
                 fields[name][i, j] = value
         return fields
 
-    def _radiation_archive(self, kind: str, times: np.ndarray) -> tuple[np.ndarray, np.ndarray, dict]:
+    def _radiation_archive(self, kind: str, times: np.ndarray, *,
+                           facet_source: str = "facEB") -> tuple[np.ndarray, np.ndarray, dict]:
         """Load archived facet/sky series once through UDBase for batch processing."""
         if kind == "shortwave":
             archive = self.sim.load_timedepsw()
@@ -750,7 +753,7 @@ class UDComfRadiation:
                 raise ValueError("Invalid archived shortwave forcing")
             return exitance, forcing["dsky"], forcing
 
-        exitance = np.asarray(self.sim.load_fac_eb("LWout"), dtype=float)
+        exitance = np.asarray(load_facets(self.sim, facet_source, "LWout"), dtype=float)
         if (exitance.ndim != 2 or exitance.shape[1] != len(times)
                 or not np.isfinite(exitance).all() or np.any(exitance < 0)):
             raise ValueError("Invalid archived facet longwave exitance")
@@ -826,11 +829,14 @@ class UDComfRadiation:
         max_gap: float | None = None,
         resume: bool = True,
         overwrite: bool = False,
+        facet_source: str = "facEB",
     ) -> Path:
         """Write irradiance planes averaged over the window preceding each time.
 
         ``times`` are the saved statistics record times and ``duration`` the
         averaging window (``tstatsdump``; read from namoptions when omitted).
+        ``facet_source`` names the facet longwave file: ``facEB`` or the
+        warm-start ``merged_facEB``.
         Source samples are integrated under piecewise-linear interpolation,
         not claimed to be exact sub-cadence physical fluxes. Missing coverage
         and restart gaps produce NaN windows. Checkpoints are atomic per record
@@ -870,9 +876,11 @@ class UDComfRadiation:
             raise ValueError("Select at least one unique fluid receptor")
         indices = np.sort(indices)
         times_requested = np.asarray(times, dtype=float)
+        if facet_source not in FACET_SOURCES:
+            raise ValueError(f"facet_source must be one of {list(FACET_SOURCES)}")
         times = np.asarray(
             self.sim.load_shortwave_forcing("time") if kind == "shortwave"
-            else self.sim.load_fac_eb("t"), dtype=float,
+            else load_facets(self.sim, facet_source, "t"), dtype=float,
         )
         windows, gap = preceding_windows(times, times_requested, duration=duration, max_gap=max_gap)
         names = (
@@ -911,7 +919,7 @@ class UDComfRadiation:
         source_files.extend(
             [case / f"shortwave_forcing.{expnr}.nc", case / f"timedepsw.inp.{expnr}"]
             if kind == "shortwave"
-            else [case / f"facEB.{expnr}.nc", case / f"timedeplw.inp.{expnr}"]
+            else [case / f"{facet_source}.{expnr}.nc", case / f"timedeplw.inp.{expnr}"]
         )
         manifest = {
             "version": 5,
@@ -949,7 +957,7 @@ class UDComfRadiation:
                 if complete_windows else np.empty(0, dtype=int)
             )
             if used.size:
-                exitance, sky, forcing = self._radiation_archive(kind, times)
+                exitance, sky, forcing = self._radiation_archive(kind, times, facet_source=facet_source)
             for tile_index, offset in enumerate(range(0, len(indices), tile_size)):
                 if not missing[tile_index]:
                     continue
@@ -997,6 +1005,7 @@ class UDComfRadiation:
         max_gap: float | None = None,
         resume: bool = True,
         overwrite: bool = False,
+        facet_source: str = "facEB",
     ) -> dict[float, dict[str, Path]]:
         """Write one native-grid radiation pair per height, processing sequentially."""
         selected = (
@@ -1034,5 +1043,6 @@ class UDComfRadiation:
                     tile_size=tile_size, n_mu=n_mu, n_azimuth=n_azimuth,
                     sun_body_points=sun_body_points, sun_body_height=sun_body_height,
                     max_gap=max_gap, resume=resume, overwrite=overwrite,
+                    facet_source=facet_source,
                 )
         return results

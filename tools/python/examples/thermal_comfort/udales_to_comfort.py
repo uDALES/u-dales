@@ -3,34 +3,44 @@
 
 Usage
 -----
-    python udales_to_comfort.py --case-dir CASE_DIR [options]
+    python udales_to_comfort.py --case-dir CASE_DIR --heights H [H ...] [options]
 
-    --case-dir DIR       The uDALES case directory (required). It must hold
-                         namoptions.<expnr>, the preprocessing files, the
-                         gathered facet outputs facEB/facT and the gathered
-                         time-averaged statistics. The site longitude, latitude
+    --case-dir DIR       The uDALES case directory (required). Its name is the
+                         experiment number. It must hold namoptions.<expnr>, the
+                         preprocessing files, the gathered facet energy-balance
+                         output facEB.<expnr>.nc, and the gathered time-averaged
+                         statistics. The site longitude, latitude
                          and elevation, the model axis rotation (xazimuth), the
-                         UTC start date, the receptor heights and the statistics
-                         schedule (tstatstart, tstatsdump, tstatsgap) are all
-                         read from namoptions.
+                         UTC start date, the saved receptor heights and the
+                         statistics schedule (tstatstart, tstatsdump, tstatsgap)
+                         are all read from namoptions. Every output is written
+                         into this directory.
+    --heights H [H ...]  Receptor heights in metres to process (required). Each
+                         must be one of the receptor heights saved by the
+                         simulation (receptor_heights in namoptions).
 
 Options
 -------
-    --statistics-source {stats_tkslice,stats_t}
-                         Statistics file to read the receptor-level means from.
-                         Default: stats_tkslice.
-    --heights H [H ...]  Receptor heights (m) to process; they must be saved
-                         receptor heights of the case. Default: all.
-    --output-dir DIR     Where the intermediate planes and exchange files go.
-                         Default: the case directory.
-    --facet-source PATH  Warm-start segment (case directory or facEB.<case>.nc)
-                         whose facet records are merged into this case first.
-                         Repeat for every segment.
-    --stats-source PATH  Warm-start segment (case directory or
-                         stats_tkslice/stats_t.<case>.nc) whose comfort subset is
-                         merged into stats_tkslice of this case first. Repeat
-                         for every segment.
-    --overwrite-merge    Replace an existing merged facEB/facT or stats_tkslice.
+    --statistics-source {stats_t,stats_tkslice}
+                         Gathered statistics file to read. Default: stats_t.
+                         Without --data-source the run reads this file of the
+                         case. With --data-source this file is read from every
+                         segment (it must exist in each; no other file is
+                         tried) and merged.
+    --data-source DIR    Case directory of one warm-start segment. Repeat for
+                         every segment, including --case-dir itself if its own
+                         records belong to the chain. From each directory the
+                         files facEB.<case>.nc and <statistics-source>.<case>.nc
+                         are read following the uDALES naming rule. Only what
+                         the indices need is merged:
+                         facet times t and emitted longwave LWout into
+                         merged_facEB.<expnr>.nc, and tha, pabs, qt, ql at the
+                         bracketing scalar levels plus ws_local and ws_10 into
+                         merged_stats_tkslice.<expnr>.nc, both written into
+                         --case-dir and rebuilt on every run. The original
+                         facEB and statistics files are never modified; facT is
+                         not needed and not merged. The rest of the run then
+                         reads the two merged files.
     --skip-atmosphere    Reuse existing pedestrian_atmosphere files.
     --skip-radiation     Reuse existing pedestrian_shortwave/longwave files.
     --tile-size N        Receptors traced per radiation tile (checkpoint
@@ -46,16 +56,19 @@ Options
     --no-resume          Ignore existing radiation tile checkpoints.
     --overwrite          Replace existing atmosphere, radiation and exchange files.
 
-Outputs (per receptor height, in the output directory)
------------------------------------------------------
+Outputs (per receptor height, in the case directory)
+----------------------------------------------------
     pedestrian_atmosphere.h<height>.<expnr>.nc
     pedestrian_shortwave.h<height>.<expnr>.nc
     pedestrian_longwave.h<height>.<expnr>.nc
     thermal_comfort_inputs.h<height>.<expnr>.nc   (input of calculate_indices.py)
 
-Example
--------
+Examples
+--------
     python udales_to_comfort.py --case-dir /data/cases/001 --heights 1.1 1.5
+    python udales_to_comfort.py --case-dir /data/cases/004 --heights 1.1 \\
+        --data-source /data/cases/001 --data-source /data/cases/002 \\
+        --data-source /data/cases/003
 
 This script does not run uDALES or repeat the surface energy balance. Every
 saved statistics record becomes one output record: the mean over the
@@ -71,6 +84,7 @@ import sys
 
 from udbase import UDBase
 from udcomf.udcomf_export import check_comfort_preflight
+from udcomf.sources import MERGED_FACETS, MERGED_STATISTICS
 from udcomf.udcomf_io import merge_facet_outputs, merge_statistics_outputs
 
 
@@ -81,36 +95,26 @@ def build_parser() -> argparse.ArgumentParser:
             "input files for the comfort indices from existing uDALES outputs."
         )
     )
-    parser.add_argument("--case-dir", type=Path, required=True)
+    parser.add_argument("--case-dir", type=Path, required=True,
+                        help="uDALES case directory; all outputs are written here.")
     parser.add_argument(
-        "--statistics-source", choices=("stats_tkslice", "stats_t"),
-        default="stats_tkslice",
+        "--heights", type=float, nargs="+", required=True,
+        help="Receptor heights (m) to process; each must be saved by the simulation.",
     )
     parser.add_argument(
-        "--heights", type=float, nargs="+", default=None,
-        help="Configured receptor heights to process; default: all configured heights.",
-    )
-    parser.add_argument(
-        "--output-dir", type=Path, default=None,
-        help="Directory for intermediate planes and exchange files; default: case directory.",
-    )
-    parser.add_argument(
-        "--facet-source", type=Path, action="append", default=[],
+        "--statistics-source", choices=("stats_t", "stats_tkslice"), default="stats_t",
         help=(
-            "Warm-start case directory or facEB.<case>.nc file. Repeat as needed; "
-            "records are sorted and checked before merging into the case."
+            "Gathered statistics file to read, from the case or from every "
+            "--data-source segment; default: stats_t."
         ),
     )
     parser.add_argument(
-        "--stats-source", type=Path, action="append", default=[],
+        "--data-source", type=Path, action="append", default=[],
         help=(
-            "Warm-start case directory or stats_tkslice/stats_t.<case>.nc file. Repeat as "
-            "needed; only the comfort subset is merged into stats_tkslice of the case."
+            "Warm-start segment case directory; repeat for every segment. Its facEB and "
+            "--statistics-source files are found by the uDALES naming rule; t and LWout "
+            "are merged into merged_facEB and the comfort subset into merged_stats_tkslice."
         ),
-    )
-    parser.add_argument(
-        "--overwrite-merge", action="store_true",
-        help="Replace existing merged facEB/facT or stats_tkslice files in the case.",
     )
     parser.add_argument(
         "--skip-atmosphere", action="store_true",
@@ -163,14 +167,15 @@ def _print_preflight(report) -> None:
 def main(argv: list[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
     case = args.case_dir.expanduser().resolve()
-    output_dir = (
-        case if args.output_dir is None else args.output_dir.expanduser().resolve()
-    )
     checkpoint_root = (
         None if args.checkpoint_root is None
         else args.checkpoint_root.expanduser().resolve()
     )
-    heights = None if args.heights is None else tuple(args.heights)
+    heights = tuple(args.heights)
+    data_sources = [path.expanduser().resolve() for path in args.data_source]
+    gathered_source = args.statistics_source
+    statistics_source = MERGED_STATISTICS if data_sources else gathered_source
+    facet_source = MERGED_FACETS if data_sources else "facEB"
 
     try:
         report = check_comfort_preflight(case)
@@ -178,29 +183,25 @@ def main(argv: list[str] | None = None) -> int:
         if not report.ready:
             raise ValueError("Comfort preflight has blockers; no postprocessing was started")
 
-        if args.facet_source:
-            merged = merge_facet_outputs(
-                case, args.facet_source, overwrite=args.overwrite_merge,
-            )
+        if data_sources:
+            for path in data_sources:
+                if not path.is_dir():
+                    raise ValueError(f"--data-source must be a case directory: {path}")
+            merged = merge_facet_outputs(case, data_sources)
             print(
-                f"Merged {len(merged.source_cases)} facet segments into "
-                f"{merged.eb_path.name} and {merged.temperature_path.name} "
-                f"({merged.record_count} records)"
+                f"Merged facet t and LWout of {len(merged.source_cases)} segments into "
+                f"{merged.path.name} ({merged.record_count} records)"
             )
-        if args.stats_source:
-            if args.statistics_source != "stats_tkslice":
-                raise ValueError("--stats-source writes stats_tkslice; use --statistics-source stats_tkslice")
-            merged = merge_statistics_outputs(
-                case, args.stats_source, overwrite=args.overwrite_merge,
-            )
+            merged = merge_statistics_outputs(case, data_sources, source=gathered_source)
             print(
-                f"Merged {len(merged.source_cases)} statistics segments into "
-                f"{merged.path.name} ({merged.record_count} records, scalar levels "
+                f"Merged the comfort subset of {len(merged.source_cases)} {gathered_source} "
+                f"segments into {merged.path.name} ({merged.record_count} records, scalar levels "
                 f"{list(k + 1 for k in merged.selected_levels)})"
             )
+            print(f"This run reads {statistics_source} and {facet_source}")
 
         sim = UDBase(case.name, case, load_geometry=not args.skip_radiation)
-        times = sim.comf.statistics_times(args.statistics_source)
+        times = sim.comf.statistics_times(statistics_source)
         schedule = sim.comf.schedule
         irregular = schedule.off_schedule(times)
         print(
@@ -215,9 +216,8 @@ def main(argv: list[str] | None = None) -> int:
             )
         if not args.skip_atmosphere:
             outputs = sim.comf.atmosphere.write_heights(
-                source=args.statistics_source,
+                source=statistics_source,
                 heights=heights,
-                output_dir=output_dir,
                 overwrite=args.overwrite,
             )
             for height, path in outputs.items():
@@ -228,7 +228,6 @@ def main(argv: list[str] | None = None) -> int:
                 times,
                 duration=schedule.tstatsdump,
                 heights=heights,
-                output_dir=output_dir,
                 checkpoint_root=checkpoint_root,
                 tile_size=args.tile_size,
                 n_mu=args.n_mu,
@@ -236,19 +235,16 @@ def main(argv: list[str] | None = None) -> int:
                 max_gap=args.max_gap,
                 resume=not args.no_resume,
                 overwrite=args.overwrite,
+                facet_source=facet_source,
             )
             for height, kinds in outputs.items():
                 for kind, path in kinds.items():
                     print(f"{kind.capitalize()} {height:g} m: {path}")
 
-        exchange = sim.comf.export_exchange(
-            heights=heights,
-            input_dir=output_dir,
-            output_dir=output_dir,
-            overwrite=args.overwrite,
-        )
+        exchange = sim.comf.export_exchange(heights=heights, overwrite=args.overwrite)
+        print("Exchange files written to:")
         for height, path in exchange.items():
-            print(f"Exchange {height:g} m: {path}")
+            print(f"  {height:g} m: {path}")
     except (
         FileNotFoundError, FileExistsError, OSError, RuntimeError, TypeError, ValueError,
     ) as exc:

@@ -12,6 +12,7 @@ import numpy as np
 
 from .heights import bracketing_levels, configured_receptor_heights, height_tag, validate_heights
 from .schedule import read_stats_schedule, validate_statistics_times
+from .sources import STATISTICS_SOURCES, load_statistics
 
 if TYPE_CHECKING:
     from udbase import UDBase
@@ -27,25 +28,30 @@ class UDComfAtmosphere:
         self.sim = sim
 
     def write_heights(
-        self, *, source: str = "stats_tkslice",
+        self, *, source: str = "stats_t",
         heights: tuple[float, ...] | None = None,
         output_dir: Path | None = None, overwrite: bool = False,
     ) -> dict[float, Path]:
         """Write ta, pabs, qv and saved mean speeds for every selected height.
 
+        ``source`` is ``stats_t``, ``stats_tkslice`` or the warm-start
+        ``merged_stats_tkslice`` written by :func:`merge_statistics_outputs`.
         Every saved statistics record becomes one output record: the mean
         over the ``tstatsdump`` seconds preceding its timestamp.
         """
-        if source not in ("stats_t", "stats_tkslice"):
-            raise ValueError("source must be stats_t or stats_tkslice")
+        if source not in STATISTICS_SOURCES:
+            raise ValueError(f"source must be one of {list(STATISTICS_SOURCES)}")
         sim = self.sim
         configured = configured_receptor_heights(sim.path)
         selected = configured if heights is None else validate_heights(heights)
         schedule = read_stats_schedule(sim.path)
-        load = sim.load_stat_t if source == "stats_t" else sim.load_stat_tkslice
+
+        def load(var, **kwargs):
+            return load_statistics(sim, source, var, **kwargs)
+
         source_path = Path(sim.path) / f"{source}.{sim.expnr}.nc"
         if not source_path.is_file():
-            raise FileNotFoundError(f"Gathered statistics file is missing: {source_path}")
+            raise FileNotFoundError(f"Statistics file is missing: {source_path}")
 
         saved_heights = np.atleast_1d(np.asarray(load("receptor_height"), dtype=float))
         height_tolerance = 100 * np.finfo(np.float32).eps * np.maximum(1.0, np.abs(configured))
