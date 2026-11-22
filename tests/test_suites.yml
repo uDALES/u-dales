@@ -397,8 +397,185 @@ groups:
   supported-macos:
     includes:
       - python-library
-      - solver-suites
     suites:
+      # The hosted macOS runner has three CPUs and uDALES never oversubscribes
+      # (tools/mpi_env.sh refuses more ranks than CPUs), so this group lists the
+      # solver-suites entries explicitly instead of including the group: the
+      # ibm sparse input and mpi operators tests need a fixed 2x2 decomposition
+      # and run on Linux and HPC only; the Poisson tests are capped at two ranks.
+      - label: "supported: fortran intrinsic support probe"
+        class: supported
+        kind: unit
+        component: build
+        platform: any
+        cost: fast
+        command:
+          - "bash"
+          - "{tests_dir}/unit/fortran_intrinsics/run_test.sh"
+      - label: "supported: ibm cell lookup integration"
+        class: supported
+        kind: integration
+        component: ibm
+        platform: hpc
+        cost: medium
+        env_UDALES_BUILD: "{repo_root}/build/cpu/{build_type_lower}/u-dales"
+        command:
+          - "bash"
+          - "{tests_dir}/integration/ibm_cell_lookup/run_test.sh"
+      - label: "supported: ibm wall function integration"
+        class: supported
+        kind: integration
+        component: ibm
+        platform: hpc
+        cost: medium
+        env_UDALES_BUILD: "{repo_root}/build/cpu/{build_type_lower}/u-dales"
+        command:
+          - "bash"
+          - "{tests_dir}/integration/ibm_wallfun/run_test.sh"
+      - label: "supported: nudge integration"
+        class: supported
+        kind: integration
+        component: solver
+        platform: hpc
+        cost: medium
+        env_UDALES_BUILD: "{repo_root}/build/cpu/{build_type_lower}/u-dales"
+        command:
+          - "bash"
+          - "{tests_dir}/integration/nudge/run_test.sh"
+      - label: "supported: periodic energy balance correction integration"
+        class: supported
+        kind: integration
+        component: solver
+        platform: hpc
+        cost: medium
+        env_UDALES_BUILD: "{repo_root}/build/cpu/{build_type_lower}/u-dales"
+        command:
+          - "bash"
+          - "{tests_dir}/integration/periodic_ebcorr/run_test.sh"
+      - label: "supported: mass flow rate correction integration"
+        class: supported
+        kind: integration
+        component: solver
+        platform: hpc
+        cost: medium
+        env_UDALES_BUILD: "{repo_root}/build/cpu/{build_type_lower}/u-dales"
+        command:
+          - "bash"
+          - "{tests_dir}/integration/masscorr/run_test.sh"
+      - label: "supported-macos: poisson solver integration (up to two ranks)"
+        class: supported
+        kind: integration
+        component: solver
+        platform: hpc
+        cost: medium
+        env_UDALES_BUILD: "{repo_root}/build/cpu/{build_type_lower}/u-dales"
+        env_UDALES_MAX_RANKS: "2"
+        command:
+          - "bash"
+          - "{tests_dir}/integration/poisson/run_test.sh"
+      - label: "supported-macos: poisson solver equivalence (ipoiss 0 vs 3, CPU, up to 2 ranks)"
+        class: supported
+        kind: integration
+        component: solver
+        platform: hpc
+        cost: medium
+        command:
+          - "{python}"
+          - "{tests_dir}/integration/poisson/run_solver_equivalence.py"
+          - "--cpu-executable"
+          - "{repo_root}/build/cpu/{build_type_lower}/u-dales"
+          - "--max-ranks"
+          - "2"
+      - label: "supported: ibm normal velocity integration"
+        class: supported
+        kind: integration
+        component: ibm
+        platform: hpc
+        cost: medium
+        env_UDALES_BUILD: "{repo_root}/build/cpu/{build_type_lower}/u-dales"
+        command:
+          - "bash"
+          - "{tests_dir}/integration/ibmnorm/run_test.sh"
+      - label: "supported: facet energy balance integration"
+        class: supported
+        kind: integration
+        component: solver
+        platform: hpc
+        cost: medium
+        env_UDALES_BUILD: "{repo_root}/build/cpu/{build_type_lower}/u-dales"
+        command:
+          - "bash"
+          - "{tests_dir}/integration/eb/run_test.sh"
+      - label: "supported: vegetation forcing integration"
+        class: supported
+        kind: integration
+        component: solver
+        platform: hpc
+        cost: medium
+        env_UDALES_BUILD: "{repo_root}/build/cpu/{build_type_lower}/u-dales"
+        command:
+          - "bash"
+          - "{tests_dir}/integration/vegetation/run_test.sh"
+      - label: "supported: checksim diagnostics integration"
+        class: supported
+        kind: integration
+        component: solver
+        platform: hpc
+        cost: medium
+        env_UDALES_BUILD: "{repo_root}/build/cpu/{build_type_lower}/u-dales"
+        command:
+          - "bash"
+          - "{tests_dir}/integration/checksim/run_test.sh"
+      - label: "supported: driver inlet plane integration"
+        class: supported
+        kind: integration
+        component: solver
+        platform: hpc
+        cost: medium
+        env_UDALES_BUILD: "{repo_root}/build/cpu/{build_type_lower}/u-dales"
+        command:
+          - "bash"
+          - "{tests_dir}/integration/driver_planes/run_test.sh"
+      - label: "supported: thermodynamics contract integration"
+        class: supported
+        kind: integration
+        component: solver
+        platform: hpc
+        cost: medium
+        env_UDALES_BUILD: "{repo_root}/build/cpu/{build_type_lower}/u-dales"
+        command:
+          - "bash"
+          - "{tests_dir}/integration/thermodynamics/run_test.sh"
+      - label: "supported: adaptive time step limits integration"
+        class: supported
+        kind: integration
+        component: solver
+        platform: hpc
+        cost: medium
+        env_UDALES_BUILD: "{repo_root}/build/cpu/{build_type_lower}/u-dales"
+        command:
+          - "bash"
+          - "{tests_dir}/integration/tstep/run_test.sh"
+      - label: "supported: time-dependent forcing integration"
+        class: supported
+        kind: integration
+        component: solver
+        platform: hpc
+        cost: medium
+        env_UDALES_BUILD: "{repo_root}/build/cpu/{build_type_lower}/u-dales"
+        command:
+          - "bash"
+          - "{tests_dir}/integration/timedep/run_test.sh"
+      - label: "supported: processor boundaries integration"
+        class: supported
+        kind: integration
+        component: solver
+        platform: hpc
+        cost: medium
+        env_UDALES_BUILD: "{repo_root}/build/cpu/{build_type_lower}/u-dales"
+        command:
+          - "{python}"
+          - "{tests_dir}/integration/processor_boundaries/test_processor_boundaries.py"
       - label: "supported-macos: execute scripts protect existing output directories"
         class: supported
         kind: integration

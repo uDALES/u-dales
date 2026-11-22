@@ -66,9 +66,11 @@ python tests/run_tests.py experimental
   regression suite additionally needs `--branch-a`/`--branch-b` (default
   `master`/`HEAD`) and builds both branches itself.
 - `supported-macos` — a temporary macOS compatibility selection:
-  `python-library` plus only the IBM sparse-input suite, excluding the
-  branch-comparison regression until an unrelated macOS/Homebrew CMake
-  incompatibility on `master` is fixed.
+  `python-library` plus the solver suites that fit the three-CPU hosted
+  macOS runner (uDALES never oversubscribes): the fixed 2x2 ibm sparse input
+  and mpi operators suites are left to Linux and HPC, the Poisson suites are
+  capped at two ranks, and the branch-comparison regression is excluded until
+  an unrelated macOS/Homebrew CMake incompatibility on `master` is fixed.
 - `experimental` — coverage not yet in the merge gate: slower
   directshortwave unit/periodic checks, the vegetation-module-vs-`v2.2.0`
   regression, and the MPI averaging regression; also solver/branch-build

@@ -246,8 +246,9 @@ per hardware thread instead (GitHub Actions does the same on its 4-vCPU runner
 through the equivalent MCA variables in `.github/workflows/ci.yml`). The
 hosted macOS CI runner has three CPUs, so the
 `supported-macos` selection runs the MPI tests on at most two ranks
-(`ZGRID_MODES`, `UDALES_TEST_NPROCX/NPROCY`) and leaves the fixed 2x2 ibm sparse
-input test to Linux and HPC.
+(`ZGRID_MODES`, `UDALES_TEST_NPROCX/NPROCY`, `UDALES_MAX_RANKS=2` and
+`--max-ranks 2` for the Poisson suites) and leaves the fixed 2x2 ibm sparse
+input and mpi operators tests to Linux and HPC.
 
 ### Running the tests on your platform
 
