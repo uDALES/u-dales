@@ -177,6 +177,9 @@ between multiple components rather than one isolated API.
   case `064` on an exponentially stretched vertical grid
 - `sgs_statistics/`: SGS statistics validation for `runmode = 1007` on the
   stretched-grid case `300` across `1x1`, `2x1`, `1x2` and `2x2`
+- `lchem/`: the NO/NO2/O3 chemistry step of `lchem` must be carried into the
+  next time step (issue #427); uniform scalars on the energy-balance case
+  `064` against the implicit reaction map, single rank
 - `udbase_against_matlab/`: Python-vs-MATLAB parity checks on committed cases
 - `udprep/`: preprocessing integration checks on committed cases and binaries
 

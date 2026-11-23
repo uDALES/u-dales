@@ -266,6 +266,7 @@ subroutine tstep_integrate
   ! rk3coef = dt/(4-rk3step) -- true but obscure, and an exact real comparison.
   if (lchem .and. rk3step == 3) then
     call chem
+    svm(ib:ie,jb:je,kb:ke,1:3) = sv0(ib:ie,jb:je,kb:ke,1:3)
   end if
 
   if (ltempeq) then
