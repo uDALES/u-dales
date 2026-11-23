@@ -20,6 +20,11 @@
           "default": false,
           "description": "If true simulation reads in restart file to initialize fields"
         },
+        "lreadfacT": {
+          "type": "boolean",
+          "default": true,
+          "description": "On a warm start, read the facet state from the initf restart file (false: re-seed from Tfacinit*.inp)"
+        },
         "lstratstart": {
           "type": "boolean",
           "default": false,
@@ -1058,7 +1063,11 @@
         "fraction": {
           "type": "number",
           "default": 1.0,
-          "description": "Fraction parameter"
+          "description": "Fraction parameter"        },
+        "waterT": {
+          "type": "number",
+          "default": -1.0,
+          "description": "Anchor (deep-layer) temperature of water-body facets (wall types in (-30, -20]); negative uses flrT [K]"
         }
       }
     },
@@ -1112,18 +1121,24 @@
         "lfielddump": {
           "type": "boolean",
           "default": false,
-          "description": "Switch for instantaneous field output"
+          "description": "Write instantaneous 3-D fields to ins_field.<px>.<expnr>.nc"
         },
-        "tfielddump": {
+        "tinstantstart": {
           "type": "number",
           "minimum": 0,
+          "default": 0,
+          "description": "Start of the instantaneous-output schedule (fields, slices, probes) [s]"
+        },
+        "tinstantdump": {
+          "type": "number",
+          "exclusiveMinimum": 0,
           "default": 10000,
-          "description": "Output time for fields [s]"
+          "description": "Interval of all instantaneous output (fields, slices, probes); replaces tfielddump [s]"
         },
         "fieldvars": {
           "type": "string",
           "default": "",
-          "description": "Variable names of fields (u0,v0,w0,p0,pa,th,ta,rh,qt,ql,s1,s2,s3,s4,s5)"
+          "description": "Comma-separated labels of the instantaneous 3-D fields: u0,v0,w0,p0,pa,th,ta,rh,qt,ql,s1,s2,s3,s4,s5, tx,ty,tz,hf (wall stresses, heat flux), mu,mv,mw,mc (IBM masks), pd,pu,pv,pw (pressure correction, predicted velocities), rs,du,dv,dw (Poisson rhs and terms), di,ux,vy,wz (divergence and terms)"
         },
         "receptor_height": {
           "type": "number",
@@ -1161,75 +1176,134 @@
           "default": 0,
           "description": "Time from which statistics computation or data sampling starts [s]"
         },
+        "tstatsgap": {
+          "type": "number",
+          "minimum": 0,
+          "default": 0,
+          "description": "Gap between consecutive averaging windows; >0 puts the time-averaged statistics on the absolute schedule tstatstart + n*(tstatsdump + tstatsgap) [s]"
+        },
         "ltdump": {
           "type": "boolean",
           "default": false,
-          "description": "Switch to output time-averaged statistics"
+          "description": "Write time-averaged 3-D statistics to stats_t.<px>.<expnr>.nc"
+        },
+        "ltislicedump": {
+          "type": "boolean",
+          "default": false,
+          "description": "Write the time-averaged statistics on the yz-planes islice(1:nislice) to stats_tislice.<px>.<expnr>.nc"
+        },
+        "ltjslicedump": {
+          "type": "boolean",
+          "default": false,
+          "description": "Write the time-averaged statistics on the xz-planes jslice(1:njslice) to stats_tjslice.<py>.<expnr>.nc"
+        },
+        "ltkslicedump": {
+          "type": "boolean",
+          "default": false,
+          "description": "Write the time-averaged statistics on the xy-planes kslice(1:nkslice) to stats_tkslice.<px>.<expnr>.nc (also ws_local and ws_10 on the full plane)"
         },
         "lydump": {
           "type": "boolean",
           "default": false,
-          "description": "Switch for writing y-averaged statistics files"
+          "description": "Write y-averaged instantaneous (x, z) fields to stats_y.<px>.<expnr>.nc every tsample"
         },
         "lytdump": {
           "type": "boolean",
           "default": false,
-          "description": "Switch for writing y-time averaged statistics files"
+          "description": "Write y- and time-averaged (x, z) statistics to stats_yt.<px>.<expnr>.nc"
         },
         "lxydump": {
           "type": "boolean",
           "default": false,
-          "description": "Switch for writing xy-averaged statistics files"
+          "description": "Write x- and y-averaged instantaneous profiles to stats_xy.<expnr>.nc every tsample"
         },
         "lxytdump": {
           "type": "boolean",
           "default": false,
-          "description": "Switch for writing xy-time averaged statistics files"
+          "description": "Write x-, y- and time-averaged profiles to stats_xyt.<expnr>.nc"
         },
         "lmintdump": {
           "type": "boolean",
           "default": false,
-          "description": "Switch for writing minimum time statistics files"
+          "description": "Legacy reduced time-averaged statistics (u, v, w, thl, qt, p) to mintdump.<px>.<py>.<expnr>.nc"
         },
         "lkslicedump": {
           "type": "boolean",
           "default": false,
-          "description": "Switch for writing k-slice data"
+          "description": "Write instantaneous xy-slices at kslice(1:nkslice) to ins_kslice.<px>.<expnr>.nc"
         },
         "slicevars": {
           "type": "string",
           "default": "",
-          "description": "Variable names for slice output (u0,v0,w0,p0,pa,th,ta,rh,qt,ql,s1,s2,s3,s4)"
+          "description": "Comma-separated labels of the instantaneous slices (all directions): u0,v0,w0,p0,pa,th,ta,rh,qt,ql,s1,s2,s3,s4"
+        },
+        "nkslice": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 1000,
+          "default": 0,
+          "description": "Number of xy-planes in kslice (must be > 0 with lkslicedump or ltkslicedump)"
         },
         "kslice": {
-          "type": "integer",
-          "default": 1,
-          "description": "k-level for slice output"
+          "type": "array",
+          "items": {"type": "integer", "minimum": 1},
+          "description": "Global k-indices of the xy-planes, nkslice entries"
         },
         "lislicedump": {
           "type": "boolean",
           "default": false,
-          "description": "Switch for writing i-slice data"
+          "description": "Write instantaneous yz-slices at islice(1:nislice) to ins_islice.<px>.<expnr>.nc"
+        },
+        "nislice": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 1000,
+          "default": 0,
+          "description": "Number of yz-planes in islice (must be > 0 with lislicedump or ltislicedump)"
         },
         "islice": {
-          "type": "integer",
-          "default": 1,
-          "description": "i-level for slice output"
+          "type": "array",
+          "items": {"type": "integer", "minimum": 1},
+          "description": "Global i-indices of the yz-planes, nislice entries"
         },
         "ljslicedump": {
           "type": "boolean",
           "default": false,
-          "description": "Switch for writing j-slice data"
+          "description": "Write instantaneous xz-slices at jslice(1:njslice) to ins_jslice.<py>.<expnr>.nc"
+        },
+        "njslice": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 1000,
+          "default": 0,
+          "description": "Number of xz-planes in jslice (must be > 0 with ljslicedump or ltjslicedump)"
         },
         "jslice": {
+          "type": "array",
+          "items": {"type": "integer", "minimum": 1},
+          "description": "Global j-indices of the xz-planes, njslice entries"
+        },
+        "lprobedump": {
+          "type": "boolean",
+          "default": false,
+          "description": "Write time series at the nprobe grid points of probe.inp.<expnr> to ins_probe.<expnr>.nc"
+        },
+        "nprobe": {
           "type": "integer",
-          "default": 1,
-          "description": "j-level for slice output"
+          "minimum": 0,
+          "default": 0,
+          "description": "Number of probe points in probe.inp.<expnr> (one header line, then i j k per line)"
+        },
+        "probevars": {
+          "type": "string",
+          "default": "",
+          "description": "Comma-separated labels of the probe variables: u0,v0,w0,p0,pa,th,ta,rh,qt,ql,s1,s2,s3,s4"
         },
         "tcheck": {
           "type": "number",
+          "minimum": 0,
           "default": 0,
-          "description": "Time interval for output log"
+          "description": "Interval of the Courant/diffusion-number and divergence log; 0 writes every time step [s]"
         },
         "ltkedump": {
           "type": "boolean",
@@ -1295,7 +1369,13 @@
         "ltreedump": {
           "type": "boolean",
           "default": false,
-          "description": "Switch for tree output"
+          "description": "Write time-averaged vegetation terms to stats_tree.<px>.<expnr>.nc"
+        },
+        "itree_mode": {
+          "type": "integer",
+          "enum": [1, 2, 99],
+          "default": 1,
+          "description": "Tree model: 1 drag only, 2 vegetation scalar/energy sources, 99 legacy surface energy balance"
         }
       }
     },

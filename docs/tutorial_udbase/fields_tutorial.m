@@ -1,11 +1,11 @@
 %[text] # Working with uDALES field data in MATLAB
 %[text] This tutorial describes how to read and process field data output of the LES code uDALES using MATLAB. In addition, it describes some important concepts, such as the [grid layout](internal:H_7AB386AF), [variable locations](internal:M_DF9979E4) and [averaging procedures](internal:H_08B0188C).
 %[text] The **`udbase`** post-processing class reads in most important input parameters, and contains a number of methods to load field data:
-%[text] - [**load\_stat\_xyt**](internal:H_8c2b). This method load the 1D slab- and time-averaged statistics from the file `xytdump.expnr.nc`. Several time-intervals may be present in the data.
-%[text] - [**load\_stat\_t**](internal:H_90b8). This method loads the 3D time-averaged statistics from the file `tdump.expnr.nc`. Several time-intervals may be present in the data.
+%[text] - [**load\_stat\_xyt**](internal:H_8c2b). This method load the 1D slab- and time-averaged statistics from the file `stats_xyt.expnr.nc`. Several time-intervals may be present in the data.
+%[text] - [**load\_stat\_t**](internal:H_90b8). This method loads the 3D time-averaged statistics from the file `stats_t.expnr.nc`. Several time-intervals may be present in the data.
 %[text] - [**load\_stat\_tree**](internal:M_8076). This method loads the 3D time-averaged statistics of the tree source terms from the file `treedump.expnr.nc`. This method works exactly the same way as `load_stat_t`.
-%[text] - [**load\_field**](internal:H_8324). This method loads instantaneous 3D data from the file `fielddump.expnr.nc`. Several output times may be present in the data.
-%[text] - [**load\_slice**](internal:H_825b). This method loads instantaneous 2D slices of instantaneous 3D data from the file `Xslicedump.expnr.nc`. Several output times may be present in the data.
+%[text] - [**load\_field**](internal:H_8324). This method loads instantaneous 3D data from the file `ins_field.expnr.nc`. Several output times may be present in the data.
+%[text] - [**load\_slice**](internal:H_825b). This method loads instantaneous 2D slices of instantaneous 3D data from the file `ins_Xslice.expnr.nc`. Several output times may be present in the data.
 %[text] - [**plot\_trees**](internal:M_8076). This method plots tree patches. \
 %[text] **The live matlab file of this tutorial can be found in the repository in the folder /docs/tutorial\_mlx.**
 %[text] ## Initialising udbase
@@ -71,14 +71,14 @@ sim = udbase(expnr, expdir); %[output:2c0aebc9]
 %[text] Many of the outputs of uDALES have been averaged in some manner. This is advantageous as these are often the quantities we are interested in, and also require much less diskspace and memory to process.
 %[text] The Reynolds decomposition is used to decompose variables into mean quantities and their fluctuations \[2\]:
 %[text] $\\varphi \\left(x,y,z,t\\right)=\\bar{\\varphi \\;} \\left(x,y,z\\right)+\\varphi {\\;}^{\\prime } \\left(x,y,z,t\\right)${"editStyle":"visual"},
-%[text] where the overbar denotes time-averaging. The time-averaged data is contained in the `tdump.expnr.nc` file.
+%[text] where the overbar denotes time-averaging. The time-averaged data is contained in the `stats_t.expnr.nc` file.
 %[text] Often, we are interested in the quantities that are additionally averaged in the horizontal plane. This is often referred to as a **slab average**.  In this case it is common to further decompose the time-averaged quantity $\\bar{\\varphi}${"editStyle":"visual"} into a spatial average $\\langle \\bar{\\varphi} \\rangle \\left(z\\right)${"editStyle":"visual"} (i.e., average over the horizontal surface)  and its spatial variation $\\bar{\\varphi} \\textrm{"}\\left(x,y,z\\right)=\\bar{\\varphi} \\left(x,y,z\\right)-\\langle \\bar{\\varphi} \\rangle \\left(z\\right)${"editStyle":"visual"}. Upon substituting this expression into the equation above, we obtain the triple decomposition \[3\]: 
 %[text] $\\varphi \\left(x,y,z,t\\right)=\\langle \\bar{\\varphi} \\rangle \\left(z\\right)+\\bar{\\varphi} \\textrm{"}\\left(x,y,z\\right)\\;+\\varphi^{\\prime } \\left(x,y,z,t\\right)${"editStyle":"visual"}.
 %[text] Here, $\\langle \\bar{\\varphi \\;} \\rangle${"editStyle":"visual"} is an *intrinsic* average, defined as \[3\]
 %[text] $\\langle \\bar{\\varphi} \\rangle \\;\\left(z\\right)=\\frac{1}{A\_f }\\int\_{\\Omega\_{f\\;} } \\varphi \\;\\mathrm{dA}${"editStyle":"visual"}
 %[text] where $A\_f \\left(z\\right)${"editStyle":"visual"} is the area occupied by fluid and $\\Omega\_f${"editStyle":"visual"} is the horizontal surface that is occupied by the fluid. The quantity $\\langle \\bar{\\varphi} \\rangle${"editStyle":"visual"} represents the average value of $\\bar{\\varphi}${"editStyle":"visual"} inside the fluid between the buildings. Another commonly used quantity is the *comprehensive* average $\\langle \\bar{\\varphi} \\rangle\_C${"editStyle":"visual"}, which is defined as 
 %[text] $\\langle \\bar{\\varphi} \\rangle\_C \\left(z\\right)=\\frac{1}{A}\\int\_{\\Omega\_{f\\;} } \\varphi \\;\\mathrm{dA}=\\frac{A\_f }{A}\\langle \\bar{\\varphi} \\rangle \\left(z\\right)${"editStyle":"visual"}
-%[text] where $A${"editStyle":"visual"} is the total surface area. In many cases, it is more convenient to work with comprehensive averages than intrinsic averages, particularly when considering averaged budgets of momentum, temperature etc \[3\]. To convert the intrinsic-average output from uDALES into a comprehensive average, simply multiply the intrinsic average by $A\_f /A${"editStyle":"visual"} as shown above. Time and intrinsically-averaged data is contained in the `xytdump.expnr.nc` file.
+%[text] where $A${"editStyle":"visual"} is the total surface area. In many cases, it is more convenient to work with comprehensive averages than intrinsic averages, particularly when considering averaged budgets of momentum, temperature etc \[3\]. To convert the intrinsic-average output from uDALES into a comprehensive average, simply multiply the intrinsic average by $A\_f /A${"editStyle":"visual"} as shown above. Time and intrinsically-averaged data is contained in the `stats_xyt.expnr.nc` file.
 %%
 %[text] %[text:anchor:H_8c2b] ## load\_stat\_xyt: loading time- and slab-averaged data
 help sim.load_stat_xyt %[output:858992ee]
@@ -148,7 +148,7 @@ legend(leg, 'Location','northwest', 'Interpreter', 'latex') %[output:7e944efd]
 %%
 %[text] %[text:anchor:H_90b8] ## load\_stat\_t: loading time-averaged data
 help sim.load_stat_t %[output:2959cd41]
-%[text] The time-averaged field data is stored in the `tdump.expnr.nc` file. The variables it contains can be listed as:
+%[text] The time-averaged field data is stored in the `stats_t.expnr.nc` file. The variables it contains can be listed as:
 sim.load_stat_t(); %[output:4e438ab3]
 %[text] We load the time-averaged streamwise velocity field u, and the coordinates it relates to. **Note that the appropriate coordinate arrays are listed in the 'Dimensions' column above.**
 ut = sim.load_stat_t('ut');
@@ -199,7 +199,7 @@ sim.load_field(); %[output:6f9ff608]
 %[text] The variable `time` contains the times at which output is written. Let's load the data to see which times these are
 t = sim.load_field('time') %[output:4c4af437]
 %[text] These times can be understood by noticing that the output interval requested in the input file is
-sim.tfielddump %[output:7e262737]
+sim.tinstantdump %[output:7e262737]
 %[text] We load the data, once more using the horizontal velocity 
 u  = sim.load_field('u');
 xm = sim.load_field('xm');
@@ -227,7 +227,7 @@ title(['$u(x, y, z=', num2str(zt(k), '%8.1f'), 'm, t=', num2str(t(n), '%8.0f'),'
 %%
 %[text] %[text:anchor:H_825b] ## load\_slice: loading instantaneous 2D slice data
 help sim.load_slice %[output:638df8b9]
-%[text] The instantaneous slice data is stored in the `Xslicedump.expnr.nc` file. This file contains particular slices of the 3D instantaneous data, which makes this data particularly suitable for creating animations since the output frequency can be much higher than for 3D fields as the filesize will remain much more manageable. 
+%[text] The instantaneous slice data is stored in the `ins_Xslice.expnr.nc` file. This file contains particular slices of the 3D instantaneous data, which makes this data particularly suitable for creating animations since the output frequency can be much higher than for 3D fields as the filesize will remain much more manageable. 
 %[text] uDALES is capable of outputting slices along the `x`, `y` or `z`-direction. In this particular simulation, we requested to output horizontal slices (fixed height in vertical direction using an index `kslice`, e.g., `zm(kslice)`) using the input parameter:
 sim.lkslicedump %[output:3981791a]
 %[text] at index
@@ -238,7 +238,7 @@ sim.tsample %[output:428567b4]
 %[text] - '`i`': vertical slices taken at fixed `x`. Outputs data that is a function of `y,z` and `t`.
 %[text] - '`j`': vertical slices taken at fixed `y`. Outputs data that is a function of `x,z` and `t`.
 %[text] - '`k`': horizontal slices taken at fixed `z`. Outputs data that is a function of `x,y` and `t`.   \
-%[text] To list all the variables stored in `kslicedump.expnr.nc`, we use
+%[text] To list all the variables stored in `ins_kslice.expnr.nc`, we use
 sim.load_slice('k'); %[output:7561360d]
 %[text] This horizontal slice is at `z = zm(sim.kslice)` or `z = zt(sim.kslice)`, depending on the variable.
 %[text] To load the data, we specify the variables we wish to load:

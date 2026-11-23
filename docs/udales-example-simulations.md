@@ -229,7 +229,7 @@ The simulation output contains the 3D instantaneous fields of u, v, and w. The o
 &OUTPUT
 lfielddump   = .true.
 fieldvars    = 'u0,v0,w0'
-tfielddump   = 10.
+tinstantdump = 10.
 ```
 
 ### 002

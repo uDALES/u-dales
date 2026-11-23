@@ -14,8 +14,8 @@ The **`udbase`** post-processing class reads in most important input parameters,
 - [**load_stat_xyt**](#load_stat_xyt-loading-time-and-slab-averaged-data). This method load the 1D slab- and time-averaged statistics from the file `stats_xyt.expnr.nc`. Several time-intervals may be present in the data.
 - [**load_stat_t**](#load_stat_t-loading-time-averaged-data). This method loads the 3D time-averaged statistics from the file `stats_t.expnr.nc`. Several time-intervals may be present in the data.
 - [**load_stat_tree**](#load_stat_tree-and-plot_tree-loading-and-plotting-tree-data). This method loads the 3D time-averaged statistics of the tree source terms from the file `stats_tree.expnr.nc`. This method works exactly the same way as `load_stat_t`.
-- [**load_field**](#load_field-loading-instantaneous-3d-data). This method loads instantaneous 3D data from the file `fielddump.expnr.nc`. Several output times may be present in the data.
-- [**load_slice**](#load_slice-loading-instantaneous-2d-slice-data). This method loads instantaneous 2D slices of instantaneous 3D data from the file `Xslice.expnr.nc` where `X` can be `i`, `j`, or `k`. Several output times may be present in the data.
+- [**load_field**](#load_field-loading-instantaneous-3d-data). This method loads instantaneous 3D data from the file `ins_field.expnr.nc`. Several output times may be present in the data.
+- [**load_slice**](#load_slice-loading-instantaneous-2d-slice-data). This method loads instantaneous 2D slices of instantaneous 3D data from the file `ins_Xslice.expnr.nc` where `X` can be `i`, `j`, or `k`. Several output times may be present in the data.
 - [**plot_trees**](#load_stat_tree-and-plot_tree-loading-and-plotting-tree-data). This method plots tree patches.
 
 **The live matlab file of this tutorial can be found in the repository in the folder /docs/tutorial_udbase.**
@@ -462,14 +462,14 @@ help sim.load_field
      obj.load_field();
 ```
 
-The instantaneous field data is stored in the `fielddump.expnr.nc` file, again, the variables it contains can be listed as:
+The instantaneous field data is stored in the `ins_field.expnr.nc` file, again, the variables it contains can be listed as:
 
 ```matlab
 sim.load_field();
 ```
 
 ```matlabTextOutput
-Contents of fielddump.110.nc:
+Contents of ins_field.110.nc:
     Name                  Description                   Units        Size            Dimensions
     ____    ________________________________________    _____    _____________    ________________
 
@@ -500,10 +500,10 @@ t = 3x1 single column vector
 
 ```
 
-These times can be understood by noticing that the output interval requested in the input file is
+These times can be understood by noticing that the output interval requested in the input file (`tinstantdump`, shared by fields, slices and probes) is
 
 ```matlab
-sim.tfielddump
+sim.tinstantdump
 ```
 
 ```matlabTextOutput
@@ -569,7 +569,7 @@ help sim.load_slice
      obj.load_slice('k');
 ```
 
-The instantaneous slice data is stored in the `Xslice.expnr.nc` file. This file contains particular slices of the 3D instantaneous data, which makes this data particularly suitable for creating animations since the output frequency can be much higher than for 3D fields as the filesize will remain much more manageable.
+The instantaneous slice data is stored in the `ins_Xslice.expnr.nc` file (`ins_islice`, `ins_jslice` or `ins_kslice`). This file contains particular slices of the 3D instantaneous data, which makes this data particularly suitable for creating animations since the output frequency can be much higher than for 3D fields as the filesize will remain much more manageable.
 
 uDALES is capable of outputting slices along the `x`, `y` or `z`-direction. In this particular simulation, we requested to output horizontal slices (fixed height in vertical direction using an index `kslice`, e.g., `zm(kslice)`) using the input parameter:
 

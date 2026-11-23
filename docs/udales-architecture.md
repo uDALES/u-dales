@@ -65,9 +65,10 @@ Everything in `src/` compiles into a single executable whose entry point is `pro
 ### Output and monitoring
 
 - `modsave.f90` — restart files (`writerestartfiles`).
-- `modfielddump.f90` — instantaneous 3-D field output (`fielddump*.nc`).
-- `modstatsdump.f90` / `modstatistics.f90` — time- and space-averaged statistics output.
-- `modstat_nc.f90` — low-level NetCDF writing routines used by the dump modules.
+- `out_instants.f90` (module `instant`) — instantaneous output: 3-D fields (`ins_field`), slices (`ins_islice`, `ins_jslice`, `ins_kslice`) and point probes (`ins_probe`), all on the `tinstantstart + n*tinstantdump` schedule.
+- `out_stats.f90` (module `stats`) — time- and space-averaged statistics (`stats_t`, `stats_xyt`, `stats_xy`, `stats_yt`, `stats_y`, `stats_tree`, `stats_t?slice`): sampling every `tsample`, one record per `tstatsdump` window.
+- `out_write_nc.f90` — low-level NetCDF writing routines used by the output modules.
+- `modstatsdump.f90` — legacy paths only: `mintdump` and the disabled TKE budget (`ltkedump`).
 - `modchecksim.f90` — monitors Courant/Péclet numbers and divergence during the run.
 - `tests.f90` — in-solver test routines dispatched via special `runmode` values.
 
@@ -75,7 +76,7 @@ Everything in `src/` compiles into a single executable whose entry point is `pro
 
 `program.f90` is short and readable; it is the best map of the solver. It has three phases.
 
-**Startup.** In order: `initmpi`, `read_namelist_inputs`, `init2decomp`, `checkinitvalues`, `initglobal`, then the `init*` routines of the other modules (`initfields`, `initboundary`, `initthermodynamics`, `initsubgrid`, `initdriver`, `initpois`), the IBM/facet setup (`readfacetfiles`, `initibm`, `createmasks`, `calcfluidvolumes`), the initial fields (`readinitfiles`, `createscals`), and finally the output and add-on modules (`initstatsdump`, `initEB`, `inittimedep`, `initfielddump`, `boundary`, `init_vegetation`, `createpurifiers`, `init_heatpump`).
+**Startup.** In order: `initmpi`, `read_namelist_inputs`, `init2decomp`, `checkinitvalues`, `initglobal`, then the `init*` routines of the other modules (`initfields`, `initboundary`, `initthermodynamics`, `initsubgrid`, `initdriver`, `initpois`), the IBM/facet setup (`readfacetfiles`, `initibm`, `createmasks`, `calcfluidvolumes`), the initial fields (`readinitfiles`, `createscals`), and finally the output and add-on modules (`initstatsdump`, `stats_init`, `instant_init`, `initEB`, `inittimedep`, `boundary`, `init_vegetation`, `createpurifiers`, `init_heatpump`).
 
 **Time loop.** The loop is `do while ((timeleft>0) .or. (rk3step < 3))`, and — important — **one pass through the loop is one RK3 substep**, not one full timestep. Each substep, every process adds its contribution to the tendency arrays (`up`, `vp`, `wp`, `thlp`, ...), and `tstep_integrate` applies them at the end. The ordered calls, with the module implementing each:
 
@@ -96,12 +97,12 @@ Everything in `src/` compiles into a single executable whose entry point is `pro
 15. `purifiers` (`modpurifiers`).
 16. `tstep_integrate` (`modtstep`) — the RK3 update: `u0 = um + rk3coef * up` with `rk3coef = dt/(4 - rk3step)`, then reset the tendencies to zero; on substep 3, copy `u0` into `um` (chemistry via `modchem` is also applied here, once per full step).
 17. `halos` (`modboundary`) — exchange halo data between neighbouring pencils.
-18. `checksim` (`modchecksim`), `fielddump` (`modfielddump`), `statsdump` (`modstatsdump`) — monitoring and output.
+18. `checksim` (`modchecksim`), `statsdump` (`modstatsdump`, legacy), `stats_main` (`stats`), `instant_main` (`instant`) — monitoring and output; both output modules act only on substep 3.
 19. `boundary` (`modboundary`) — apply domain boundary conditions to the updated fields.
 20. `thermodynamics` (`modthermodynamics`) — diagnostic thermodynamic fields.
 21. `writerestartfiles` (`modsave`) — restart output when due.
 
-**Finalisation.** `exitfielddump`, `exitstatsdump`, `exit_heatpump`, `exitmpi`.
+**Finalisation.** `exitstatsdump`, `exit_heatpump`, `stats_exit`, `instant_exit`, `exitmpi`.
 
 When adding a new physical process, the usual pattern is: a module with an `init*` routine called from the startup phase, and a forcing routine called from the loop that adds to the tendency arrays *before* `poisson`/`tstep_integrate`.
 

@@ -51,8 +51,8 @@ Replace 009 and 010 with the numbers of your simulations.
 
 ## Different output files explained
 
-The output files generated depend on the parameters specified under `&OUTPUT` in the `namoptions` file of your simulation (see [Configuration](udales-namoptions-overview.md) for details), and the name of the output file(s) matches the name of that switch, e.g. if `lxytdump` is selected for experiment `009` then there will be an output file called `xytdump.009.nc`. If `lfielddump` is selected, note that there will be a `fielddump.xxx.009.nc` file for each cpu.
+The output files generated depend on the parameters specified under `&OUTPUT` in the `namoptions` file of your simulation (see [Configuration](udales-namoptions-overview.md) for details). Time-averaged statistics are written to `stats_*` files and instantaneous output to `ins_*` files, e.g. `lxytdump` for experiment `009` produces `stats_xyt.009.nc`, `ltdump` produces one `stats_t.xxx.009.nc` per x-rank, and `lfielddump` one `ins_field.xxx.009.nc` per x-rank. After `gather_outputs.sh` each output type is a single `<name>.009.nc`. The full list of files and their variables is on the [Output files](udales-output-files.md) page.
 
 ## Reading output files
 
-These output files are in netcdf format, and so it is possible to obtain a description of any particular file using the command `ncdisp('<top-level-directory>/outputs/009/xytdump.009.nc')` in Matlab. To read a variable, one can use e.g. `u = ncread(<top-level-directory>/outputs/009/xytdump.009.nc', 'uxyt')`
+These output files are in netcdf format, and so it is possible to obtain a description of any particular file using the command `ncdisp('<top-level-directory>/outputs/009/stats_xyt.009.nc')` in Matlab. To read a variable, one can use e.g. `u = ncread('<top-level-directory>/outputs/009/stats_xyt.009.nc', 'u')`

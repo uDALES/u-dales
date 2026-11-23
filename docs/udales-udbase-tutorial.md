@@ -16,8 +16,8 @@ The **`udbase`** post-processing class reads in most important input parameters,
 - **load_stat_xyt**. This method load the 1D slab- and time-averaged statistics from the file `stats_xyt.expnr.nc`. Several time-intervals may be present in the data.
 - **load_stat_t**. This method loads the 3D time-averaged statistics from the file `stats_t.expnr.nc`. Several time-intervals may be present in the data.
 - **load_stat_tree**. This method loads the 3D time-averaged statistics of the tree source terms from the file `stats_tree.expnr.nc`. This method works exactly the same way as `load_stat_t`.
-- **load_field**. This method loads instantaneous 3D data from the file `fielddump.expnr.nc`. Several output times may be present in the data.
-- **load_slice**. This method loads instantaneous 2D slices of instantaneous 3D data from the file `Xslice.expnr.nc` where `X` can be `i`, `j`, or `k`. Several output times may be present in the data.
+- **load_field**. This method loads instantaneous 3D data from the file `ins_field.expnr.nc`. Several output times may be present in the data.
+- **load_slice**. This method loads instantaneous 2D slices of instantaneous 3D data from the file `ins_Xslice.expnr.nc` where `X` can be `i`, `j`, or `k`. Several output times may be present in the data.
 
 **Facet data:**
 
