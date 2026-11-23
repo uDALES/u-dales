@@ -1034,7 +1034,7 @@ module modcuda
       !!
       !! Since the integration was fused (modtstep::tstep_integrate_device,
       !! master #330) this routine runs at initialisation only: the per-stage
-      !! clearing of the interior is done by the integration kernels from the
+      !! clearing of the interior is done by the integration loops from the
       !! register that holds the tendency, as the host nests do, and the halos
       !! are left as the host leaves them. This whole-array clear stands in for
       !! the initfields zeroing of the host arrays and is what the first stage

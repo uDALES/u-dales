@@ -3725,7 +3725,7 @@ contains
    !! and the kappa tendencies carry the wider ihc, jhc, khc.
    !!
    !! resetTendenciesDevice is the initialisation clear only. The per-stage
-   !! clearing moved into the fused integration kernels of
+   !! clearing moved into the fused integration loops of
    !! modtstep::tstep_integrate_device (interior and boundary planes, as the
    !! host nests do since #330); those are checked by the parity cases and the
    !! host-vs-device asserts on every output, not here.

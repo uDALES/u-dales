@@ -328,7 +328,7 @@ module modtstep
 
 #if defined(_GPU)
       ! The device integrates, clears the tendencies and makes the substep-3
-      ! copies in one kernel per field (tstep_integrate_device below), the
+      ! copies in one loop per field group (tstep_integrate_device below), the
       ! device counterpart of master's fused host nests. Same statements in the
       ! same order, so the two builds round identically.
       call tstep_integrate_device
@@ -465,13 +465,20 @@ module modtstep
 #if defined(_GPU)
     !> Device time integration: the counterpart of the fused host nests above.
     !!
-    !! One kernel per field does what master's host loop does per point, in the
-    !! same statement order: integrate, write the new state, clear the tendency
-    !! and on the last substep copy the state into *m from the register that
-    !! holds it. That replaces ten OpenACC regions, one clearing kernel per
-    !! tendency (resetTendenciesDevice, now initialisation only) and the seven
-    !! whole-array substep-3 copies, i.e. about thirty full passes over device
-    !! memory per substep. The boundary planes keep their small OpenACC regions.
+    !! One OpenACC loop per field group does what master's host loop does per
+    !! point, in the same statement order: integrate, write the new state,
+    !! clear the tendency and on the last substep copy the state into *m from
+    !! the register that holds it. That replaces ten OpenACC regions, one
+    !! clearing kernel per tendency (resetTendenciesDevice, now initialisation
+    !! only) and the seven whole-array substep-3 copies. The boundary planes
+    !! keep their small OpenACC regions.
+    !!
+    !! Why OpenACC loops and not CUDA kernels: these loops are pure streaming,
+    !! and the compiler's collapsed 1-D kernels (65535 gangs of 128) run at
+    !! the memory bandwidth of the A100. A first version as CUDA kernels on
+    !! the code's 3-D (16,4,2) blocks moved the same bytes at about 60 % of
+    !! that rate (554 on 4 A100s: 221.1 s against 216.3 s for the unfused
+    !! regions; the OpenACC version here 215.8 s).
     !!
     !! Only the interior and the guarded boundary planes are cleared, exactly
     !! as on the host: tendency halos are never read (nudge and grwdamp write
@@ -484,28 +491,93 @@ module modtstep
     !! substep-3 copy, so svm_d is refreshed from it afterwards (#427), the
     !! same line the host has.
     subroutine tstep_integrate_device
-      use cudafor
-      use modglobal,      only : ib, ie, jb, je, kb, ke, ih, jh, kh, rk3step, rk3coef, e12min, ltempeq, lmoist, nsv, lchem, &
+      use modglobal,      only : ib, ie, jb, je, kb, ke, rk3step, rk3coef, e12min, ltempeq, lmoist, nsv, lchem, &
                                  BCtopm, BCtopm_pressure, BCxm, BCxm_periodic, BCym, BCym_periodic, ierank, jerank, &
                                  iadv_thl, iadv_kappa
       use modsubgriddata, only : loneeqn
       use modchem,        only : chem
       use modcuda,        only : up_d, vp_d, wp_d, um_d, vm_d, wm_d, u0_d, v0_d, w0_d, &
-                                 qtp_d, qtm_d, qt0_d, svm_d, sv0_d, &
-                                 griddim, blockdim, checkCUDA
+                                 e120_d, e12m_d, e12p_d, thlp_d, thlm_d, thl0_d, thl0c_d, &
+                                 qtp_d, qtm_d, qt0_d, svp_d, svm_d, sv0_d
       implicit none
-      integer :: last, lone, kappa
+      integer :: i, j, k, n
+      real    :: u, v, w, e, t, q, c
+      logical :: last
 
-      last = 0 ; if (rk3step == 3) last = 1
-      lone = 0 ; if (loneeqn) lone = 1
-      kappa = 0 ; if (iadv_thl == iadv_kappa) kappa = 1
+      last = (rk3step == 3)
 
-      call tstep_momentum_cuda<<<griddim,blockdim>>>(rk3coef, e12min, last, lone)
-      call checkCUDA( cudaGetLastError(), 'tstep_momentum_cuda' )
+      ! One pass per field group, as master's host nest: integrate into a
+      ! register, write the new state, zero the tendency, copy to *m on the last
+      ! substep. Plain OpenACC loops: the compiler's 1-D streaming kernels reach
+      ! the memory bandwidth of the A100, which hand-written 3-D CUDA blocks did
+      ! not (554: 3.4 ms against 1.7 ms per launch).
+      if (loneeqn) then
+        !$acc parallel loop collapse(3) default(present) private(u, v, w, e)
+        do k=kb,ke
+          do j=jb,je
+            do i=ib,ie
+              u = um_d(i,j,k) + rk3coef * up_d(i,j,k)
+              v = vm_d(i,j,k) + rk3coef * vp_d(i,j,k)
+              w = wm_d(i,j,k) + rk3coef * wp_d(i,j,k)
+              e = e12m_d(i,j,k) + rk3coef * e12p_d(i,j,k)
+              e = max(e12min, e)
+              u0_d(i,j,k) = u
+              v0_d(i,j,k) = v
+              w0_d(i,j,k) = w
+              e120_d(i,j,k) = e
+              up_d(i,j,k) = 0.
+              vp_d(i,j,k) = 0.
+              wp_d(i,j,k) = 0.
+              e12p_d(i,j,k) = 0.
+              if (last) then
+                um_d(i,j,k) = u
+                vm_d(i,j,k) = v
+                wm_d(i,j,k) = w
+                e12m_d(i,j,k) = e
+              else
+                e12m_d(i,j,k) = max(e12min, e12m_d(i,j,k))
+              end if
+            end do
+          end do
+        end do
+      else
+        !$acc parallel loop collapse(3) default(present) private(u, v, w)
+        do k=kb,ke
+          do j=jb,je
+            do i=ib,ie
+              u = um_d(i,j,k) + rk3coef * up_d(i,j,k)
+              v = vm_d(i,j,k) + rk3coef * vp_d(i,j,k)
+              w = wm_d(i,j,k) + rk3coef * wp_d(i,j,k)
+              u0_d(i,j,k) = u
+              v0_d(i,j,k) = v
+              w0_d(i,j,k) = w
+              up_d(i,j,k) = 0.
+              vp_d(i,j,k) = 0.
+              wp_d(i,j,k) = 0.
+              if (last) then
+                um_d(i,j,k) = u
+                vm_d(i,j,k) = v
+                wm_d(i,j,k) = w
+              end if
+            end do
+          end do
+        end do
+      end if
 
       if (nsv > 0) then
-        call tstep_scalars_cuda<<<griddim,blockdim>>>(rk3coef, last, nsv)
-        call checkCUDA( cudaGetLastError(), 'tstep_scalars_cuda' )
+        !$acc parallel loop collapse(4) default(present) private(c)
+        do n=1,nsv
+          do k=kb,ke
+            do j=jb,je
+              do i=ib,ie
+                c = svm_d(i,j,k,n) + rk3coef * svp_d(i,j,k,n)
+                sv0_d(i,j,k,n) = c
+                svp_d(i,j,k,n) = 0.
+                if (last) svm_d(i,j,k,n) = c
+              end do
+            end do
+          end do
+        end do
         if (lchem .and. rk3step == 3) then
           call chem
           !$acc kernels default(present)
@@ -515,13 +587,47 @@ module modtstep
       end if
 
       if (ltempeq) then
-        call tstep_thl_cuda<<<griddim,blockdim>>>(rk3coef, last, kappa)
-        call checkCUDA( cudaGetLastError(), 'tstep_thl_cuda' )
+        ! thl0c_d exists only for the kappa scheme, so it has a loop of its own.
+        if (iadv_thl == iadv_kappa) then
+          !$acc parallel loop collapse(3) default(present) private(t)
+          do k=kb,ke
+            do j=jb,je
+              do i=ib,ie
+                t = thlm_d(i,j,k) + rk3coef * thlp_d(i,j,k)
+                thl0_d(i,j,k) = t
+                thl0c_d(i,j,k) = t
+                thlp_d(i,j,k) = 0.
+                if (last) thlm_d(i,j,k) = t
+              end do
+            end do
+          end do
+        else
+          !$acc parallel loop collapse(3) default(present) private(t)
+          do k=kb,ke
+            do j=jb,je
+              do i=ib,ie
+                t = thlm_d(i,j,k) + rk3coef * thlp_d(i,j,k)
+                thl0_d(i,j,k) = t
+                thlp_d(i,j,k) = 0.
+                if (last) thlm_d(i,j,k) = t
+              end do
+            end do
+          end do
+        end if
       end if
 
       if (lmoist) then
-        call tstep_field_cuda<<<griddim,blockdim>>>(qt0_d, qtm_d, qtp_d, rk3coef, last, ih, jh, kh)
-        call checkCUDA( cudaGetLastError(), 'tstep_field_cuda qt' )
+        !$acc parallel loop collapse(3) default(present) private(q)
+        do k=kb,ke
+          do j=jb,je
+            do i=ib,ie
+              q = qtm_d(i,j,k) + rk3coef * qtp_d(i,j,k)
+              qt0_d(i,j,k) = q
+              qtp_d(i,j,k) = 0.
+              if (last) qtm_d(i,j,k) = q
+            end do
+          end do
+        end do
       end if
 
       if ((BCxm .ne. BCxm_periodic) .and. ierank) then
@@ -549,131 +655,6 @@ module modtstep
       end if
 
     end subroutine tstep_integrate_device
-
-    !> u, v, w and, when lone == 1, e12: master's momentum nest per point.
-    attributes(global) subroutine tstep_momentum_cuda(rk3coef, e12min, last, lone)
-      use modcuda, only : ie_d, je_d, ke_d, u0_d, v0_d, w0_d, um_d, vm_d, wm_d, up_d, vp_d, wp_d, &
-                          e120_d, e12m_d, e12p_d, tidandstride
-      implicit none
-      real,    value, intent(in) :: rk3coef, e12min
-      integer, value, intent(in) :: last, lone
-      integer :: tidx, tidy, tidz, stridex, stridey, stridez
-      integer :: i, j, k
-      real    :: u, v, w, e
-
-      call tidandstride(tidx, tidy, tidz, stridex, stridey, stridez)
-
-      do k = tidz, ke_d, stridez
-        do j = tidy, je_d, stridey
-          do i = tidx, ie_d, stridex
-            u = um_d(i,j,k) + rk3coef * up_d(i,j,k)
-            v = vm_d(i,j,k) + rk3coef * vp_d(i,j,k)
-            w = wm_d(i,j,k) + rk3coef * wp_d(i,j,k)
-            u0_d(i,j,k) = u
-            v0_d(i,j,k) = v
-            w0_d(i,j,k) = w
-            up_d(i,j,k) = 0.
-            vp_d(i,j,k) = 0.
-            wp_d(i,j,k) = 0.
-            if (last == 1) then
-              um_d(i,j,k) = u
-              vm_d(i,j,k) = v
-              wm_d(i,j,k) = w
-            end if
-            if (lone == 1) then
-              e = e12m_d(i,j,k) + rk3coef * e12p_d(i,j,k)
-              e = max(e12min, e)
-              e120_d(i,j,k) = e
-              e12p_d(i,j,k) = 0.
-              if (last == 1) then
-                e12m_d(i,j,k) = e
-              else
-                e12m_d(i,j,k) = max(e12min, e12m_d(i,j,k))
-              end if
-            end if
-          end do
-        end do
-      end do
-    end subroutine tstep_momentum_cuda
-
-    !> Scalars, species outermost as on the host (n is the slowest index).
-    attributes(global) subroutine tstep_scalars_cuda(rk3coef, last, nsv)
-      use modcuda, only : ie_d, je_d, ke_d, sv0_d, svm_d, svp_d, tidandstride
-      implicit none
-      real,    value, intent(in) :: rk3coef
-      integer, value, intent(in) :: last, nsv
-      integer :: tidx, tidy, tidz, stridex, stridey, stridez
-      integer :: i, j, k, n
-      real    :: sv
-
-      call tidandstride(tidx, tidy, tidz, stridex, stridey, stridez)
-
-      do n = 1, nsv
-        do k = tidz, ke_d, stridez
-          do j = tidy, je_d, stridey
-            do i = tidx, ie_d, stridex
-              sv = svm_d(i,j,k,n) + rk3coef * svp_d(i,j,k,n)
-              sv0_d(i,j,k,n) = sv
-              svp_d(i,j,k,n) = 0.
-              if (last == 1) svm_d(i,j,k,n) = sv
-            end do
-          end do
-        end do
-      end do
-    end subroutine tstep_scalars_cuda
-
-    !> Temperature, with the thl0c copy the kappa scheme reads (the host writes
-    !! thl0c unconditionally; on the device the array only exists for kappa).
-    attributes(global) subroutine tstep_thl_cuda(rk3coef, last, kappa)
-      use modcuda, only : ie_d, je_d, ke_d, thl0_d, thlm_d, thlp_d, thl0c_d, tidandstride
-      implicit none
-      real,    value, intent(in) :: rk3coef
-      integer, value, intent(in) :: last, kappa
-      integer :: tidx, tidy, tidz, stridex, stridey, stridez
-      integer :: i, j, k
-      real    :: t
-
-      call tidandstride(tidx, tidy, tidz, stridex, stridey, stridez)
-
-      do k = tidz, ke_d, stridez
-        do j = tidy, je_d, stridey
-          do i = tidx, ie_d, stridex
-            t = thlm_d(i,j,k) + rk3coef * thlp_d(i,j,k)
-            thl0_d(i,j,k) = t
-            if (kappa == 1) thl0c_d(i,j,k) = t
-            thlp_d(i,j,k) = 0.
-            if (last == 1) thlm_d(i,j,k) = t
-          end do
-        end do
-      end do
-    end subroutine tstep_thl_cuda
-
-    !> Any other prognostic field with halo (hi, hj, hk): qt today.
-    attributes(global) subroutine tstep_field_cuda(x0, xm, xp, rk3coef, last, hi, hj, hk)
-      use modcuda, only : ib_d, ie_d, jb_d, je_d, kb_d, ke_d, tidandstride
-      implicit none
-      integer, value, intent(in) :: hi, hj, hk
-      real, dimension(ib_d-hi:ie_d+hi, jb_d-hj:je_d+hj, kb_d-hk:ke_d+hk), intent(inout) :: x0, xm
-      real, dimension(ib_d-hi:ie_d+hi, jb_d-hj:je_d+hj, kb_d   :ke_d+hk), intent(inout) :: xp
-      real,    value, intent(in) :: rk3coef
-      integer, value, intent(in) :: last
-      integer :: tidx, tidy, tidz, stridex, stridey, stridez
-      integer :: i, j, k
-      real    :: x
-
-      call tidandstride(tidx, tidy, tidz, stridex, stridey, stridez)
-
-      do k = tidz, ke_d, stridez
-        do j = tidy, je_d, stridey
-          do i = tidx, ie_d, stridex
-            x = xm(i,j,k) + rk3coef * xp(i,j,k)
-            x0(i,j,k) = x
-            xp(i,j,k) = 0.
-            if (last == 1) xm(i,j,k) = x
-          end do
-        end do
-      end do
-    end subroutine tstep_field_cuda
 #endif
 
 end module modtstep

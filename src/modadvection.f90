@@ -628,18 +628,21 @@ module modadvection
 
          call tidandstride(tidx, tidy, tidz, stridex, stridey, stridez)
 
-         ! Single fused pass: the horizontal and vertical updates are two
-         ! statements, as on the host, so the rounding sequence is unchanged;
-         ! putin(i,j,k) and putout(i,j,k) are loaded once instead of twice.
-         do k = tidz, ke_d, stridez
-            km = k - 1
-            kp = k + 1
+         ! Two passes, as before #330: the single-pass form of this kernel (one
+         ! statement per update, i innermost as in advecc_2nd_cuda) measured 16 %
+         ! slower on the A100 (554), while the single pass sped advecc up by 11 %.
+         ! The host version is master's single pass; two statements there and two
+         ! passes here round identically.
+
+         do i = tidx, ie_d, stridex
+            im = i - 1
+            ip = i + 1
             do j = tidy, je_d, stridey
                jm = j - 1
                jp = j + 1
-               do i = tidx, ie_d, stridex
-                  im = i - 1
-                  ip = i + 1
+               do k = tidz, ke_d, stridez
+                  km = k - 1
+                  kp = k + 1
                   putout(i, j, k) = putout(i, j, k) - ( &
                                     ( &
                                     (putin(i, j, k) + putin(ip, j, k))*(u0_d(i, j, k) + u0_d(ip, j, k)) &
@@ -650,6 +653,19 @@ module modadvection
                                   - (putin(i, j, k) + putin(i, jm, k))*(v0_d(i, j, k) + v0_d(im, j, k)) & ! d(vu)/dy
                                     )*dyiq_d) &
                                   - ((pres0_d(i, j, k) - pres0_d(im, j, k))*dxi_d) ! - dp/dx
+               end do
+            end do
+         end do
+
+         do k = tidz, ke_d, stridez
+            km = k - 1
+            kp = k + 1
+            do j = tidy, je_d, stridey
+               jm = j - 1
+               jp = j + 1
+               do i = tidx, ie_d, stridex
+                  im = i - 1
+                  ip = i + 1
                   putout(i, j, k) = putout(i, j, k) - ( &
                                     (putin(i, j, kp)*dzf_d(k) + putin(i, j, k)*dzf_d(kp))*dzhi_d(kp) &
                                   * (w0_d(i, j, kp) + w0_d(im, j, kp)) &
@@ -674,18 +690,21 @@ module modadvection
 
          call tidandstride(tidx, tidy, tidz, stridex, stridey, stridez)
 
-         ! Single fused pass: the horizontal and vertical updates are two
-         ! statements, as on the host, so the rounding sequence is unchanged;
-         ! putin(i,j,k) and putout(i,j,k) are loaded once instead of twice.
-         do k = tidz, ke_d, stridez
-            km = k - 1
-            kp = k + 1
+         ! Two passes, as before #330: the single-pass form of this kernel (one
+         ! statement per update, i innermost as in advecc_2nd_cuda) measured 16 %
+         ! slower on the A100 (554), while the single pass sped advecc up by 11 %.
+         ! The host version is master's single pass; two statements there and two
+         ! passes here round identically.
+
+         do i = tidx, ie_d, stridex
+            im = i - 1
+            ip = i + 1
             do j = tidy, je_d, stridey
                jm = j - 1
                jp = j + 1
-               do i = tidx, ie_d, stridex
-                  im = i - 1
-                  ip = i + 1
+               do k = tidz, ke_d, stridez
+                  km = k - 1
+                  kp = k + 1
                   putout(i, j, k) = putout(i, j, k) - ( &
                                     ( &
                                     (u0_d(ip, j, k) + u0_d(ip, jm, k))*(putin(i, j, k) + putin(ip, j, k)) &
@@ -697,6 +716,19 @@ module modadvection
                                     )*dyiq_d &
                                     ) &
                                   - ((pres0_d(i, j, k) - pres0_d(i, jm, k))*dyi_d) ! - dp/dy
+               end do
+            end do
+         end do
+
+         do k = tidz, ke_d, stridez
+            km = k - 1
+            kp = k + 1
+            do j = tidy, je_d, stridey
+               jm = j - 1
+               jp = j + 1
+               do i = tidx, ie_d, stridex
+                  im = i - 1
+                  ip = i + 1
                   putout(i, j, k) = putout(i, j, k) - ( &
                                     (w0_d(i, j, kp) + w0_d(i, jm, kp)) &
                                   * (putin(i, j, kp)*dzf_d(k) + putin(i, j, k)*dzf_d(kp))*dzhi_d(kp) &
