@@ -25,6 +25,10 @@
 #   tests/hpc_run_all_tests.sh full         everything
 #   tests/hpc_run_all_tests.sh [mode] --dry-run
 #                                           write every job script, submit nothing
+#   tests/hpc_run_all_tests.sh [mode] --login
+#                                           orchestrate from the login node (nohup)
+#                                           instead of from a PBS job: no walltime
+#                                           to guess for the wait on the test jobs
 #
 # The orchestrator is itself a PBS job, so it keeps going after the terminal
 # is closed. Three steps:
@@ -74,7 +78,13 @@ IMPI_BIN=/gpfs/easybuild/prod/software/impi/2021.9.0-intel-compilers-2023.1.0/mp
 
 # The a100 queue is one node per job and 12 GPUs per user.
 RES_ORCH="select=1:ncpus=8:mpiprocs=8:mem=64gb"
-WALL_ORCH="24:00:00"
+# Walltimes are a little above what each job has taken on HX1 (gpu-smoke 5 min,
+# gpu-mpi 15, gpu-nightly 30, gpu-full 55, supported 20-40 with its two builds,
+# python 10), not a day: PBS cannot place a long job on the busy small-CPU
+# queue, and a 24 h request sat unplaced for three days. The orchestrator's own
+# walltime must cover its builds plus the queue waits of every job it waits
+# for; run it with --login to avoid that request altogether.
+WALL_ORCH="08:00:00"
 RES_CPU="select=1:ncpus=8:mpiprocs=8:mem=64gb"
 RES_GPU1="select=1:ncpus=8:mpiprocs=8:mem=128gb:ngpus=1:gpu_type=A100"
 RES_GPU2="select=1:ncpus=8:mpiprocs=8:mem=128gb:ngpus=2:gpu_type=A100"
@@ -186,22 +196,22 @@ write_job() {
 # ---------------------------------------------------------------------------
 BRANCHES="--branch-a master --branch-b HEAD"
 define_jobs() {
-    write_job python      "$RES_CPU"  "02:00:00" \
+    write_job python      "$RES_CPU"  "00:30:00" \
         "python-library|python tests/run_tests.py python-library" \
         "gpu-validate-config|python tests/integration/gpu/run_gpu_tests.py full --validate-config"
-    write_job gpu-debug   "$RES_GPU2" "06:00:00" \
+    write_job gpu-debug   "$RES_GPU2" "01:00:00" \
         "gpu-smoke|python tests/run_tests.py gpu-smoke" \
         "gpu-mpi|python tests/run_tests.py gpu-mpi"
-    write_job gpu-nightly "$RES_GPU1" "06:00:00" \
+    write_job gpu-nightly "$RES_GPU1" "01:00:00" \
         "gpu-nightly|python tests/run_tests.py gpu-nightly"
-    write_job supported   "$RES_CPU"  "03:00:00" \
+    write_job supported   "$RES_CPU"  "01:30:00" \
         "supported-debug|python tests/run_tests.py supported $BRANCHES --build-type Debug"
     CONCURRENT="python gpu-debug gpu-nightly"
     SEQUENTIAL="supported"
     SKIPPED=""
     CHAIN_gpu_full=""
     if [ "$MODE" = full ]; then
-        write_job gpu-full  "$RES_GPU4" "06:00:00" \
+        write_job gpu-full  "$RES_GPU4" "01:30:00" \
             "gpu-full|python tests/run_tests.py gpu-full"
         # Reads only the CPU Debug binary. The GPU jobs re-run cmake in that
         # build directory as their first suite, but with nothing changed cmake
@@ -214,12 +224,12 @@ define_jobs() {
         # an idle node in the small/medium pool.
         # Ranks spread over two nodes: the Poisson self-test and the mpi parity
         # selection with each pair of ranks on different nodes.
-        EXTRA_PBS="#PBS -l place=scatter" write_job gpu-2node "$RES_GPU2x2" "02:00:00" \
+        EXTRA_PBS="#PBS -l place=scatter" write_job gpu-2node "$RES_GPU2x2" "00:45:00" \
             "poisson-2node|env UDALES_BUILD=build/gpu/release/u-dales UDALES_GPU=1 UDALES_MAX_RANKS=2 MPI_LAUNCH_EXTRA_ARGS='--map-by ppr:2:node' bash tests/integration/poisson/run_test.sh" \
             "gpu-mpi-2node|env UDALES_GPU_MPI_ARGS='--map-by ppr:2:node' python tests/integration/gpu/run_gpu_tests.py mpi --cpu-executable build/cpu/debug/u-dales --gpu-executable build/gpu/debug/u-dales --require-debug-selftest"
-        EXTRA_PBS="#PBS -l place=excl" write_job fixtures "$RES_CPU" "03:00:00" \
+        EXTRA_PBS="#PBS -l place=excl" write_job fixtures "$RES_CPU" "02:00:00" \
             "gpu-fixtures-cpu|python tests/integration/gpu/run_gpu_tests.py full --cpu-only --cpu-executable build/cpu/debug/u-dales"
-        write_job all       "$RES_CPU"  "04:00:00" \
+        write_job all       "$RES_CPU"  "03:00:00" \
             "all-release|python tests/run_tests.py all $BRANCHES --build-type Release"
         CONCURRENT="python gpu-debug gpu-nightly gpu-full gpu-2node fixtures"
         SEQUENTIAL="supported all"
@@ -412,7 +422,8 @@ for arg in "$@"; do
         fast|full) MODE=$arg; MODE_ARG=$arg ;;
         --dry-run) DRY_RUN=1 ;;
         --orchestrate) ACTION=orchestrate ;;
-        *) echo "Usage: tests/hpc_run_all_tests.sh [fast|full] [--dry-run]"; exit 2 ;;
+        --login) ACTION=login ;;
+        *) echo "Usage: tests/hpc_run_all_tests.sh [fast|full] [--dry-run|--login]"; exit 2 ;;
     esac
 done
 
@@ -454,6 +465,22 @@ if [ "$DRY_RUN" = 1 ]; then
     [ -n "$CHAIN_gpu_full" ] && echo "  gpu-full would be chained after: $CHAIN_gpu_full"
     echo "  sequential: $SEQUENTIAL"
     [ -n "$SKIPPED" ] && echo "  skipped:    $SKIPPED"
+    exit 0
+fi
+
+if [ "$ACTION" = login ]; then
+    # Orchestrate from this login node: the builds run here and the polling
+    # loop costs nothing, so no PBS walltime has to be guessed for the wait on
+    # the test jobs. nohup keeps it going after the terminal closes.
+    export UDALES_ROOT RUN_DIR MODE MODE_ARG DRY_RUN
+    nohup bash tests/hpc_run_all_tests.sh --orchestrate > "$RUN_DIR/orchestrator.out" 2>&1 &
+    echo "$!" > "$RUN_DIR/orchestrator.pid"
+    echo "Orchestrating on $(hostname -s) as process $! ($MODE mode)."
+    echo "It builds the four executables here, then submits and waits for the test jobs."
+    echo "Everything is written under:"
+    echo "  $RUN_DIR"
+    echo "Final report, once it finishes:  $RUN_DIR/report.log"
+    echo "Progress in the meantime:        $RUN_DIR/orchestrator.log  and  qstat -u \$USER"
     exit 0
 fi
 

@@ -3724,6 +3724,12 @@ contains
    !! interior. Not decoration: advecc_kappa_add writes the halo of thlpc_d,
    !! and the kappa tendencies carry the wider ihc, jhc, khc.
    !!
+   !! resetTendenciesDevice is the initialisation clear only. The per-stage
+   !! clearing moved into the fused integration kernels of
+   !! modtstep::tstep_integrate_device (interior and boundary planes, as the
+   !! host nests do since #330); those are checked by the parity cases and the
+   !! host-vs-device asserts on every output, not here.
+   !!
    !! It runs near the top of the list because everything below it that drives
    !! a wall function, vegetation, masscorr or the boundary conditions adds
    !! into a tendency. It leaves them zeroed, which is what initCUDA left, so

@@ -1030,8 +1030,15 @@ module modcuda
       !! accumulates, on both, so the interior never needs clearing; what the
       !! host relies on instead is the thlpc = 0. initfields does at
       !! allocation, because advecc_kappa_add writes the halo as well and only
-      !! the interior is copied back. Zeroing it per stage is what the device
-      !! has always done and costs one kernel on a kappa run.
+      !! the interior is copied back.
+      !!
+      !! Since the integration was fused (modtstep::tstep_integrate_device,
+      !! master #330) this routine runs at initialisation only: the per-stage
+      !! clearing of the interior is done by the integration kernels from the
+      !! register that holds the tendency, as the host nests do, and the halos
+      !! are left as the host leaves them. This whole-array clear stands in for
+      !! the initfields zeroing of the host arrays and is what the first stage
+      !! starts from.
       subroutine resetTendenciesDevice
          implicit none
          integer :: n

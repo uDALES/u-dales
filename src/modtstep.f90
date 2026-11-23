@@ -301,22 +301,16 @@ module modtstep
     !! \see Wicker and Skamarock, 2002
     subroutine tstep_integrate
       use modglobal,      only : ib, ie, jb, je, kb, ke, rk3step, rk3coef, e12min, ltempeq, lmoist, nsv, lchem, ifixuinf, &
-                                 BCtopm, BCtopm_pressure, BCxm, BCxm_periodic, BCym, BCym_periodic, ierank, jerank, &
-                                 iadv_thl, iadv_kappa !, rk3coefi, dzhi, dyi, dxfi 
+                                 BCtopm, BCtopm_pressure, BCxm, BCxm_periodic, BCym, BCym_periodic, ierank, jerank
       use modsubgriddata, only : loneeqn
       use modchem,        only : chem
       ! use modpois,        only : pij
       ! use modmpi,         only : myid
       use modfields,      only : sv0, dpdxl, dgdt
 #if defined(_GPU)
-      use modcuda,        only : up_d, vp_d, wp_d, um_d, vm_d, wm_d, u0_d, v0_d, w0_d, &
-                                 e120_d, e12m_d, e12p_d, &
-                                 thlp_d, thlm_d, thl0_d, thl0c_d, &
-                                 qtp_d, qtm_d, qt0_d, &
-                                 svp_d, svm_d, sv0_d, dpdxl_d, &
-                                 resetTendenciesDevice
+      use modcuda,        only : dpdxl_d
 #else
-     use modfields,       only : up, vp, wp, um, vm, wm, u0, v0, w0, &
+      use modfields,      only : up, vp, wp, um, vm, wm, u0, v0, w0, &
                                  e120, e12m, e12p, &
                                  thlp, thlm, thl0, thl0c, &
                                  qtp, qtm, qt0, &
@@ -332,206 +326,354 @@ module modtstep
 #endif
       end if
 
-      !$acc kernels default(present)
-      do k=kb,ke
-        do j=jb,je
-          do i=ib,ie
 #if defined(_GPU)
-            u0_d(i,j,k) = um_d(i,j,k) + rk3coef * up_d(i,j,k)
-            v0_d(i,j,k) = vm_d(i,j,k) + rk3coef * vp_d(i,j,k)
-            w0_d(i,j,k) = wm_d(i,j,k) + rk3coef * wp_d(i,j,k)
+      ! The device integrates, clears the tendencies and makes the substep-3
+      ! copies in one kernel per field (tstep_integrate_device below), the
+      ! device counterpart of master's fused host nests. Same statements in the
+      ! same order, so the two builds round identically.
+      call tstep_integrate_device
 #else
-            u0(i,j,k) = um(i,j,k) + rk3coef * up(i,j,k)
-            v0(i,j,k) = vm(i,j,k) + rk3coef * vp(i,j,k)
-            w0(i,j,k) = wm(i,j,k) + rk3coef * wp(i,j,k)
+  ! Tendency zeroing and the substep-3 *m copies are fused into the integration
+  ! nests (formerly ~14 separate whole-array passes per substep; see #330).
+  ! The *p halos are 0 from allocation and only ever written on the boundary
+  ! planes handled in the guarded blocks below, so no blanket zeroing is needed.
+  ! The rk3step branch is loop-invariant (unswitched by the compiler).
+  if (loneeqn) then
+    do k=kb,ke
+      do j=jb,je
+        do i=ib,ie
+          u0(i,j,k)   = um(i,j,k)   + rk3coef * up(i,j,k)
+          v0(i,j,k)   = vm(i,j,k)   + rk3coef * vp(i,j,k)
+          w0(i,j,k)   = wm(i,j,k)   + rk3coef * wp(i,j,k)
+          e120(i,j,k) = e12m(i,j,k) + rk3coef * e12p(i,j,k)
+          e120(i,j,k) = max(e12min,e120(i,j,k))
+          up(i,j,k) = 0.
+          vp(i,j,k) = 0.
+          wp(i,j,k) = 0.
+          e12p(i,j,k) = 0.
+          if (rk3step == 3) then
+            um(i,j,k) = u0(i,j,k)
+            vm(i,j,k) = v0(i,j,k)
+            wm(i,j,k) = w0(i,j,k)
+            e12m(i,j,k) = e120(i,j,k)
+          else
+            e12m(i,j,k) = max(e12min,e12m(i,j,k))
+          end if
+        enddo
+      enddo
+    end do
+  else
+    do k=kb,ke
+      do j=jb,je
+        do i=ib,ie
+          u0(i,j,k)   = um(i,j,k)   + rk3coef * up(i,j,k)
+          v0(i,j,k)   = vm(i,j,k)   + rk3coef * vp(i,j,k)
+          w0(i,j,k)   = wm(i,j,k)   + rk3coef * wp(i,j,k)
+          up(i,j,k) = 0.
+          vp(i,j,k) = 0.
+          wp(i,j,k) = 0.
+          if (rk3step == 3) then
+            um(i,j,k) = u0(i,j,k)
+            vm(i,j,k) = v0(i,j,k)
+            wm(i,j,k) = w0(i,j,k)
+          end if
+        enddo
+      enddo
+    enddo
+  end if
+
+  ! scalars: n hoisted out of the spatial nest (n is the slowest-varying index)
+  do n=1,nsv
+    do k=kb,ke
+      do j=jb,je
+        do i=ib,ie
+          sv0(i,j,k,n) = svm(i,j,k,n) + rk3coef * svp(i,j,k,n)
+          svp(i,j,k,n) = 0.
+          if (rk3step == 3) svm(i,j,k,n) = sv0(i,j,k,n)
+        enddo
+      enddo
+    enddo
+  enddo
+
+  ! Chemistry is applied once per full time step, on the last RK3 substep. This
+  ! used to be spelled `rk3coef == dt`, which holds only for rk3step==3 because
+  ! rk3coef = dt/(4-rk3step) -- true but obscure, and an exact real comparison.
+  if (lchem .and. rk3step == 3) then
+    call chem
+    svm(ib:ie,jb:je,kb:ke,1:3) = sv0(ib:ie,jb:je,kb:ke,1:3)
+  end if
+
+  if (ltempeq) then
+    do k=kb,ke
+      do j=jb,je
+        do i=ib,ie
+          thl0(i,j,k) = thlm(i,j,k) + rk3coef * thlp(i,j,k)
+          thl0c(i,j,k) = thl0(i,j,k)
+          thlp(i,j,k) = 0.
+          if (rk3step == 3) thlm(i,j,k) = thl0(i,j,k)
+        enddo
+      enddo
+    enddo
+  end if
+  if (lmoist) then
+    do k=kb,ke
+      do j=jb,je
+        do i=ib,ie
+          qt0(i,j,k) = qtm(i,j,k) + rk3coef * qtp(i,j,k)
+          qtp(i,j,k) = 0.
+          if (rk3step == 3) qtm(i,j,k) = qt0(i,j,k)
+        enddo
+      enddo
+    enddo
+  end if
+
+  if ((BCxm .ne. BCxm_periodic) .and. ierank) then
+    u0(ie+1,jb:je,kb:ke) = um(ie+1,jb:je,kb:ke)  + rk3coef * up(ie+1,jb:je,kb:ke)
+    up(ie+1,jb:je,kb:ke) = 0.
+    if (rk3step == 3) um(ie+1,jb:je,kb:ke) = u0(ie+1,jb:je,kb:ke)
+  end if
+
+  if ((BCym .ne. BCym_periodic) .and. jerank) then
+    v0(ib:ie,je+1,kb:ke) = vm(ib:ie,je+1,kb:ke)  + rk3coef * vp(ib:ie,je+1,kb:ke)
+    vp(ib:ie,je+1,kb:ke) = 0.
+    if (rk3step == 3) vm(ib:ie,je+1,kb:ke) = v0(ib:ie,je+1,kb:ke)
+  end if
+
+  if (BCtopm .eq. BCtopm_pressure) then
+    ! do i=ib,ie
+    !   do j=jb,je
+    !     ! w0(i,j,ke+1) = w0(i,j,ke) - dzhi(ke)*((u0(i+1,j,ke)-u0(i,j,ke))*dxfi(i) + &
+    !     !                                       (v0(i,j+1,ke)-v0(i,j,ke))*dyi)
+    !     ! if (myid ==0 .and. (i==32 .and. j==1)) write(*,*) rk3coefi*(w0(i,j,ke) - dzhi(ke)*((u0(i+1,j,ke)-u0(i,j,ke))*dxfi(i) + &
+    !     ! (v0(i,j+1,ke)-v0(i,j,ke))*dyi) - wm(i,j,ke+1)), &
+    !     ! dpdztop(i,j), &
+    !     ! 2*pij(ke)*dzhi(ke+1)
+    !     !
+    !     ! wp(i,j,ke+1) = rk3coefi*(w0(i,j,ke) - dzhi(ke)*((u0(i+1,j,ke)-u0(i,j,ke))*dxfi(i) + &
+    !     !            (v0(i,j+1,ke)-v0(i,j,ke))*dyi) - wm(i,j,ke+1))
+    !     ! wp(i,j,ke+1) = 2*pij(ke)*dzhi(ke+1)
+    !   end do
+    ! end do
+    w0(ib:ie,jb:je,ke+1) = wm(ib:ie,jb:je,ke+1)  + rk3coef * wp(ib:ie,jb:je,ke+1)
+    wp(ib:ie,jb:je,ke+1) = 0.
+    if (rk3step == 3) wm(ib:ie,jb:je,ke+1) = w0(ib:ie,jb:je,ke+1)
+  end if
 #endif
-          end do
-        end do
-      end do
-      !$acc end kernels
+
+    end subroutine tstep_integrate
+
+#if defined(_GPU)
+    !> Device time integration: the counterpart of the fused host nests above.
+    !!
+    !! One kernel per field does what master's host loop does per point, in the
+    !! same statement order: integrate, write the new state, clear the tendency
+    !! and on the last substep copy the state into *m from the register that
+    !! holds it. That replaces ten OpenACC regions, one clearing kernel per
+    !! tendency (resetTendenciesDevice, now initialisation only) and the seven
+    !! whole-array substep-3 copies, i.e. about thirty full passes over device
+    !! memory per substep. The boundary planes keep their small OpenACC regions.
+    !!
+    !! Only the interior and the guarded boundary planes are cleared, exactly
+    !! as on the host: tendency halos are never read (nudge and grwdamp write
+    !! whole planes into them on both builds; Poisson reads interior points
+    !! only) and no assertion compares a tendency, so this follows master.
+    !! thlpc_d is no longer cleared per stage either: advection assigns its
+    !! interior from thlp_d before accumulating, as the host does.
+    !!
+    !! chem updates sv0_d in place after the scalar kernel has already made the
+    !! substep-3 copy, so svm_d is refreshed from it afterwards (#427), the
+    !! same line the host has.
+    subroutine tstep_integrate_device
+      use cudafor
+      use modglobal,      only : ib, ie, jb, je, kb, ke, ih, jh, kh, rk3step, rk3coef, e12min, ltempeq, lmoist, nsv, lchem, &
+                                 BCtopm, BCtopm_pressure, BCxm, BCxm_periodic, BCym, BCym_periodic, ierank, jerank, &
+                                 iadv_thl, iadv_kappa
+      use modsubgriddata, only : loneeqn
+      use modchem,        only : chem
+      use modcuda,        only : up_d, vp_d, wp_d, um_d, vm_d, wm_d, u0_d, v0_d, w0_d, &
+                                 qtp_d, qtm_d, qt0_d, svm_d, sv0_d, &
+                                 griddim, blockdim, checkCUDA
+      implicit none
+      integer :: last, lone, kappa
+
+      last = 0 ; if (rk3step == 3) last = 1
+      lone = 0 ; if (loneeqn) lone = 1
+      kappa = 0 ; if (iadv_thl == iadv_kappa) kappa = 1
+
+      call tstep_momentum_cuda<<<griddim,blockdim>>>(rk3coef, e12min, last, lone)
+      call checkCUDA( cudaGetLastError(), 'tstep_momentum_cuda' )
+
+      if (nsv > 0) then
+        call tstep_scalars_cuda<<<griddim,blockdim>>>(rk3coef, last, nsv)
+        call checkCUDA( cudaGetLastError(), 'tstep_scalars_cuda' )
+        if (lchem .and. rk3step == 3) then
+          call chem
+          !$acc kernels default(present)
+          svm_d(ib:ie,jb:je,kb:ke,1:3) = sv0_d(ib:ie,jb:je,kb:ke,1:3)
+          !$acc end kernels
+        end if
+      end if
+
+      if (ltempeq) then
+        call tstep_thl_cuda<<<griddim,blockdim>>>(rk3coef, last, kappa)
+        call checkCUDA( cudaGetLastError(), 'tstep_thl_cuda' )
+      end if
+
+      if (lmoist) then
+        call tstep_field_cuda<<<griddim,blockdim>>>(qt0_d, qtm_d, qtp_d, rk3coef, last, ih, jh, kh)
+        call checkCUDA( cudaGetLastError(), 'tstep_field_cuda qt' )
+      end if
 
       if ((BCxm .ne. BCxm_periodic) .and. ierank) then
-#if defined(_GPU)
         !$acc kernels default(present)
         u0_d(ie+1,jb:je,kb:ke) = um_d(ie+1,jb:je,kb:ke) + rk3coef * up_d(ie+1,jb:je,kb:ke)
+        up_d(ie+1,jb:je,kb:ke) = 0.
+        if (rk3step == 3) um_d(ie+1,jb:je,kb:ke) = u0_d(ie+1,jb:je,kb:ke)
         !$acc end kernels
-#else
-        u0(ie+1,jb:je,kb:ke) = um(ie+1,jb:je,kb:ke) + rk3coef * up(ie+1,jb:je,kb:ke)
-#endif
       end if
 
       if ((BCym .ne. BCym_periodic) .and. jerank) then
-#if defined(_GPU)
         !$acc kernels default(present)
         v0_d(ib:ie,je+1,kb:ke) = vm_d(ib:ie,je+1,kb:ke) + rk3coef * vp_d(ib:ie,je+1,kb:ke)
+        vp_d(ib:ie,je+1,kb:ke) = 0.
+        if (rk3step == 3) vm_d(ib:ie,je+1,kb:ke) = v0_d(ib:ie,je+1,kb:ke)
         !$acc end kernels
-#else
-        v0(ib:ie,je+1,kb:ke) = vm(ib:ie,je+1,kb:ke) + rk3coef * vp(ib:ie,je+1,kb:ke)
-#endif
       end if
 
       if (BCtopm .eq. BCtopm_pressure) then
-        ! do i=ib,ie
-        !   do j=jb,je
-        !     ! w0(i,j,ke+1) = w0(i,j,ke) - dzhi(ke)*((u0(i+1,j,ke)-u0(i,j,ke))*dxfi(i) + &
-        !     !                                       (v0(i,j+1,ke)-v0(i,j,ke))*dyi)
-        !     ! if (myid ==0 .and. (i==32 .and. j==1)) write(*,*) rk3coefi*(w0(i,j,ke) - dzhi(ke)*((u0(i+1,j,ke)-u0(i,j,ke))*dxfi(i) + &
-        !     ! (v0(i,j+1,ke)-v0(i,j,ke))*dyi) - wm(i,j,ke+1)), &
-        !     ! dpdztop(i,j), &
-        !     ! 2*pij(ke)*dzhi(ke+1)
-        !     !
-        !     ! wp(i,j,ke+1) = rk3coefi*(w0(i,j,ke) - dzhi(ke)*((u0(i+1,j,ke)-u0(i,j,ke))*dxfi(i) + &
-        !     !            (v0(i,j+1,ke)-v0(i,j,ke))*dyi) - wm(i,j,ke+1))
-        !     ! wp(i,j,ke+1) = 2*pij(ke)*dzhi(ke+1)
-        !   end do
-        ! end do
-#if defined(_GPU)
         !$acc kernels default(present)
         w0_d(ib:ie,jb:je,ke+1) = wm_d(ib:ie,jb:je,ke+1) + rk3coef * wp_d(ib:ie,jb:je,ke+1)
+        wp_d(ib:ie,jb:je,ke+1) = 0.
+        if (rk3step == 3) wm_d(ib:ie,jb:je,ke+1) = w0_d(ib:ie,jb:je,ke+1)
         !$acc end kernels
-#else
-        w0(ib:ie,jb:je,ke+1) = wm(ib:ie,jb:je,ke+1) + rk3coef * wp(ib:ie,jb:je,ke+1)
-#endif
       end if
 
+    end subroutine tstep_integrate_device
 
-      if (loneeqn) then
-        !$acc kernels default(present)
-        do k=kb,ke
-          do j=jb,je
-            do i=ib,ie
-#if defined(_GPU)
-              e120_d(i,j,k) = e12m_d(i,j,k) + rk3coef * e12p_d(i,j,k)
-              e120_d(i,j,k) = max(e12min,e120_d(i,j,k))
-              e12m_d(i,j,k) = max(e12min,e12m_d(i,j,k))
-#else
-              e120(i,j,k) = e12m(i,j,k) + rk3coef * e12p(i,j,k)
-              e120(i,j,k) = max(e12min,e120(i,j,k))
-              e12m(i,j,k) = max(e12min,e12m(i,j,k))
-#endif
+    !> u, v, w and, when lone == 1, e12: master's momentum nest per point.
+    attributes(global) subroutine tstep_momentum_cuda(rk3coef, e12min, last, lone)
+      use modcuda, only : ie_d, je_d, ke_d, u0_d, v0_d, w0_d, um_d, vm_d, wm_d, up_d, vp_d, wp_d, &
+                          e120_d, e12m_d, e12p_d, tidandstride
+      implicit none
+      real,    value, intent(in) :: rk3coef, e12min
+      integer, value, intent(in) :: last, lone
+      integer :: tidx, tidy, tidz, stridex, stridey, stridez
+      integer :: i, j, k
+      real    :: u, v, w, e
+
+      call tidandstride(tidx, tidy, tidz, stridex, stridey, stridez)
+
+      do k = tidz, ke_d, stridez
+        do j = tidy, je_d, stridey
+          do i = tidx, ie_d, stridex
+            u = um_d(i,j,k) + rk3coef * up_d(i,j,k)
+            v = vm_d(i,j,k) + rk3coef * vp_d(i,j,k)
+            w = wm_d(i,j,k) + rk3coef * wp_d(i,j,k)
+            u0_d(i,j,k) = u
+            v0_d(i,j,k) = v
+            w0_d(i,j,k) = w
+            up_d(i,j,k) = 0.
+            vp_d(i,j,k) = 0.
+            wp_d(i,j,k) = 0.
+            if (last == 1) then
+              um_d(i,j,k) = u
+              vm_d(i,j,k) = v
+              wm_d(i,j,k) = w
+            end if
+            if (lone == 1) then
+              e = e12m_d(i,j,k) + rk3coef * e12p_d(i,j,k)
+              e = max(e12min, e)
+              e120_d(i,j,k) = e
+              e12p_d(i,j,k) = 0.
+              if (last == 1) then
+                e12m_d(i,j,k) = e
+              else
+                e12m_d(i,j,k) = max(e12min, e12m_d(i,j,k))
+              end if
+            end if
+          end do
+        end do
+      end do
+    end subroutine tstep_momentum_cuda
+
+    !> Scalars, species outermost as on the host (n is the slowest index).
+    attributes(global) subroutine tstep_scalars_cuda(rk3coef, last, nsv)
+      use modcuda, only : ie_d, je_d, ke_d, sv0_d, svm_d, svp_d, tidandstride
+      implicit none
+      real,    value, intent(in) :: rk3coef
+      integer, value, intent(in) :: last, nsv
+      integer :: tidx, tidy, tidz, stridex, stridey, stridez
+      integer :: i, j, k, n
+      real    :: sv
+
+      call tidandstride(tidx, tidy, tidz, stridex, stridey, stridez)
+
+      do n = 1, nsv
+        do k = tidz, ke_d, stridez
+          do j = tidy, je_d, stridey
+            do i = tidx, ie_d, stridex
+              sv = svm_d(i,j,k,n) + rk3coef * svp_d(i,j,k,n)
+              sv0_d(i,j,k,n) = sv
+              svp_d(i,j,k,n) = 0.
+              if (last == 1) svm_d(i,j,k,n) = sv
             end do
           end do
         end do
-        !$acc end kernels
-      end if
+      end do
+    end subroutine tstep_scalars_cuda
 
+    !> Temperature, with the thl0c copy the kappa scheme reads (the host writes
+    !! thl0c unconditionally; on the device the array only exists for kappa).
+    attributes(global) subroutine tstep_thl_cuda(rk3coef, last, kappa)
+      use modcuda, only : ie_d, je_d, ke_d, thl0_d, thlm_d, thlp_d, thl0c_d, tidandstride
+      implicit none
+      real,    value, intent(in) :: rk3coef
+      integer, value, intent(in) :: last, kappa
+      integer :: tidx, tidy, tidz, stridex, stridey, stridez
+      integer :: i, j, k
+      real    :: t
 
-      if (ltempeq) then
-        !$acc kernels default(present)
-        do k=kb,ke
-          do j=jb,je
-            do i=ib,ie
-#if defined(_GPU)
-              thl0_d(i,j,k) = thlm_d(i,j,k) + rk3coef * thlp_d(i,j,k)
-#else
-              thl0(i,j,k) = thlm(i,j,k) + rk3coef * thlp(i,j,k)
-#endif
-            end do
+      call tidandstride(tidx, tidy, tidz, stridex, stridey, stridez)
+
+      do k = tidz, ke_d, stridez
+        do j = tidy, je_d, stridey
+          do i = tidx, ie_d, stridex
+            t = thlm_d(i,j,k) + rk3coef * thlp_d(i,j,k)
+            thl0_d(i,j,k) = t
+            if (kappa == 1) thl0c_d(i,j,k) = t
+            thlp_d(i,j,k) = 0.
+            if (last == 1) thlm_d(i,j,k) = t
           end do
         end do
-        !$acc end kernels
+      end do
+    end subroutine tstep_thl_cuda
 
-        if (iadv_thl == iadv_kappa) then
-#if defined(_GPU)
-          !$acc kernels default(present)
-          thl0c_d(ib:ie,jb:je,kb:ke) = thl0_d(ib:ie,jb:je,kb:ke)
-          !$acc end kernels
-#else
-          thl0c(ib:ie,jb:je,kb:ke) = thl0(ib:ie,jb:je,kb:ke)
-#endif
-        end if
-      end if
+    !> Any other prognostic field with halo (hi, hj, hk): qt today.
+    attributes(global) subroutine tstep_field_cuda(x0, xm, xp, rk3coef, last, hi, hj, hk)
+      use modcuda, only : ib_d, ie_d, jb_d, je_d, kb_d, ke_d, tidandstride
+      implicit none
+      integer, value, intent(in) :: hi, hj, hk
+      real, dimension(ib_d-hi:ie_d+hi, jb_d-hj:je_d+hj, kb_d-hk:ke_d+hk), intent(inout) :: x0, xm
+      real, dimension(ib_d-hi:ie_d+hi, jb_d-hj:je_d+hj, kb_d   :ke_d+hk), intent(inout) :: xp
+      real,    value, intent(in) :: rk3coef
+      integer, value, intent(in) :: last
+      integer :: tidx, tidy, tidz, stridex, stridey, stridez
+      integer :: i, j, k
+      real    :: x
 
+      call tidandstride(tidx, tidy, tidz, stridex, stridey, stridez)
 
-      if (lmoist) then
-        !$acc kernels default(present)
-        do k=kb,ke
-          do j=jb,je
-            do i=ib,ie
-#if defined(_GPU)
-              qt0_d(i,j,k) = qtm_d(i,j,k) + rk3coef * qtp_d(i,j,k)
-#else
-              qt0(i,j,k) = qtm(i,j,k) + rk3coef * qtp(i,j,k)
-#endif
-            end do
+      do k = tidz, ke_d, stridez
+        do j = tidy, je_d, stridey
+          do i = tidx, ie_d, stridex
+            x = xm(i,j,k) + rk3coef * xp(i,j,k)
+            x0(i,j,k) = x
+            xp(i,j,k) = 0.
+            if (last == 1) xm(i,j,k) = x
           end do
         end do
-        !$acc end kernels
-      end if
-
-
-      if (nsv>0) then
-        !$acc kernels default(present)
-        do k=kb,ke
-          do j=jb,je
-            do i=ib,ie
-              do n=1,nsv
-#if defined(_GPU)
-                sv0_d(i,j,k,n) = svm_d(i,j,k,n) + rk3coef * svp_d(i,j,k,n)
-#else
-                sv0(i,j,k,n) = svm(i,j,k,n) + rk3coef * svp(i,j,k,n)
+      end do
+    end subroutine tstep_field_cuda
 #endif
-              end do
-            end do
-          end do
-        end do
-        !$acc end kernels
-
-        ! Chemistry is applied once per full time step, on the last RK3 substep
-        ! (chem itself returns otherwise). master #427: the reaction updates
-        ! sv0 in place, so svm must be refreshed from it afterwards; here the
-        ! substep-3 copies below still run after chem, so the host line is
-        ! redundant until the integration loops are fused.
-        if (lchem .and. rk3step == 3) then
-          call chem
-#if !defined(_GPU)
-          svm(ib:ie,jb:je,kb:ke,1:3) = sv0(ib:ie,jb:je,kb:ke,1:3)
-#endif
-        end if
-      end if
-
-
-      ! The stage that is finishing empties the accumulators for the one that
-      ! follows: advection and everything down to poisson add into these. Both
-      ! implementations do it here, which they did not before the device one
-      ! was split out of updateDevice - that ran at the top of the next stage,
-      ! the same instant in the sequence and a different place to look.
-      !
-      ! The device list carries thlpc_d and the host list does not. See
-      ! resetTendenciesDevice; the host equivalent is the thlpc = 0. that
-      ! initfields does once, at allocation.
-#if defined(_GPU)
-      call resetTendenciesDevice
-#else
-      up=0.
-      vp=0.
-      wp=0.
-      thlp=0.
-      svp=0.
-      e12p=0.
-      qtp=0.
-#endif
-
-      if(rk3step == 3) then
-#if defined(_GPU)
-        um_d = u0_d
-        vm_d = v0_d
-        wm_d = w0_d
-        if (ltempeq) thlm_d = thl0_d
-        if (loneeqn) e12m_d = e120_d
-        if (nsv > 0) svm_d = sv0_d
-        if (lmoist) qtm_d = qt0_d
-#else
-        um = u0
-        vm = v0
-        wm = w0
-        thlm = thl0
-        e12m = e120
-        svm = sv0
-        qtm = qt0
-#endif
-      end if
-
-    end subroutine tstep_integrate
 
 end module modtstep

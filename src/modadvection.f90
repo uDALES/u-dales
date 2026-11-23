@@ -219,6 +219,10 @@ module modadvection
          real, dimension(ib - hi:ie + hi, jb - hj:je + hj, kb:ke + hk), intent(inout) :: putout !< Output: the tendency
 
          integer :: i, j, k, ip, im, jp, jm, kp, km
+
+         ! Single fused pass, i innermost (column-major; see #330). The horizontal and
+         ! vertical updates are kept as two statements so the rounding sequence is
+         ! identical to the former two-pass version.
          do k = kb, ke
             km = k - 1
             kp = k + 1
@@ -237,19 +241,6 @@ module modadvection
                                     v0(i, jp, k)*(putin(i, jp, k) + putin(i, j, k)) &
                                  - v0(i, j, k)*(putin(i, jm, k) + putin(i, j, k)) & ! d(vc)/dy
                                     )*dyi5)
-               end do
-            end do
-         end do
-
-         do j = jb, je
-            jm = j - 1
-            jp = j + 1
-            do i = ib, ie
-               im = i - 1
-               ip = i + 1
-               do k = kb, ke
-                  km = k - 1
-                  kp = k + 1
                   putout(i, j, k) = putout(i, j, k) - ( &
                                     w0(i, j, kp)*(putin(i, j, kp)*dzf(k) + putin(i, j, k)*dzf(kp))*dzhi(kp) &
                                  - w0(i, j, k)*(putin(i, j, km)*dzf(k) + putin(i, j, k)*dzf(km))*dzhi(k) &
@@ -270,6 +261,8 @@ module modadvection
 
          integer :: i, j, k, ip, im, jp, jm, kp, km
 
+         ! Single fused pass, i innermost; two statements preserve the two-pass
+         ! rounding sequence (see advecc_2nd / #330).
          do k = kb, ke
             km = k - 1
             kp = k + 1
@@ -289,20 +282,6 @@ module modadvection
                                  - (putin(i, j, k) + putin(i, jm, k))*(v0(i, j, k) +  v0(im, j, k)) & ! d(vu)/dy
                                     )*dyiq) &
                                  - ((pres0(i, j, k) - pres0(i - 1, j, k))*dxi) ! - dp/dx
-
-               end do
-            end do
-         end do
-
-         do j = jb, je
-            jm = j - 1
-            jp = j + 1
-            do i = ib, ie
-               im = i - 1
-               ip = i + 1
-               do k = kb, ke
-                  km = k - 1
-                  kp = k + 1
                   putout(i, j, k) = putout(i, j, k) - ( &
                                     (putin(i, j, kp)*dzf(k) + putin(i, j, k)*dzf(kp))*dzhi(kp) &
                                  * (w0(i, j, kp) + w0(im, j, kp)) &
@@ -324,6 +303,9 @@ module modadvection
          real, dimension(ib - ih:ie + ih, jb - jh:je + jh, kb:ke + kh), intent(inout) :: putout !< Output: the tendency
 
          integer :: i, j, k, ip, im, jp, jm, kp, km
+
+         ! Single fused pass, i innermost; two statements preserve the two-pass
+         ! rounding sequence (see advecc_2nd / #330).
          do k = kb, ke
             km = k - 1
             kp = k + 1
@@ -333,7 +315,6 @@ module modadvection
                do i = ib, ie
                   im = i - 1
                   ip = i + 1
-
                   putout(i, j, k) = putout(i, j, k) - ( &
                                     ( &
                                     (u0(ip, j, k) + u0(ip, jm, k))*(putin(i, j, k) + putin(ip, j, k)) &
@@ -345,20 +326,6 @@ module modadvection
                                     )*dyiq &
                                     ) &
                                  - ((pres0(i, j, k) - pres0(i, jm, k))*dyi) ! - dp/dy
-
-               end do
-            end do
-         end do
-
-         do j = jb, je
-            jm = j - 1
-            jp = j + 1
-            do i = ib, ie
-               im = i - 1
-               ip = i + 1
-               do k = kb, ke
-                  km = k - 1
-                  kp = k + 1
                   putout(i, j, k) = putout(i, j, k) - ( &
                                     (w0(i, j, kp) + w0(i, jm, kp)) &
                                  * (putin(i, j, kp)*dzf(k) + putin(i, j, k)*dzf(kp))*dzhi(kp) &
@@ -618,13 +585,18 @@ module modadvection
 
          call tidandstride(tidx, tidy, tidz, stridex, stridey, stridez)
 
-         do i = tidx, ie_d, stridex
-            im = i - 1
-            ip = i + 1
+         ! Single fused pass: the horizontal and vertical updates are two
+         ! statements, as on the host, so the rounding sequence is unchanged;
+         ! putin(i,j,k) and putout(i,j,k) are loaded once instead of twice.
+         do k = tidz, ke_d, stridez
+            km = k - 1
+            kp = k + 1
             do j = tidy, je_d, stridey
                jm = j - 1
                jp = j + 1
-               do k = tidz, ke_d, stridez
+               do i = tidx, ie_d, stridex
+                  im = i - 1
+                  ip = i + 1
                   putout(i, j, k) = putout(i, j, k) - ( &
                                     ( &
                                     u0_d(ip, j, k)*(putin(ip, j, k) + putin(i, j, k)) &
@@ -634,19 +606,6 @@ module modadvection
                                     v0_d(i, jp, k)*(putin(i, jp, k) + putin(i, j, k)) &
                                   - v0_d(i, j, k)*(putin(i, jm, k) + putin(i, j, k)) & ! d(vc)/dy
                                     )*dyi5_d)
-               end do
-            end do
-         end do
-
-         do i = tidx, ie_d, stridex
-            im = i - 1
-            ip = i + 1
-            do j = tidy, je_d, stridey
-               jm = j - 1
-               jp = j + 1
-               do k = tidz, ke_d, stridez
-                  km = k - 1
-                  kp = k + 1
                   putout(i, j, k) = putout(i, j, k) - ( &
                                     w0_d(i, j, kp)*(putin(i, j, kp)*dzf_d(k) + putin(i, j, k)*dzf_d(kp))*dzhi_d(kp) &
                                   - w0_d(i, j, k)*(putin(i, j, km)*dzf_d(k) + putin(i, j, k)*dzf_d(km))*dzhi_d(k) &
@@ -669,15 +628,18 @@ module modadvection
 
          call tidandstride(tidx, tidy, tidz, stridex, stridey, stridez)
 
-         do i = tidx, ie_d, stridex
-            im = i - 1
-            ip = i + 1
+         ! Single fused pass: the horizontal and vertical updates are two
+         ! statements, as on the host, so the rounding sequence is unchanged;
+         ! putin(i,j,k) and putout(i,j,k) are loaded once instead of twice.
+         do k = tidz, ke_d, stridez
+            km = k - 1
+            kp = k + 1
             do j = tidy, je_d, stridey
                jm = j - 1
                jp = j + 1
-               do k = tidz, ke_d, stridez
-                  km = k - 1
-                  kp = k + 1
+               do i = tidx, ie_d, stridex
+                  im = i - 1
+                  ip = i + 1
                   putout(i, j, k) = putout(i, j, k) - ( &
                                     ( &
                                     (putin(i, j, k) + putin(ip, j, k))*(u0_d(i, j, k) + u0_d(ip, j, k)) &
@@ -688,19 +650,6 @@ module modadvection
                                   - (putin(i, j, k) + putin(i, jm, k))*(v0_d(i, j, k) + v0_d(im, j, k)) & ! d(vu)/dy
                                     )*dyiq_d) &
                                   - ((pres0_d(i, j, k) - pres0_d(im, j, k))*dxi_d) ! - dp/dx
-               end do
-            end do
-         end do
-
-         do k = tidz, ke_d, stridez
-            km = k - 1
-            kp = k + 1
-            do j = tidy, je_d, stridey
-               jm = j - 1
-               jp = j + 1
-               do i = tidx, ie_d, stridex
-                  im = i - 1
-                  ip = i + 1
                   putout(i, j, k) = putout(i, j, k) - ( &
                                     (putin(i, j, kp)*dzf_d(k) + putin(i, j, k)*dzf_d(kp))*dzhi_d(kp) &
                                   * (w0_d(i, j, kp) + w0_d(im, j, kp)) &
@@ -725,15 +674,18 @@ module modadvection
 
          call tidandstride(tidx, tidy, tidz, stridex, stridey, stridez)
 
-         do i = tidx, ie_d, stridex
-            im = i - 1
-            ip = i + 1
+         ! Single fused pass: the horizontal and vertical updates are two
+         ! statements, as on the host, so the rounding sequence is unchanged;
+         ! putin(i,j,k) and putout(i,j,k) are loaded once instead of twice.
+         do k = tidz, ke_d, stridez
+            km = k - 1
+            kp = k + 1
             do j = tidy, je_d, stridey
                jm = j - 1
                jp = j + 1
-               do k = tidz, ke_d, stridez
-                  km = k - 1
-                  kp = k + 1
+               do i = tidx, ie_d, stridex
+                  im = i - 1
+                  ip = i + 1
                   putout(i, j, k) = putout(i, j, k) - ( &
                                     ( &
                                     (u0_d(ip, j, k) + u0_d(ip, jm, k))*(putin(i, j, k) + putin(ip, j, k)) &
@@ -745,19 +697,6 @@ module modadvection
                                     )*dyiq_d &
                                     ) &
                                   - ((pres0_d(i, j, k) - pres0_d(i, jm, k))*dyi_d) ! - dp/dy
-               end do
-            end do
-         end do
-
-         do k = tidz, ke_d, stridez
-            km = k - 1
-            kp = k + 1
-            do j = tidy, je_d, stridey
-               jm = j - 1
-               jp = j + 1
-               do i = tidx, ie_d, stridex
-                  im = i - 1
-                  ip = i + 1
                   putout(i, j, k) = putout(i, j, k) - ( &
                                     (w0_d(i, j, kp) + w0_d(i, jm, kp)) &
                                   * (putin(i, j, kp)*dzf_d(k) + putin(i, j, k)*dzf_d(kp))*dzhi_d(kp) &

@@ -1360,6 +1360,22 @@
       "src/modadvection.f90:advecv_2nd_cuda": [
         "dry-poisson-fft"
       ],
+      "src/modtstep.f90:tstep_momentum_cuda": [
+        "dry-poisson-fft",
+        "one-equation-sgs"
+      ],
+      "src/modtstep.f90:tstep_scalars_cuda": [
+        "thermo-scalar-wall",
+        "chemistry"
+      ],
+      "src/modtstep.f90:tstep_thl_cuda": [
+        "thermo-scalar-wall",
+        "stretched-temperature-kappa"
+      ],
+      "src/modtstep.f90:tstep_field_cuda": [
+        "thermo-scalar-wall",
+        "statsdump-averages"
+      ],
       "src/modadvection.f90:advecw_2nd_cuda": [
         "dry-poisson-fft"
       ],
@@ -1856,10 +1872,11 @@
         "scalar-point-two-rank-x",
         "scalar-line-two-rank-y"
       ],
-      "src/modtstep.f90:tstep_integrate": [
+      "src/modtstep.f90:tstep_integrate_device": [
         "dry-poisson-fft",
         "thermo-scalar-wall",
-        "one-equation-sgs"
+        "one-equation-sgs",
+        "chemistry"
       ],
       "src/modtimedep.f90:timedepnudge_device": [
         "debug-device-selftests",
