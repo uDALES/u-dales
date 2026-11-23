@@ -107,6 +107,12 @@ job_environment() {
 cd "$UDALES_ROOT"
 # Modules for the Intel CPU build and its runtime, plus CMake for the harness.
 module load intel/2023a netCDF/4.9.2-iimpi-2023a netCDF-Fortran/4.6.1-iimpi-2023a FFTW/3.3.10-intel-compilers-2023.1.0 CMake/3.26.3-GCCcore-12.3.0
+# git for the regression harnesses (they check out master and HEAD, and the
+# experimental ones add worktrees). The GPU compute nodes have no /usr/bin/git,
+# so it comes from a module, and the harnesses that default to /usr/bin/git
+# are pointed at it through UDALES_GIT.
+module load git/2.41.0-GCCcore-12.3.0-nodocs
+export UDALES_GIT="$(command -v git)"
 # Solver integration suites load their runtime themselves from this variable.
 export UDALES_RUNTIME_MODULES="intel/2023a netCDF/4.9.2-iimpi-2023a netCDF-Fortran/4.6.1-iimpi-2023a FFTW/3.3.10-intel-compilers-2023.1.0"
 # The supported regression builds master and HEAD with plain cmake.

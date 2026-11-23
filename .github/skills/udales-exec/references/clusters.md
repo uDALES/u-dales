@@ -188,6 +188,9 @@ Limits and measured behaviour:
   `pbsnodes -a | grep -B20 Qlist.*small24`. Until then run CPU-only test jobs on
   the a100 queue with `ngpus=1` (`tests/hpc_run_all_tests.sh ... --cpu-on-gpu`);
   1-GPU requests there have placed within an hour, 2 GPUs in ~7 h, 4 GPUs in ~8 h.
+  GPU compute nodes have no /usr/bin/git: regression harnesses need
+  `module load git/2.41.0-GCCcore-12.3.0-nodocs` and `UDALES_GIT=$(command -v git)`
+  (the test jobs set both).
 
 
 ## ECMWF Atos HPC2020 (added 2026-09-16)

@@ -495,6 +495,10 @@ user, so `gpu-full` (four GPUs) is the largest single request.
 cd u-dales
 module load intel/2023a netCDF/4.9.2-iimpi-2023a netCDF-Fortran/4.6.1-iimpi-2023a \
             FFTW/3.3.10-intel-compilers-2023.1.0 CMake/3.26.3-GCCcore-12.3.0
+# The regression harnesses need git; the GPU compute nodes have none in
+# /usr/bin, so load it and point the harnesses that default to /usr/bin/git at it.
+module load git/2.41.0-GCCcore-12.3.0-nodocs
+export UDALES_GIT="$(command -v git)"
 
 # The solver integration suites load their runtime themselves, through
 # tests/integration/common/runtime_modules.sh, from this variable.
