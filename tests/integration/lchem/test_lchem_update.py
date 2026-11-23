@@ -65,7 +65,7 @@ JNO2 = 0.8
 #: initial NO, NO2, O3 in the solver's mass units; molar masses as in modchem.f90
 INITIAL = np.array([10.0, 20.0, 30.0])
 MOLAR_MASS = np.array([30.006, 46.005, 47.997])
-SCALARS = ["sca1", "sca2", "sca3"]
+SCALARS = ["s1", "s2", "s3"]
 
 sys.path.insert(0, str(REPO_ROOT / "tests" / "integration"))
 import mpi_env  # noqa: E402
@@ -120,7 +120,7 @@ def _write_case(run_dir: Path, lchem: bool) -> None:
     text = _set(text, "nprocx", "1")
     text = _set(text, "nprocy", "1")
     text = _set(text, "lfielddump", ".true.")
-    text = _set(text, "tfielddump", f"{TFIELDDUMP:g}")
+    text = _set(text, "tinstantdump", f"{TFIELDDUMP:g}")
     text = _set(text, "fieldvars", "'s1,s2,s3,mc'")
     text = _set(text, "lxytdump", ".false.")
     for key in ("nsv", "lchem"):
@@ -152,9 +152,9 @@ def _write_case(run_dir: Path, lchem: bool) -> None:
 
 def _last_record(run_dir: Path) -> tuple[float, np.ndarray, np.ndarray]:
     """Time, fluid-cell means and standard deviations of the last dumped record."""
-    files = sorted(run_dir.glob(f"fielddump.*.{CASE_ID}.nc"))
+    files = sorted(run_dir.glob(f"ins_field.*.{CASE_ID}.nc"))
     if len(files) != 1:
-        raise RuntimeError(f"expected one fielddump file in {run_dir}, found {len(files)}")
+        raise RuntimeError(f"expected one ins_field file in {run_dir}, found {len(files)}")
     with Dataset(files[0]) as nc:
         nc.set_auto_mask(False)
         time = float(np.asarray(nc.variables["time"][:], dtype=np.float64)[-1])
