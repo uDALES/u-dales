@@ -96,7 +96,7 @@ class TestNetCDFLoaders(_CaseBase):
         # NetCDF (time, zt, yt, xm) = (2, 2, 3, 4) -> reversed (xm, yt, zt, time).
         data = np.arange(2 * 2 * 3 * 4, dtype=float).reshape(2, 2, 3, 4)
         _write_nc(
-            self.workdir / "fielddump.001.nc",
+            self.workdir / "ins_field.001.nc",
             {"u": (("time", "zt", "yt", "xm"), data)},
             {"time": [0, 1], "zt": [0, 1], "yt": [0, 1, 2], "xm": [0, 1, 2, 3]},
         )
@@ -109,7 +109,7 @@ class TestNetCDFLoaders(_CaseBase):
     def test_load_field_browse_returns_dataset(self):
         data = np.zeros((2, 2, 3, 4))
         _write_nc(
-            self.workdir / "fielddump.001.nc",
+            self.workdir / "ins_field.001.nc",
             {"u": (("time", "zt", "yt", "xm"), data)},
             {"time": [0, 1], "zt": [0, 1], "yt": [0, 1, 2], "xm": [0, 1, 2, 3]},
         )
@@ -148,18 +148,18 @@ class TestNetCDFLoaders(_CaseBase):
     def test_load_stat_tree_returns_transposed_array(self):
         data = np.arange(6.0).reshape(3, 2)
         _write_nc(
-            self.workdir / "treedump.001.nc",
-            {"tree_drag_u": (("time", "zt"), data)},
+            self.workdir / "stats_tree.001.nc",
+            {"tr_u": (("time", "zt"), data)},
             {"time": [0, 1, 2], "zt": [0, 1]},
         )
-        arr = self._sim().load_stat_tree("tree_drag_u")
+        arr = self._sim().load_stat_tree("tr_u")
         self.assertEqual(arr.shape, (2, 3))
 
     def test_load_slice_k_returns_transposed_array(self):
         # horizontal slice: (time, yt, xm) = (2, 3, 4) -> (4, 3, 2)
         data = np.arange(2 * 3 * 4, dtype=float).reshape(2, 3, 4)
         _write_nc(
-            self.workdir / "kslicedump.001.nc",
+            self.workdir / "ins_kslice.001.nc",
             {"u": (("time", "yt", "xm"), data)},
             {"time": [0, 1], "yt": [0, 1, 2], "xm": [0, 1, 2, 3]},
         )

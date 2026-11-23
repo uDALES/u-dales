@@ -69,10 +69,10 @@ classdef udbase < dynamicprops
         fstats_yt        = 'stats_yt';
         fstats_xyt       = 'stats_xyt';
         fstats_t         = 'stats_t';
-        ffielddump       = 'fielddump';
-        fislice          = 'islice';
-        fjslice          = 'jslice';
-        fkslice          = 'kslice';
+        fins_field       = 'ins_field';
+        fins_islice      = 'ins_islice';
+        fins_jslice      = 'ins_jslice';
+        fins_kslice      = 'ins_kslice';
         fsolid           = 'solid';
         ffacEB           = 'facEB';
         ffacT            = 'facT';
@@ -541,11 +541,11 @@ classdef udbase < dynamicprops
         % ------------------------------------------------------------- %
 
         function varargout = load_field(obj, varargin)
-            %  A method to retrieve instantaneous 3D data from from the fielddump file.
+            %  A method to retrieve instantaneous 3D data from the ins_field file.
             %
-            %  load_field(OBJ) displays the variables in the fielddump file
+            %  load_field(OBJ) displays the variables in the ins_field file
             %
-            %  load_field(OBJ, svar) retrieves variable svar from the fielddump file
+            %  load_field(OBJ, svar) retrieves variable svar from the ins_field file
             %
             %  Example (view contents of output):
             %    obj = udbase(expnr);
@@ -553,7 +553,7 @@ classdef udbase < dynamicprops
 
             obj.gopath()
 
-            fname = [obj.ffielddump, '.', obj.expnr, '.nc'];
+            fname = [obj.fins_field, '.', obj.expnr, '.nc'];
             ffullname = fullfile(obj.path, fname);
             if isempty(varargin) && nargout == 0
                 udbase.ncinfo(ffullname);
@@ -567,7 +567,7 @@ classdef udbase < dynamicprops
         % ------------------------------------------------------------- %
 
         function varargout = load_slice(obj, option, varargin)
-            % A method to retrieve instantaneous 2D slices from from the slice file.
+            % A method to retrieve instantaneous 2D slices from the ins_islice, ins_jslice or ins_kslice file.
             %
             % load_slice(obj) displays information, option chooses plane.
             %
@@ -581,11 +581,11 @@ classdef udbase < dynamicprops
 
             switch option
                 case 'i'
-                    fname = [obj.fislice, '.', obj.expnr, '.nc'];
+                    fname = [obj.fins_islice, '.', obj.expnr, '.nc'];
                 case 'j'
-                    fname = [obj.fjslice, '.', obj.expnr, '.nc'];
+                    fname = [obj.fins_jslice, '.', obj.expnr, '.nc'];
                 case 'k'
-                    fname = [obj.fkslice, '.', obj.expnr, '.nc'];
+                    fname = [obj.fins_kslice, '.', obj.expnr, '.nc'];
                 otherwise
                     error('Invalid option. Use ''i'', ''j'', or ''k''.');
             end

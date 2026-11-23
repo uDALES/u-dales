@@ -839,7 +839,7 @@ class UDBase:
         >>> u = sim.load_field('u')  # Returns numpy array
         >>> print(u.shape)
         """
-        filename = self.path / f"fielddump.{self.expnr}.nc"
+        filename = self.path / f"ins_field.{self.expnr}.nc"
         return self._load_ncdata(filename, var)
     
     def load_stat_xyt(self, var: Optional[str] = None) -> Union[xr.Dataset, np.ndarray]:
@@ -903,7 +903,7 @@ class UDBase:
         """
         Load time-averaged statistics of tree source terms.
         
-        Retrieves tree drag, heat, and moisture source terms from the treedump file.
+        Retrieves tree drag, heat, and moisture source terms from the stats_tree file.
         
         Parameters
         ----------
@@ -918,9 +918,9 @@ class UDBase:
         Examples
         --------
         >>> sim.load_stat_tree()  # Display available variables
-        >>> tree_drag = sim.load_stat_tree('tree_drag_u')  # Returns numpy array
+        >>> tree_drag = sim.load_stat_tree('tr_u')  # Returns numpy array
         """
-        filename = self.path / f"treedump.{self.expnr}.nc"
+        filename = self.path / f"stats_tree.{self.expnr}.nc"
         return self._load_ncdata(filename, var)
     
     def load_slice(self, plane: str, var: Optional[str] = None) -> Union[xr.Dataset, np.ndarray]:
@@ -947,7 +947,7 @@ class UDBase:
         if plane not in ['i', 'j', 'k']:
             raise ValueError("plane must be 'i', 'j', or 'k'")
         
-        filename = self.path / f"{plane}slicedump.{self.expnr}.nc"
+        filename = self.path / f"ins_{plane}slice.{self.expnr}.nc"
         return self._load_ncdata(filename, var)
     
     def _load_ncdata(
