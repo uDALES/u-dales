@@ -921,7 +921,7 @@ class UDBase:
         Examples
         --------
         >>> sim.load_stat_tslice('k')  # Display available variables
-        >>> u = sim.load_stat_tslice('k', 'u', time_index=-1)
+        >>> u = sim.load_stat_tslice('k', 'u', time_index=0)  # first averaging record
         """
         if plane not in ['i', 'j', 'k']:
             raise ValueError("plane must be 'i', 'j', or 'k'")
