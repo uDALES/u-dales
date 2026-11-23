@@ -431,6 +431,7 @@ The whole sequence below runs with one command on HX1:
 tests/hpc_run_all_tests.sh          # fast: about 30 min of run time
 tests/hpc_run_all_tests.sh full     # everything
 tests/hpc_run_all_tests.sh full --login   # orchestrate from the login node
+tests/hpc_run_all_tests.sh full --login --cpu-on-gpu   # CPU-only jobs on the a100 queue
 ```
 
 It submits an orchestrator job, so it carries on after the terminal is
@@ -440,7 +441,11 @@ so no PBS walltime has to be guessed for it (an orchestrator job must outlive
 the queue waits of every job it submits, and a long request on the small-CPU
 queue can itself sit unplaced for days). Either way the test jobs ask for a
 little more than they have taken on HX1, from 30 min for `python` to 3 h for
-`all`. The orchestrator builds all four executables from clean build directories,
+`all`. With `--cpu-on-gpu` the CPU-only jobs (`python`, `supported`, `fixtures`,
+`all`) ask the a100 queue for one GPU each instead of the small-CPU queue; use it
+when that queue cannot place anything (in November 2026 all of its nodes were
+reserved by another group until 15 December, and jobs of any walltime sat with
+"Placement set is too small"). The orchestrator builds all four executables from clean build directories,
 submits the test jobs that can run at the same time, then runs the ones that
 must run alone one after the other, and writes a final report, stating the
 mode and every selection run, with the path of every log under

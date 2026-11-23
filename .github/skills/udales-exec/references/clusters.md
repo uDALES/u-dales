@@ -181,6 +181,13 @@ Limits and measured behaviour:
   5 s/step at 1x8, 110 s initialisation. `nvidia_peermem` is loaded on the
   GPU nodes. Use `PLACE=scatter` so each chunk gets its own node.
 - Do not force UCX onto TCP (`UCX_TLS=tcp,...`): it hangs.
+- Small-CPU queue `v1_small24` (2026-11-23): every node that is not offline has
+  0 free CPUs because of another group's reservations (R734178-R734187, 36
+  nodes, running until 2026-12-15), so CPU-only jobs of any walltime sit with
+  "Placement set is too small". Check with `pbs_rstat` and
+  `pbsnodes -a | grep -B20 Qlist.*small24`. Until then run CPU-only test jobs on
+  the a100 queue with `ngpus=1` (`tests/hpc_run_all_tests.sh ... --cpu-on-gpu`);
+  1-GPU requests there have placed within an hour, 2 GPUs in ~7 h, 4 GPUs in ~8 h.
 
 
 ## ECMWF Atos HPC2020 (added 2026-09-16)

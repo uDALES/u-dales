@@ -29,6 +29,13 @@
 #                                           orchestrate from the login node (nohup)
 #                                           instead of from a PBS job: no walltime
 #                                           to guess for the wait on the test jobs
+#   tests/hpc_run_all_tests.sh [mode] [--login] --cpu-on-gpu
+#                                           submit the CPU-only jobs (python,
+#                                           supported, fixtures, all) to the a100
+#                                           queue with one GPU each, for when the
+#                                           small-CPU queue cannot place anything
+#                                           (Nov 2026: its nodes are reserved by
+#                                           another group until 15 Dec)
 #
 # The orchestrator is itself a PBS job, so it keeps going after the terminal
 # is closed. Three steps:
@@ -196,6 +203,13 @@ write_job() {
 # ---------------------------------------------------------------------------
 BRANCHES="--branch-a master --branch-b HEAD"
 define_jobs() {
+    # --cpu-on-gpu: the CPU-only jobs borrow one GPU each so they can be placed
+    # at all. fixtures loses its place=excl: that would hold a whole 4-GPU node.
+    local fixtures_place="#PBS -l place=excl"
+    if [ "$CPU_ON_GPU" = 1 ]; then
+        RES_CPU=$RES_GPU1
+        fixtures_place=""
+    fi
     write_job python      "$RES_CPU"  "00:30:00" \
         "python-library|python tests/run_tests.py python-library" \
         "gpu-validate-config|python tests/integration/gpu/run_gpu_tests.py full --validate-config"
@@ -227,7 +241,7 @@ define_jobs() {
         EXTRA_PBS="#PBS -l place=scatter" write_job gpu-2node "$RES_GPU2x2" "00:45:00" \
             "poisson-2node|env UDALES_BUILD=build/gpu/release/u-dales UDALES_GPU=1 UDALES_MAX_RANKS=2 MPI_LAUNCH_EXTRA_ARGS='--map-by ppr:2:node' bash tests/integration/poisson/run_test.sh" \
             "gpu-mpi-2node|env UDALES_GPU_MPI_ARGS='--map-by ppr:2:node' python tests/integration/gpu/run_gpu_tests.py mpi --cpu-executable build/cpu/debug/u-dales --gpu-executable build/gpu/debug/u-dales --require-debug-selftest"
-        EXTRA_PBS="#PBS -l place=excl" write_job fixtures "$RES_CPU" "02:00:00" \
+        EXTRA_PBS="$fixtures_place" write_job fixtures "$RES_CPU" "02:00:00" \
             "gpu-fixtures-cpu|python tests/integration/gpu/run_gpu_tests.py full --cpu-only --cpu-executable build/cpu/debug/u-dales"
         write_job all       "$RES_CPU"  "03:00:00" \
             "all-release|python tests/run_tests.py all $BRANCHES --build-type Release"
@@ -323,6 +337,7 @@ orchestrate() {
         echo "run directory: $RUN_DIR"
         echo "selections run: concurrently [$CONCURRENT], then one at a time [$SEQUENTIAL]"
         [ -n "$SKIPPED" ] && echo "skipped in fast mode: $SKIPPED"
+        [ "$CPU_ON_GPU" = 1 ] && echo "CPU-only jobs submitted to the a100 queue with one GPU each (--cpu-on-gpu); fixtures without place=excl"
         if [ -n "$(git status --porcelain)" ]; then
             echo "NOTE: the working tree has uncommitted changes, so the supported"
             echo "      regression will skip itself (it checks out master and HEAD in place)."
@@ -413,23 +428,31 @@ orchestrate() {
 # ---------------------------------------------------------------------------
 # Entry point.
 # ---------------------------------------------------------------------------
+# The orchestrator (a PBS job, or the nohup process of --login) is this script
+# called again with --orchestrate; its settings arrive in the environment, so
+# keep them before the defaults below overwrite them.
+ENV_MODE=${MODE:-}; ENV_MODE_ARG=${MODE_ARG:-}; ENV_DRY_RUN=${DRY_RUN:-}; ENV_CPU_ON_GPU=${CPU_ON_GPU:-}
 DRY_RUN=0
 ACTION=submit
 MODE=fast
 MODE_ARG=""
+CPU_ON_GPU=0
 for arg in "$@"; do
     case "$arg" in
         fast|full) MODE=$arg; MODE_ARG=$arg ;;
         --dry-run) DRY_RUN=1 ;;
+        --cpu-on-gpu) CPU_ON_GPU=1 ;;
         --orchestrate) ACTION=orchestrate ;;
         --login) ACTION=login ;;
-        *) echo "Usage: tests/hpc_run_all_tests.sh [fast|full] [--dry-run|--login]"; exit 2 ;;
+        *) echo "Usage: tests/hpc_run_all_tests.sh [fast|full] [--dry-run|--login] [--cpu-on-gpu]"; exit 2 ;;
     esac
 done
 
 if [ "$ACTION" = orchestrate ]; then
-    # Inside the orchestrator job: UDALES_ROOT, RUN_DIR, MODE and MODE_ARG
-    # arrived through qsub -v.
+    # Inside the orchestrator: UDALES_ROOT, RUN_DIR, MODE, MODE_ARG and
+    # CPU_ON_GPU arrived through qsub -v or the exported environment of --login.
+    MODE=${ENV_MODE:-fast}; MODE_ARG=$ENV_MODE_ARG
+    DRY_RUN=${ENV_DRY_RUN:-0}; CPU_ON_GPU=${ENV_CPU_ON_GPU:-0}
     orchestrate
     exit $?
 fi
@@ -472,7 +495,7 @@ if [ "$ACTION" = login ]; then
     # Orchestrate from this login node: the builds run here and the polling
     # loop costs nothing, so no PBS walltime has to be guessed for the wait on
     # the test jobs. nohup keeps it going after the terminal closes.
-    export UDALES_ROOT RUN_DIR MODE MODE_ARG DRY_RUN
+    export UDALES_ROOT RUN_DIR MODE MODE_ARG DRY_RUN CPU_ON_GPU
     nohup bash tests/hpc_run_all_tests.sh --orchestrate > "$RUN_DIR/orchestrator.out" 2>&1 &
     echo "$!" > "$RUN_DIR/orchestrator.pid"
     echo "Orchestrating on $(hostname -s) as process $! ($MODE mode)."
@@ -493,7 +516,7 @@ cat > "$ORCH" <<EOF
 #PBS -l walltime=$WALL_ORCH
 #PBS -o $RUN_DIR/orchestrator.out
 #PBS -j oe
-#PBS -v UDALES_ROOT=$UDALES_ROOT,RUN_DIR=$RUN_DIR,MODE=$MODE,MODE_ARG=$MODE_ARG
+#PBS -v UDALES_ROOT=$UDALES_ROOT,RUN_DIR=$RUN_DIR,MODE=$MODE,MODE_ARG=$MODE_ARG,CPU_ON_GPU=$CPU_ON_GPU
 cd "\$UDALES_ROOT"
 bash tests/hpc_run_all_tests.sh --orchestrate
 EOF
