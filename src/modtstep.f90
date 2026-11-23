@@ -300,7 +300,7 @@ module modtstep
     !! \endlatexonly
     !! \see Wicker and Skamarock, 2002
     subroutine tstep_integrate
-      use modglobal,      only : ib, ie, jb, je, kb, ke, rk3step, rk3coef, e12min, ltempeq, lmoist, nsv, ifixuinf, &
+      use modglobal,      only : ib, ie, jb, je, kb, ke, rk3step, rk3coef, e12min, ltempeq, lmoist, nsv, lchem, ifixuinf, &
                                  BCtopm, BCtopm_pressure, BCxm, BCxm_periodic, BCym, BCym_periodic, ierank, jerank, &
                                  iadv_thl, iadv_kappa !, rk3coefi, dzhi, dyi, dxfi 
       use modsubgriddata, only : loneeqn
@@ -477,8 +477,16 @@ module modtstep
         end do
         !$acc end kernels
 
-        if (nsv==3) then
+        ! Chemistry is applied once per full time step, on the last RK3 substep
+        ! (chem itself returns otherwise). master #427: the reaction updates
+        ! sv0 in place, so svm must be refreshed from it afterwards; here the
+        ! substep-3 copies below still run after chem, so the host line is
+        ! redundant until the integration loops are fused.
+        if (lchem .and. rk3step == 3) then
           call chem
+#if !defined(_GPU)
+          svm(ib:ie,jb:je,kb:ke,1:3) = sv0(ib:ie,jb:je,kb:ke,1:3)
+#endif
         end if
       end if
 

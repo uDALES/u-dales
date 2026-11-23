@@ -393,6 +393,16 @@ groups:
         command:
           - "{python}"
           - "{tests_dir}/integration/fielddump_diagnostics/test_fielddump_diagnostics.py"
+      - label: "supported: lchem chemistry update carried between time steps"
+        class: supported
+        kind: integration
+        component: solver
+        platform: any
+        cost: fast
+        env_UDALES_BUILD: "{repo_root}/build/cpu/{build_type_lower}/u-dales"
+        command:
+          - "{python}"
+          - "{tests_dir}/integration/lchem/test_lchem_update.py"
 
   supported-macos:
     includes:
@@ -576,6 +586,16 @@ groups:
         command:
           - "{python}"
           - "{tests_dir}/integration/processor_boundaries/test_processor_boundaries.py"
+      - label: "supported-macos: lchem chemistry update carried between time steps"
+        class: supported
+        kind: integration
+        component: solver
+        platform: any
+        cost: fast
+        env_UDALES_BUILD: "{repo_root}/build/cpu/{build_type_lower}/u-dales"
+        command:
+          - "{python}"
+          - "{tests_dir}/integration/lchem/test_lchem_update.py"
       - label: "supported-macos: execute scripts protect existing output directories"
         class: supported
         kind: integration
