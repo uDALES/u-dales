@@ -73,6 +73,10 @@ classdef udbase < dynamicprops
         fins_islice      = 'ins_islice';
         fins_jslice      = 'ins_jslice';
         fins_kslice      = 'ins_kslice';
+        fins_probe       = 'ins_probe';
+        fstats_tislice   = 'stats_tislice';
+        fstats_tjslice   = 'stats_tjslice';
+        fstats_tkslice   = 'stats_tkslice';
         fsolid           = 'solid';
         ffacEB           = 'facEB';
         ffacT            = 'facT';
@@ -513,6 +517,43 @@ classdef udbase < dynamicprops
 
         % ------------------------------------------------------------- %     
 
+        function varargout = load_stat_tslice(obj, option, varargin)
+            % A method to retrieve time-averaged statistics on the selected planes
+            % from the stats_tislice, stats_tjslice or stats_tkslice file.
+            %
+            % load_stat_tslice(OBJ, option) displays the variables; option is
+            % 'i', 'j' or 'k' and chooses the plane.
+            %
+            % load_stat_tslice(OBJ, option, svar) retrieves variable svar.
+            %
+            % Example (view contents of the horizontal planes):
+            %   obj = udbase(expnr);
+            %   obj.load_stat_tslice('k');
+
+            obj.gopath();
+
+            switch option
+                case 'i'
+                    fname = [obj.fstats_tislice, '.', obj.expnr, '.nc'];
+                case 'j'
+                    fname = [obj.fstats_tjslice, '.', obj.expnr, '.nc'];
+                case 'k'
+                    fname = [obj.fstats_tkslice, '.', obj.expnr, '.nc'];
+                otherwise
+                    error('Invalid option. Use ''i'', ''j'', or ''k''.');
+            end
+            ffullname = fullfile(obj.path, fname);
+            if isempty(varargin) && nargout == 0
+                udbase.ncinfo(ffullname);
+            else
+                varargout{1} = udbase.load_ncdata(ffullname, varargin);
+            end
+
+            obj.gohome();
+        end
+
+        % ------------------------------------------------------------- %
+
         function varargout = load_stat_tree(obj, varargin)
             % A method to retrieve time-averaged statistics of the tree       
             % source terms from the stats_tree file
@@ -589,6 +630,34 @@ classdef udbase < dynamicprops
                 otherwise
                     error('Invalid option. Use ''i'', ''j'', or ''k''.');
             end
+            ffullname = fullfile(obj.path, fname);
+            if isempty(varargin) && nargout == 0
+                udbase.ncinfo(ffullname);
+            else
+                varargout{1} = udbase.load_ncdata(ffullname, varargin);
+            end
+
+            obj.gohome();
+        end
+
+        % ------------------------------------------------------------- %
+
+        function varargout = load_probe(obj, varargin)
+            % A method to retrieve instantaneous time series at the probe points
+            % from the ins_probe file. Arrays are (point, time); the point
+            % coordinates are the variables xt, yt and zt.
+            %
+            % load_probe(OBJ) displays the variables in the ins_probe file
+            %
+            % load_probe(OBJ, svar) retrieves variable svar from the ins_probe file
+            %
+            % Example (view contents of output):
+            %   obj = udbase(expnr);
+            %   obj.load_probe();
+
+            obj.gopath();
+
+            fname = [obj.fins_probe, '.', obj.expnr, '.nc'];
             ffullname = fullfile(obj.path, fname);
             if isempty(varargin) && nargout == 0
                 udbase.ncinfo(ffullname);

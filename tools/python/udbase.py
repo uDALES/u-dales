@@ -890,15 +890,129 @@ class UDBase:
         return self._load_ncdata(filename, var, time_index=time_index,
                                  vertical_indices=vertical_indices)
 
+    def load_stat_tslice(
+        self, plane: str, var: Optional[str] = None, *, time_index: Optional[int] = None,
+        vertical_indices: Optional[List[int]] = None,
+    ) -> Union[xr.Dataset, np.ndarray]:
+        """
+        Load time-averaged statistics on the selected planes.
+
+        Reads ``stats_tislice``, ``stats_tjslice`` or ``stats_tkslice``: the
+        ``stats_t`` quantities averaged over ``tstatsdump`` on the planes given
+        by ``islice``, ``jslice`` or ``kslice`` in the namelist. The slice
+        dimension holds the plane positions.
+
+        Parameters
+        ----------
+        plane : str
+            Slice plane: 'i', 'j', or 'k' for yz-, xz- or xy-planes.
+        var : str, optional
+            Variable name to load. If None, displays available variables and returns full dataset.
+        time_index : int, optional
+            Select a single averaging record before loading ``var``.
+        vertical_indices : list of int, optional
+            Select zero-based ``zt`` levels before loading ``var``.
+
+        Returns
+        -------
+        xarray.Dataset or numpy.ndarray
+            Full dataset if var is None (for browsing), otherwise numpy array of the requested variable.
+
+        Examples
+        --------
+        >>> sim.load_stat_tslice('k')  # Display available variables
+        >>> u = sim.load_stat_tslice('k', 'u', time_index=-1)
+        """
+        if plane not in ['i', 'j', 'k']:
+            raise ValueError("plane must be 'i', 'j', or 'k'")
+
+        filename = self.path / f"stats_t{plane}slice.{self.expnr}.nc"
+        return self._load_ncdata(filename, var, time_index=time_index,
+                                 vertical_indices=vertical_indices)
+
     def load_stat_tkslice(
         self, var: Optional[str] = None, *, time_index: Optional[int] = None,
         vertical_indices: Optional[List[int]] = None,
     ) -> Union[xr.Dataset, np.ndarray]:
-        """Load gathered time-averaged horizontal slices, optionally selecting records/levels."""
-        filename = self.path / f"stats_tkslice.{self.expnr}.nc"
-        return self._load_ncdata(filename, var, time_index=time_index,
-                                 vertical_indices=vertical_indices)
-    
+        """Load time-averaged horizontal slices; same as ``load_stat_tslice('k', ...)``."""
+        return self.load_stat_tslice('k', var, time_index=time_index,
+                                     vertical_indices=vertical_indices)
+
+    def load_stat_yt(self, var: Optional[str] = None) -> Union[xr.Dataset, np.ndarray]:
+        """
+        Load y- and time-averaged statistics.
+
+        Reads ``stats_yt``: the (x, z) fields averaged along y and over
+        ``tstatsdump``.
+
+        Parameters
+        ----------
+        var : str, optional
+            Variable name to load. If None, displays available variables and returns full dataset.
+
+        Returns
+        -------
+        xarray.Dataset or numpy.ndarray
+            Full dataset if var is None (for browsing), otherwise numpy array of the requested variable.
+
+        Examples
+        --------
+        >>> sim.load_stat_yt()  # Display available variables
+        >>> u = sim.load_stat_yt('u')  # Returns numpy array
+        """
+        filename = self.path / f"stats_yt.{self.expnr}.nc"
+        return self._load_ncdata(filename, var)
+
+    def load_stat_y(self, var: Optional[str] = None) -> Union[xr.Dataset, np.ndarray]:
+        """
+        Load instantaneous y-averaged statistics.
+
+        Reads ``stats_y``: the (x, z) fields averaged along y, written every
+        ``tsample`` without time averaging.
+
+        Parameters
+        ----------
+        var : str, optional
+            Variable name to load. If None, displays available variables and returns full dataset.
+
+        Returns
+        -------
+        xarray.Dataset or numpy.ndarray
+            Full dataset if var is None (for browsing), otherwise numpy array of the requested variable.
+
+        Examples
+        --------
+        >>> sim.load_stat_y()  # Display available variables
+        >>> u = sim.load_stat_y('u')  # Returns numpy array
+        """
+        filename = self.path / f"stats_y.{self.expnr}.nc"
+        return self._load_ncdata(filename, var)
+
+    def load_stat_xy(self, var: Optional[str] = None) -> Union[xr.Dataset, np.ndarray]:
+        """
+        Load instantaneous slab-averaged (xy-plane) statistics.
+
+        Reads ``stats_xy``: the vertical profiles averaged over x and y,
+        written every ``tsample`` without time averaging.
+
+        Parameters
+        ----------
+        var : str, optional
+            Variable name to load. If None, displays available variables and returns full dataset.
+
+        Returns
+        -------
+        xarray.Dataset or numpy.ndarray
+            Full dataset if var is None (for browsing), otherwise numpy array of the requested variable.
+
+        Examples
+        --------
+        >>> sim.load_stat_xy()  # Display available variables
+        >>> u = sim.load_stat_xy('u')  # Returns numpy array
+        """
+        filename = self.path / f"stats_xy.{self.expnr}.nc"
+        return self._load_ncdata(filename, var)
+
     def load_stat_tree(self, var: Optional[str] = None) -> Union[xr.Dataset, np.ndarray]:
         """
         Load time-averaged statistics of tree source terms.
@@ -950,6 +1064,34 @@ class UDBase:
         filename = self.path / f"ins_{plane}slice.{self.expnr}.nc"
         return self._load_ncdata(filename, var)
     
+    def load_probe(self, var: Optional[str] = None) -> Union[xr.Dataset, np.ndarray]:
+        """
+        Load instantaneous time series at the probe points.
+
+        Reads ``ins_probe``: the ``probevars`` quantities at the ``nprobe``
+        points of ``probe.inp.<expnr>``, written every ``tinstantdump``.
+        Arrays are returned as ``(point, time)``; the point coordinates are the
+        variables ``xt``, ``yt`` and ``zt`` with shape ``(point,)``.
+
+        Parameters
+        ----------
+        var : str, optional
+            Variable name to load. If None, displays available variables and returns full dataset.
+
+        Returns
+        -------
+        xarray.Dataset or numpy.ndarray
+            Full dataset if var is None (for browsing), otherwise numpy array of the requested variable.
+
+        Examples
+        --------
+        >>> sim.load_probe()  # Display available variables
+        >>> u = sim.load_probe('u')  # (point, time)
+        >>> z = sim.load_probe('zt')  # probe heights
+        """
+        filename = self.path / f"ins_probe.{self.expnr}.nc"
+        return self._load_ncdata(filename, var)
+
     def _load_ncdata(
         self, filename: Path, var: Optional[str], *, time_index: Optional[int] = None,
         vertical_indices: Optional[List[int]] = None,

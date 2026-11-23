@@ -14,8 +14,10 @@ The **`udbase`** post-processing class reads in most important input parameters,
 - [**load_stat_xyt**](#load_stat_xyt-loading-time-and-slab-averaged-data). This method load the 1D slab- and time-averaged statistics from the file `stats_xyt.expnr.nc`. Several time-intervals may be present in the data.
 - [**load_stat_t**](#load_stat_t-loading-time-averaged-data). This method loads the 3D time-averaged statistics from the file `stats_t.expnr.nc`. Several time-intervals may be present in the data.
 - [**load_stat_tree**](#load_stat_tree-and-plot_tree-loading-and-plotting-tree-data). This method loads the 3D time-averaged statistics of the tree source terms from the file `stats_tree.expnr.nc`. This method works exactly the same way as `load_stat_t`.
+- **load_stat_tslice**. This method loads the time-averaged statistics on the selected planes from the file `stats_tXslice.expnr.nc` where `X` can be `i`, `j`, or `k`. Several time-intervals may be present in the data.
 - [**load_field**](#load_field-loading-instantaneous-3d-data). This method loads instantaneous 3D data from the file `ins_field.expnr.nc`. Several output times may be present in the data.
 - [**load_slice**](#load_slice-loading-instantaneous-2d-slice-data). This method loads instantaneous 2D slices of instantaneous 3D data from the file `ins_Xslice.expnr.nc` where `X` can be `i`, `j`, or `k`. Several output times may be present in the data.
+- **load_probe**. This method loads instantaneous time series at the probe points from the file `ins_probe.expnr.nc`. The first index is the probe point and the second index is time.
 - [**plot_trees**](#load_stat_tree-and-plot_tree-loading-and-plotting-tree-data). This method plots tree patches.
 
 **The live matlab file of this tutorial can be found in the repository in the folder /docs/tutorial_udbase.**

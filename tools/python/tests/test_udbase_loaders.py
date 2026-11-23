@@ -7,6 +7,8 @@ present behaviour (a regression net), not on what the API "ought" to do.
 
 Covered methods:
   load_field, load_stat_xyt, load_stat_t, load_stat_tree, load_slice,
+  load_stat_y, load_stat_xy, load_stat_yt, load_stat_tslice, load_stat_tkslice,
+  load_probe,
   load_fac_momentum, load_fac_eb, load_fac_temperature, load_seb,
   area_average_fac, area_average_seb, convert_facvar_to_field,
   convert_facflx_to_field, calculate_frontal_properties.
@@ -165,6 +167,94 @@ class TestNetCDFLoaders(_CaseBase):
         )
         arr = self._sim().load_slice("k", "u")
         self.assertEqual(arr.shape, (4, 3, 2))
+
+    def test_load_stat_yt_returns_transposed_array(self):
+        # (time, zt, xt) = (2, 2, 4) -> (4, 2, 2)
+        data = np.arange(2 * 2 * 4, dtype=float).reshape(2, 2, 4)
+        _write_nc(
+            self.workdir / "stats_yt.001.nc",
+            {"u": (("time", "zt", "xt"), data)},
+            {"time": [0, 1], "zt": [0, 1], "xt": [0, 1, 2, 3]},
+        )
+        arr = self._sim().load_stat_yt("u")
+        self.assertEqual(arr.shape, (4, 2, 2))
+        self.assertEqual(arr[3, 1, 0], data[0, 1, 3])
+
+    def test_load_stat_y_returns_transposed_array(self):
+        data = np.arange(2 * 2 * 4, dtype=float).reshape(2, 2, 4)
+        _write_nc(
+            self.workdir / "stats_y.001.nc",
+            {"u": (("time", "zt", "xt"), data)},
+            {"time": [0, 1], "zt": [0, 1], "xt": [0, 1, 2, 3]},
+        )
+        arr = self._sim().load_stat_y("u")
+        self.assertEqual(arr.shape, (4, 2, 2))
+
+    def test_load_stat_xy_returns_transposed_array(self):
+        data = np.arange(6.0).reshape(3, 2)
+        _write_nc(
+            self.workdir / "stats_xy.001.nc",
+            {"u": (("time", "zt"), data)},
+            {"time": [0, 1, 2], "zt": [0, 1]},
+        )
+        arr = self._sim().load_stat_xy("u")
+        np.testing.assert_allclose(arr, data.T)
+
+    def _write_tslice(self, plane):
+        # i: (time, zt, yt, islice); j: (time, zt, jslice, xt); k: (time, kslice, yt, xt)
+        dims = {
+            "i": (("time", "zt", "yt", "islice"), {"time": [0, 1], "zt": [0, 1], "yt": [0, 1, 2], "islice": [0]}),
+            "j": (("time", "zt", "jslice", "xt"), {"time": [0, 1], "zt": [0, 1], "jslice": [0, 1, 2], "xt": [0, 1, 2, 3]}),
+            "k": (("time", "kslice", "yt", "xt"), {"time": [0, 1], "kslice": [0, 1], "yt": [0, 1, 2], "xt": [0, 1, 2, 3]}),
+        }[plane]
+        shape = tuple(len(dims[1][d]) for d in dims[0])
+        data = np.arange(np.prod(shape), dtype=float).reshape(shape)
+        _write_nc(self.workdir / f"stats_t{plane}slice.001.nc", {"u": (dims[0], data)}, dims[1])
+        return data
+
+    def test_load_stat_tslice_each_plane_returns_transposed_array(self):
+        for plane in "ijk":
+            data = self._write_tslice(plane)
+            arr = self._sim().load_stat_tslice(plane, "u")
+            self.assertEqual(arr.shape, data.shape[::-1], plane)
+
+    def test_load_stat_tslice_time_index_selects_record(self):
+        data = self._write_tslice("k")
+        arr = self._sim().load_stat_tslice("k", "u", time_index=1)
+        self.assertEqual(arr.shape, (4, 3, 2))
+        np.testing.assert_allclose(arr, data[1].T)
+
+    def test_load_stat_tslice_invalid_plane_raises(self):
+        with self.assertRaises(ValueError):
+            self._sim().load_stat_tslice("z", "u")
+
+    def test_load_stat_tkslice_is_alias_for_k_plane(self):
+        data = self._write_tslice("k")
+        arr = self._sim().load_stat_tkslice("u", time_index=0)
+        np.testing.assert_allclose(arr, data[0].T)
+
+    def test_load_probe_returns_point_time_and_coordinates(self):
+        # (time, point) = (3, 2) -> (2, 3); xt/yt/zt are (point,)
+        data = np.arange(6.0).reshape(3, 2)
+        _write_nc(
+            self.workdir / "ins_probe.001.nc",
+            {
+                "u": (("time", "point"), data),
+                "xt": (("point",), np.array([5.0, 15.0])),
+                "yt": (("point",), np.array([5.0, 5.0])),
+                "zt": (("point",), np.array([2.0, 10.0])),
+            },
+            {"time": [0.0, 1.0, 2.0]},
+        )
+        sim = self._sim()
+        u = sim.load_probe("u")
+        self.assertEqual(u.shape, (2, 3))
+        np.testing.assert_allclose(u, data.T)
+        np.testing.assert_allclose(sim.load_probe("zt"), [2.0, 10.0])
+
+    def test_load_probe_missing_file_raises(self):
+        with self.assertRaises(FileNotFoundError):
+            self._sim().load_probe("u")
 
     def test_load_slice_invalid_plane_raises(self):
         with self.assertRaises(ValueError):
