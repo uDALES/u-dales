@@ -430,6 +430,7 @@ The whole sequence below runs with one command on HX1:
 ```bash
 tests/hpc_run_all_tests.sh          # fast: about 30 min of run time
 tests/hpc_run_all_tests.sh full     # everything
+tests/hpc_run_all_tests.sh gpu      # the four builds, then gpu-smoke and gpu-nightly only
 tests/hpc_run_all_tests.sh full --login   # orchestrate from the login node
 tests/hpc_run_all_tests.sh full --login --cpu-on-gpu   # CPU-only jobs on the a100 queue
 ```
@@ -536,10 +537,10 @@ export UDALES_CPU_SYSTEM=hx1
 export UDALES_GPU_SYSTEM=gpuhx1
 export UDALES_CPU_FORTRAN_COMPILER=$IMPI/mpiifort
 # The GPU MPI is "stack 3": OpenMPI 4.1.6 built for NVHPC 23.7 with IPv6,
-# PBS (tm) launch and the site UCX, in ~/openmpi-4.1.6-NVHPC-23.7-CUDA-12.2.0.
+# PBS (tm) launch and the site UCX, by tools/GPU_dependency/install_dependencies.sh.
 # The OpenMPIs bundled with NVHPC only work on a single node here (see
 # .github/skills/udales-exec/references/clusters.md, HX1 GPU).
-OMPI=/gpfs/home/dmajumda/openmpi-4.1.6-NVHPC-23.7-CUDA-12.2.0/openmpi
+OMPI=$PWD/tools/GPU_dependency/stack3-OpenMPI-4.1.6-tm/build/openmpi/openmpi
 export UDALES_GPU_FORTRAN_COMPILER=$OMPI/bin/mpif90
 
 # run_gpu_tests.py: one launcher per binary. Appended, so Intel's tools keep

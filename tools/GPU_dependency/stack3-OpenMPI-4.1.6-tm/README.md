@@ -15,9 +15,7 @@ this order:
 
 ```bash
 cd openmpi
-curl -fL -o openmpi-4.1.6.tar.bz2 https://download.open-mpi.org/release/open-mpi/v4.1/openmpi-4.1.6.tar.bz2
-tar -xjf openmpi-4.1.6.tar.bz2
-mkdir -p logs
+./s0_download.sh           # tarball, extraction, logs/
 ./s2_configure.sh          # sources s1_set_env.sh; log in logs/configure.log
 ./s3_build_install.sh      # make, make install into ./openmpi, prints the components
 ```
@@ -33,9 +31,11 @@ be present.
 
 ## Step 2: the libraries
 
-Edit the `NVHPC_MPI` line of the four `*_s1_set_env_for_install.sh` scripts to
-`<prefix from step 1>/bin` (they carry the path of the original build), then
-run the same sequence as stacks 1 and 2:
+The four `*_s1_set_env_for_install.sh` scripts take the OpenMPI from
+`OMPI_PREFIX` (`export OMPI_PREFIX=<prefix from step 1>`; without it they fall
+back to the path of the original home-directory build), then run the same
+sequence as stacks 1 and 2. `../install_dependencies.sh` does all of this,
+including step 1, in one job.
 
 
 Copy this directory to where the libraries should live (the scripts place

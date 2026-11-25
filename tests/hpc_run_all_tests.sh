@@ -23,6 +23,10 @@
 #   tests/hpc_run_all_tests.sh              fast mode (default): about 30 min of
 #                                           run time, apart from queue waits
 #   tests/hpc_run_all_tests.sh full         everything
+#   tests/hpc_run_all_tests.sh gpu          GPU parity only: the four builds, then
+#                                           gpu-smoke and gpu-nightly (one GPU
+#                                           each, concurrently); for checking a
+#                                           GPU build or dependency change
 #   tests/hpc_run_all_tests.sh [mode] --dry-run
 #                                           write every job script, submit nothing
 #   tests/hpc_run_all_tests.sh [mode] --login
@@ -136,10 +140,12 @@ export UDALES_CPU_FORTRAN_COMPILER=$IMPI_BIN/mpiifort
 # export UDALES_GPU_FORTRAN_COMPILER=$NVHPC_ROOT/Linux_x86_64/23.7/comm_libs/12.2/openmpi4/openmpi-4.1.5/bin/mpif90
 # export UDALES_GPU_MPIEXEC=$NVHPC_ROOT/Linux_x86_64/23.7/comm_libs/12.2/openmpi4/openmpi-4.1.5/bin/mpiexec
 # export PATH="$PATH:$NVHPC_ROOT/Linux_x86_64/23.7/comm_libs/12.2/openmpi4/openmpi-4.1.5/bin"
-# Stack 3 - own OpenMPI 4.1.6 (IPv6, PBS tm launch, site UCX):
-export UDALES_GPU_FORTRAN_COMPILER=/gpfs/home/dmajumda/openmpi-4.1.6-NVHPC-23.7-CUDA-12.2.0/openmpi/bin/mpif90
-export UDALES_GPU_MPIEXEC=/gpfs/home/dmajumda/openmpi-4.1.6-NVHPC-23.7-CUDA-12.2.0/openmpi/bin/mpiexec
-export PATH="$PATH:/gpfs/home/dmajumda/openmpi-4.1.6-NVHPC-23.7-CUDA-12.2.0/openmpi/bin"
+# Stack 3 - own OpenMPI 4.1.6 (IPv6, PBS tm launch, site UCX), built by
+# tools/GPU_dependency/install_dependencies.sh into the stack's build directory:
+OMPI_BIN="${UDALES_GPU_STACK_DIR:-$UDALES_ROOT/tools/GPU_dependency/stack3-OpenMPI-4.1.6-tm/build}/openmpi/openmpi/bin"
+export UDALES_GPU_FORTRAN_COMPILER=$OMPI_BIN/mpif90
+export UDALES_GPU_MPIEXEC=$OMPI_BIN/mpiexec
+export PATH="$PATH:$OMPI_BIN"
 # UCX finds its CUDA transports (cuda_copy, cuda_ipc, gdr_copy) only through
 # UCX_MODULE_DIR, which the site keeps in a separate UCX-CUDA install; without
 # them UCX treats GPU buffers as host memory and small messages segfault.
@@ -224,12 +230,20 @@ define_jobs() {
         "gpu-mpi|python tests/run_tests.py gpu-mpi"
     write_job gpu-nightly "$RES_GPU1" "01:00:00" \
         "gpu-nightly|python tests/run_tests.py gpu-nightly"
+    # gpu mode: smoke on its own (every smoke case is one rank, so one GPU).
+    write_job gpu-smoke   "$RES_GPU1" "00:30:00" \
+        "gpu-smoke|python tests/run_tests.py gpu-smoke"
     write_job supported   "$RES_CPU"  "01:30:00" \
         "supported-debug|python tests/run_tests.py supported $BRANCHES --build-type Debug"
     CONCURRENT="python gpu-debug gpu-nightly"
     SEQUENTIAL="supported"
     SKIPPED=""
     CHAIN_gpu_full=""
+    if [ "$MODE" = gpu ]; then
+        CONCURRENT="gpu-smoke gpu-nightly"
+        SEQUENTIAL=""
+        SKIPPED="python, gpu-mpi, supported, and everything full adds"
+    fi
     if [ "$MODE" = full ]; then
         write_job gpu-full  "$RES_GPU4" "01:30:00" \
             "gpu-full|python tests/run_tests.py gpu-full"
@@ -254,7 +268,7 @@ define_jobs() {
         CONCURRENT="python gpu-debug gpu-nightly gpu-full gpu-2node fixtures"
         SEQUENTIAL="supported all"
         CHAIN_gpu_full="gpu-nightly"
-    else
+    elif [ "$MODE" = fast ]; then
         SKIPPED="gpu-full (4 GPUs), gpu-2node (2 nodes x 2 GPUs), the CPU fixture matrix (40-90 min), all Release (repeats supported plus the experimental stream)"
     fi
 }
@@ -445,12 +459,12 @@ MODE_ARG=""
 CPU_ON_GPU=0
 for arg in "$@"; do
     case "$arg" in
-        fast|full) MODE=$arg; MODE_ARG=$arg ;;
+        fast|full|gpu) MODE=$arg; MODE_ARG=$arg ;;
         --dry-run) DRY_RUN=1 ;;
         --cpu-on-gpu) CPU_ON_GPU=1 ;;
         --orchestrate) ACTION=orchestrate ;;
         --login) ACTION=login ;;
-        *) echo "Usage: tests/hpc_run_all_tests.sh [fast|full] [--dry-run|--login] [--cpu-on-gpu]"; exit 2 ;;
+        *) echo "Usage: tests/hpc_run_all_tests.sh [fast|full|gpu] [--dry-run|--login] [--cpu-on-gpu]"; exit 2 ;;
     esac
 done
 

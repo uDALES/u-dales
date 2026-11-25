@@ -1,0 +1,4 @@
+# Everything install_dependencies.sh produces: copied stage scripts, sources,
+# installed libraries and logs. (The repository .gitignore ignores any build/
+# directory as well; this makes it explicit here.)
+*/build/

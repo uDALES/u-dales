@@ -4,11 +4,12 @@ set -euo pipefail
 workdir=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
 export HDF5_ROOT="$workdir/hdf5-2.1.1/hdf5"
 
-module purge
-module load NVHPC/23.7-CUDA-12.2.0
-module load zlib/1.2.13-GCCcore-12.3.0
+# Modules and SDK paths for this machine (UDALES_DEP_SYSTEM: hx1 or common)
+# come from tools/GPU_dependency/modules.sh, found by walking up from here.
+d=$workdir; while [ ! -f "$d/modules.sh" ] && [ "$d" != / ]; do d=$(dirname "$d"); done
+source "$d/modules.sh"
 
-export NVHPC_MPI="$EBROOTNVHPC/Linux_x86_64/23.7/comm_libs/mpi/bin"
+export NVHPC_MPI="$DEP_MPI_DEFAULT/bin"
 export CC="$NVHPC_MPI/mpicc"
 export CXX="$NVHPC_MPI/mpicxx"
 export FC="$NVHPC_MPI/mpif90"
@@ -18,9 +19,9 @@ export CXXFLAGS="-fPIC"
 export FFLAGS="-fPIC"
 export FCFLAGS="-fPIC"
 
-export CPPFLAGS="-I$HDF5_ROOT/include -I$EBROOTZLIB/include"
-export LDFLAGS="-L$HDF5_ROOT/lib -L$EBROOTZLIB/lib -Wl,-rpath,$HDF5_ROOT/lib -Wl,-rpath,$EBROOTZLIB/lib"
-export LD_LIBRARY_PATH="$HDF5_ROOT/lib:$EBROOTZLIB/lib:${LD_LIBRARY_PATH:-}"
+export CPPFLAGS="-I$HDF5_ROOT/include -I$DEP_ZLIB_INCDIR"
+export LDFLAGS="-L$HDF5_ROOT/lib -L$DEP_ZLIB_LIBDIR -Wl,-rpath,$HDF5_ROOT/lib -Wl,-rpath,$DEP_ZLIB_LIBDIR"
+export LD_LIBRARY_PATH="$HDF5_ROOT/lib:$DEP_ZLIB_LIBDIR:${LD_LIBRARY_PATH:-}"
 export PATH="$HDF5_ROOT/bin:$PATH"
 
 [[ -x "$CC" ]] || { echo "Error: MPI C compiler not found: $CC" >&2; exit 1; }

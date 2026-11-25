@@ -91,6 +91,9 @@ Then, to start the simulation, run:
 ./u-dales/bin/ud_run icl sim experiments/009
 ```
 
+For a run on HX1's A100 GPUs, point `DA_BUILD` at a GPU build and add `NGPU`
+to `config.sh`; see [uDALES on GPUs](./udales-gpu.md).
+
 ## Run on ARCHER2
 
 ``` sh

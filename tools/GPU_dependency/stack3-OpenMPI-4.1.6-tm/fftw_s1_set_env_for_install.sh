@@ -3,20 +3,25 @@ set -euo pipefail
 
 workdir=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
 
-module purge
-module load NVHPC/23.7-CUDA-12.2.0
+# Modules and SDK paths for this machine (UDALES_DEP_SYSTEM: hx1 or common)
+# come from tools/GPU_dependency/modules.sh, found by walking up from here.
+d=$workdir; while [ ! -f "$d/modules.sh" ] && [ "$d" != / ]; do d=$(dirname "$d"); done
+source "$d/modules.sh"
 
 # OpenMPI 3.1.5 (NVHPC default, no UCX, no working InfiniBand path on HX1):
-# export NVHPC_MPI="$EBROOTNVHPC/Linux_x86_64/23.7/comm_libs/mpi/bin"
+# export NVHPC_MPI="$DEP_MPI_DEFAULT/bin"
 # OpenMPI 4.1.5 with UCX and CUDA support, also shipped with NVHPC 23.7:
-# export NVHPC_MPI="$EBROOTNVHPC/Linux_x86_64/23.7/comm_libs/12.2/openmpi4/openmpi-4.1.5/bin"
+# export NVHPC_MPI="$DEP_MPI_OPENMPI4/bin"
 # Stack 3 - OpenMPI 4.1.6 built for NVHPC 23.7 with IPv6, PBS (tm) launch and
 # the site UCX; the NVHPC-bundled OpenMPIs cannot run across HX1 nodes.
-export NVHPC_MPI="/gpfs/home/dmajumda/openmpi-4.1.6-NVHPC-23.7-CUDA-12.2.0/openmpi/bin"
+# OMPI_PREFIX is set by install_dependencies.sh to the OpenMPI it built in
+# build/openmpi/openmpi; without it the openmpi/openmpi next to this script
+# (the same place when the scripts run inside build/) is used.
+export NVHPC_MPI="${OMPI_PREFIX:-$workdir/openmpi/openmpi}/bin"
 # libmpi of this OpenMPI needs libpbs.so.0 (PBS tm launch); the RPATH covers it,
 # this keeps configure-time test programs safe as well.
 export LD_LIBRARY_PATH="/opt/pbs/lib:${LD_LIBRARY_PATH:-}"
-export NVHPC_OMP_LIB="$EBROOTNVHPC/Linux_x86_64/23.7/compilers/lib/libnvomp.so"
+export NVHPC_OMP_LIB="$DEP_NVHPC_HOME/compilers/lib/libnvomp.so"
 
 export CC="$NVHPC_MPI/mpicc"
 export CXX="$NVHPC_MPI/mpicxx"

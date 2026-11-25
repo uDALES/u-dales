@@ -3,11 +3,13 @@ set -euo pipefail
 
 workdir=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
 
-module purge
-module load NVHPC/23.7-CUDA-12.2.0
+# Modules and SDK paths for this machine (UDALES_DEP_SYSTEM: hx1 or common)
+# come from tools/GPU_dependency/modules.sh, found by walking up from here.
+d=$workdir; while [ ! -f "$d/modules.sh" ] && [ "$d" != / ]; do d=$(dirname "$d"); done
+source "$d/modules.sh"
 
-export NVHPC_MPI="$EBROOTNVHPC/Linux_x86_64/23.7/comm_libs/mpi/bin"
-export NVHPC_OMP_LIB="$EBROOTNVHPC/Linux_x86_64/23.7/compilers/lib/libnvomp.so"
+export NVHPC_MPI="$DEP_MPI_DEFAULT/bin"
+export NVHPC_OMP_LIB="$DEP_NVHPC_HOME/compilers/lib/libnvomp.so"
 
 export CC="$NVHPC_MPI/mpicc"
 export CXX="$NVHPC_MPI/mpicxx"

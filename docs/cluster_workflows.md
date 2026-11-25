@@ -16,7 +16,8 @@ Use the project wrapper instead of assembling a module stack by hand:
 ```
 
 Replace `icl` with `hx1`, `archer` or `ecmwf` on those machines, and use
-`gpuhx1` for the GPU build on HX1's A100 nodes. That script is the source of
+`gpuhx1` for the GPU build on HX1's A100 nodes (its NVHPC-built dependencies
+and the GPU run set-up are described in [uDALES on GPUs](udales-gpu.md)). That script is the source of
 truth for the solver build environment on each cluster. Each branch loads the
 compiler, MPI, NetCDF and FFTW modules that the build expects, plus CMake and
 (on the Imperial clusters) Git. CPU builds are written to `build/cpu/debug` or

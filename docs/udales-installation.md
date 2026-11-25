@@ -149,10 +149,12 @@ tools/build_executable.sh icl release
 | `hx1` | Imperial HX1 | Intel 2023a, Intel MPI, netCDF 4.9.2, FFTW 3.3.10 |
 | `archer` | ARCHER2 | Cray compiler wrappers, cray-netcdf, cray-fftw |
 | `ecmwf` | ECMWF Atos HPC2020 | `prgenv/intel`, Intel 2021.4.0, hpcx-openmpi 2.21.3, netCDF 4.10.0, FFTW 3.3.10, CMake 4.2.4 |
-| `gpuhx1` | Imperial HX1, A100 GPU nodes | NVHPC 23.7 (OpenACC + CUDA Fortran), own OpenMPI 4.1.6, netCDF 4.10.1, FFTW 3.3.11; see `tools/GPU_dependency/` |
+| `gpuhx1` | Imperial HX1, A100 GPU nodes | NVHPC 23.7 (OpenACC + CUDA Fortran), own OpenMPI 4.1.6, netCDF 4.10.1, FFTW 3.3.11, all built with NVHPC by `tools/GPU_dependency/install_dependencies.sh`; see [uDALES on GPUs](./udales-gpu.md) |
 | `common` | Local workstation | No modules; uses the compilers and libraries on your system |
 
-The GPU executable for HX1 (`gpuhx1`) targets compute capability 8.0 and embeds
+The GPU targets need dependency libraries compiled with NVHPC; [uDALES on
+GPUs](./udales-gpu.md) explains how to build them with one command and how
+to run on GPUs. The GPU executable for HX1 (`gpuhx1`) targets compute capability 8.0 and embeds
 no PTX, so it runs on the A100s of the `v1_a100` queue and not on other GPUs.
 Pass `-DUDALES_CUDA_ARCH=<cc>` (a number such as `80` or `86`, or `all` for
 every supported architecture) to build for different hardware. The value reaches

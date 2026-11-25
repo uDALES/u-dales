@@ -227,15 +227,23 @@ module load intel/2021a netCDF/4.8.0-iimpi-2021a netCDF-Fortran/4.5.3-iimpi-2021
         # export PATH="$EBROOTNVHPC/Linux_x86_64/23.7/comm_libs/12.2/openmpi4/openmpi-4.1.5/bin:$PATH"'
         # Stack 3 - own OpenMPI 4.1.6 (IPv6, PBS tm launch, site UCX): mpirun
         # takes the node list from PBS itself, so the same launch line serves
-        # one node or several.
+        # one node or several. It lives where install_dependencies.sh builds it,
+        # tools/GPU_dependency/stack3-OpenMPI-4.1.6-tm/build, under DA_TOOLSDIR;
+        # UDALES_GPU_STACK_DIR overrides that, as in build_executable.sh.
         # UCX finds its CUDA transports (cuda_copy, cuda_ipc, gdr_copy) only
         # through UCX_MODULE_DIR, kept by the site in a separate UCX-CUDA
         # install; without them UCX treats GPU buffers as host memory and
         # small messages segfault. libcudart and libgdrapi are their deps. The
         # site UCX carries a compiled-in module list without cuda; the EB_UCX_*
         # variables (set by the UCX-CUDA module) override it.
+        gpu_stack_dir="${UDALES_GPU_STACK_DIR:-${DA_TOOLSDIR}/GPU_dependency/stack3-OpenMPI-4.1.6-tm/build}"
+        if [ ! -x "$gpu_stack_dir/openmpi/openmpi/bin/mpirun" ]; then
+            echo "No mpirun under $gpu_stack_dir/openmpi/openmpi/bin."
+            echo "Build the stack with tools/GPU_dependency/install_dependencies.sh, or set UDALES_GPU_STACK_DIR."
+            exit 1
+        fi
         job_modules='module load NVHPC/23.7-CUDA-12.2.0
-export PATH="/gpfs/home/dmajumda/openmpi-4.1.6-NVHPC-23.7-CUDA-12.2.0/openmpi/bin:$PATH"
+export PATH="'"${gpu_stack_dir}"'/openmpi/openmpi/bin:$PATH"
 export UCX_MODULE_DIR=/gpfs/easybuild/prod/software/UCX-CUDA/1.14.1-GCCcore-12.3.0-CUDA-12.1.1/ucx
 export EB_UCX_uct_MODULES=":ib:rdmacm:cma:cuda"
 export EB_UCX_ucm_MODULES=":cuda"

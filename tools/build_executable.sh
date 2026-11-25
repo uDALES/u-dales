@@ -26,6 +26,8 @@ set -euo pipefail
 #                             default build/<cpu|gpu>/<debug|release> layout
 #   UDALES_BUILD_JOBS         parallel build jobs (default: 8)
 #   UDALES_FORTRAN_COMPILER   Fortran compiler/MPI wrapper
+#   UDALES_GPU_STACK_DIR      gpuhx1 only: build directory of the GPU dependency
+#                             stack (default tools/GPU_dependency/stack3-OpenMPI-4.1.6-tm/build)
 
 if [ ! -d src ]; then
     echo "Please run this script from being inside the u-dales folder"
@@ -135,32 +137,38 @@ then
     # executable, 2DECOMP, HDF5/netCDF and FFTW all link the same libmpi, and
     # tools/hpc_execute.sh must put the matching mpirun on PATH at run time.
     #
+    # The libraries are built by tools/GPU_dependency/install_dependencies.sh
+    # into tools/GPU_dependency/<stack>/build (see the README there), so with
+    # the default stack 3 nothing below needs editing. UDALES_GPU_STACK_DIR
+    # points at a build directory somewhere else.
+    #
     # Stack 1 - OpenMPI 3.1.5, NVHPC's default. CUDA-aware on a node, but built
     # without UCX: no working InfiniBand path on HX1, so single node only.
+    # gpu_stack_dir="${UDALES_GPU_STACK_DIR:-$PWD/tools/GPU_dependency/stack1-NVHPC-OpenMPI-3.1.5/build}"
     # NVHPC_MPI_BIN="$EBROOTNVHPC/Linux_x86_64/23.7/comm_libs/mpi/bin"
     # Stack 2 - OpenMPI 4.1.5 with UCX and CUDA, also shipped with NVHPC 23.7.
     # Faster than stack 1 on a node, but built without IPv6 (HX1's node
     # networks are IPv6-only, so it cannot launch across nodes) and its UCX
     # cannot use HX1's InfiniBand. Single node only.
+    # gpu_stack_dir="${UDALES_GPU_STACK_DIR:-$PWD/tools/GPU_dependency/stack2-NVHPC-OpenMPI-4.1.5/build}"
     # NVHPC_MPI_BIN="$EBROOTNVHPC/Linux_x86_64/23.7/comm_libs/12.2/openmpi4/openmpi-4.1.5/bin"
-    # Stack 3 - OpenMPI 4.1.6 built for NVHPC 23.7 with --enable-ipv6,
-    # --with-tm (PBS launch) and the site UCX 1.14.1 + UCX-CUDA; see
-    # ~/openmpi-4.1.6-NVHPC-23.7-CUDA-12.2.0. For multi-node GPU runs.
-    NVHPC_MPI_BIN="/gpfs/home/dmajumda/openmpi-4.1.6-NVHPC-23.7-CUDA-12.2.0/openmpi/bin"
+    # Stack 3 - OpenMPI 4.1.6 built by install_dependencies.sh for NVHPC 23.7
+    # with --enable-ipv6, --with-tm (PBS launch) and the site UCX 1.14.1 +
+    # UCX-CUDA. Single and multi-node GPU runs; the default.
+    gpu_stack_dir="${UDALES_GPU_STACK_DIR:-$PWD/tools/GPU_dependency/stack3-OpenMPI-4.1.6-tm/build}"
+    NVHPC_MPI_BIN="$gpu_stack_dir/openmpi/openmpi/bin"
+    if [ ! -x "$NVHPC_MPI_BIN/mpif90" ] || [ ! -d "$gpu_stack_dir/netcdf-fortran-4.6.4/netcdff" ]; then
+        echo "GPU dependency stack not found under $gpu_stack_dir"
+        echo "Build it with tools/GPU_dependency/install_dependencies.sh (see tools/GPU_dependency/README.md),"
+        echo "or set UDALES_GPU_STACK_DIR to an existing build directory."
+        exit 1
+    fi
     FC="$NVHPC_MPI_BIN/mpif90"
     export PATH="$NVHPC_MPI_BIN:$PATH"
-    # Libraries for stack 1:
-    # NETCDF_DIR=/gpfs/home/dmajumda/newlib-NVHPC-23.7-CUDA-12.2.0/netcdf-c-4.10.1/netcdfc
-    # NETCDF_FORTRAN_DIR=/gpfs/home/dmajumda/newlib-NVHPC-23.7-CUDA-12.2.0/netcdf-fortran-4.6.4/netcdff
-    # export FFTWDIR=/gpfs/home/dmajumda/newlib-NVHPC-23.7-CUDA-12.2.0/fftw-3.3.11/fftw3
-    # Libraries for stack 2:
-    # NETCDF_DIR=/gpfs/home/dmajumda/newlib-NVHPC-23.7-CUDA-12.2.0-OpenMPI-4.1.5/netcdf-c-4.10.1/netcdfc
-    # NETCDF_FORTRAN_DIR=/gpfs/home/dmajumda/newlib-NVHPC-23.7-CUDA-12.2.0-OpenMPI-4.1.5/netcdf-fortran-4.6.4/netcdff
-    # export FFTWDIR=/gpfs/home/dmajumda/newlib-NVHPC-23.7-CUDA-12.2.0-OpenMPI-4.1.5/fftw-3.3.11/fftw3
-    # Libraries for stack 3:
-    NETCDF_DIR=/gpfs/home/dmajumda/newlib-NVHPC-23.7-CUDA-12.2.0-OpenMPI-4.1.6-tm/netcdf-c-4.10.1/netcdfc
-    NETCDF_FORTRAN_DIR=/gpfs/home/dmajumda/newlib-NVHPC-23.7-CUDA-12.2.0-OpenMPI-4.1.6-tm/netcdf-fortran-4.6.4/netcdff
-    export FFTWDIR=/gpfs/home/dmajumda/newlib-NVHPC-23.7-CUDA-12.2.0-OpenMPI-4.1.6-tm/fftw-3.3.11/fftw3
+    # Every stack lays its libraries out the same way under its build directory.
+    NETCDF_DIR=$gpu_stack_dir/netcdf-c-4.10.1/netcdfc
+    NETCDF_FORTRAN_DIR=$gpu_stack_dir/netcdf-fortran-4.6.4/netcdff
+    export FFTWDIR=$gpu_stack_dir/fftw-3.3.11/fftw3
 
     # HX1's GPU nodes (the v1_a100 queue) are A100s, which are cc80. The default
     # is "all", which works but compiles every supported architecture; naming 80

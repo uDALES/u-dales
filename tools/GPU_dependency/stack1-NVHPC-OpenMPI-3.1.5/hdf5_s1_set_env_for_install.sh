@@ -4,12 +4,12 @@ set -euo pipefail
 workdir=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
 cd "$workdir/hdf5-2.1.1"
 
-module purge
-module load NVHPC/23.7-CUDA-12.2.0
-module load CMake/3.26.3-GCCcore-12.3.0
-module load zlib/1.2.13-GCCcore-12.3.0
+# Modules and SDK paths for this machine (UDALES_DEP_SYSTEM: hx1 or common)
+# come from tools/GPU_dependency/modules.sh, found by walking up from here.
+d=$workdir; while [ ! -f "$d/modules.sh" ] && [ "$d" != / ]; do d=$(dirname "$d"); done
+source "$d/modules.sh"
 
-export NVHPC_MPI="$EBROOTNVHPC/Linux_x86_64/23.7/comm_libs/mpi/bin"
+export NVHPC_MPI="$DEP_MPI_DEFAULT/bin"
 
 export CC="$NVHPC_MPI/mpicc"
 export CXX="$NVHPC_MPI/mpicxx"
@@ -21,8 +21,8 @@ export FFLAGS="-fPIC"
 export FCFLAGS="-fPIC"
 
 module list
-echo "$EBROOTZLIB"
-ls "$EBROOTZLIB/include/zlib.h"
+echo "$DEP_ZLIB_ROOT"
+ls "$DEP_ZLIB_INCDIR/zlib.h"
 
 "$CC" --showme:command
 "$CXX" --showme:command

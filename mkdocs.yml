@@ -107,6 +107,7 @@ nav:
     - Pre-processing: udales-pre-processing.md
     - Windows preprocessing setup: udales-preprocessing-windows.md
     - Running uDALES: udales-simulation-setup.md
+    - uDALES on GPUs: udales-gpu.md
     - Post-processing: udales-post-processing.md
     - Output files: udales-output-files.md
     - Cluster workflows: cluster_workflows.md

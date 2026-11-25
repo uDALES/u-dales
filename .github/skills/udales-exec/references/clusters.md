@@ -141,7 +141,7 @@ GPU builds use the `gpuhx1` target of `tools/build_executable.sh`. Three MPI
 |---|---|---|
 | 1 | OpenMPI 3.1.5 bundled with NVHPC 23.7 (`comm_libs/mpi`) | one node only, slow non-contiguous GPU datatypes |
 | 2 | OpenMPI 4.1.5 bundled with NVHPC (`comm_libs/12.2/openmpi4`) | one node only, ~20 % faster than stack 1 |
-| 3 | OpenMPI 4.1.6 built for NVHPC 23.7 in `~/openmpi-4.1.6-NVHPC-23.7-CUDA-12.2.0` | one node and multi-node |
+| 3 | OpenMPI 4.1.6 built for NVHPC 23.7 by `tools/GPU_dependency/install_dependencies.sh` | one node and multi-node |
 
 Why the bundled ones cannot cross nodes: HX1's node networks (ib0, ens*) are
 IPv6-only, the only IPv4 address is a per-node 464XLAT interface
@@ -151,14 +151,26 @@ and hang. Their bundled UCX also cannot load its InfiniBand module against the
 system rdma-core. Stack 3 is built with `--enable-ipv6 --with-tm=/opt/pbs`
 and the site `UCX/1.14.1-GCCcore-12.3.0` + `UCX-CUDA` (same recipe as the site
 module `OpenMPI/4.1.4-NVHPC-22.7-CUDA-11.7.0`), needs `-fPIC` in every flag and
-`-Wl,-rpath,/opt/pbs/lib`. Each stack has its own HDF5/netCDF/FFTW tree
-(`~/newlib-NVHPC-23.7-CUDA-12.2.0*`).
+`-Wl,-rpath,/opt/pbs/lib`. Each stack has its own HDF5/netCDF/FFTW tree.
+The scripts live in `tools/GPU_dependency/`;
+`tools/GPU_dependency/install_dependencies.sh` builds a whole stack as one
+PBS job into `tools/GPU_dependency/<stack>/build/` (git-ignored; verified for
+stack 3 on 2026-11-25). Since 2026-11-25 `build_executable.sh` (gpuhx1),
+`hpc_execute.sh` (hx1:gpu) and `tests/hpc_run_all_tests.sh` take stack 3 from
+that directory by default, relative to the checkout, so a fresh clone needs
+no path edits; `UDALES_GPU_STACK_DIR` points them at a build elsewhere. The
+original home-directory trees (`~/openmpi-4.1.6-NVHPC-23.7-CUDA-12.2.0`,
+`~/newlib-NVHPC-23.7-CUDA-12.2.0*`) are no longer referenced.
+Trap: curl/wget on HX1 fail to verify
+`downloads.unidata.ucar.edu` (RHEL 8 CA store lacks the SSL.com root of its
+chain); the download helper retries with the certifi bundle of
+`tools/python/.venv`, or set `UDALES_CA_BUNDLE`.
 
 Runtime for stack 3 (what the `hx1:gpu` block of `tools/hpc_execute.sh` writes):
 
 ```bash
 module load NVHPC/23.7-CUDA-12.2.0
-export PATH="/gpfs/home/dmajumda/openmpi-4.1.6-NVHPC-23.7-CUDA-12.2.0/openmpi/bin:$PATH"
+export PATH="$DA_TOOLSDIR/GPU_dependency/stack3-OpenMPI-4.1.6-tm/build/openmpi/openmpi/bin:$PATH"
 export UCX_MODULE_DIR=/gpfs/easybuild/prod/software/UCX-CUDA/1.14.1-GCCcore-12.3.0-CUDA-12.1.1/ucx
 export EB_UCX_uct_MODULES=":ib:rdmacm:cma:cuda"
 export EB_UCX_ucm_MODULES=":cuda"

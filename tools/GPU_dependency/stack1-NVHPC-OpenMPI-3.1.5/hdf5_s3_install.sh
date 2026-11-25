@@ -2,9 +2,11 @@
 set -euo pipefail
 
 workdir=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
+source "$workdir/hdf5_s1_set_env_for_install.sh"
+
 cd "$workdir/hdf5-2.1.1"
 
-cmake --build build --parallel 8
+cmake --build build --parallel "${BUILD_JOBS:-8}"
 
 cmake --install build
 
