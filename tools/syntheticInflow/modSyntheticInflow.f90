@@ -960,7 +960,7 @@ PROGRAM synInflowGen
 
 
 
-    SUBROUTINE calc_psi(NLY2,NLZ2,by,bz,psi)
+    SUBROUTINE calc_psi_direct(NLY2,NLZ2,by,bz,psi)
         IMPLICIT NONE
 
         INTEGER, DIMENSION(0:nz), INTENT(IN) :: NLY2, NLZ2
@@ -996,9 +996,296 @@ PROGRAM synInflowGen
 
         DEALLOCATE(randn)
 
-    END SUBROUTINE calc_psi
+    END SUBROUTINE calc_psi_direct
 
 
+
+    ! SUBROUTINE calc_psi(NLY2,NLZ2,by,bz,psi)
+        ! IMPLICIT NONE
+
+        ! INCLUDE 'fftw3.f'
+
+        ! INTEGER, PARAMETER :: plan_kind = SELECTED_INT_KIND(18)
+
+        ! INTEGER, DIMENSION(0:nz), INTENT(IN) :: NLY2, NLZ2
+        ! REAL(KIND=dp), DIMENSION(0:MAXVAL(NLY2),0:nz), INTENT(IN) :: by
+        ! REAL(KIND=dp), DIMENSION(0:MAXVAL(NLZ2),0:nz), INTENT(IN) :: bz
+        ! REAL(KIND=dp), DIMENSION(0:ny,0:nz), INTENT(OUT) :: psi
+
+        ! REAL(KIND=dp), DIMENSION(:,:), ALLOCATABLE :: randn
+        ! COMPLEX(KIND=dp), DIMENSION(:), ALLOCATABLE :: data_hat, kernel_hat
+
+        ! INTEGER(KIND=plan_kind) :: plan_data_forward
+        ! INTEGER(KIND=plan_kind) :: plan_kernel_forward
+        ! INTEGER(KIND=plan_kind) :: plan_data_backward
+        ! INTEGER :: nry, nrz, data_length, required_length, nfft
+        ! INTEGER :: iy, iz, j, k
+
+        ! nry = ny + MAX( MAXVAL(NLY2), MAXVAL(NLZ2) )*2
+        ! nrz = nz + MAX( MAXVAL(NLY2), MAXVAL(NLZ2) )*2
+
+        ! ALLOCATE( randn(0:nry,0:nrz) )
+        ! CALL generate_normal_rand(nry,nrz,randn)
+
+        ! ! The lateral operation is a linear correlation between one row of
+        ! ! randn and by(:,iz). Pad to at least Ndata + Nfilter - 1.
+        ! data_length = SIZE(randn,1)
+        ! required_length = data_length + MAXVAL(NLY2)
+
+        ! nfft = 1
+        ! DO WHILE (nfft < required_length)
+            ! nfft = 2*nfft
+        ! END DO
+
+        ! ALLOCATE( data_hat(0:nfft-1), kernel_hat(0:nfft-1) )
+        ! data_hat = CMPLX(0.0_dp,0.0_dp,KIND=dp)
+        ! kernel_hat = CMPLX(0.0_dp,0.0_dp,KIND=dp)
+
+        ! CALL dfftw_plan_dft_1d(plan_data_forward,nfft,data_hat,data_hat, &
+                               ! FFTW_FORWARD,FFTW_ESTIMATE)
+        ! CALL dfftw_plan_dft_1d(plan_kernel_forward,nfft,kernel_hat,kernel_hat, &
+                               ! FFTW_FORWARD,FFTW_ESTIMATE)
+        ! CALL dfftw_plan_dft_1d(plan_data_backward,nfft,data_hat,data_hat, &
+                               ! FFTW_BACKWARD,FFTW_ESTIMATE)
+
+        ! psi = 0.0_dp
+
+        ! DO iz = 0,nz
+            ! ! Transform the lateral filter belonging to this output height.
+            ! kernel_hat = CMPLX(0.0_dp,0.0_dp,KIND=dp)
+            ! DO j = 0,NLY2(iz)
+                ! kernel_hat(j) = CMPLX(by(j,iz),0.0_dp,KIND=dp)
+            ! END DO
+            ! CALL dfftw_execute_dft(plan_kernel_forward,kernel_hat,kernel_hat)
+
+            ! ! Keep the vertical filtering as the original direct k sum.
+            ! DO k = 0,NLZ2(iz)
+                ! data_hat = CMPLX(0.0_dp,0.0_dp,KIND=dp)
+                ! DO iy = 0,data_length-1
+                    ! data_hat(iy) = CMPLX(randn(iy,iz+k),0.0_dp,KIND=dp)
+                ! END DO
+                ! CALL dfftw_execute_dft(plan_data_forward,data_hat,data_hat)
+
+                ! ! CONJG gives correlation: sum_j by(j,iz)*randn(iy+j,iz+k).
+                ! data_hat = data_hat*CONJG(kernel_hat)
+                ! CALL dfftw_execute_dft(plan_data_backward,data_hat,data_hat)
+
+                ! DO iy = 0,ny
+                    ! psi(iy,iz) = psi(iy,iz) + bz(k,iz)* &
+                                 ! REAL(data_hat(iy),KIND=dp)/REAL(nfft,KIND=dp)
+                ! END DO
+            ! END DO
+        ! END DO
+
+        ! CALL dfftw_destroy_plan(plan_data_forward)
+        ! CALL dfftw_destroy_plan(plan_kernel_forward)
+        ! CALL dfftw_destroy_plan(plan_data_backward)
+
+        ! DEALLOCATE(data_hat,kernel_hat,randn)
+
+    ! END SUBROUTINE calc_psi
+
+	SUBROUTINE calc_psi(NLY2,NLZ2,by,bz,psi)
+
+		IMPLICIT NONE
+
+		INCLUDE 'fftw3.f'
+
+		INTEGER, PARAMETER :: plan_kind = SELECTED_INT_KIND(18)
+
+		INTEGER, DIMENSION(0:nz), INTENT(IN) :: NLY2, NLZ2
+
+		REAL(KIND=dp), DIMENSION(0:MAXVAL(NLY2),0:nz), &
+			INTENT(IN) :: by
+
+		REAL(KIND=dp), DIMENSION(0:MAXVAL(NLZ2),0:nz), &
+			INTENT(IN) :: bz
+
+		REAL(KIND=dp), DIMENSION(0:ny,0:nz), &
+			INTENT(OUT) :: psi
+
+		REAL(KIND=dp), DIMENSION(:,:), ALLOCATABLE :: randn
+
+		COMPLEX(KIND=dp), DIMENSION(:), ALLOCATABLE :: data_hat
+		COMPLEX(KIND=dp), DIMENSION(:), ALLOCATABLE :: kernel_hat
+
+		INTEGER(KIND=plan_kind) :: plan_data_forward
+		INTEGER(KIND=plan_kind) :: plan_kernel_forward
+		INTEGER(KIND=plan_kind) :: plan_data_backward
+
+		REAL(KIND=dp) :: weighted_value
+		REAL(KIND=dp) :: fft_normalization
+
+		INTEGER :: max_filter_length
+		INTEGER :: nry, nrz
+		INTEGER :: data_length
+		INTEGER :: required_length
+		INTEGER :: nfft
+		INTEGER :: iy, iz, j, k
+
+
+		! Maximum lateral/vertical filter half-length.
+		max_filter_length = MAX(MAXVAL(NLY2),MAXVAL(NLZ2))
+
+		! Preserve the original random-array dimensions.
+		nry = ny + 2*max_filter_length
+		nrz = nz + 2*max_filter_length
+
+		ALLOCATE(randn(0:nry,0:nrz))
+
+		CALL generate_normal_rand(nry,nrz,randn)
+
+
+		! Length of each lateral random-data sequence.
+		data_length = SIZE(randn,1)
+
+		! Linear correlation requires at least:
+		!
+		!     Ndata + Nfilter - 1
+		!
+		! where the maximum filter length is MAXVAL(NLY2)+1.
+		required_length = data_length + MAXVAL(NLY2)
+
+		! Use the next power of two.
+		nfft = 1
+
+		DO WHILE (nfft < required_length)
+			nfft = 2*nfft
+		END DO
+
+
+		ALLOCATE(data_hat(0:nfft-1))
+		ALLOCATE(kernel_hat(0:nfft-1))
+
+		data_hat   = CMPLX(0.0_dp,0.0_dp,KIND=dp)
+		kernel_hat = CMPLX(0.0_dp,0.0_dp,KIND=dp)
+
+
+		! FFT plans are constructed only once for this subroutine call.
+		CALL dfftw_plan_dft_1d(                           &
+			plan_data_forward,                            &
+			nfft,                                         &
+			data_hat,                                     &
+			data_hat,                                     &
+			FFTW_FORWARD,                                 &
+			FFTW_ESTIMATE)
+
+		CALL dfftw_plan_dft_1d(                           &
+			plan_kernel_forward,                          &
+			nfft,                                         &
+			kernel_hat,                                   &
+			kernel_hat,                                   &
+			FFTW_FORWARD,                                 &
+			FFTW_ESTIMATE)
+
+		CALL dfftw_plan_dft_1d(                           &
+			plan_data_backward,                           &
+			nfft,                                         &
+			data_hat,                                     &
+			data_hat,                                     &
+			FFTW_BACKWARD,                                &
+			FFTW_ESTIMATE)
+
+
+		fft_normalization = 1.0_dp/REAL(nfft,KIND=dp)
+
+		psi = 0.0_dp
+
+
+		DO iz = 0,nz
+
+			!---------------------------------------------------------------
+			! Perform the vertical filtering first:
+			!
+			! weighted_data(iy,iz) =
+			!     SUM_k bz(k,iz)*randn(iy,iz+k)
+			!
+			! This allows all k contributions to use only one lateral FFT.
+			!---------------------------------------------------------------
+
+			data_hat = CMPLX(0.0_dp,0.0_dp,KIND=dp)
+
+			DO iy = 0,data_length-1
+
+				weighted_value = 0.0_dp
+
+				DO k = 0,NLZ2(iz)
+					weighted_value = weighted_value +              &
+						bz(k,iz)*randn(iy,iz+k)
+				END DO
+
+				data_hat(iy) = CMPLX(                              &
+					weighted_value,                                &
+					0.0_dp,                                        &
+					KIND=dp)
+
+			END DO
+
+
+			!---------------------------------------------------------------
+			! Construct the lateral filter for this output height.
+			!---------------------------------------------------------------
+
+			kernel_hat = CMPLX(0.0_dp,0.0_dp,KIND=dp)
+
+			DO j = 0,NLY2(iz)
+				kernel_hat(j) = CMPLX(                              &
+					by(j,iz),                                      &
+					0.0_dp,                                        &
+					KIND=dp)
+			END DO
+
+
+			! Transform the vertically filtered random sequence.
+			CALL dfftw_execute_dft(                                &
+				plan_data_forward,                                 &
+				data_hat,                                          &
+				data_hat)
+
+
+			! Transform the lateral filter.
+			CALL dfftw_execute_dft(                                &
+				plan_kernel_forward,                               &
+				kernel_hat,                                        &
+				kernel_hat)
+
+
+			! Multiplication by CONJG(kernel_hat) produces:
+			!
+			! SUM_j by(j,iz)*weighted_data(iy+j,iz)
+			!
+			! i.e. spatial correlation rather than convolution.
+			data_hat = data_hat*CONJG(kernel_hat)
+
+
+			! Transform back to physical space.
+			CALL dfftw_execute_dft(                                &
+				plan_data_backward,                                &
+				data_hat,                                          &
+				data_hat)
+
+
+			! FFTW backward transforms are not normalized.
+			DO iy = 0,ny
+				psi(iy,iz) = REAL(data_hat(iy),KIND=dp) *           &
+							 fft_normalization
+			END DO
+
+		END DO
+
+
+		! Destroy FFTW plans.
+		CALL dfftw_destroy_plan(plan_data_forward)
+		CALL dfftw_destroy_plan(plan_kernel_forward)
+		CALL dfftw_destroy_plan(plan_data_backward)
+
+
+		! Release temporary arrays.
+		DEALLOCATE(data_hat)
+		DEALLOCATE(kernel_hat)
+		DEALLOCATE(randn)
+
+	END SUBROUTINE calc_psi
 
     SUBROUTINE generate_normal_rand(nry,nrz,rndm)
         IMPLICIT NONE
@@ -1032,7 +1319,7 @@ PROGRAM synInflowGen
         
         !$OMP PARALLEL DO DEFAULT(SHARED) PRIVATE(iz) SCHEDULE(DYNAMIC)
         DO iz = 0,nz
-            unew(iz) = ( SUM( udriver(1:ny-1,iz) ) + ( (udriver(0,iz) + udriver(nz,iz)) / 2.0d0 ) ) &
+            unew(iz) = ( SUM( udriver(1:ny-1,iz) ) + ( (udriver(0,iz) + udriver(ny,iz)) / 2.0d0 ) ) &
                         / REAL(ny,KIND=dp)
         END DO
         !$OMP END PARALLEL DO
@@ -1087,11 +1374,11 @@ PROGRAM synInflowGen
             w0(:,ktot+k) = w0(:,ktot+k-1)
         END DO
         DO j = 1,jh
-            u0(jb-j,:) = u0(:,jb-j+1)
+            u0(jb-j,:) = u0(jb-j+1,:)
             u0(jtot+j,:) = u0(jtot+j-1,:)
-            v0(jb-j,:) = v0(:,jb-j+1)
+            v0(jb-j,:) = v0(jb-j+1,:)
             v0(jtot+j,:) = v0(jtot+j-1,:)
-            w0(jb-j,:) = w0(:,jb-j+1)
+            w0(jb-j,:) = w0(jb-j+1,:)
             w0(jtot+j,:) = w0(jtot+j-1,:)
         END DO
 
@@ -1111,7 +1398,7 @@ PROGRAM synInflowGen
                 thl0(:,ktot+k) = thl0(:,ktot+k-1)
             END DO
             DO j = 1,jh
-                thl0(jb-j,:) = thl0(:,jb-j+1)
+                thl0(jb-j,:) = thl0(jb-j+1,:)
                 thl0(jtot+j,:) = thl0(jtot+j-1,:)
             END DO
         END IF
@@ -1132,7 +1419,7 @@ PROGRAM synInflowGen
                 qt0(:,ktot+k) = qt0(:,ktot+k-1)
             END DO
             DO j = 1,jh
-                qt0(jb-j,:) = qt0(:,jb-j+1)
+                qt0(jb-j,:) = qt0(jb-j+1,:)
                 qt0(jtot+j,:) = qt0(jtot+j-1,:)
             END DO
         END IF
@@ -1168,6 +1455,7 @@ PROGRAM synInflowGen
             DO j = js,je
                 WRITE(UNIT=file_unit,FMT='(f15.10,x)',ADVANCE='NO') vel(j,k)
             END DO
+                write(unit=file_unit, fmt='(A)')''
         END DO
         CLOSE(UNIT=file_unit)
 
@@ -1189,27 +1477,47 @@ PROGRAM synInflowGen
         CHARACTER(3) :: cdriverid
         LOGICAL :: lexist
         
+        INTEGER, PARAMETER :: log_unit = 99
+        INTEGER, PARAMETER :: progress_interval = 100
+        LOGICAL, SAVE :: first_call = .TRUE.
+        
         IF (MOD(jtot,nprocy)/=0) THEN
             WRITE(*,*) "ERROR !! jtot must be divisible by nprocy; give correct input parameters."
             STOP
         END IF
         y_driver_len = jtot/nprocy
         tdriverstart = 0.0d0 * dt_sig
+        timee = (nstepdriver-1)*dt_sig
 
-        IF (nstepdriver==1) THEN
+        ! Open log file and write header (first call only)
+        IF (first_call) THEN
+            OPEN(UNIT=log_unit, FILE='driver_generation.log', STATUS='REPLACE')
+            WRITE(log_unit,*) '=================================================================='
+            WRITE(log_unit,*) '*** Starting to write data for driver simulation ***'
+            WRITE(log_unit,'(A,F9.2,A,I8,A,F12.9)') ' Starting time: ', tdriverstart, &
+                                            ';    Total steps: ', nt+1, &
+                                            ';    dt: ', dt_sig
+            WRITE(log_unit,*) '=================================================================='
+            
+            ! Also write to terminal
             WRITE(6,*) '=================================================================='
             WRITE(6,*) '*** Starting to write data for driver simulation ***'
-            WRITE(6,*) 'Driver recording variables:'
             WRITE(6,'(A,F9.2,A,I8,A,F12.9)') ' Starting time: ', tdriverstart, &
-                                            ';    Total number of time steps to be stored: ', nt+1, &
-                                            ';    Inlet record intervals: ', dt_sig
+                                            ';    Total steps: ', nt+1, &
+                                            ';    dt: ', dt_sig
             WRITE(6,*) '=================================================================='
+            first_call = .FALSE.
         END IF
         
-        WRITE(6,*) '============ Writing driver files ============'
-        WRITE(*,*) 'Driver timestep: ', nstepdriver
-
-        timee = (nstepdriver-1)*dt_sig
+        ! Write progress to log file (every step)
+        WRITE(log_unit,'(A,I6,A,I6,A,F10.2)') 'Step: ', nstepdriver, ' / ', nt+1, &
+                                               '  Time: ', timee-tdriverstart
+        
+        ! Write progress to terminal (every 100 steps or last step)
+        IF (MOD(nstepdriver, progress_interval) == 0 .OR. nstepdriver == nt+1) THEN
+            WRITE(6,'(A,I6,A,I6,A,I4,A)') 'Progress: ', nstepdriver, ' / ', nt+1, &
+                                          ' (', INT(100.0*nstepdriver/(nt+1)), '%)'
+        END IF
         INQUIRE(IOLENGTH=filesizet)(timee-tdriverstart)
         
         name = 'tdriver_   .'
@@ -1230,8 +1538,6 @@ PROGRAM synInflowGen
         END IF
         WRITE(11,REC=nstepdriver) (timee-tdriverstart)
         CLOSE(UNIT=11)
-        WRITE(*,*) 'Driver time:' , timee-tdriverstart
-
 
         INQUIRE(IOLENGTH=filesizev)u0(jb-jh:y_driver_len+jh,:)
         
@@ -1325,6 +1631,14 @@ PROGRAM synInflowGen
             END IF
 
         END DO
+        
+        ! Close log file on last step
+        IF (nstepdriver == nt+1) THEN
+            WRITE(log_unit,*) '=================================================================='
+            WRITE(log_unit,*) 'Driver file generation completed successfully.'
+            WRITE(log_unit,*) '=================================================================='
+            CLOSE(log_unit)
+        END IF
 
     END SUBROUTINE write_driver
 
