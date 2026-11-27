@@ -1,0 +1,1147 @@
+<!-- -*- mode: jinja2 -*- -->
+
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+      <meta name="description" content="API documentation of the Fortran source code of uDALES, the open-source multi-physics large-eddy simulation model for urban environments.">
+    <meta name="author" content="The uDALES Team" >
+    <link rel="icon" href="../favicon.png">
+
+    <title>statsdump &ndash; uDALES</title>
+
+    <!-- Bootstrap -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet"
+          integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"
+            integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
+    <!-- Font Awesome -->
+    <link href="../css/fontawesome.min.css" rel="stylesheet">
+    <link href="../css/brands.min.css" rel="stylesheet">
+    <link href="../css/regular.min.css" rel="stylesheet">
+    <link href="../css/solid.min.css" rel="stylesheet">
+    <link href="../css/v4-font-face.min.css" rel="stylesheet">
+    <link href="../css/v4-shims.min.css" rel="stylesheet">
+    <!-- MathJax -->
+    <script type="text/x-mathjax-config">
+      MathJax.Hub.Config({
+        TeX: { equationNumbers: { autoNumber: "AMS" } }
+      });
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/mathjax@2.7.9/MathJax.js?config=TeX-AMS-MML_HTMLorMML" async
+            integrity="sha256-DViIOMYdwlM/axqoGDPeUyf0urLoHMN4QACBKyB58Uw=" crossorigin="anonymous"></script>
+    <!-- Other scripts and stylesheets -->
+    <link href="../css/local.css" rel="stylesheet">
+    <link href="../css/pygments.css" rel="stylesheet">
+    <script src="../js/svg-pan-zoom.min.js"></script>
+  </head>
+
+  <body>
+
+    <!-- Fixed navbar -->
+    <div class="container-fluid mb-sm-4 mb-xl-2">
+      <nav class="navbar navbar-expand-lg navbar-dark bg-dark fixed-top">
+        <div class="container">
+          <a class="navbar-brand" href="../index.html">uDALES </a>
+          <button type="button" class="navbar-toggler" data-bs-toggle="collapse" data-bs-target="#navbar"
+                  aria-expanded="false" aria-controls="navbar" aria-label="Toggle navigation">
+                  <span class="navbar-toggler-icon">
+          </button>
+
+          <div id="navbar" class="navbar-collapse collapse">
+            <ul class="navbar-nav">
+                  <li class="nav-item">
+                    <a class="nav-link" href="../lists/files.html">Source Files</a>
+                  </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="../lists/modules.html">Modules</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="../lists/procedures.html">Procedures</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="../lists/absint.html">Abstract Interfaces</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="../lists/types.html">Derived Types</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="../lists/namelists.html">Namelists</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="../program/udales.html">Program</a>
+                </li>
+            </ul>
+              <div class="d-flex align-items-end flex-grow-1">
+                <form action="../search.html" role="search" class="ms-auto">
+                  <input type="text" class="form-control" aria-label="Search" placeholder="Search" name="q" id="tipue_search_input" autocomplete="off" required>
+                </form>
+              </div>
+          </div><!--/.nav-collapse -->
+        </div>
+      </nav>
+    </div>
+
+    <div class="container">
+  <div class="row">
+    <h1>statsdump
+      <small>Subroutine</small>
+      
+    </h1>
+      <div class="container p-2 mb-4 bg-light border rounded-3">
+    <div class="row align-items-center justify-content-between" id="info-bar">
+      <div class="col">
+        <ul class="list-inline" style="margin-bottom:0px;display:inline">
+
+            <li class="list-inline-item" id="statements"><i class="fa fa-list-ol"></i>
+              <a data-bs-toggle="tooltip" data-bs-placement="bottom" data-bs-html="true"
+                 title=" 0.4% of total for procedures.">65 statements</a>
+            </li>
+
+            <li class="list-inline-item" id="source-file">
+              <i class="fa fa-code"></i>
+              <a href="../src/modstatsdump.f90"> Source File</a>
+            </li>
+        </ul>
+      </div>
+      <div class="col">
+        <nav aria-label="breadcrumb">
+          <ol class="breadcrumb justify-content-end mb-0">
+                <li class="breadcrumb-item"><a href='../sourcefile/modstatsdump.f90.html'>modstatsdump.f90</a></li>
+                <li class="breadcrumb-item"><a href='../module/modstatsdump.html'>modstatsdump</a></li>
+            <li class="breadcrumb-item active" aria-current="page">statsdump</li>
+          </ol>
+        </nav>
+      </div>
+    </div>
+  </div>
+  <script>
+    // Enable Bootstrap tooltips
+    (function () {
+      const tooltipTriggerList = document.querySelectorAll('[data-bs-toggle="tooltip"]')
+      const tooltipList = [...tooltipTriggerList].map(tooltipTriggerEl => new bootstrap.Tooltip(tooltipTriggerEl))
+    })();
+  </script>
+
+  </div>
+  
+  <div class="row">
+    <div class="col-md-3 hidden-xs hidden-sm visible-md visible-lg">
+      <div id="sidebar">
+      <h3>Contents</h3>
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+    <div class="card card-primary">
+      <div class="card-header text-left"><h3 class="card-title">Source Code</h3></div>
+      <div class="list-group">
+        <a class="list-group-item" href="../proc/statsdump.html#src">statsdump</a>
+      </div>
+    </div>
+
+
+  </div>
+
+    </div>
+    
+    <div class="col-md-9" id='text'>
+    <h2>public  subroutine statsdump()  
+</h2>
+        <div class="card mb-4">
+      <h3 class="card-header card-title bg-light">Uses</h3>
+      <div class="card-body">
+        <ul class="list-group list-group-flush">
+            <li class="list-group-item">
+              <ul class="list-inline">
+                  <li class="list-inline-item"><a href='../module/modstat_nc.html'>modstat_nc</a></li>
+                  <li class="list-inline-item"><a href='../module/modmpi.html'>modmpi</a></li>
+                  <li class="list-inline-item"><a href='../module/modfields.html'>modfields</a></li>
+                  <li class="list-inline-item"><a href='../module/modglobal.html'>modglobal</a></li>
+              </ul>
+            </li>
+            <li class="list-group-item">
+              <div class="depgraph"><?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
+ "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<!-- Generated by graphviz version 14.1.3 (0)
+ -->
+<!-- Title: proc~~statsdump~~UsesGraph Pages: 1 -->
+<svg id="procstatsdumpUsesGraph" width="384pt" height="156pt"
+ viewBox="0.00 0.00 384.00 156.00" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<g id="proc~~statsdump~~UsesGraph" class="graph" transform="scale(1 1) rotate(0) translate(4 152.27)">
+<title>proc~~statsdump~~UsesGraph</title>
+<polygon fill="white" stroke="none" points="-4,4 -4,-152.27 379.81,-152.27 379.81,4 -4,4"/>
+<!-- proc~statsdump -->
+<g id="proc~~statsdump~~UsesGraph_node1" class="node">
+<title>proc~statsdump</title>
+<polygon fill="none" stroke="black" points="375.81,-86.27 308.79,-86.27 308.79,-62 375.81,-62 375.81,-86.27"/>
+<text xml:space="preserve" text-anchor="middle" x="342.3" y="-70.54" font-family="Helvetica,sans-Serif" font-size="10.50">statsdump</text>
+</g>
+<!-- module~modfields -->
+<g id="proc~~statsdump~~UsesGraph_node2" class="node">
+<title>module~modfields</title>
+<g id="a_proc~~statsdump~~UsesGraph_node2"><a xlink:href="../module/modfields.html" xlink:title="modfields">
+<polygon fill="#337ab7" stroke="#337ab7" points="268.29,-148.27 204.27,-148.27 204.27,-124 268.29,-124 268.29,-148.27"/>
+<text xml:space="preserve" text-anchor="middle" x="236.28" y="-132.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">modfields</text>
+</a>
+</g>
+</g>
+<!-- proc~statsdump&#45;&gt;module~modfields -->
+<g id="proc~~statsdump~~UsesGraph_edge1" class="edge">
+<title>proc~statsdump&#45;&gt;module~modfields</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M320.33,-86.72C306.78,-94.85 288.75,-105.64 272.79,-115.14 271.18,-116.09 269.53,-117.07 267.87,-118.06"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="266.44,-114.84 259.62,-122.94 270.01,-120.86 266.44,-114.84"/>
+</g>
+<!-- module~modglobal -->
+<g id="proc~~statsdump~~UsesGraph_node3" class="node">
+<title>module~modglobal</title>
+<g id="a_proc~~statsdump~~UsesGraph_node3"><a xlink:href="../module/modglobal.html" xlink:title="modglobal">
+<polygon fill="#337ab7" stroke="#337ab7" points="270.54,-106.27 202.02,-106.27 202.02,-82 270.54,-82 270.54,-106.27"/>
+<text xml:space="preserve" text-anchor="middle" x="236.28" y="-90.54" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">modglobal</text>
+</a>
+</g>
+</g>
+<!-- proc~statsdump&#45;&gt;module~modglobal -->
+<g id="proc~~statsdump~~UsesGraph_edge2" class="edge">
+<title>proc~statsdump&#45;&gt;module~modglobal</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M308.39,-80.46C299.93,-82.09 290.7,-83.86 281.77,-85.58"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="281.34,-82.1 272.18,-87.42 282.66,-88.97 281.34,-82.1"/>
+</g>
+<!-- module~modmpi -->
+<g id="proc~~statsdump~~UsesGraph_node4" class="node">
+<title>module~modmpi</title>
+<g id="a_proc~~statsdump~~UsesGraph_node4"><a xlink:href="../module/modmpi.html" xlink:title="modmpi">
+<polygon fill="#337ab7" stroke="#337ab7" points="154.77,-66.27 99,-66.27 99,-42 154.77,-42 154.77,-66.27"/>
+<text xml:space="preserve" text-anchor="middle" x="126.88" y="-50.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">modmpi</text>
+</a>
+</g>
+</g>
+<!-- proc~statsdump&#45;&gt;module~modmpi -->
+<g id="proc~~statsdump~~UsesGraph_edge3" class="edge">
+<title>proc~statsdump&#45;&gt;module~modmpi</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M308.42,-71.05C270.11,-67.46 206.9,-61.54 166.34,-57.74"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="166.83,-54.27 156.55,-56.82 166.18,-61.24 166.83,-54.27"/>
+</g>
+<!-- module~modstat_nc -->
+<g id="proc~~statsdump~~UsesGraph_node5" class="node">
+<title>module~modstat_nc</title>
+<g id="a_proc~~statsdump~~UsesGraph_node5"><a xlink:href="../module/modstat_nc.html" xlink:title="modstat_nc">
+<polygon fill="#337ab7" stroke="#337ab7" points="272.79,-26.27 199.77,-26.27 199.77,-2 272.79,-2 272.79,-26.27"/>
+<text xml:space="preserve" text-anchor="middle" x="236.28" y="-10.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">modstat_nc</text>
+</a>
+</g>
+</g>
+<!-- proc~statsdump&#45;&gt;module~modstat_nc -->
+<g id="proc~~statsdump~~UsesGraph_edge4" class="edge">
+<title>proc~statsdump&#45;&gt;module~modstat_nc</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M319.49,-61.56C304.79,-53.08 285.16,-41.75 268.77,-32.3"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="270.78,-29.42 260.37,-27.45 267.28,-35.48 270.78,-29.42"/>
+</g>
+<!-- decomp_2d -->
+<g id="proc~~statsdump~~UsesGraph_node6" class="node">
+<title>decomp_2d</title>
+<polygon fill="#337ab7" stroke="#337ab7" points="163.77,-148.27 90,-148.27 90,-124 163.77,-124 163.77,-148.27"/>
+<text xml:space="preserve" text-anchor="middle" x="126.88" y="-132.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">decomp_2d</text>
+</g>
+<!-- module~modfields&#45;&gt;decomp_2d -->
+<g id="proc~~statsdump~~UsesGraph_edge5" class="edge">
+<title>module~modfields&#45;&gt;decomp_2d</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M203.93,-136.13C194.94,-136.13 184.93,-136.13 175.21,-136.13"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="175.52,-132.64 165.52,-136.14 175.52,-139.64 175.52,-132.64"/>
+</g>
+<!-- mpi -->
+<g id="proc~~statsdump~~UsesGraph_node7" class="node">
+<title>mpi</title>
+<g id="a_proc~~statsdump~~UsesGraph_node7"><a xlink:href="http://www.mpi-forum.org/docs/mpi-3.1/mpi31-report/node410.htm" xlink:title="mpi">
+<polygon fill="#337ab7" stroke="#337ab7" points="54,-66.27 0,-66.27 0,-42 54,-42 54,-66.27"/>
+<text xml:space="preserve" text-anchor="middle" x="27" y="-50.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">mpi</text>
+</a>
+</g>
+</g>
+<!-- module~modmpi&#45;&gt;mpi -->
+<g id="proc~~statsdump~~UsesGraph_edge6" class="edge">
+<title>module~modmpi&#45;&gt;mpi</title>
+<path fill="none" stroke="#00ffff" stroke-dasharray="5,2" d="M98.62,-54.13C88.48,-54.13 76.79,-54.13 65.88,-54.13"/>
+<polygon fill="#00ffff" stroke="#00ffff" points="65.96,-50.64 55.96,-54.14 65.96,-57.64 65.96,-50.64"/>
+</g>
+<!-- module~modstat_nc&#45;&gt;module~modmpi -->
+<g id="proc~~statsdump~~UsesGraph_edge7" class="edge">
+<title>module~modstat_nc&#45;&gt;module~modmpi</title>
+<path fill="none" stroke="#7f00ff" stroke-dasharray="5,2" d="M201.59,-26.68C190.22,-30.92 177.45,-35.68 165.77,-40.02"/>
+<polygon fill="#7f00ff" stroke="#7f00ff" points="164.56,-36.74 156.41,-43.51 167,-43.3 164.56,-36.74"/>
+</g>
+<!-- netcdf -->
+<g id="proc~~statsdump~~UsesGraph_node8" class="node">
+<title>netcdf</title>
+<polygon fill="#337ab7" stroke="#337ab7" points="153.88,-24.27 99.88,-24.27 99.88,0 153.88,0 153.88,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="126.88" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">netcdf</text>
+</g>
+<!-- module~modstat_nc&#45;&gt;netcdf -->
+<g id="proc~~statsdump~~UsesGraph_edge8" class="edge">
+<title>module~modstat_nc&#45;&gt;netcdf</title>
+<path fill="none" stroke="#7f00ff" stroke-dasharray="5,2" d="M199.52,-13.47C188.67,-13.27 176.73,-13.04 165.75,-12.84"/>
+<polygon fill="#7f00ff" stroke="#7f00ff" points="165.89,-9.34 155.83,-12.66 165.76,-16.34 165.89,-9.34"/>
+</g>
+</g>
+</svg>
+</div>          <div>
+            <a type="button" class="graph-help" data-bs-toggle="modal" href="#UsesGraph-help-text">Help</a>
+          </div>
+          <div class="modal fade" id="UsesGraph-help-text" tabindex="-1" role="dialog">
+            <div class="modal-dialog modal-lg" role="document">
+              <div class="modal-content">
+                <div class="modal-header">
+                  <h4 class="modal-title" id="-graph-help-label">Graph Key</h4>
+                  <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+<p>Nodes of different colours represent the following: </p>
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
+ "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<!-- Generated by graphviz version 14.1.3 (0)
+ -->
+<!-- Title: Graph Key Pages: 1 -->
+<svg width="511pt" height="32pt"
+ viewBox="0.00 0.00 511.00 32.00" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<g id="graph0" class="graph" transform="scale(1 1) rotate(0) translate(4 28.27)">
+<title>Graph Key</title>
+<polygon fill="white" stroke="none" points="-4,4 -4,-28.27 506.88,-28.27 506.88,4 -4,4"/>
+<!-- Module -->
+<g id="node1" class="node">
+<title>Module</title>
+<polygon fill="#337ab7" stroke="#337ab7" points="54,-24.27 0,-24.27 0,0 54,0 54,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="27" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Module</text>
+</g>
+<!-- Submodule -->
+<g id="node2" class="node">
+<title>Submodule</title>
+<polygon fill="#5bc0de" stroke="#5bc0de" points="144.13,-24.27 71.87,-24.27 71.87,0 144.13,0 144.13,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="108" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Submodule</text>
+</g>
+<!-- Subroutine -->
+<g id="node3" class="node">
+<title>Subroutine</title>
+<polygon fill="#d9534f" stroke="#d9534f" points="231.63,-24.27 162.37,-24.27 162.37,0 231.63,0 231.63,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="197" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Subroutine</text>
+</g>
+<!-- Function -->
+<g id="node4" class="node">
+<title>Function</title>
+<polygon fill="#d94e8f" stroke="#d94e8f" points="306.26,-24.27 249.74,-24.27 249.74,0 306.26,0 306.26,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="278" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Function</text>
+</g>
+<!-- Program -->
+<g id="node5" class="node">
+<title>Program</title>
+<polygon fill="#f0ad4e" stroke="#f0ad4e" points="381.26,-24.27 324.74,-24.27 324.74,0 381.26,0 381.26,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="353" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Program</text>
+</g>
+<!-- This Page&#39;s Entity -->
+<g id="node6" class="node">
+<title>This Page&#39;s Entity</title>
+<polygon fill="none" stroke="black" points="502.88,-24.27 399.12,-24.27 399.12,0 502.88,0 502.88,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="451" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50">This Page&#39;s Entity</text>
+</g>
+</g>
+</svg>
+
+<p>Solid arrows point from a submodule to the (sub)module which it is
+descended from. Dashed arrows point from a module or program unit to 
+modules which it uses.
+</p>
+ Where possible, edges connecting nodes are
+given different colours to make them easier to distinguish in
+large graphs.</div>
+            </div>
+          </div>
+        </div>
+            </li>
+        </ul>
+      </div>
+    </div>
+
+
+
+
+    <h3>Arguments</h3>
+    <em>None</em>
+    <br>
+    <br>
+    <div class="card">
+      <div class="card-header">
+  <h3 class="card-title">Calls</h3>
+      </div>
+      <div class="card-body">
+  <div class="depgraph"><?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
+ "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<!-- Generated by graphviz version 14.1.3 (0)
+ -->
+<!-- Title: proc~~statsdump~~CallsGraph Pages: 1 -->
+<svg id="procstatsdumpCallsGraph" width="488pt" height="452pt"
+ viewBox="0.00 0.00 488.00 452.00" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<g id="proc~~statsdump~~CallsGraph" class="graph" transform="scale(1 1) rotate(0) translate(4 448.27)">
+<title>proc~~statsdump~~CallsGraph</title>
+<polygon fill="white" stroke="none" points="-4,4 -4,-448.27 483.58,-448.27 483.58,4 -4,4"/>
+<!-- proc~statsdump -->
+<g id="proc~~statsdump~~CallsGraph_node1" class="node">
+<title>proc~statsdump</title>
+<polygon fill="none" stroke="black" points="67.02,-276.27 0,-276.27 0,-252 67.02,-252 67.02,-276.27"/>
+<text xml:space="preserve" text-anchor="middle" x="33.51" y="-260.53" font-family="Helvetica,sans-Serif" font-size="10.50">statsdump</text>
+</g>
+<!-- interface~writestat_nc -->
+<g id="proc~~statsdump~~CallsGraph_node2" class="node">
+<title>interface~writestat_nc</title>
+<g id="a_proc~~statsdump~~CallsGraph_node2"><a xlink:href="../interface/writestat_nc.html" xlink:title="writestat_nc">
+<polygon fill="#a7506f" stroke="#a7506f" points="182.41,-276.27 107.14,-276.27 107.14,-252 182.41,-252 182.41,-276.27"/>
+<text xml:space="preserve" text-anchor="middle" x="144.78" y="-260.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">writestat_nc</text>
+</a>
+</g>
+</g>
+<!-- proc~statsdump&#45;&gt;interface~writestat_nc -->
+<g id="proc~~statsdump~~CallsGraph_edge1" class="edge">
+<title>proc~statsdump&#45;&gt;interface~writestat_nc</title>
+<path fill="none" stroke="#ff0000" d="M67.29,-264.13C76.14,-264.13 85.91,-264.13 95.42,-264.13"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="95.29,-267.64 105.29,-264.14 95.29,-260.64 95.29,-267.64"/>
+</g>
+<!-- proc~tkestatsdump -->
+<g id="proc~~statsdump~~CallsGraph_node3" class="node">
+<title>proc~tkestatsdump</title>
+<g id="a_proc~~statsdump~~CallsGraph_node3"><a xlink:href="../proc/tkestatsdump.html" xlink:title="tkestatsdump">
+<polygon fill="#d9534f" stroke="#d9534f" points="186.54,-66.27 103.02,-66.27 103.02,-42 186.54,-42 186.54,-66.27"/>
+<text xml:space="preserve" text-anchor="middle" x="144.78" y="-50.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">tkestatsdump</text>
+</a>
+</g>
+</g>
+<!-- proc~statsdump&#45;&gt;proc~tkestatsdump -->
+<g id="proc~~statsdump~~CallsGraph_edge2" class="edge">
+<title>proc~statsdump&#45;&gt;proc~tkestatsdump</title>
+<path fill="none" stroke="#ff0000" d="M41.02,-251.63C58.93,-217.19 109.17,-120.65 132.1,-76.58"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="135.1,-78.41 136.61,-67.92 128.89,-75.18 135.1,-78.41"/>
+</g>
+<!-- proc~writestat_1d_nc -->
+<g id="proc~~statsdump~~CallsGraph_node4" class="node">
+<title>proc~writestat_1d_nc</title>
+<g id="a_proc~~statsdump~~CallsGraph_node4"><a xlink:href="../proc/writestat_1d_nc.html" xlink:title="writestat_1D_nc">
+<polygon fill="#d9534f" stroke="#d9534f" points="336.06,-444.27 240.54,-444.27 240.54,-420 336.06,-420 336.06,-444.27"/>
+<text xml:space="preserve" text-anchor="middle" x="288.3" y="-428.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">writestat_1D_nc</text>
+</a>
+</g>
+</g>
+<!-- proc~statsdump&#45;&gt;proc~writestat_1d_nc -->
+<g id="proc~~statsdump~~CallsGraph_edge3" class="edge">
+<title>proc~statsdump&#45;&gt;proc~writestat_1d_nc</title>
+<path fill="none" stroke="#ff0000" d="M47.06,-276.58C75.76,-304.4 149.36,-372.24 222.54,-411.13 225.24,-412.57 228.05,-413.93 230.92,-415.21"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="229.54,-418.43 240.12,-418.96 232.18,-411.94 229.54,-418.43"/>
+</g>
+<!-- interface~writestat_nc&#45;&gt;proc~writestat_1d_nc -->
+<g id="proc~~statsdump~~CallsGraph_edge4" class="edge">
+<title>interface~writestat_nc&#45;&gt;proc~writestat_1d_nc</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M151.66,-276.68C167.58,-310.47 211.1,-401.47 222.54,-411.13 224.87,-413.11 227.39,-414.89 230.04,-416.51"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="228.23,-419.52 238.72,-420.98 231.44,-413.29 228.23,-419.52"/>
+</g>
+<!-- proc~writestat_1d_var_nc -->
+<g id="proc~~statsdump~~CallsGraph_node10" class="node">
+<title>proc~writestat_1d_var_nc</title>
+<g id="a_proc~~statsdump~~CallsGraph_node10"><a xlink:href="../proc/writestat_1d_var_nc.html" xlink:title="writestat_1D_var_nc">
+<polygon fill="#d9534f" stroke="#d9534f" points="347.31,-192.27 229.29,-192.27 229.29,-168 347.31,-168 347.31,-192.27"/>
+<text xml:space="preserve" text-anchor="middle" x="288.3" y="-176.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">writestat_1D_var_nc</text>
+</a>
+</g>
+</g>
+<!-- interface~writestat_nc&#45;&gt;proc~writestat_1d_var_nc -->
+<g id="proc~~statsdump~~CallsGraph_edge5" class="edge">
+<title>interface~writestat_nc&#45;&gt;proc~writestat_1d_var_nc</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M158,-251.59C172.31,-237.55 197.28,-214.95 222.54,-201.13 225.17,-199.7 227.92,-198.34 230.73,-197.05"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="231.82,-200.39 239.72,-193.33 229.14,-193.92 231.82,-200.39"/>
+</g>
+<!-- proc~writestat_2d_nc -->
+<g id="proc~~statsdump~~CallsGraph_node11" class="node">
+<title>proc~writestat_2d_nc</title>
+<g id="a_proc~~statsdump~~CallsGraph_node11"><a xlink:href="../proc/writestat_2d_nc.html" xlink:title="writestat_2D_nc">
+<polygon fill="#d9534f" stroke="#d9534f" points="336.06,-150.27 240.54,-150.27 240.54,-126 336.06,-126 336.06,-150.27"/>
+<text xml:space="preserve" text-anchor="middle" x="288.3" y="-134.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">writestat_2D_nc</text>
+</a>
+</g>
+</g>
+<!-- interface~writestat_nc&#45;&gt;proc~writestat_2d_nc -->
+<g id="proc~~statsdump~~CallsGraph_edge6" class="edge">
+<title>interface~writestat_nc&#45;&gt;proc~writestat_2d_nc</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M151.53,-251.81C162.34,-229.94 187.79,-184.29 222.54,-159.13 224.89,-157.44 227.38,-155.87 229.96,-154.43"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="231.44,-157.6 238.93,-150.11 228.41,-151.29 231.44,-157.6"/>
+</g>
+<!-- proc~writestat_2d_var_nc -->
+<g id="proc~~statsdump~~CallsGraph_node12" class="node">
+<title>proc~writestat_2d_var_nc</title>
+<g id="a_proc~~statsdump~~CallsGraph_node12"><a xlink:href="../proc/writestat_2d_var_nc.html" xlink:title="writestat_2D_var_nc">
+<polygon fill="#d9534f" stroke="#d9534f" points="347.31,-108.27 229.29,-108.27 229.29,-84 347.31,-84 347.31,-108.27"/>
+<text xml:space="preserve" text-anchor="middle" x="288.3" y="-92.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">writestat_2D_var_nc</text>
+</a>
+</g>
+</g>
+<!-- interface~writestat_nc&#45;&gt;proc~writestat_2d_var_nc -->
+<g id="proc~~statsdump~~CallsGraph_edge7" class="edge">
+<title>interface~writestat_nc&#45;&gt;proc~writestat_2d_var_nc</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M148.77,-251.87C156.23,-223.8 178.34,-154.48 222.54,-117.13 223.63,-116.21 224.77,-115.33 225.93,-114.49"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="227.41,-117.68 234.17,-109.52 223.8,-111.68 227.41,-117.68"/>
+</g>
+<!-- proc~writestat_3d_nc -->
+<g id="proc~~statsdump~~CallsGraph_node13" class="node">
+<title>proc~writestat_3d_nc</title>
+<g id="a_proc~~statsdump~~CallsGraph_node13"><a xlink:href="../proc/writestat_3d_nc.html" xlink:title="writestat_3D_nc">
+<polygon fill="#d9534f" stroke="#d9534f" points="336.06,-402.27 240.54,-402.27 240.54,-378 336.06,-378 336.06,-402.27"/>
+<text xml:space="preserve" text-anchor="middle" x="288.3" y="-386.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">writestat_3D_nc</text>
+</a>
+</g>
+</g>
+<!-- interface~writestat_nc&#45;&gt;proc~writestat_3d_nc -->
+<g id="proc~~statsdump~~CallsGraph_edge8" class="edge">
+<title>interface~writestat_nc&#45;&gt;proc~writestat_3d_nc</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M151.53,-276.46C162.34,-298.33 187.79,-343.98 222.54,-369.13 224.89,-370.83 227.38,-372.4 229.96,-373.84"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="228.41,-376.98 238.93,-378.16 231.44,-370.67 228.41,-376.98"/>
+</g>
+<!-- proc~writestat_3d_short_nc -->
+<g id="proc~~statsdump~~CallsGraph_node14" class="node">
+<title>proc~writestat_3d_short_nc</title>
+<g id="a_proc~~statsdump~~CallsGraph_node14"><a xlink:href="../proc/writestat_3d_short_nc.html" xlink:title="writestat_3D_short_nc">
+<polygon fill="#d9534f" stroke="#d9534f" points="352.18,-360.27 224.41,-360.27 224.41,-336 352.18,-336 352.18,-360.27"/>
+<text xml:space="preserve" text-anchor="middle" x="288.3" y="-344.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">writestat_3D_short_nc</text>
+</a>
+</g>
+</g>
+<!-- interface~writestat_nc&#45;&gt;proc~writestat_3d_short_nc -->
+<g id="proc~~statsdump~~CallsGraph_edge9" class="edge">
+<title>interface~writestat_nc&#45;&gt;proc~writestat_3d_short_nc</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M158,-276.68C172.31,-290.72 197.28,-313.32 222.54,-327.13 225.17,-328.57 227.92,-329.93 230.73,-331.22"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="229.14,-334.35 239.72,-334.94 231.82,-327.88 229.14,-334.35"/>
+</g>
+<!-- proc~writestat_3d_var_nc -->
+<g id="proc~~statsdump~~CallsGraph_node15" class="node">
+<title>proc~writestat_3d_var_nc</title>
+<g id="a_proc~~statsdump~~CallsGraph_node15"><a xlink:href="../proc/writestat_3d_var_nc.html" xlink:title="writestat_3D_var_nc">
+<polygon fill="#d9534f" stroke="#d9534f" points="347.31,-318.27 229.29,-318.27 229.29,-294 347.31,-294 347.31,-318.27"/>
+<text xml:space="preserve" text-anchor="middle" x="288.3" y="-302.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">writestat_3D_var_nc</text>
+</a>
+</g>
+</g>
+<!-- interface~writestat_nc&#45;&gt;proc~writestat_3d_var_nc -->
+<g id="proc~~statsdump~~CallsGraph_edge10" class="edge">
+<title>interface~writestat_nc&#45;&gt;proc~writestat_3d_var_nc</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M182.59,-275.06C198.25,-279.71 216.8,-285.21 233.92,-290.29"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="232.88,-293.63 243.46,-293.12 234.87,-286.92 232.88,-293.63"/>
+</g>
+<!-- proc~writestat_time_nc -->
+<g id="proc~~statsdump~~CallsGraph_node16" class="node">
+<title>proc~writestat_time_nc</title>
+<g id="a_proc~~statsdump~~CallsGraph_node16"><a xlink:href="../proc/writestat_time_nc.html" xlink:title="writestat_time_nc">
+<polygon fill="#d9534f" stroke="#d9534f" points="340.56,-276.27 236.04,-276.27 236.04,-252 340.56,-252 340.56,-276.27"/>
+<text xml:space="preserve" text-anchor="middle" x="288.3" y="-260.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">writestat_time_nc</text>
+</a>
+</g>
+</g>
+<!-- interface~writestat_nc&#45;&gt;proc~writestat_time_nc -->
+<g id="proc~~statsdump~~CallsGraph_edge11" class="edge">
+<title>interface~writestat_nc&#45;&gt;proc~writestat_time_nc</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M182.59,-264.13C195.39,-264.13 210.12,-264.13 224.43,-264.13"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="224.24,-267.64 234.24,-264.14 224.24,-260.64 224.24,-267.64"/>
+</g>
+<!-- proc~writestat_time_new_nc -->
+<g id="proc~~statsdump~~CallsGraph_node17" class="node">
+<title>proc~writestat_time_new_nc</title>
+<g id="a_proc~~statsdump~~CallsGraph_node17"><a xlink:href="../proc/writestat_time_new_nc.html" xlink:title="writestat_time_new_nc">
+<polygon fill="#d9534f" stroke="#d9534f" points="354.06,-234.27 222.54,-234.27 222.54,-210 354.06,-210 354.06,-234.27"/>
+<text xml:space="preserve" text-anchor="middle" x="288.3" y="-218.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">writestat_time_new_nc</text>
+</a>
+</g>
+</g>
+<!-- interface~writestat_nc&#45;&gt;proc~writestat_time_new_nc -->
+<g id="proc~~statsdump~~CallsGraph_edge12" class="edge">
+<title>interface~writestat_nc&#45;&gt;proc~writestat_time_new_nc</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M182.59,-253.21C198.25,-248.56 216.8,-243.06 233.92,-237.98"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="234.87,-241.35 243.46,-235.15 232.88,-234.64 234.87,-241.35"/>
+</g>
+<!-- exchange_halo_z -->
+<g id="proc~~statsdump~~CallsGraph_node5" class="node">
+<title>exchange_halo_z</title>
+<polygon fill="#777777" stroke="#777777" points="339.43,-24.27 237.16,-24.27 237.16,0 339.43,0 339.43,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="288.3" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">exchange_halo_z</text>
+</g>
+<!-- proc~tkestatsdump&#45;&gt;exchange_halo_z -->
+<g id="proc~~statsdump~~CallsGraph_edge13" class="edge">
+<title>proc~tkestatsdump&#45;&gt;exchange_halo_z</title>
+<path fill="none" stroke="#00ff00" d="M186.71,-41.99C201.57,-37.58 218.58,-32.53 234.32,-27.86"/>
+<polygon fill="#00ff00" stroke="#00ff00" points="234.94,-31.32 243.53,-25.12 232.95,-24.61 234.94,-31.32"/>
+</g>
+<!-- proc~avexy_ibm -->
+<g id="proc~~statsdump~~CallsGraph_node9" class="node">
+<title>proc~avexy_ibm</title>
+<g id="a_proc~~statsdump~~CallsGraph_node9"><a xlink:href="../proc/avexy_ibm.html" xlink:title="avexy_ibm">
+<polygon fill="#d9534f" stroke="#d9534f" points="322.18,-66.27 254.41,-66.27 254.41,-42 322.18,-42 322.18,-66.27"/>
+<text xml:space="preserve" text-anchor="middle" x="288.3" y="-50.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">avexy_ibm</text>
+</a>
+</g>
+</g>
+<!-- proc~tkestatsdump&#45;&gt;proc~avexy_ibm -->
+<g id="proc~~statsdump~~CallsGraph_edge14" class="edge">
+<title>proc~tkestatsdump&#45;&gt;proc~avexy_ibm</title>
+<path fill="none" stroke="#00ff00" d="M186.71,-54.13C204.26,-54.13 224.8,-54.13 242.73,-54.13"/>
+<polygon fill="#00ff00" stroke="#00ff00" points="242.56,-57.64 252.56,-54.14 242.56,-50.64 242.56,-57.64"/>
+</g>
+<!-- nf90_inq_varid -->
+<g id="proc~~statsdump~~CallsGraph_node6" class="node">
+<title>nf90_inq_varid</title>
+<polygon fill="#777777" stroke="#777777" points="479.58,-318.27 390.06,-318.27 390.06,-294 479.58,-294 479.58,-318.27"/>
+<text xml:space="preserve" text-anchor="middle" x="434.82" y="-302.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">nf90_inq_varid</text>
+</g>
+<!-- proc~writestat_1d_nc&#45;&gt;nf90_inq_varid -->
+<g id="proc~~statsdump~~CallsGraph_edge15" class="edge">
+<title>proc~writestat_1d_nc&#45;&gt;nf90_inq_varid</title>
+<path fill="none" stroke="#0000ff" d="M336.24,-420.73C342.53,-418.13 348.66,-414.97 354.06,-411.13 384.82,-389.3 409.02,-352.08 422.37,-328.32"/>
+<polygon fill="#0000ff" stroke="#0000ff" points="425.31,-330.24 427,-319.78 419.15,-326.9 425.31,-330.24"/>
+</g>
+<!-- nf90_put_var -->
+<g id="proc~~statsdump~~CallsGraph_node7" class="node">
+<title>nf90_put_var</title>
+<polygon fill="#777777" stroke="#777777" points="475.08,-276.27 394.56,-276.27 394.56,-252 475.08,-252 475.08,-276.27"/>
+<text xml:space="preserve" text-anchor="middle" x="434.82" y="-260.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">nf90_put_var</text>
+</g>
+<!-- proc~writestat_1d_nc&#45;&gt;nf90_put_var -->
+<g id="proc~~statsdump~~CallsGraph_edge16" class="edge">
+<title>proc~writestat_1d_nc&#45;&gt;nf90_put_var</title>
+<path fill="none" stroke="#0000ff" d="M336.39,-423.03C342.96,-420.1 349.13,-416.24 354.06,-411.13 394.51,-369.23 352.5,-329.65 390.06,-285.13 390.5,-284.61 390.96,-284.1 391.43,-283.6"/>
+<polygon fill="#0000ff" stroke="#0000ff" points="393.42,-286.5 398.95,-277.46 388.99,-281.07 393.42,-286.5"/>
+</g>
+<!-- nf90_sync -->
+<g id="proc~~statsdump~~CallsGraph_node8" class="node">
+<title>nf90_sync</title>
+<polygon fill="#777777" stroke="#777777" points="467.2,-234.27 402.43,-234.27 402.43,-210 467.2,-210 467.2,-234.27"/>
+<text xml:space="preserve" text-anchor="middle" x="434.82" y="-218.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">nf90_sync</text>
+</g>
+<!-- proc~writestat_1d_nc&#45;&gt;nf90_sync -->
+<g id="proc~~statsdump~~CallsGraph_edge17" class="edge">
+<title>proc~writestat_1d_nc&#45;&gt;nf90_sync</title>
+<path fill="none" stroke="#0000ff" d="M336.37,-423.46C343.02,-420.48 349.23,-416.49 354.06,-411.13 405.22,-354.44 342.81,-303.12 390.06,-243.13 390.97,-241.98 391.96,-240.89 393.01,-239.85"/>
+<polygon fill="#0000ff" stroke="#0000ff" points="395.03,-242.71 400.88,-233.88 390.8,-237.13 395.03,-242.71"/>
+</g>
+<!-- mpi_allreduce -->
+<g id="proc~~statsdump~~CallsGraph_node18" class="node">
+<title>mpi_allreduce</title>
+<polygon fill="#777777" stroke="#777777" points="478.08,-66.27 391.56,-66.27 391.56,-42 478.08,-42 478.08,-66.27"/>
+<text xml:space="preserve" text-anchor="middle" x="434.82" y="-50.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">mpi_allreduce</text>
+</g>
+<!-- proc~avexy_ibm&#45;&gt;mpi_allreduce -->
+<g id="proc~~statsdump~~CallsGraph_edge18" class="edge">
+<title>proc~avexy_ibm&#45;&gt;mpi_allreduce</title>
+<path fill="none" stroke="#27ff00" d="M322.46,-54.13C339.44,-54.13 360.56,-54.13 379.82,-54.13"/>
+<polygon fill="#27ff00" stroke="#27ff00" points="379.69,-57.64 389.69,-54.14 379.69,-50.64 379.69,-57.64"/>
+</g>
+<!-- proc~writestat_1d_var_nc&#45;&gt;nf90_inq_varid -->
+<g id="proc~~statsdump~~CallsGraph_edge19" class="edge">
+<title>proc~writestat_1d_var_nc&#45;&gt;nf90_inq_varid</title>
+<path fill="none" stroke="#00ff4e" d="M341.72,-192.61C346.19,-194.98 350.39,-197.79 354.06,-201.13 384.06,-228.52 361.96,-255.81 390.06,-285.13 390.65,-285.75 391.26,-286.35 391.89,-286.94"/>
+<polygon fill="#00ff4e" stroke="#00ff4e" points="389.63,-289.62 399.75,-292.78 393.81,-284 389.63,-289.62"/>
+</g>
+<!-- proc~writestat_1d_var_nc&#45;&gt;nf90_put_var -->
+<g id="proc~~statsdump~~CallsGraph_edge20" class="edge">
+<title>proc~writestat_1d_var_nc&#45;&gt;nf90_put_var</title>
+<path fill="none" stroke="#00ff4e" d="M338.06,-192.68C343.68,-195.06 349.14,-197.86 354.06,-201.13 374.52,-214.77 370.56,-228.16 390.06,-243.13 391.35,-244.13 392.7,-245.09 394.09,-246.03"/>
+<polygon fill="#00ff4e" stroke="#00ff4e" points="391.97,-248.84 402.36,-250.94 395.55,-242.82 391.97,-248.84"/>
+</g>
+<!-- proc~writestat_1d_var_nc&#45;&gt;nf90_sync -->
+<g id="proc~~statsdump~~CallsGraph_edge21" class="edge">
+<title>proc~writestat_1d_var_nc&#45;&gt;nf90_sync</title>
+<path fill="none" stroke="#00ff4e" d="M332.66,-192.74C351.11,-198.1 372.58,-204.34 390.97,-209.68"/>
+<polygon fill="#00ff4e" stroke="#00ff4e" points="389.94,-213.03 400.52,-212.46 391.9,-206.31 389.94,-213.03"/>
+</g>
+<!-- proc~writestat_2d_nc&#45;&gt;nf90_inq_varid -->
+<g id="proc~~statsdump~~CallsGraph_edge22" class="edge">
+<title>proc~writestat_2d_nc&#45;&gt;nf90_inq_varid</title>
+<path fill="none" stroke="#00ffc4" d="M336.39,-147.24C342.96,-150.17 349.13,-154.03 354.06,-159.13 394.51,-201.04 352.5,-240.62 390.06,-285.13 390.5,-285.66 390.96,-286.17 391.43,-286.67"/>
+<polygon fill="#00ffc4" stroke="#00ffc4" points="388.99,-289.2 398.95,-292.81 393.42,-283.77 388.99,-289.2"/>
+</g>
+<!-- proc~writestat_2d_nc&#45;&gt;nf90_put_var -->
+<g id="proc~~statsdump~~CallsGraph_edge23" class="edge">
+<title>proc~writestat_2d_nc&#45;&gt;nf90_put_var</title>
+<path fill="none" stroke="#00ffc4" d="M336.51,-148.1C342.9,-150.91 349,-154.51 354.06,-159.13 384.06,-186.52 361.96,-213.81 390.06,-243.13 390.65,-243.75 391.26,-244.35 391.89,-244.94"/>
+<polygon fill="#00ffc4" stroke="#00ffc4" points="389.63,-247.62 399.75,-250.78 393.81,-242 389.63,-247.62"/>
+</g>
+<!-- proc~writestat_2d_nc&#45;&gt;nf90_sync -->
+<g id="proc~~statsdump~~CallsGraph_edge24" class="edge">
+<title>proc~writestat_2d_nc&#45;&gt;nf90_sync</title>
+<path fill="none" stroke="#00ffc4" d="M335.09,-150.72C341.61,-153.15 348.12,-155.96 354.06,-159.13 375.78,-170.75 397.53,-188.43 412.82,-202.11"/>
+<polygon fill="#00ffc4" stroke="#00ffc4" points="410.17,-204.43 419.91,-208.6 414.9,-199.27 410.17,-204.43"/>
+</g>
+<!-- proc~writestat_2d_var_nc&#45;&gt;nf90_inq_varid -->
+<g id="proc~~statsdump~~CallsGraph_edge25" class="edge">
+<title>proc~writestat_2d_var_nc&#45;&gt;nf90_inq_varid</title>
+<path fill="none" stroke="#00c4ff" d="M343.66,-108.63C347.51,-110.99 351.05,-113.8 354.06,-117.13 405.22,-173.83 342.81,-225.15 390.06,-285.13 390.39,-285.55 390.72,-285.95 391.07,-286.35"/>
+<polygon fill="#00c4ff" stroke="#00c4ff" points="388.49,-288.75 398.34,-292.66 393.08,-283.46 388.49,-288.75"/>
+</g>
+<!-- proc~writestat_2d_var_nc&#45;&gt;nf90_put_var -->
+<g id="proc~~statsdump~~CallsGraph_edge26" class="edge">
+<title>proc~writestat_2d_var_nc&#45;&gt;nf90_put_var</title>
+<path fill="none" stroke="#00c4ff" d="M343.11,-108.67C347.13,-111.03 350.86,-113.82 354.06,-117.13 394.51,-159.04 352.5,-198.62 390.06,-243.13 390.5,-243.66 390.96,-244.17 391.43,-244.67"/>
+<polygon fill="#00c4ff" stroke="#00c4ff" points="388.99,-247.2 398.95,-250.81 393.42,-241.77 388.99,-247.2"/>
+</g>
+<!-- proc~writestat_2d_var_nc&#45;&gt;nf90_sync -->
+<g id="proc~~statsdump~~CallsGraph_edge27" class="edge">
+<title>proc~writestat_2d_var_nc&#45;&gt;nf90_sync</title>
+<path fill="none" stroke="#00c4ff" d="M338.92,-108.69C344.27,-111.06 349.43,-113.85 354.06,-117.13 384.82,-138.97 409.02,-176.19 422.37,-199.95"/>
+<polygon fill="#00c4ff" stroke="#00c4ff" points="419.15,-201.37 427,-208.49 425.31,-198.03 419.15,-201.37"/>
+</g>
+<!-- proc~writestat_3d_nc&#45;&gt;nf90_inq_varid -->
+<g id="proc~~statsdump~~CallsGraph_edge28" class="edge">
+<title>proc~writestat_3d_nc&#45;&gt;nf90_inq_varid</title>
+<path fill="none" stroke="#004eff" d="M335.09,-377.55C341.61,-375.12 348.12,-372.31 354.06,-369.13 375.78,-357.52 397.53,-339.84 412.82,-326.16"/>
+<polygon fill="#004eff" stroke="#004eff" points="414.9,-329 419.91,-319.67 410.17,-323.84 414.9,-329"/>
+</g>
+<!-- proc~writestat_3d_nc&#45;&gt;nf90_put_var -->
+<g id="proc~~statsdump~~CallsGraph_edge29" class="edge">
+<title>proc~writestat_3d_nc&#45;&gt;nf90_put_var</title>
+<path fill="none" stroke="#004eff" d="M336.51,-380.17C342.9,-377.36 349,-373.76 354.06,-369.13 384.06,-341.75 361.96,-314.46 390.06,-285.13 390.65,-284.52 391.26,-283.92 391.89,-283.33"/>
+<polygon fill="#004eff" stroke="#004eff" points="393.81,-286.27 399.75,-277.49 389.63,-280.65 393.81,-286.27"/>
+</g>
+<!-- proc~writestat_3d_nc&#45;&gt;nf90_sync -->
+<g id="proc~~statsdump~~CallsGraph_edge30" class="edge">
+<title>proc~writestat_3d_nc&#45;&gt;nf90_sync</title>
+<path fill="none" stroke="#004eff" d="M336.39,-381.03C342.96,-378.1 349.13,-374.24 354.06,-369.13 394.51,-327.23 352.5,-287.65 390.06,-243.13 391.01,-242.01 392.03,-240.94 393.11,-239.93"/>
+<polygon fill="#004eff" stroke="#004eff" points="395.12,-242.8 401.1,-234.05 390.97,-237.16 395.12,-242.8"/>
+</g>
+<!-- proc~writestat_3d_short_nc&#45;&gt;nf90_inq_varid -->
+<g id="proc~~statsdump~~CallsGraph_edge31" class="edge">
+<title>proc~writestat_3d_short_nc&#45;&gt;nf90_inq_varid</title>
+<path fill="none" stroke="#2700ff" d="M332.66,-335.53C347.38,-331.26 364.01,-326.42 379.48,-321.93"/>
+<polygon fill="#2700ff" stroke="#2700ff" points="380.41,-325.3 389.04,-319.15 378.46,-318.58 380.41,-325.3"/>
+</g>
+<!-- proc~writestat_3d_short_nc&#45;&gt;nf90_put_var -->
+<g id="proc~~statsdump~~CallsGraph_edge32" class="edge">
+<title>proc~writestat_3d_short_nc&#45;&gt;nf90_put_var</title>
+<path fill="none" stroke="#2700ff" d="M338.06,-335.59C343.68,-333.21 349.14,-330.41 354.06,-327.13 374.52,-313.5 370.56,-300.11 390.06,-285.13 391.35,-284.14 392.7,-283.18 394.09,-282.24"/>
+<polygon fill="#2700ff" stroke="#2700ff" points="395.55,-285.45 402.36,-277.33 391.97,-279.43 395.55,-285.45"/>
+</g>
+<!-- proc~writestat_3d_short_nc&#45;&gt;nf90_sync -->
+<g id="proc~~statsdump~~CallsGraph_edge33" class="edge">
+<title>proc~writestat_3d_short_nc&#45;&gt;nf90_sync</title>
+<path fill="none" stroke="#2700ff" d="M341.72,-335.66C346.19,-333.29 350.39,-330.48 354.06,-327.13 384.06,-299.75 361.96,-272.46 390.06,-243.13 391.04,-242.11 392.09,-241.13 393.18,-240.19"/>
+<polygon fill="#2700ff" stroke="#2700ff" points="394.88,-243.27 401.06,-234.66 390.86,-237.54 394.88,-243.27"/>
+</g>
+<!-- proc~writestat_3d_var_nc&#45;&gt;nf90_inq_varid -->
+<g id="proc~~statsdump~~CallsGraph_edge34" class="edge">
+<title>proc~writestat_3d_var_nc&#45;&gt;nf90_inq_varid</title>
+<path fill="none" stroke="#9c00ff" d="M347.67,-306.13C357.91,-306.13 368.54,-306.13 378.7,-306.13"/>
+<polygon fill="#9c00ff" stroke="#9c00ff" points="378.4,-309.64 388.4,-306.14 378.4,-302.64 378.4,-309.64"/>
+</g>
+<!-- proc~writestat_3d_var_nc&#45;&gt;nf90_put_var -->
+<g id="proc~~statsdump~~CallsGraph_edge35" class="edge">
+<title>proc~writestat_3d_var_nc&#45;&gt;nf90_put_var</title>
+<path fill="none" stroke="#9c00ff" d="M332.66,-293.53C348.76,-288.86 367.14,-283.51 383.79,-278.68"/>
+<polygon fill="#9c00ff" stroke="#9c00ff" points="384.35,-282.16 392.98,-276 382.4,-275.43 384.35,-282.16"/>
+</g>
+<!-- proc~writestat_3d_var_nc&#45;&gt;nf90_sync -->
+<g id="proc~~statsdump~~CallsGraph_edge36" class="edge">
+<title>proc~writestat_3d_var_nc&#45;&gt;nf90_sync</title>
+<path fill="none" stroke="#9c00ff" d="M338.06,-293.59C343.68,-291.21 349.14,-288.41 354.06,-285.13 374.52,-271.5 370.56,-258.11 390.06,-243.13 391.35,-242.14 392.7,-241.18 394.09,-240.24"/>
+<polygon fill="#9c00ff" stroke="#9c00ff" points="395.55,-243.45 402.36,-235.33 391.97,-237.43 395.55,-243.45"/>
+</g>
+<!-- proc~writestat_time_nc&#45;&gt;nf90_inq_varid -->
+<g id="proc~~statsdump~~CallsGraph_edge37" class="edge">
+<title>proc~writestat_time_nc&#45;&gt;nf90_inq_varid</title>
+<path fill="none" stroke="#ff00eb" d="M332.66,-276.74C347.38,-281.01 364.01,-285.85 379.48,-290.34"/>
+<polygon fill="#ff00eb" stroke="#ff00eb" points="378.46,-293.69 389.04,-293.12 380.41,-286.97 378.46,-293.69"/>
+</g>
+<!-- proc~writestat_time_nc&#45;&gt;nf90_put_var -->
+<g id="proc~~statsdump~~CallsGraph_edge38" class="edge">
+<title>proc~writestat_time_nc&#45;&gt;nf90_put_var</title>
+<path fill="none" stroke="#ff00eb" d="M340.66,-264.13C354.48,-264.13 369.41,-264.13 383.19,-264.13"/>
+<polygon fill="#ff00eb" stroke="#ff00eb" points="382.93,-267.64 392.93,-264.14 382.93,-260.64 382.93,-267.64"/>
+</g>
+<!-- proc~writestat_time_nc&#45;&gt;nf90_sync -->
+<g id="proc~~statsdump~~CallsGraph_edge39" class="edge">
+<title>proc~writestat_time_nc&#45;&gt;nf90_sync</title>
+<path fill="none" stroke="#ff00eb" d="M332.66,-251.53C351.11,-246.17 372.58,-239.93 390.97,-234.59"/>
+<polygon fill="#ff00eb" stroke="#ff00eb" points="391.9,-237.96 400.52,-231.81 389.94,-231.24 391.9,-237.96"/>
+</g>
+<!-- proc~writestat_time_new_nc&#45;&gt;nf90_inq_varid -->
+<g id="proc~~statsdump~~CallsGraph_edge40" class="edge">
+<title>proc~writestat_time_new_nc&#45;&gt;nf90_inq_varid</title>
+<path fill="none" stroke="#ff0075" d="M338.06,-234.68C343.68,-237.06 349.14,-239.86 354.06,-243.13 374.52,-256.77 370.56,-270.16 390.06,-285.13 391.35,-286.13 392.7,-287.09 394.09,-288.03"/>
+<polygon fill="#ff0075" stroke="#ff0075" points="391.97,-290.84 402.36,-292.94 395.55,-284.82 391.97,-290.84"/>
+</g>
+<!-- proc~writestat_time_new_nc&#45;&gt;nf90_put_var -->
+<g id="proc~~statsdump~~CallsGraph_edge41" class="edge">
+<title>proc~writestat_time_new_nc&#45;&gt;nf90_put_var</title>
+<path fill="none" stroke="#ff0075" d="M332.66,-234.74C348.76,-239.41 367.14,-244.76 383.79,-249.59"/>
+<polygon fill="#ff0075" stroke="#ff0075" points="382.4,-252.84 392.98,-252.27 384.35,-246.11 382.4,-252.84"/>
+</g>
+<!-- proc~writestat_time_new_nc&#45;&gt;nf90_sync -->
+<g id="proc~~statsdump~~CallsGraph_edge42" class="edge">
+<title>proc~writestat_time_new_nc&#45;&gt;nf90_sync</title>
+<path fill="none" stroke="#ff0075" d="M354.37,-222.13C366.72,-222.13 379.34,-222.13 390.79,-222.13"/>
+<polygon fill="#ff0075" stroke="#ff0075" points="390.72,-225.64 400.72,-222.14 390.72,-218.64 390.72,-225.64"/>
+</g>
+</g>
+</svg>
+</div>          <div>
+            <a type="button" class="graph-help" data-bs-toggle="modal" href="#CallsGraph-help-text">Help</a>
+          </div>
+          <div class="modal fade" id="CallsGraph-help-text" tabindex="-1" role="dialog">
+            <div class="modal-dialog modal-lg" role="document">
+              <div class="modal-content">
+                <div class="modal-header">
+                  <h4 class="modal-title" id="-graph-help-label">Graph Key</h4>
+                  <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+<p>Nodes of different colours represent the following: </p>
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
+ "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<!-- Generated by graphviz version 14.1.3 (0)
+ -->
+<!-- Title: Graph Key Pages: 1 -->
+<svg width="641pt" height="28pt"
+ viewBox="0.00 0.00 641.00 28.00" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<g id="graph0" class="graph" transform="scale(0.873868 0.873868) rotate(0) translate(4 28.27)">
+<title>Graph Key</title>
+<polygon fill="white" stroke="none" points="-4,4 -4,-28.27 729.52,-28.27 729.52,4 -4,4"/>
+<!-- Subroutine -->
+<g id="node1" class="node">
+<title>Subroutine</title>
+<polygon fill="#d9534f" stroke="#d9534f" points="69.27,-24.27 0,-24.27 0,0 69.27,0 69.27,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="34.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Subroutine</text>
+</g>
+<!-- Function -->
+<g id="node2" class="node">
+<title>Function</title>
+<polygon fill="#d94e8f" stroke="#d94e8f" points="143.89,-24.27 87.38,-24.27 87.38,0 143.89,0 143.89,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="115.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Function</text>
+</g>
+<!-- Interface -->
+<g id="node3" class="node">
+<title>Interface</title>
+<polygon fill="#a7506f" stroke="#a7506f" points="221.39,-24.27 161.88,-24.27 161.88,0 221.39,0 221.39,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="191.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Interface</text>
+</g>
+<!-- Type Bound Procedure -->
+<g id="node4" class="node">
+<title>Type Bound Procedure</title>
+<polygon fill="#a7506f" stroke="#a7506f" points="368.27,-24.27 239,-24.27 239,0 368.27,0 368.27,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="303.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Type Bound Procedure</text>
+</g>
+<!-- Unknown Procedure Type -->
+<g id="node5" class="node">
+<title>Unknown Procedure Type</title>
+<polygon fill="#777777" stroke="#777777" points="529.39,-24.27 385.88,-24.27 385.88,0 529.39,0 529.39,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="457.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Unknown Procedure Type</text>
+</g>
+<!-- Program -->
+<g id="node6" class="node">
+<title>Program</title>
+<polygon fill="#f0ad4e" stroke="#f0ad4e" points="603.89,-24.27 547.38,-24.27 547.38,0 603.89,0 603.89,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="575.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Program</text>
+</g>
+<!-- This Page&#39;s Entity -->
+<g id="node7" class="node">
+<title>This Page&#39;s Entity</title>
+<polygon fill="none" stroke="black" points="725.52,-24.27 621.75,-24.27 621.75,0 725.52,0 725.52,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="673.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50">This Page&#39;s Entity</text>
+</g>
+</g>
+</svg>
+
+<p>Solid arrows point from a procedure to one which it calls. Dashed 
+arrows point from an interface to procedures which implement that interface.
+This could include the module procedures in a generic interface or the
+implementation in a submodule of an interface in a parent module.
+</p>
+ Where possible, edges connecting nodes are
+given different colours to make them easier to distinguish in
+large graphs.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-header">
+  <h3 class="card-title">Called by</h3>
+      </div>
+      <div class="card-body">
+  <div class="depgraph"><?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
+ "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<!-- Generated by graphviz version 14.1.3 (0)
+ -->
+<!-- Title: proc~~statsdump~~CalledByGraph Pages: 1 -->
+<svg id="procstatsdumpCalledByGraph" width="165pt" height="32pt"
+ viewBox="0.00 0.00 165.00 32.00" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<g id="proc~~statsdump~~CalledByGraph" class="graph" transform="scale(1 1) rotate(0) translate(4 28.27)">
+<title>proc~~statsdump~~CalledByGraph</title>
+<polygon fill="white" stroke="none" points="-4,4 -4,-28.27 161.02,-28.27 161.02,4 -4,4"/>
+<!-- proc~statsdump -->
+<g id="proc~~statsdump~~CalledByGraph_node1" class="node">
+<title>proc~statsdump</title>
+<polygon fill="none" stroke="black" points="157.02,-24.27 90,-24.27 90,0 157.02,0 157.02,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="123.51" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50">statsdump</text>
+</g>
+<!-- program~udales -->
+<g id="proc~~statsdump~~CalledByGraph_node2" class="node">
+<title>program~udales</title>
+<g id="a_proc~~statsdump~~CalledByGraph_node2"><a xlink:href="../program/udales.html" xlink:title="uDALES">
+<polygon fill="#f0ad4e" stroke="#f0ad4e" points="54,-24.27 0,-24.27 0,0 54,0 54,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="27" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">uDALES</text>
+</a>
+</g>
+</g>
+<!-- program~udales&#45;&gt;proc~statsdump -->
+<g id="proc~~statsdump~~CalledByGraph_edge1" class="edge">
+<title>program~udales&#45;&gt;proc~statsdump</title>
+<path fill="none" stroke="#ff0000" d="M54.33,-12.13C61.75,-12.13 70.04,-12.13 78.21,-12.13"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="78.07,-15.64 88.07,-12.14 78.07,-8.64 78.07,-15.64"/>
+</g>
+</g>
+</svg>
+</div>          <div>
+            <a type="button" class="graph-help" data-bs-toggle="modal" href="#CalledByGraph-help-text">Help</a>
+          </div>
+          <div class="modal fade" id="CalledByGraph-help-text" tabindex="-1" role="dialog">
+            <div class="modal-dialog modal-lg" role="document">
+              <div class="modal-content">
+                <div class="modal-header">
+                  <h4 class="modal-title" id="-graph-help-label">Graph Key</h4>
+                  <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+<p>Nodes of different colours represent the following: </p>
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
+ "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<!-- Generated by graphviz version 14.1.3 (0)
+ -->
+<!-- Title: Graph Key Pages: 1 -->
+<svg width="641pt" height="28pt"
+ viewBox="0.00 0.00 641.00 28.00" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<g id="graph0" class="graph" transform="scale(0.873868 0.873868) rotate(0) translate(4 28.27)">
+<title>Graph Key</title>
+<polygon fill="white" stroke="none" points="-4,4 -4,-28.27 729.52,-28.27 729.52,4 -4,4"/>
+<!-- Subroutine -->
+<g id="node1" class="node">
+<title>Subroutine</title>
+<polygon fill="#d9534f" stroke="#d9534f" points="69.27,-24.27 0,-24.27 0,0 69.27,0 69.27,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="34.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Subroutine</text>
+</g>
+<!-- Function -->
+<g id="node2" class="node">
+<title>Function</title>
+<polygon fill="#d94e8f" stroke="#d94e8f" points="143.89,-24.27 87.38,-24.27 87.38,0 143.89,0 143.89,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="115.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Function</text>
+</g>
+<!-- Interface -->
+<g id="node3" class="node">
+<title>Interface</title>
+<polygon fill="#a7506f" stroke="#a7506f" points="221.39,-24.27 161.88,-24.27 161.88,0 221.39,0 221.39,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="191.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Interface</text>
+</g>
+<!-- Type Bound Procedure -->
+<g id="node4" class="node">
+<title>Type Bound Procedure</title>
+<polygon fill="#a7506f" stroke="#a7506f" points="368.27,-24.27 239,-24.27 239,0 368.27,0 368.27,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="303.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Type Bound Procedure</text>
+</g>
+<!-- Unknown Procedure Type -->
+<g id="node5" class="node">
+<title>Unknown Procedure Type</title>
+<polygon fill="#777777" stroke="#777777" points="529.39,-24.27 385.88,-24.27 385.88,0 529.39,0 529.39,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="457.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Unknown Procedure Type</text>
+</g>
+<!-- Program -->
+<g id="node6" class="node">
+<title>Program</title>
+<polygon fill="#f0ad4e" stroke="#f0ad4e" points="603.89,-24.27 547.38,-24.27 547.38,0 603.89,0 603.89,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="575.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Program</text>
+</g>
+<!-- This Page&#39;s Entity -->
+<g id="node7" class="node">
+<title>This Page&#39;s Entity</title>
+<polygon fill="none" stroke="black" points="725.52,-24.27 621.75,-24.27 621.75,0 725.52,0 725.52,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="673.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50">This Page&#39;s Entity</text>
+</g>
+</g>
+</svg>
+
+<p>Solid arrows point from a procedure to one which it calls. Dashed 
+arrows point from an interface to procedures which implement that interface.
+This could include the module procedures in a generic interface or the
+implementation in a submodule of an interface in a parent module.
+</p>
+ Where possible, edges connecting nodes are
+given different colours to make them easier to distinguish in
+large graphs.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <br>
+
+
+    
+    
+
+    
+    
+
+
+
+    
+    <section>
+    <h2><span class="anchor" id="src"></span>Source Code</h2>
+    <div class="hl codehilite"><pre><span></span><span class="w">  </span><span class="k">subroutine </span><span class="n">statsdump</span>
+<span class="w">    </span><span class="k">use </span><span class="n">modfields</span><span class="p">,</span><span class="w">  </span><span class="k">only</span><span class="w"> </span><span class="p">:</span><span class="w"> </span><span class="n">um</span><span class="p">,</span><span class="n">vm</span><span class="p">,</span><span class="n">wm</span><span class="p">,</span><span class="n">qtm</span><span class="p">,</span><span class="n">thlm</span><span class="p">,</span><span class="n">pres0</span><span class="p">,</span><span class="n">ncstattke</span><span class="p">,</span><span class="n">ncstatmint</span><span class="p">,&amp;</span>
+<span class="w">                           </span><span class="n">t_t</span><span class="p">,</span><span class="n">t_v</span><span class="p">,</span><span class="n">t_p</span><span class="p">,</span><span class="n">t_sgs</span><span class="p">,</span><span class="n">d_sgs</span><span class="p">,</span><span class="n">p_b</span><span class="p">,</span><span class="n">p_t</span><span class="p">,</span><span class="n">adv</span><span class="p">,&amp;</span>
+<span class="w">                           </span><span class="n">umt</span><span class="p">,</span><span class="n">vmt</span><span class="p">,</span><span class="n">wmt</span><span class="p">,</span><span class="n">thlt</span><span class="p">,</span><span class="n">qtt</span><span class="p">,</span><span class="n">pt</span>
+<span class="w">    </span><span class="k">use </span><span class="n">modglobal</span><span class="p">,</span><span class="w">  </span><span class="k">only</span><span class="w"> </span><span class="p">:</span><span class="w"> </span><span class="n">ib</span><span class="p">,</span><span class="n">ie</span><span class="p">,</span><span class="n">jb</span><span class="p">,</span><span class="n">je</span><span class="p">,</span><span class="n">kb</span><span class="p">,</span><span class="n">ke</span><span class="p">,</span><span class="n">kh</span><span class="p">,</span><span class="n">imax</span><span class="p">,</span><span class="n">jmax</span><span class="p">,</span><span class="n">rk3step</span><span class="p">,&amp;</span>
+<span class="w">                           </span><span class="n">timee</span><span class="p">,</span><span class="n">tsample</span><span class="p">,</span><span class="n">tstatsdump</span><span class="p">,</span><span class="n">tstatstart</span><span class="p">,&amp;</span>
+<span class="w">                           </span><span class="n">ltempeq</span><span class="p">,</span><span class="n">lmoist</span>
+<span class="w">    </span><span class="k">use </span><span class="n">modstat_nc</span><span class="p">,</span><span class="w"> </span><span class="k">only</span><span class="w"> </span><span class="p">:</span><span class="w"> </span><span class="n">writestat_nc</span><span class="p">,</span><span class="n">writestat_1D_nc</span>
+<span class="w">    </span><span class="k">use </span><span class="n">modmpi</span><span class="p">,</span><span class="w">     </span><span class="k">only</span><span class="w"> </span><span class="p">:</span><span class="w"> </span><span class="n">myid</span>
+<span class="w">    </span><span class="k">implicit none</span>
+
+<span class="k">    </span><span class="kt">real</span><span class="p">,</span><span class="w"> </span><span class="k">allocatable</span><span class="w"> </span><span class="kd">::</span><span class="w"> </span><span class="n">varstke</span><span class="p">(:,:),</span><span class="w"> </span><span class="n">varsmint</span><span class="p">(:,:,:,:)</span>
+<span class="w">    </span><span class="kt">real</span><span class="w">              </span><span class="kd">::</span><span class="w"> </span><span class="n">tstatsdumppi</span>
+
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">timee</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="n">tstatstart</span><span class="p">)</span><span class="w"> </span><span class="k">return</span>
+
+<span class="k">    if</span><span class="w"> </span><span class="p">(.</span><span class="nb">not</span><span class="p">.(</span><span class="n">lmintdump</span><span class="w"> </span><span class="p">.</span><span class="nb">or</span><span class="p">.</span><span class="w"> </span><span class="n">ltkedump</span><span class="p">))</span><span class="w"> </span><span class="k">return</span>
+
+<span class="k">    if</span><span class="w"> </span><span class="p">(.</span><span class="nb">not</span><span class="p">.</span><span class="w"> </span><span class="n">rk3step</span><span class="o">==</span><span class="mi">3</span><span class="p">)</span><span class="w">  </span><span class="k">return</span>
+
+<span class="w">  </span><span class="c">! For one-timestep diagnostics with dump intervals no larger than dt,</span>
+<span class="w">  </span><span class="c">! treat the just-completed step as a valid first sample immediately</span>
+<span class="w">  </span><span class="c">! instead of waiting for a second call to statsdump.</span>
+<span class="w">  </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">tsamplep</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="mf">0.</span><span class="w"> </span><span class="p">.</span><span class="nb">and</span><span class="p">.</span><span class="w"> </span><span class="n">tsample</span><span class="w"> </span><span class="o">&lt;=</span><span class="w"> </span><span class="n">dt</span><span class="p">)</span><span class="w"> </span><span class="n">tsamplep</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">dt</span>
+<span class="w">  </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">tstatsdumpp</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="mf">0.</span><span class="w"> </span><span class="p">.</span><span class="nb">and</span><span class="p">.</span><span class="w"> </span><span class="n">tsample</span><span class="w"> </span><span class="o">&lt;=</span><span class="w"> </span><span class="n">dt</span><span class="p">)</span><span class="w"> </span><span class="n">tstatsdumpp</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">dt</span>
+
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">tsamplep</span><span class="w"> </span><span class="o">&gt;=</span><span class="w"> </span><span class="n">tsample</span><span class="p">)</span><span class="w"> </span><span class="k">then</span>
+
+<span class="k">      if</span><span class="w"> </span><span class="p">(</span><span class="n">lmintdump</span><span class="p">)</span><span class="w"> </span><span class="k">then</span>
+
+<span class="k">        </span><span class="n">tstatsdumppi</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">1.</span><span class="o">/</span><span class="n">tstatsdumpp</span>
+
+<span class="w">        </span><span class="c">!!&gt;&gt; CALCS FOR TIME DEPENDANT (AVERAGED) STATS</span>
+<span class="w">        </span><span class="c">! Average 3-D fields in time</span>
+<span class="w">        </span><span class="n">umt</span><span class="p">(</span><span class="n">ib</span><span class="p">:</span><span class="n">ie</span><span class="p">,</span><span class="n">jb</span><span class="p">:</span><span class="n">je</span><span class="p">,</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="o">+</span><span class="n">kh</span><span class="p">)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">(</span><span class="n">umt</span><span class="p">(</span><span class="n">ib</span><span class="p">:</span><span class="n">ie</span><span class="p">,</span><span class="n">jb</span><span class="p">:</span><span class="n">je</span><span class="p">,</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="o">+</span><span class="n">kh</span><span class="p">)</span><span class="o">*</span><span class="p">(</span><span class="n">tstatsdumpp</span><span class="o">-</span><span class="n">tsamplep</span><span class="p">)</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">um</span><span class="p">(</span><span class="n">ib</span><span class="p">:</span><span class="n">ie</span><span class="p">,</span><span class="n">jb</span><span class="p">:</span><span class="n">je</span><span class="p">,</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="o">+</span><span class="n">kh</span><span class="p">)</span><span class="o">*</span><span class="n">tsamplep</span><span class="p">)</span><span class="o">*</span><span class="n">tstatsdumppi</span>
+<span class="w">        </span><span class="n">vmt</span><span class="p">(</span><span class="n">ib</span><span class="p">:</span><span class="n">ie</span><span class="p">,</span><span class="n">jb</span><span class="p">:</span><span class="n">je</span><span class="p">,</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="o">+</span><span class="n">kh</span><span class="p">)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">(</span><span class="n">vmt</span><span class="p">(</span><span class="n">ib</span><span class="p">:</span><span class="n">ie</span><span class="p">,</span><span class="n">jb</span><span class="p">:</span><span class="n">je</span><span class="p">,</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="o">+</span><span class="n">kh</span><span class="p">)</span><span class="o">*</span><span class="p">(</span><span class="n">tstatsdumpp</span><span class="o">-</span><span class="n">tsamplep</span><span class="p">)</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">vm</span><span class="p">(</span><span class="n">ib</span><span class="p">:</span><span class="n">ie</span><span class="p">,</span><span class="n">jb</span><span class="p">:</span><span class="n">je</span><span class="p">,</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="o">+</span><span class="n">kh</span><span class="p">)</span><span class="o">*</span><span class="n">tsamplep</span><span class="p">)</span><span class="o">*</span><span class="n">tstatsdumppi</span>
+<span class="w">        </span><span class="n">wmt</span><span class="p">(</span><span class="n">ib</span><span class="p">:</span><span class="n">ie</span><span class="p">,</span><span class="n">jb</span><span class="p">:</span><span class="n">je</span><span class="p">,</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="o">+</span><span class="n">kh</span><span class="p">)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">(</span><span class="n">wmt</span><span class="p">(</span><span class="n">ib</span><span class="p">:</span><span class="n">ie</span><span class="p">,</span><span class="n">jb</span><span class="p">:</span><span class="n">je</span><span class="p">,</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="o">+</span><span class="n">kh</span><span class="p">)</span><span class="o">*</span><span class="p">(</span><span class="n">tstatsdumpp</span><span class="o">-</span><span class="n">tsamplep</span><span class="p">)</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">wm</span><span class="p">(</span><span class="n">ib</span><span class="p">:</span><span class="n">ie</span><span class="p">,</span><span class="n">jb</span><span class="p">:</span><span class="n">je</span><span class="p">,</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="o">+</span><span class="n">kh</span><span class="p">)</span><span class="o">*</span><span class="n">tsamplep</span><span class="p">)</span><span class="o">*</span><span class="n">tstatsdumppi</span>
+<span class="w">        </span><span class="n">pt</span><span class="p">(</span><span class="n">ib</span><span class="p">:</span><span class="n">ie</span><span class="p">,</span><span class="n">jb</span><span class="p">:</span><span class="n">je</span><span class="p">,</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="o">+</span><span class="n">kh</span><span class="p">)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">(</span><span class="n">pt</span><span class="p">(</span><span class="n">ib</span><span class="p">:</span><span class="n">ie</span><span class="p">,</span><span class="n">jb</span><span class="p">:</span><span class="n">je</span><span class="p">,</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="o">+</span><span class="n">kh</span><span class="p">)</span><span class="o">*</span><span class="p">(</span><span class="n">tstatsdumpp</span><span class="o">-</span><span class="n">tsamplep</span><span class="p">)</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">pres0</span><span class="p">(</span><span class="n">ib</span><span class="p">:</span><span class="n">ie</span><span class="p">,</span><span class="n">jb</span><span class="p">:</span><span class="n">je</span><span class="p">,</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="o">+</span><span class="n">kh</span><span class="p">)</span><span class="o">*</span><span class="n">tsamplep</span><span class="p">)</span><span class="o">*</span><span class="n">tstatsdumppi</span>
+
+<span class="w">        </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">ltempeq</span><span class="p">)</span><span class="w"> </span><span class="k">then</span>
+<span class="k">          </span><span class="n">thlt</span><span class="p">(</span><span class="n">ib</span><span class="p">:</span><span class="n">ie</span><span class="p">,</span><span class="n">jb</span><span class="p">:</span><span class="n">je</span><span class="p">,</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="o">+</span><span class="n">kh</span><span class="p">)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">(</span><span class="n">thlt</span><span class="p">(</span><span class="n">ib</span><span class="p">:</span><span class="n">ie</span><span class="p">,</span><span class="n">jb</span><span class="p">:</span><span class="n">je</span><span class="p">,</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="o">+</span><span class="n">kh</span><span class="p">)</span><span class="o">*</span><span class="p">(</span><span class="n">tstatsdumpp</span><span class="o">-</span><span class="n">tsamplep</span><span class="p">)</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">thlm</span><span class="p">(</span><span class="n">ib</span><span class="p">:</span><span class="n">ie</span><span class="p">,</span><span class="n">jb</span><span class="p">:</span><span class="n">je</span><span class="p">,</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="o">+</span><span class="n">kh</span><span class="p">)</span><span class="o">*</span><span class="n">tsamplep</span><span class="p">)</span><span class="o">*</span><span class="n">tstatsdumppi</span>
+<span class="w">        </span><span class="k">end if</span>
+
+<span class="k">        if</span><span class="w"> </span><span class="p">(</span><span class="n">lmoist</span><span class="p">)</span><span class="w"> </span><span class="k">then</span>
+<span class="k">          </span><span class="n">qtt</span><span class="p">(</span><span class="n">ib</span><span class="p">:</span><span class="n">ie</span><span class="p">,</span><span class="n">jb</span><span class="p">:</span><span class="n">je</span><span class="p">,</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="o">+</span><span class="n">kh</span><span class="p">)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">(</span><span class="n">qtt</span><span class="p">(</span><span class="n">ib</span><span class="p">:</span><span class="n">ie</span><span class="p">,</span><span class="n">jb</span><span class="p">:</span><span class="n">je</span><span class="p">,</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="o">+</span><span class="n">kh</span><span class="p">)</span><span class="o">*</span><span class="p">(</span><span class="n">tstatsdumpp</span><span class="o">-</span><span class="n">tsamplep</span><span class="p">)</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">qtm</span><span class="p">(</span><span class="n">ib</span><span class="p">:</span><span class="n">ie</span><span class="p">,</span><span class="n">jb</span><span class="p">:</span><span class="n">je</span><span class="p">,</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="o">+</span><span class="n">kh</span><span class="p">)</span><span class="o">*</span><span class="n">tsamplep</span><span class="p">)</span><span class="o">*</span><span class="n">tstatsdumppi</span>
+<span class="w">        </span><span class="k">end if</span>
+
+<span class="k">      end if</span><span class="w"> </span><span class="c">! lmintdump</span>
+
+<span class="w">      </span><span class="n">tsamplep</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">dt</span>
+<span class="w">    </span><span class="k">else</span><span class="w"> </span><span class="c">!tsamplep &lt; tsample</span>
+
+<span class="w">      </span><span class="n">tsamplep</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">tsamplep</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">dt</span>
+
+<span class="w">    </span><span class="k">endif</span>
+
+<span class="k">  if</span><span class="w"> </span><span class="p">(</span><span class="n">tstatsdumpp</span><span class="w"> </span><span class="o">&gt;=</span><span class="w"> </span><span class="n">tstatsdump</span><span class="p">)</span><span class="w"> </span><span class="k">then</span>
+
+<span class="w">      </span><span class="c">! Write t-averaged statistics every tsample</span>
+<span class="w">      </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">lmintdump</span><span class="p">)</span><span class="w"> </span><span class="k">then</span>
+<span class="k">        allocate</span><span class="p">(</span><span class="n">varsmint</span><span class="p">(</span><span class="n">imax</span><span class="p">,</span><span class="n">jmax</span><span class="p">,</span><span class="n">khigh</span><span class="o">-</span><span class="n">klow</span><span class="o">+</span><span class="mi">1</span><span class="p">,</span><span class="n">nstatmint</span><span class="p">))</span>
+<span class="w">        </span><span class="k">call </span><span class="n">writestat_nc</span><span class="p">(</span><span class="n">ncidmint</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="n">tncstatmint</span><span class="p">,(</span><span class="o">/</span><span class="n">timee</span><span class="o">/</span><span class="p">),</span><span class="n">nrecmint</span><span class="p">,.</span><span class="n">true</span><span class="p">.)</span>
+<span class="w">        </span><span class="n">varsmint</span><span class="p">(:,:,:,</span><span class="mi">1</span><span class="p">)</span><span class="w">  </span><span class="o">=</span><span class="w"> </span><span class="n">umt</span><span class="p">(</span><span class="n">ib</span><span class="p">:</span><span class="n">ie</span><span class="p">,</span><span class="n">jb</span><span class="p">:</span><span class="n">je</span><span class="p">,</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="p">)</span>
+<span class="w">        </span><span class="n">varsmint</span><span class="p">(:,:,:,</span><span class="mi">2</span><span class="p">)</span><span class="w">  </span><span class="o">=</span><span class="w"> </span><span class="n">vmt</span><span class="p">(</span><span class="n">ib</span><span class="p">:</span><span class="n">ie</span><span class="p">,</span><span class="n">jb</span><span class="p">:</span><span class="n">je</span><span class="p">,</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="p">)</span>
+<span class="w">        </span><span class="n">varsmint</span><span class="p">(:,:,:,</span><span class="mi">3</span><span class="p">)</span><span class="w">  </span><span class="o">=</span><span class="w"> </span><span class="n">wmt</span><span class="p">(</span><span class="n">ib</span><span class="p">:</span><span class="n">ie</span><span class="p">,</span><span class="n">jb</span><span class="p">:</span><span class="n">je</span><span class="p">,</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="p">)</span>
+<span class="w">        </span><span class="n">varsmint</span><span class="p">(:,:,:,</span><span class="mi">4</span><span class="p">)</span><span class="w">  </span><span class="o">=</span><span class="w"> </span><span class="n">thlt</span><span class="p">(</span><span class="n">ib</span><span class="p">:</span><span class="n">ie</span><span class="p">,</span><span class="n">jb</span><span class="p">:</span><span class="n">je</span><span class="p">,</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="p">)</span>
+<span class="w">        </span><span class="n">varsmint</span><span class="p">(:,:,:,</span><span class="mi">5</span><span class="p">)</span><span class="w">  </span><span class="o">=</span><span class="w"> </span><span class="n">qtt</span><span class="p">(</span><span class="n">ib</span><span class="p">:</span><span class="n">ie</span><span class="p">,</span><span class="n">jb</span><span class="p">:</span><span class="n">je</span><span class="p">,</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="p">)</span>
+<span class="w">        </span><span class="n">varsmint</span><span class="p">(:,:,:,</span><span class="mi">6</span><span class="p">)</span><span class="w">  </span><span class="o">=</span><span class="w"> </span><span class="n">pt</span><span class="p">(</span><span class="n">ib</span><span class="p">:</span><span class="n">ie</span><span class="p">,</span><span class="n">jb</span><span class="p">:</span><span class="n">je</span><span class="p">,</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="p">)</span>
+<span class="w">        </span><span class="k">call </span><span class="n">writestat_nc</span><span class="p">(</span><span class="n">ncidmint</span><span class="p">,</span><span class="n">nstatmint</span><span class="p">,</span><span class="n">ncstatmint</span><span class="p">,</span><span class="n">varsmint</span><span class="p">,</span><span class="n">nrecmint</span><span class="p">,</span><span class="n">imax</span><span class="p">,</span><span class="n">jmax</span><span class="p">,</span><span class="n">khigh</span><span class="o">-</span><span class="n">klow</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span>
+<span class="w">        </span><span class="k">deallocate</span><span class="p">(</span><span class="n">varsmint</span><span class="p">)</span>
+<span class="w">      </span><span class="k">end if</span><span class="w"> </span><span class="c">!lmintdump</span>
+
+<span class="w">      </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">ltkedump</span><span class="p">)</span><span class="w"> </span><span class="k">then</span>
+<span class="k">        call </span><span class="n">tkestatsdump</span>
+<span class="w">        </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">myid</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="mi">0</span><span class="p">)</span><span class="w"> </span><span class="k">then</span>
+<span class="k">          call </span><span class="n">writestat_nc</span><span class="p">(</span><span class="n">ncidtke</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="n">tncstattke</span><span class="p">,(</span><span class="o">/</span><span class="n">timee</span><span class="o">/</span><span class="p">),</span><span class="n">nrectke</span><span class="p">,.</span><span class="n">true</span><span class="p">.)</span>
+<span class="w">          </span><span class="k">allocate</span><span class="p">(</span><span class="n">varstke</span><span class="p">(</span><span class="n">khigh</span><span class="o">-</span><span class="n">klow</span><span class="o">+</span><span class="mi">1</span><span class="p">,</span><span class="n">nstattke</span><span class="p">))</span>
+<span class="w">          </span><span class="n">varstke</span><span class="p">(:,</span><span class="mi">1</span><span class="p">)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">p_b</span><span class="p">(</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="o">+</span><span class="n">kh</span><span class="p">)</span>
+<span class="w">          </span><span class="n">varstke</span><span class="p">(:,</span><span class="mi">2</span><span class="p">)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">t_p</span><span class="p">(</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="o">+</span><span class="n">kh</span><span class="p">)</span>
+<span class="w">          </span><span class="n">varstke</span><span class="p">(:,</span><span class="mi">3</span><span class="p">)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">adv</span><span class="p">(</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="o">+</span><span class="n">kh</span><span class="p">)</span>
+<span class="w">          </span><span class="n">varstke</span><span class="p">(:,</span><span class="mi">4</span><span class="p">)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">t_t</span><span class="p">(</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="o">+</span><span class="n">kh</span><span class="p">)</span>
+<span class="w">          </span><span class="n">varstke</span><span class="p">(:,</span><span class="mi">5</span><span class="p">)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">t_sgs</span><span class="p">(</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="o">+</span><span class="n">kh</span><span class="p">)</span>
+<span class="w">          </span><span class="n">varstke</span><span class="p">(:,</span><span class="mi">6</span><span class="p">)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">p_t</span><span class="p">(</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="o">+</span><span class="n">kh</span><span class="p">)</span>
+<span class="w">          </span><span class="n">varstke</span><span class="p">(:,</span><span class="mi">7</span><span class="p">)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">t_v</span><span class="p">(</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="o">+</span><span class="n">kh</span><span class="p">)</span>
+<span class="w">          </span><span class="n">varstke</span><span class="p">(:,</span><span class="mi">8</span><span class="p">)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">d_sgs</span><span class="p">(</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="o">+</span><span class="n">kh</span><span class="p">)</span>
+<span class="w">          </span><span class="k">call </span><span class="n">writestat_1D_nc</span><span class="p">(</span><span class="n">ncidtke</span><span class="p">,</span><span class="n">nstattke</span><span class="p">,</span><span class="n">ncstattke</span><span class="p">,</span><span class="n">varstke</span><span class="p">,</span><span class="n">nrectke</span><span class="p">,</span><span class="n">khigh</span><span class="o">-</span><span class="n">klow</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span>
+<span class="w">        </span><span class="k">end if</span><span class="w"> </span><span class="c">!myid</span>
+<span class="w">      </span><span class="k">endif</span><span class="w"> </span><span class="c">!ltkedump</span>
+
+<span class="w">      </span><span class="n">tstatsdumpp</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">dt</span>
+
+<span class="w">    </span><span class="k">else</span><span class="w"> </span><span class="c">!tstatsdumpp &lt; tstatsdump</span>
+
+<span class="w">      </span><span class="n">tstatsdumpp</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">tstatsdumpp</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">dt</span>
+
+<span class="w">    </span><span class="k">endif</span>
+
+<span class="k">  end subroutine </span><span class="n">statsdump</span>
+</pre></div>
+
+    </section>
+    <br>
+    
+    </div>
+  </div>
+
+      <hr>
+    </div> <!-- /container -->
+    <footer>
+      <div class="container">
+        <div class="row justify-content-between">
+          <div class="col">
+            <p>
+              uDALES
+ was developed by The uDALES Team<br>              &copy; 2026 
+</p>
+          </div>
+          <div class="col">
+            <p class="text-end">
+              Documentation generated by
+              <a href="https://github.com/Fortran-FOSS-Programmers/ford">FORD</a>
+ on 2026-11-27 14:34 +0000             </p>
+          </div>
+        </div>
+        <br>
+      </div> <!-- /container -->
+    </footer>
+  </body>
+</html>

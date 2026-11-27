@@ -1,0 +1,1093 @@
+<!-- -*- mode: jinja2 -*- -->
+
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+      <meta name="description" content="API documentation of the Fortran source code of uDALES, the open-source multi-physics large-eddy simulation model for urban environments.">
+    <meta name="author" content="The uDALES Team" >
+    <link rel="icon" href="../favicon.png">
+
+    <title>modtimedep &ndash; uDALES</title>
+
+    <!-- Bootstrap -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet"
+          integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"
+            integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
+    <!-- Font Awesome -->
+    <link href="../css/fontawesome.min.css" rel="stylesheet">
+    <link href="../css/brands.min.css" rel="stylesheet">
+    <link href="../css/regular.min.css" rel="stylesheet">
+    <link href="../css/solid.min.css" rel="stylesheet">
+    <link href="../css/v4-font-face.min.css" rel="stylesheet">
+    <link href="../css/v4-shims.min.css" rel="stylesheet">
+    <!-- MathJax -->
+    <script type="text/x-mathjax-config">
+      MathJax.Hub.Config({
+        TeX: { equationNumbers: { autoNumber: "AMS" } }
+      });
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/mathjax@2.7.9/MathJax.js?config=TeX-AMS-MML_HTMLorMML" async
+            integrity="sha256-DViIOMYdwlM/axqoGDPeUyf0urLoHMN4QACBKyB58Uw=" crossorigin="anonymous"></script>
+    <!-- Other scripts and stylesheets -->
+    <link href="../css/local.css" rel="stylesheet">
+    <link href="../css/pygments.css" rel="stylesheet">
+    <script src="../js/svg-pan-zoom.min.js"></script>
+  </head>
+
+  <body>
+
+    <!-- Fixed navbar -->
+    <div class="container-fluid mb-sm-4 mb-xl-2">
+      <nav class="navbar navbar-expand-lg navbar-dark bg-dark fixed-top">
+        <div class="container">
+          <a class="navbar-brand" href="../index.html">uDALES </a>
+          <button type="button" class="navbar-toggler" data-bs-toggle="collapse" data-bs-target="#navbar"
+                  aria-expanded="false" aria-controls="navbar" aria-label="Toggle navigation">
+                  <span class="navbar-toggler-icon">
+          </button>
+
+          <div id="navbar" class="navbar-collapse collapse">
+            <ul class="navbar-nav">
+                  <li class="nav-item">
+                    <a class="nav-link" href="../lists/files.html">Source Files</a>
+                  </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="../lists/modules.html">Modules</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="../lists/procedures.html">Procedures</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="../lists/absint.html">Abstract Interfaces</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="../lists/types.html">Derived Types</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="../lists/namelists.html">Namelists</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="../program/udales.html">Program</a>
+                </li>
+            </ul>
+              <div class="d-flex align-items-end flex-grow-1">
+                <form action="../search.html" role="search" class="ms-auto">
+                  <input type="text" class="form-control" aria-label="Search" placeholder="Search" name="q" id="tipue_search_input" autocomplete="off" required>
+                </form>
+              </div>
+          </div><!--/.nav-collapse -->
+        </div>
+      </nav>
+    </div>
+
+    <div class="container">
+  <div class="row">
+    <h1>modtimedep
+      <small>Module</small>
+      
+    </h1>
+      <div class="container p-2 mb-4 bg-light border rounded-3">
+    <div class="row align-items-center justify-content-between" id="info-bar">
+      <div class="col">
+        <ul class="list-inline" style="margin-bottom:0px;display:inline">
+
+            <li class="list-inline-item" id="statements"><i class="fa fa-list-ol"></i>
+              <a data-bs-toggle="tooltip" data-bs-placement="bottom" data-bs-html="true"
+                 title=" 1.3% of total for modules and submodules.">243 statements</a>
+            </li>
+
+            <li class="list-inline-item" id="source-file">
+              <i class="fa fa-code"></i>
+              <a href="../src/modtimedep.f90"> Source File</a>
+            </li>
+        </ul>
+      </div>
+      <div class="col">
+        <nav aria-label="breadcrumb">
+          <ol class="breadcrumb justify-content-end mb-0">
+                <li class="breadcrumb-item"><a href='../sourcefile/modtimedep.f90.html'>modtimedep.f90</a></li>
+            <li class="breadcrumb-item active" aria-current="page">modtimedep</li>
+          </ol>
+        </nav>
+      </div>
+    </div>
+  </div>
+  <script>
+    // Enable Bootstrap tooltips
+    (function () {
+      const tooltipTriggerList = document.querySelectorAll('[data-bs-toggle="tooltip"]')
+      const tooltipList = [...tooltipTriggerList].map(tooltipTriggerEl => new bootstrap.Tooltip(tooltipTriggerEl))
+    })();
+  </script>
+
+  </div>
+
+  <div class="row">
+    <div class="col-md-3">
+        <div id="sidebar">
+      <h3>Contents</h3>
+  
+      <div class="card mb-4">
+      <a data-bs-toggle="collapse" href="#vars-0"
+         aria-expanded="false" aria-controls="vars-0">
+         <h4 class="card-header bg-primary text-white">Variables</h4>
+      </a>
+      <div id="vars-0" class="collapse">
+        <div class="list-group list-group-flush">
+            <a class="list-group-item" href="../module/modtimedep.html#variable-ltimedep">ltimedep</a>
+            <a class="list-group-item" href="../module/modtimedep.html#variable-ltimedepsurf">ltimedepsurf</a>
+            <a class="list-group-item" href="../module/modtimedep.html#variable-ltimedepnudge">ltimedepnudge</a>
+            <a class="list-group-item" href="../module/modtimedep.html#variable-ltimedeplw">ltimedeplw</a>
+            <a class="list-group-item" href="../module/modtimedep.html#variable-ltimedepsw">ltimedepsw</a>
+            <a class="list-group-item" href="../module/modtimedep.html#variable-ntimedepsurf">ntimedepsurf</a>
+            <a class="list-group-item" href="../module/modtimedep.html#variable-ntimedepnudge">ntimedepnudge</a>
+            <a class="list-group-item" href="../module/modtimedep.html#variable-ntimedeplw">ntimedeplw</a>
+            <a class="list-group-item" href="../module/modtimedep.html#variable-ntimedepsw">ntimedepsw</a>
+            <a class="list-group-item" href="../module/modtimedep.html#variable-timeflux">timeflux</a>
+            <a class="list-group-item" href="../module/modtimedep.html#variable-bctfxmt">bctfxmt</a>
+            <a class="list-group-item" href="../module/modtimedep.html#variable-bctfxpt">bctfxpt</a>
+            <a class="list-group-item" href="../module/modtimedep.html#variable-bctfymt">bctfymt</a>
+            <a class="list-group-item" href="../module/modtimedep.html#variable-bctfypt">bctfypt</a>
+            <a class="list-group-item" href="../module/modtimedep.html#variable-bctfzt">bctfzt</a>
+            <a class="list-group-item" href="../module/modtimedep.html#variable-timenudge">timenudge</a>
+            <a class="list-group-item" href="../module/modtimedep.html#variable-thlproft">thlproft</a>
+            <a class="list-group-item" href="../module/modtimedep.html#variable-qtproft">qtproft</a>
+            <a class="list-group-item" href="../module/modtimedep.html#variable-uproft">uproft</a>
+            <a class="list-group-item" href="../module/modtimedep.html#variable-vproft">vproft</a>
+            <a class="list-group-item" href="../module/modtimedep.html#variable-timelw">timelw</a>
+            <a class="list-group-item" href="../module/modtimedep.html#variable-skylwt">skyLWt</a>
+            <a class="list-group-item" href="../module/modtimedep.html#variable-timesw">timesw</a>
+            <a class="list-group-item" href="../module/modtimedep.html#variable-netswt">netswt</a>
+        </div>
+      </div>
+    </div>
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+      <div class="card mb-4">
+      <a data-bs-toggle="collapse" href="#subs-0"
+         aria-expanded="false" aria-controls="subs-0">
+         <h4 class="card-header bg-primary text-white">Subroutines</h4>
+      </a>
+      <div id="subs-0" class="collapse">
+        <div class="list-group list-group-flush">
+            <a class="list-group-item" href="../module/modtimedep.html#proc-inittimedep">inittimedep</a>
+            <a class="list-group-item" href="../module/modtimedep.html#proc-timedep">timedep</a>
+            <a class="list-group-item" href="../module/modtimedep.html#proc-timedepsurf">timedepsurf</a>
+            <a class="list-group-item" href="../module/modtimedep.html#proc-timedepnudge">timedepnudge</a>
+            <a class="list-group-item" href="../module/modtimedep.html#proc-timedeplw">timedeplw</a>
+            <a class="list-group-item" href="../module/modtimedep.html#proc-timedepsw">timedepsw</a>
+            <a class="list-group-item" href="../module/modtimedep.html#proc-exittimedep">exittimedep</a>
+        </div>
+      </div>
+    </div>
+
+  
+  
+  
+  
+  
+  
+  
+
+
+  </div>
+
+    </div>
+
+    <div class="col-md-9" id='text'>
+      
+<br>          <div class="card mb-4">
+      <h3 class="card-header card-title bg-light">Uses</h3>
+      <div class="card-body">
+        <ul class="list-group list-group-flush">
+            <li class="list-group-item">
+              <ul class="list-inline">
+                  <li class="list-inline-item"><a href='http://www.mpi-forum.org/docs/mpi-3.1/mpi31-report/node410.htm'>mpi</a></li>
+              </ul>
+            </li>
+            <li class="list-group-item">
+              <div class="depgraph"><?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
+ "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<!-- Generated by graphviz version 14.1.3 (0)
+ -->
+<!-- Title: module~~modtimedep~~UsesGraph Pages: 1 -->
+<svg id="modulemodtimedepUsesGraph" width="178pt" height="32pt"
+ viewBox="0.00 0.00 178.00 32.00" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<g id="module~~modtimedep~~UsesGraph" class="graph" transform="scale(1 1) rotate(0) translate(4 28.27)">
+<title>module~~modtimedep~~UsesGraph</title>
+<polygon fill="white" stroke="none" points="-4,4 -4,-28.27 173.77,-28.27 173.77,4 -4,4"/>
+<!-- module~modtimedep -->
+<g id="module~~modtimedep~~UsesGraph_node1" class="node">
+<title>module~modtimedep</title>
+<polygon fill="none" stroke="black" points="169.77,-24.27 90,-24.27 90,0 169.77,0 169.77,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="129.88" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50">modtimedep</text>
+</g>
+<!-- mpi -->
+<g id="module~~modtimedep~~UsesGraph_node2" class="node">
+<title>mpi</title>
+<g id="a_module~~modtimedep~~UsesGraph_node2"><a xlink:href="http://www.mpi-forum.org/docs/mpi-3.1/mpi31-report/node410.htm" xlink:title="mpi">
+<polygon fill="#337ab7" stroke="#337ab7" points="54,-24.27 0,-24.27 0,0 54,0 54,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="27" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">mpi</text>
+</a>
+</g>
+</g>
+<!-- module~modtimedep&#45;&gt;mpi -->
+<g id="module~~modtimedep~~UsesGraph_edge1" class="edge">
+<title>module~modtimedep&#45;&gt;mpi</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M89.59,-12.13C81.73,-12.13 73.49,-12.13 65.68,-12.13"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="65.79,-8.64 55.79,-12.14 65.79,-15.64 65.79,-8.64"/>
+</g>
+</g>
+</svg>
+</div>          <div>
+            <a type="button" class="graph-help" data-bs-toggle="modal" href="#UsesGraph-help-text">Help</a>
+          </div>
+          <div class="modal fade" id="UsesGraph-help-text" tabindex="-1" role="dialog">
+            <div class="modal-dialog modal-lg" role="document">
+              <div class="modal-content">
+                <div class="modal-header">
+                  <h4 class="modal-title" id="-graph-help-label">Graph Key</h4>
+                  <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+<p>Nodes of different colours represent the following: </p>
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
+ "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<!-- Generated by graphviz version 14.1.3 (0)
+ -->
+<!-- Title: Graph Key Pages: 1 -->
+<svg width="511pt" height="32pt"
+ viewBox="0.00 0.00 511.00 32.00" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<g id="graph0" class="graph" transform="scale(1 1) rotate(0) translate(4 28.27)">
+<title>Graph Key</title>
+<polygon fill="white" stroke="none" points="-4,4 -4,-28.27 506.88,-28.27 506.88,4 -4,4"/>
+<!-- Module -->
+<g id="node1" class="node">
+<title>Module</title>
+<polygon fill="#337ab7" stroke="#337ab7" points="54,-24.27 0,-24.27 0,0 54,0 54,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="27" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Module</text>
+</g>
+<!-- Submodule -->
+<g id="node2" class="node">
+<title>Submodule</title>
+<polygon fill="#5bc0de" stroke="#5bc0de" points="144.13,-24.27 71.87,-24.27 71.87,0 144.13,0 144.13,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="108" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Submodule</text>
+</g>
+<!-- Subroutine -->
+<g id="node3" class="node">
+<title>Subroutine</title>
+<polygon fill="#d9534f" stroke="#d9534f" points="231.63,-24.27 162.37,-24.27 162.37,0 231.63,0 231.63,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="197" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Subroutine</text>
+</g>
+<!-- Function -->
+<g id="node4" class="node">
+<title>Function</title>
+<polygon fill="#d94e8f" stroke="#d94e8f" points="306.26,-24.27 249.74,-24.27 249.74,0 306.26,0 306.26,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="278" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Function</text>
+</g>
+<!-- Program -->
+<g id="node5" class="node">
+<title>Program</title>
+<polygon fill="#f0ad4e" stroke="#f0ad4e" points="381.26,-24.27 324.74,-24.27 324.74,0 381.26,0 381.26,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="353" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Program</text>
+</g>
+<!-- This Page&#39;s Entity -->
+<g id="node6" class="node">
+<title>This Page&#39;s Entity</title>
+<polygon fill="none" stroke="black" points="502.88,-24.27 399.12,-24.27 399.12,0 502.88,0 502.88,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="451" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50">This Page&#39;s Entity</text>
+</g>
+</g>
+</svg>
+
+<p>Solid arrows point from a submodule to the (sub)module which it is
+descended from. Dashed arrows point from a module or program unit to 
+modules which it uses.
+</p>
+ Where possible, edges connecting nodes are
+given different colours to make them easier to distinguish in
+large graphs.</div>
+            </div>
+          </div>
+        </div>
+            </li>
+        </ul>
+      </div>
+    </div>
+
+          <div class="card">
+      <h3 class="card-header card-title bg-light">Used by</h3>
+      <div class="card-body">
+        <ul class="list-group list-group-flush">
+            <li class="list-group-item">
+              <div class="depgraph"><?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
+ "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<!-- Generated by graphviz version 14.1.3 (0)
+ -->
+<!-- Title: module~~modtimedep~~UsedByGraph Pages: 1 -->
+<svg id="modulemodtimedepUsedByGraph" width="431pt" height="129pt"
+ viewBox="0.00 0.00 431.00 129.00" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<g id="module~~modtimedep~~UsedByGraph" class="graph" transform="scale(1 1) rotate(0) translate(4 124.88)">
+<title>module~~modtimedep~~UsedByGraph</title>
+<polygon fill="white" stroke="none" points="-4,4 -4,-124.88 426.58,-124.88 426.58,4 -4,4"/>
+<!-- module~modtimedep -->
+<g id="module~~modtimedep~~UsedByGraph_node1" class="node">
+<title>module~modtimedep</title>
+<polygon fill="none" stroke="black" points="79.77,-78.88 0,-78.88 0,-54.61 79.77,-54.61 79.77,-78.88"/>
+<text xml:space="preserve" text-anchor="middle" x="39.88" y="-63.14" font-family="Helvetica,sans-Serif" font-size="10.50">modtimedep</text>
+</g>
+<!-- module~modstartup -->
+<g id="module~~modtimedep~~UsedByGraph_node2" class="node">
+<title>module~modstartup</title>
+<g id="a_module~~modtimedep~~UsedByGraph_node2"><a xlink:href="../module/modstartup.html" xlink:title="modstartup">
+<polygon fill="#337ab7" stroke="#337ab7" points="319.94,-120.88 246.92,-120.88 246.92,-96.61 319.94,-96.61 319.94,-120.88"/>
+<text xml:space="preserve" text-anchor="middle" x="283.43" y="-105.14" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">modstartup</text>
+</a>
+</g>
+</g>
+<!-- module~modstartup&#45;&gt;module~modtimedep -->
+<g id="module~~modtimedep~~UsedByGraph_edge1" class="edge">
+<title>module~modstartup&#45;&gt;module~modtimedep</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M246.42,-105.76C212.49,-102.58 160.36,-96.75 115.77,-87.74 107.76,-86.12 99.36,-84.1 91.19,-81.95"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="92.29,-78.62 81.72,-79.36 90.45,-85.37 92.29,-78.62"/>
+</g>
+<!-- module~readnamelists -->
+<g id="module~~modtimedep~~UsedByGraph_node3" class="node">
+<title>module~readnamelists</title>
+<g id="a_module~~modtimedep~~UsedByGraph_node3"><a xlink:href="../module/readnamelists.html" xlink:title="readnamelists">
+<polygon fill="#337ab7" stroke="#337ab7" points="202.29,-78.88 115.77,-78.88 115.77,-54.61 202.29,-54.61 202.29,-78.88"/>
+<text xml:space="preserve" text-anchor="middle" x="159.03" y="-63.14" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">readnamelists</text>
+</a>
+</g>
+</g>
+<!-- module~modstartup&#45;&gt;module~readnamelists -->
+<g id="module~~modtimedep~~UsedByGraph_edge6" class="edge">
+<title>module~modstartup&#45;&gt;module~readnamelists</title>
+<path fill="none" stroke="#00ff00" stroke-dasharray="5,2" d="M246.69,-96.48C234.35,-92.24 220.31,-87.43 207.19,-82.93"/>
+<polygon fill="#00ff00" stroke="#00ff00" points="208.47,-79.66 197.87,-79.73 206.2,-86.28 208.47,-79.66"/>
+</g>
+<!-- module~readnamelists&#45;&gt;module~modtimedep -->
+<g id="module~~modtimedep~~UsedByGraph_edge2" class="edge">
+<title>module~readnamelists&#45;&gt;module~modtimedep</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M115.41,-66.74C107.67,-66.74 99.53,-66.74 91.59,-66.74"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="91.68,-63.24 81.68,-66.74 91.68,-70.24 91.68,-63.24"/>
+</g>
+<!-- program~udales -->
+<g id="module~~modtimedep~~UsedByGraph_node4" class="node">
+<title>program~udales</title>
+<g id="a_module~~modtimedep~~UsedByGraph_node4"><a xlink:href="../program/udales.html" xlink:title="uDALES">
+<polygon fill="#f0ad4e" stroke="#f0ad4e" points="420.57,-37.88 366.57,-37.88 366.57,-13.61 420.57,-13.61 420.57,-37.88"/>
+<text xml:space="preserve" text-anchor="middle" x="393.57" y="-22.14" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">uDALES</text>
+</a>
+</g>
+</g>
+<!-- program~udales&#45;&gt;module~modtimedep -->
+<g id="module~~modtimedep~~UsedByGraph_edge3" class="edge">
+<title>program~udales&#45;&gt;module~modtimedep</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M366.3,-14.52C354.92,-10.23 341.31,-5.87 328.56,-3.74 237.51,11.47 131.79,-26.12 77.39,-49.59"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="76.01,-46.37 68.28,-53.61 78.84,-52.77 76.01,-46.37"/>
+</g>
+<!-- program~udales&#45;&gt;module~modstartup -->
+<g id="module~~modtimedep~~UsedByGraph_edge5" class="edge">
+<title>program~udales&#45;&gt;module~modstartup</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M382.22,-37.91C370.31,-51.38 349.66,-73.1 328.56,-87.74 327.03,-88.81 325.43,-89.84 323.79,-90.85"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="322.48,-87.58 315.46,-95.51 325.89,-93.69 322.48,-87.58"/>
+</g>
+<!-- proc~init_tests -->
+<g id="module~~modtimedep~~UsedByGraph_node5" class="node">
+<title>proc~init_tests</title>
+<g id="a_module~~modtimedep~~UsedByGraph_node5"><a xlink:href="../proc/init_tests.html" xlink:title="init_tests">
+<polygon fill="#d9534f" stroke="#d9534f" points="422.58,-120.88 364.56,-120.88 364.56,-96.61 422.58,-96.61 422.58,-120.88"/>
+<text xml:space="preserve" text-anchor="middle" x="393.57" y="-105.14" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">init_tests</text>
+</a>
+</g>
+</g>
+<!-- proc~init_tests&#45;&gt;module~modstartup -->
+<g id="module~~modtimedep~~UsedByGraph_edge4" class="edge">
+<title>proc~init_tests&#45;&gt;module~modstartup</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M364.16,-108.74C354.22,-108.74 342.77,-108.74 331.71,-108.74"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="331.92,-105.24 321.92,-108.74 331.92,-112.24 331.92,-105.24"/>
+</g>
+<!-- proc~readinitfiles -->
+<g id="module~~modtimedep~~UsedByGraph_node6" class="node">
+<title>proc~readinitfiles</title>
+<g id="a_module~~modtimedep~~UsedByGraph_node6"><a xlink:href="../proc/readinitfiles.html" xlink:title="readinitfiles">
+<polygon fill="#d9534f" stroke="#d9534f" points="320.31,-78.88 246.54,-78.88 246.54,-54.61 320.31,-54.61 320.31,-78.88"/>
+<text xml:space="preserve" text-anchor="middle" x="283.43" y="-63.14" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">readinitfiles</text>
+</a>
+</g>
+</g>
+<!-- proc~readinitfiles&#45;&gt;module~readnamelists -->
+<g id="module~~modtimedep~~UsedByGraph_edge7" class="edge">
+<title>proc~readinitfiles&#45;&gt;module~readnamelists</title>
+<path fill="none" stroke="#00ff00" stroke-dasharray="5,2" d="M246.36,-66.74C236.21,-66.74 224.94,-66.74 213.98,-66.74"/>
+<polygon fill="#00ff00" stroke="#00ff00" points="214.25,-63.24 204.25,-66.74 214.25,-70.24 214.25,-63.24"/>
+</g>
+<!-- proc~tests_roundtrip -->
+<g id="module~~modtimedep~~UsedByGraph_node7" class="node">
+<title>proc~tests_roundtrip</title>
+<g id="a_module~~modtimedep~~UsedByGraph_node7"><a xlink:href="../proc/tests_roundtrip.html" xlink:title="tests_roundtrip">
+<polygon fill="#d9534f" stroke="#d9534f" points="328.56,-36.88 238.29,-36.88 238.29,-12.61 328.56,-12.61 328.56,-36.88"/>
+<text xml:space="preserve" text-anchor="middle" x="283.43" y="-21.14" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">tests_roundtrip</text>
+</a>
+</g>
+</g>
+<!-- proc~tests_roundtrip&#45;&gt;module~readnamelists -->
+<g id="module~~modtimedep~~UsedByGraph_edge8" class="edge">
+<title>proc~tests_roundtrip&#45;&gt;module~readnamelists</title>
+<path fill="none" stroke="#00ff00" stroke-dasharray="5,2" d="M245.7,-37.34C233.72,-41.45 220.24,-46.08 207.58,-50.42"/>
+<polygon fill="#00ff00" stroke="#00ff00" points="206.48,-47.1 198.16,-53.66 208.75,-53.72 206.48,-47.1"/>
+</g>
+</g>
+</svg>
+</div>          <div>
+            <a type="button" class="graph-help" data-bs-toggle="modal" href="#UsedByGraph-help-text">Help</a>
+          </div>
+          <div class="modal fade" id="UsedByGraph-help-text" tabindex="-1" role="dialog">
+            <div class="modal-dialog modal-lg" role="document">
+              <div class="modal-content">
+                <div class="modal-header">
+                  <h4 class="modal-title" id="-graph-help-label">Graph Key</h4>
+                  <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+<p>Nodes of different colours represent the following: </p>
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
+ "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<!-- Generated by graphviz version 14.1.3 (0)
+ -->
+<!-- Title: Graph Key Pages: 1 -->
+<svg width="511pt" height="32pt"
+ viewBox="0.00 0.00 511.00 32.00" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<g id="graph0" class="graph" transform="scale(1 1) rotate(0) translate(4 28.27)">
+<title>Graph Key</title>
+<polygon fill="white" stroke="none" points="-4,4 -4,-28.27 506.88,-28.27 506.88,4 -4,4"/>
+<!-- Module -->
+<g id="node1" class="node">
+<title>Module</title>
+<polygon fill="#337ab7" stroke="#337ab7" points="54,-24.27 0,-24.27 0,0 54,0 54,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="27" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Module</text>
+</g>
+<!-- Submodule -->
+<g id="node2" class="node">
+<title>Submodule</title>
+<polygon fill="#5bc0de" stroke="#5bc0de" points="144.13,-24.27 71.87,-24.27 71.87,0 144.13,0 144.13,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="108" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Submodule</text>
+</g>
+<!-- Subroutine -->
+<g id="node3" class="node">
+<title>Subroutine</title>
+<polygon fill="#d9534f" stroke="#d9534f" points="231.63,-24.27 162.37,-24.27 162.37,0 231.63,0 231.63,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="197" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Subroutine</text>
+</g>
+<!-- Function -->
+<g id="node4" class="node">
+<title>Function</title>
+<polygon fill="#d94e8f" stroke="#d94e8f" points="306.26,-24.27 249.74,-24.27 249.74,0 306.26,0 306.26,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="278" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Function</text>
+</g>
+<!-- Program -->
+<g id="node5" class="node">
+<title>Program</title>
+<polygon fill="#f0ad4e" stroke="#f0ad4e" points="381.26,-24.27 324.74,-24.27 324.74,0 381.26,0 381.26,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="353" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Program</text>
+</g>
+<!-- This Page&#39;s Entity -->
+<g id="node6" class="node">
+<title>This Page&#39;s Entity</title>
+<polygon fill="none" stroke="black" points="502.88,-24.27 399.12,-24.27 399.12,0 502.88,0 502.88,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="451" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50">This Page&#39;s Entity</text>
+</g>
+</g>
+</svg>
+
+<p>Solid arrows point from a submodule to the (sub)module which it is
+descended from. Dashed arrows point from a module or program unit to 
+modules which it uses.
+</p>
+ Where possible, edges connecting nodes are
+given different colours to make them easier to distinguish in
+large graphs.</div>
+            </div>
+          </div>
+        </div>
+            </li>
+        </ul>
+      </div>
+    </div>
+
+      <br>
+
+
+        <section>
+          <h2>Variables</h2>
+            <table class="table table-striped varlist">
+    <thead>
+      <tr>
+        <th scope="col">Type</th>
+<th scope="col">Visibility</th>        <th scope="col">Attributes</th>
+        <th scope="col"></th>
+        <th scope="col">Name</th>
+<th></th><th scope="col">Initial</th>        <th scope="col"></th>
+    </thead>
+    <tbody>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-ltimedep"></span>
+              logical,
+            </td>
+              <td>public</td>
+            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>ltimedep</strong></td>
+<td> =</td>
+                <td>.false.</td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-ltimedepsurf"></span>
+              logical,
+            </td>
+              <td>public</td>
+            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>ltimedepsurf</strong></td>
+<td> =</td>
+                <td>.false.</td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-ltimedepnudge"></span>
+              logical,
+            </td>
+              <td>public</td>
+            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>ltimedepnudge</strong></td>
+<td> =</td>
+                <td>.false.</td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-ltimedeplw"></span>
+              logical,
+            </td>
+              <td>public</td>
+            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>ltimedeplw</strong></td>
+<td> =</td>
+                <td>.false.</td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-ltimedepsw"></span>
+              logical,
+            </td>
+              <td>public</td>
+            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>ltimedepsw</strong></td>
+<td> =</td>
+                <td>.false.</td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-ntimedepsurf"></span>
+              integer,
+            </td>
+              <td>public</td>
+            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>ntimedepsurf</strong></td>
+                <td></td>
+                <td></td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-ntimedepnudge"></span>
+              integer,
+            </td>
+              <td>public</td>
+            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>ntimedepnudge</strong></td>
+                <td></td>
+                <td></td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-ntimedeplw"></span>
+              integer,
+            </td>
+              <td>public</td>
+            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>ntimedeplw</strong></td>
+                <td></td>
+                <td></td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-ntimedepsw"></span>
+              integer,
+            </td>
+              <td>public</td>
+            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>ntimedepsw</strong></td>
+                <td></td>
+                <td></td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-timeflux"></span>
+              real,
+            </td>
+              <td>private,</td>
+            <td>
+              allocatable
+            </td>
+            <td>::</td>
+            <td><strong>timeflux</strong>(:)</td>
+                <td></td>
+                <td></td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-bctfxmt"></span>
+              real,
+            </td>
+              <td>private,</td>
+            <td>
+              allocatable
+            </td>
+            <td>::</td>
+            <td><strong>bctfxmt</strong>(:)</td>
+                <td></td>
+                <td></td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-bctfxpt"></span>
+              real,
+            </td>
+              <td>private,</td>
+            <td>
+              allocatable
+            </td>
+            <td>::</td>
+            <td><strong>bctfxpt</strong>(:)</td>
+                <td></td>
+                <td></td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-bctfymt"></span>
+              real,
+            </td>
+              <td>private,</td>
+            <td>
+              allocatable
+            </td>
+            <td>::</td>
+            <td><strong>bctfymt</strong>(:)</td>
+                <td></td>
+                <td></td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-bctfypt"></span>
+              real,
+            </td>
+              <td>private,</td>
+            <td>
+              allocatable
+            </td>
+            <td>::</td>
+            <td><strong>bctfypt</strong>(:)</td>
+                <td></td>
+                <td></td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-bctfzt"></span>
+              real,
+            </td>
+              <td>private,</td>
+            <td>
+              allocatable
+            </td>
+            <td>::</td>
+            <td><strong>bctfzt</strong>(:)</td>
+                <td></td>
+                <td></td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-timenudge"></span>
+              real,
+            </td>
+              <td>private,</td>
+            <td>
+              allocatable
+            </td>
+            <td>::</td>
+            <td><strong>timenudge</strong>(:)</td>
+                <td></td>
+                <td></td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-thlproft"></span>
+              real,
+            </td>
+              <td>private,</td>
+            <td>
+              allocatable
+            </td>
+            <td>::</td>
+            <td><strong>thlproft</strong>(:,:)</td>
+                <td></td>
+                <td></td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-qtproft"></span>
+              real,
+            </td>
+              <td>private,</td>
+            <td>
+              allocatable
+            </td>
+            <td>::</td>
+            <td><strong>qtproft</strong>(:,:)</td>
+                <td></td>
+                <td></td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-uproft"></span>
+              real,
+            </td>
+              <td>private,</td>
+            <td>
+              allocatable
+            </td>
+            <td>::</td>
+            <td><strong>uproft</strong>(:,:)</td>
+                <td></td>
+                <td></td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-vproft"></span>
+              real,
+            </td>
+              <td>private,</td>
+            <td>
+              allocatable
+            </td>
+            <td>::</td>
+            <td><strong>vproft</strong>(:,:)</td>
+                <td></td>
+                <td></td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-timelw"></span>
+              real,
+            </td>
+              <td>private,</td>
+            <td>
+              allocatable
+            </td>
+            <td>::</td>
+            <td><strong>timelw</strong>(:)</td>
+                <td></td>
+                <td></td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-skylwt"></span>
+              real,
+            </td>
+              <td>private,</td>
+            <td>
+              allocatable
+            </td>
+            <td>::</td>
+            <td><strong>skyLWt</strong>(:)</td>
+                <td></td>
+                <td></td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-timesw"></span>
+              real,
+            </td>
+              <td>private,</td>
+            <td>
+              allocatable
+            </td>
+            <td>::</td>
+            <td><strong>timesw</strong>(:)</td>
+                <td></td>
+                <td></td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-netswt"></span>
+              real,
+            </td>
+              <td>private,</td>
+            <td>
+              allocatable
+            </td>
+            <td>::</td>
+            <td><strong>netswt</strong>(:,:)</td>
+                <td></td>
+                <td></td>
+            <td>
+                
+            </td>
+        </tr>
+    </tbody>
+  </table>
+
+        </section>
+        <br>
+
+
+
+
+
+
+        <section>
+          <h2>Subroutines</h2>
+              <div class="card">
+    <div class="card-header codesum"><span class="anchor" id="proc-inittimedep"></span> <h3>public  subroutine <a href='../proc/inittimedep.html'>inittimedep</a>()  
+</h3></div>
+    <div class="card-body">
+          
+  
+
+  <h4>Arguments</h4>
+    <em>None</em>
+
+    </div>
+  </div>
+
+              <div class="card">
+    <div class="card-header codesum"><span class="anchor" id="proc-timedep"></span> <h3>public  subroutine <a href='../proc/timedep.html'>timedep</a>()  
+</h3></div>
+    <div class="card-body">
+          
+  
+
+  <h4>Arguments</h4>
+    <em>None</em>
+
+    </div>
+  </div>
+
+              <div class="card">
+    <div class="card-header codesum"><span class="anchor" id="proc-timedepsurf"></span> <h3>private  subroutine <a href='../proc/timedepsurf.html'>timedepsurf</a>()  
+</h3></div>
+    <div class="card-body">
+          
+  
+
+  <h4>Arguments</h4>
+    <em>None</em>
+
+    </div>
+  </div>
+
+              <div class="card">
+    <div class="card-header codesum"><span class="anchor" id="proc-timedepnudge"></span> <h3>private  subroutine <a href='../proc/timedepnudge.html'>timedepnudge</a>()  
+</h3></div>
+    <div class="card-body">
+          
+  
+
+  <h4>Arguments</h4>
+    <em>None</em>
+
+    </div>
+  </div>
+
+              <div class="card">
+    <div class="card-header codesum"><span class="anchor" id="proc-timedeplw"></span> <h3>private  subroutine <a href='../proc/timedeplw.html'>timedeplw</a>()  
+</h3></div>
+    <div class="card-body">
+          
+  
+
+  <h4>Arguments</h4>
+    <em>None</em>
+
+    </div>
+  </div>
+
+              <div class="card">
+    <div class="card-header codesum"><span class="anchor" id="proc-timedepsw"></span> <h3>private  subroutine <a href='../proc/timedepsw.html'>timedepsw</a>()  
+</h3></div>
+    <div class="card-body">
+          
+  
+
+  <h4>Arguments</h4>
+    <em>None</em>
+
+    </div>
+  </div>
+
+              <div class="card">
+    <div class="card-header codesum"><span class="anchor" id="proc-exittimedep"></span> <h3>public  subroutine <a href='../proc/exittimedep.html'>exittimedep</a>()  
+</h3></div>
+    <div class="card-body">
+          
+  
+
+  <h4>Arguments</h4>
+    <em>None</em>
+
+    </div>
+  </div>
+
+        </section>
+        <br>
+
+
+
+    </div>
+  </div>
+
+      <hr>
+    </div> <!-- /container -->
+    <footer>
+      <div class="container">
+        <div class="row justify-content-between">
+          <div class="col">
+            <p>
+              uDALES
+ was developed by The uDALES Team<br>              &copy; 2026 
+</p>
+          </div>
+          <div class="col">
+            <p class="text-end">
+              Documentation generated by
+              <a href="https://github.com/Fortran-FOSS-Programmers/ford">FORD</a>
+ on 2026-11-27 14:34 +0000             </p>
+          </div>
+        </div>
+        <br>
+      </div> <!-- /container -->
+    </footer>
+  </body>
+</html>

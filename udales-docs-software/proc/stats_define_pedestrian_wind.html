@@ -1,0 +1,876 @@
+<!-- -*- mode: jinja2 -*- -->
+
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+      <meta name="description" content="API documentation of the Fortran source code of uDALES, the open-source multi-physics large-eddy simulation model for urban environments.">
+    <meta name="author" content="The uDALES Team" >
+    <link rel="icon" href="../favicon.png">
+
+    <title>stats_define_pedestrian_wind &ndash; uDALES</title>
+
+    <!-- Bootstrap -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet"
+          integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"
+            integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
+    <!-- Font Awesome -->
+    <link href="../css/fontawesome.min.css" rel="stylesheet">
+    <link href="../css/brands.min.css" rel="stylesheet">
+    <link href="../css/regular.min.css" rel="stylesheet">
+    <link href="../css/solid.min.css" rel="stylesheet">
+    <link href="../css/v4-font-face.min.css" rel="stylesheet">
+    <link href="../css/v4-shims.min.css" rel="stylesheet">
+    <!-- MathJax -->
+    <script type="text/x-mathjax-config">
+      MathJax.Hub.Config({
+        TeX: { equationNumbers: { autoNumber: "AMS" } }
+      });
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/mathjax@2.7.9/MathJax.js?config=TeX-AMS-MML_HTMLorMML" async
+            integrity="sha256-DViIOMYdwlM/axqoGDPeUyf0urLoHMN4QACBKyB58Uw=" crossorigin="anonymous"></script>
+    <!-- Other scripts and stylesheets -->
+    <link href="../css/local.css" rel="stylesheet">
+    <link href="../css/pygments.css" rel="stylesheet">
+    <script src="../js/svg-pan-zoom.min.js"></script>
+  </head>
+
+  <body>
+
+    <!-- Fixed navbar -->
+    <div class="container-fluid mb-sm-4 mb-xl-2">
+      <nav class="navbar navbar-expand-lg navbar-dark bg-dark fixed-top">
+        <div class="container">
+          <a class="navbar-brand" href="../index.html">uDALES </a>
+          <button type="button" class="navbar-toggler" data-bs-toggle="collapse" data-bs-target="#navbar"
+                  aria-expanded="false" aria-controls="navbar" aria-label="Toggle navigation">
+                  <span class="navbar-toggler-icon">
+          </button>
+
+          <div id="navbar" class="navbar-collapse collapse">
+            <ul class="navbar-nav">
+                  <li class="nav-item">
+                    <a class="nav-link" href="../lists/files.html">Source Files</a>
+                  </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="../lists/modules.html">Modules</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="../lists/procedures.html">Procedures</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="../lists/absint.html">Abstract Interfaces</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="../lists/types.html">Derived Types</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="../lists/namelists.html">Namelists</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="../program/udales.html">Program</a>
+                </li>
+            </ul>
+              <div class="d-flex align-items-end flex-grow-1">
+                <form action="../search.html" role="search" class="ms-auto">
+                  <input type="text" class="form-control" aria-label="Search" placeholder="Search" name="q" id="tipue_search_input" autocomplete="off" required>
+                </form>
+              </div>
+          </div><!--/.nav-collapse -->
+        </div>
+      </nav>
+    </div>
+
+    <div class="container">
+  <div class="row">
+    <h1>stats_define_pedestrian_wind
+      <small>Subroutine</small>
+      
+    </h1>
+      <div class="container p-2 mb-4 bg-light border rounded-3">
+    <div class="row align-items-center justify-content-between" id="info-bar">
+      <div class="col">
+        <ul class="list-inline" style="margin-bottom:0px;display:inline">
+
+            <li class="list-inline-item" id="statements"><i class="fa fa-list-ol"></i>
+              <a data-bs-toggle="tooltip" data-bs-placement="bottom" data-bs-html="true"
+                 title=" 0.1% of total for procedures.">11 statements</a>
+            </li>
+
+            <li class="list-inline-item" id="source-file">
+              <i class="fa fa-code"></i>
+              <a href="../src/out_stats.f90"> Source File</a>
+            </li>
+        </ul>
+      </div>
+      <div class="col">
+        <nav aria-label="breadcrumb">
+          <ol class="breadcrumb justify-content-end mb-0">
+                <li class="breadcrumb-item"><a href='../sourcefile/out_stats.f90.html'>out_stats.f90</a></li>
+                <li class="breadcrumb-item"><a href='../module/stats.html'>stats</a></li>
+            <li class="breadcrumb-item active" aria-current="page">stats_define_pedestrian_wind</li>
+          </ol>
+        </nav>
+      </div>
+    </div>
+  </div>
+  <script>
+    // Enable Bootstrap tooltips
+    (function () {
+      const tooltipTriggerList = document.querySelectorAll('[data-bs-toggle="tooltip"]')
+      const tooltipList = [...tooltipTriggerList].map(tooltipTriggerEl => new bootstrap.Tooltip(tooltipTriggerEl))
+    })();
+  </script>
+
+  </div>
+  
+  <div class="row">
+    <div class="col-md-3 hidden-xs hidden-sm visible-md visible-lg">
+      <div id="sidebar">
+      <h3>Contents</h3>
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+    <div class="card card-primary">
+      <div class="card-header text-left"><h3 class="card-title">Source Code</h3></div>
+      <div class="list-group">
+        <a class="list-group-item" href="../proc/stats_define_pedestrian_wind.html#src">stats_define_pedestrian_wind</a>
+      </div>
+    </div>
+
+
+  </div>
+
+    </div>
+    
+    <div class="col-md-9" id='text'>
+    <h2>private  subroutine stats_define_pedestrian_wind(ncid)  
+</h2>
+    
+
+
+
+    <h3>Arguments</h3>
+        <table class="table table-striped varlist">
+    <thead>
+      <tr>
+        <th scope="col">Type</th>
+<th scope="col">Intent</th><th scope="col">Optional</th>        <th scope="col">Attributes</th>
+        <th scope="col"></th>
+        <th scope="col">Name</th>
+        <th scope="col"></th>
+    </thead>
+    <tbody>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-ncid~5"></span>
+              integer,
+            </td>
+<td>intent(in)</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>ncid</strong></td>
+            <td>
+                
+            </td>
+        </tr>
+    </tbody>
+  </table>
+
+    <br>
+    <div class="card">
+      <div class="card-header">
+  <h3 class="card-title">Calls</h3>
+      </div>
+      <div class="card-body">
+  <div class="depgraph"><?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
+ "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<!-- Generated by graphviz version 14.1.3 (0)
+ -->
+<!-- Title: proc~~stats_define_pedestrian_wind~~CallsGraph Pages: 1 -->
+<svg id="procstats_define_pedestrian_windCallsGraph" width="641pt" height="486pt"
+ viewBox="0.00 0.00 641.00 486.00" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<g id="proc~~stats_define_pedestrian_wind~~CallsGraph" class="graph" transform="scale(0.907187 0.907187) rotate(0) translate(4 532.27)">
+<title>proc~~stats_define_pedestrian_wind~~CallsGraph</title>
+<polygon fill="white" stroke="none" points="-4,4 -4,-532.27 702.58,-532.27 702.58,4 -4,4"/>
+<!-- proc~stats_define_pedestrian_wind -->
+<g id="proc~~stats_define_pedestrian_wind~~CallsGraph_node1" class="node">
+<title>proc~stats_define_pedestrian_wind</title>
+<polygon fill="none" stroke="black" points="167.52,-276.27 0,-276.27 0,-252 167.52,-252 167.52,-276.27"/>
+<text xml:space="preserve" text-anchor="middle" x="83.76" y="-260.53" font-family="Helvetica,sans-Serif" font-size="10.50">stats_define_pedestrian_wind</text>
+</g>
+<!-- proc~define_nc -->
+<g id="proc~~stats_define_pedestrian_wind~~CallsGraph_node2" class="node">
+<title>proc~define_nc</title>
+<g id="a_proc~~stats_define_pedestrian_wind~~CallsGraph_node2"><a xlink:href="../proc/define_nc.html" xlink:title="define_nc">
+<polygon fill="#d9534f" stroke="#d9534f" points="337.67,-360.27 274.4,-360.27 274.4,-336 337.67,-336 337.67,-360.27"/>
+<text xml:space="preserve" text-anchor="middle" x="306.03" y="-344.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">define_nc</text>
+</a>
+</g>
+</g>
+<!-- proc~stats_define_pedestrian_wind&#45;&gt;proc~define_nc -->
+<g id="proc~~stats_define_pedestrian_wind~~CallsGraph_edge1" class="edge">
+<title>proc~stats_define_pedestrian_wind&#45;&gt;proc~define_nc</title>
+<path fill="none" stroke="#ff0000" d="M117.74,-276.71C156.6,-291.53 221.22,-316.17 263.47,-332.29"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="261.96,-335.46 272.55,-335.75 264.46,-328.92 261.96,-335.46"/>
+</g>
+<!-- proc~write_pedestrian_wind_heights_nc -->
+<g id="proc~~stats_define_pedestrian_wind~~CallsGraph_node3" class="node">
+<title>proc~write_pedestrian_wind_heights_nc</title>
+<g id="a_proc~~stats_define_pedestrian_wind~~CallsGraph_node3"><a xlink:href="../proc/write_pedestrian_wind_heights_nc.html" xlink:title="write_pedestrian_wind_heights_nc">
+<polygon fill="#d9534f" stroke="#d9534f" points="402.17,-276.27 209.9,-276.27 209.9,-252 402.17,-252 402.17,-276.27"/>
+<text xml:space="preserve" text-anchor="middle" x="306.03" y="-260.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">write_pedestrian_wind_heights_nc</text>
+</a>
+</g>
+</g>
+<!-- proc~stats_define_pedestrian_wind&#45;&gt;proc~write_pedestrian_wind_heights_nc -->
+<g id="proc~~stats_define_pedestrian_wind~~CallsGraph_edge2" class="edge">
+<title>proc~stats_define_pedestrian_wind&#45;&gt;proc~write_pedestrian_wind_heights_nc</title>
+<path fill="none" stroke="#ff0000" d="M167.72,-264.13C177.64,-264.13 187.88,-264.13 198.08,-264.13"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="198.05,-267.64 208.05,-264.14 198.05,-260.64 198.05,-267.64"/>
+</g>
+<!-- proc~write_pedestrian_wind_metadata_nc -->
+<g id="proc~~stats_define_pedestrian_wind~~CallsGraph_node4" class="node">
+<title>proc~write_pedestrian_wind_metadata_nc</title>
+<g id="a_proc~~stats_define_pedestrian_wind~~CallsGraph_node4"><a xlink:href="../proc/write_pedestrian_wind_metadata_nc.html" xlink:title="write_pedestrian_wind_metadata_nc">
+<polygon fill="#d9534f" stroke="#d9534f" points="408.54,-234.27 203.52,-234.27 203.52,-210 408.54,-210 408.54,-234.27"/>
+<text xml:space="preserve" text-anchor="middle" x="306.03" y="-218.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">write_pedestrian_wind_metadata_nc</text>
+</a>
+</g>
+</g>
+<!-- proc~stats_define_pedestrian_wind&#45;&gt;proc~write_pedestrian_wind_metadata_nc -->
+<g id="proc~~stats_define_pedestrian_wind~~CallsGraph_edge3" class="edge">
+<title>proc~stats_define_pedestrian_wind&#45;&gt;proc~write_pedestrian_wind_metadata_nc</title>
+<path fill="none" stroke="#ff0000" d="M150.85,-251.53C175.13,-246.9 202.84,-241.62 228,-236.82"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="228.33,-240.32 237.5,-235.01 227.02,-233.45 228.33,-240.32"/>
+</g>
+<!-- nf90_def_var -->
+<g id="proc~~stats_define_pedestrian_wind~~CallsGraph_node6" class="node">
+<title>nf90_def_var</title>
+<polygon fill="#777777" stroke="#777777" points="553.94,-276.27 473.42,-276.27 473.42,-252 553.94,-252 553.94,-276.27"/>
+<text xml:space="preserve" text-anchor="middle" x="513.68" y="-260.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">nf90_def_var</text>
+</g>
+<!-- proc~define_nc&#45;&gt;nf90_def_var -->
+<g id="proc~~stats_define_pedestrian_wind~~CallsGraph_edge4" class="edge">
+<title>proc~define_nc&#45;&gt;nf90_def_var</title>
+<path fill="none" stroke="#ff0000" d="M331.95,-335.52C359.18,-322.02 404.3,-300.48 444.54,-285.13 450.25,-282.96 456.29,-280.84 462.33,-278.84"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="463.21,-282.23 471.66,-275.84 461.07,-275.56 463.21,-282.23"/>
+</g>
+<!-- nf90_enddef -->
+<g id="proc~~stats_define_pedestrian_wind~~CallsGraph_node7" class="node">
+<title>nf90_enddef</title>
+<polygon fill="#777777" stroke="#777777" points="552.81,-234.27 474.54,-234.27 474.54,-210 552.81,-210 552.81,-234.27"/>
+<text xml:space="preserve" text-anchor="middle" x="513.68" y="-218.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">nf90_enddef</text>
+</g>
+<!-- proc~define_nc&#45;&gt;nf90_enddef -->
+<g id="proc~~stats_define_pedestrian_wind~~CallsGraph_edge5" class="edge">
+<title>proc~define_nc&#45;&gt;nf90_enddef</title>
+<path fill="none" stroke="#ff0000" d="M331.83,-335.55C353.31,-324.02 384.61,-305.66 408.54,-285.13 427.2,-269.13 423.98,-256.62 444.54,-243.13 450.38,-239.3 456.96,-236.14 463.66,-233.54"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="464.48,-236.96 472.79,-230.39 462.19,-230.34 464.48,-236.96"/>
+</g>
+<!-- nf90_inq_dimid -->
+<g id="proc~~stats_define_pedestrian_wind~~CallsGraph_node9" class="node">
+<title>nf90_inq_dimid</title>
+<polygon fill="#777777" stroke="#777777" points="559.94,-528.27 467.42,-528.27 467.42,-504 559.94,-504 559.94,-528.27"/>
+<text xml:space="preserve" text-anchor="middle" x="513.68" y="-512.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">nf90_inq_dimid</text>
+</g>
+<!-- proc~define_nc&#45;&gt;nf90_inq_dimid -->
+<g id="proc~~stats_define_pedestrian_wind~~CallsGraph_edge6" class="edge">
+<title>proc~define_nc&#45;&gt;nf90_inq_dimid</title>
+<path fill="none" stroke="#ff0000" d="M315.1,-360.42C334.18,-388.51 384.98,-457.89 444.54,-495.13 448.33,-497.5 452.4,-499.62 456.61,-501.51"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="455.25,-504.74 465.83,-505.2 457.84,-498.24 455.25,-504.74"/>
+</g>
+<!-- nf90_inq_varid -->
+<g id="proc~~stats_define_pedestrian_wind~~CallsGraph_node10" class="node">
+<title>nf90_inq_varid</title>
+<polygon fill="#777777" stroke="#777777" points="558.44,-192.27 468.92,-192.27 468.92,-168 558.44,-168 558.44,-192.27"/>
+<text xml:space="preserve" text-anchor="middle" x="513.68" y="-176.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">nf90_inq_varid</text>
+</g>
+<!-- proc~define_nc&#45;&gt;nf90_inq_varid -->
+<g id="proc~~stats_define_pedestrian_wind~~CallsGraph_edge7" class="edge">
+<title>proc~define_nc&#45;&gt;nf90_inq_varid</title>
+<path fill="none" stroke="#ff0000" d="M337.14,-335.52C359.38,-324.89 389.07,-307.78 408.54,-285.13 435.02,-254.34 414.34,-228.3 444.54,-201.13 448.58,-197.5 453.25,-194.49 458.2,-192.01"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="459.4,-195.29 467.26,-188.19 456.69,-188.84 459.4,-195.29"/>
+</g>
+<!-- nf90_put_att -->
+<g id="proc~~stats_define_pedestrian_wind~~CallsGraph_node13" class="node">
+<title>nf90_put_att</title>
+<polygon fill="#777777" stroke="#777777" points="552.44,-486.27 474.92,-486.27 474.92,-462 552.44,-462 552.44,-486.27"/>
+<text xml:space="preserve" text-anchor="middle" x="513.68" y="-470.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">nf90_put_att</text>
+</g>
+<!-- proc~define_nc&#45;&gt;nf90_put_att -->
+<g id="proc~~stats_define_pedestrian_wind~~CallsGraph_edge8" class="edge">
+<title>proc~define_nc&#45;&gt;nf90_put_att</title>
+<path fill="none" stroke="#ff0000" d="M319.99,-360.61C343.17,-382.3 394.07,-427.14 444.54,-453.13 450.68,-456.3 457.38,-459.08 464.1,-461.49"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="462.58,-464.67 473.17,-464.51 464.79,-458.03 462.58,-464.67"/>
+</g>
+<!-- nf90_redef -->
+<g id="proc~~stats_define_pedestrian_wind~~CallsGraph_node15" class="node">
+<title>nf90_redef</title>
+<polygon fill="#777777" stroke="#777777" points="547.94,-444.27 479.42,-444.27 479.42,-420 547.94,-420 547.94,-444.27"/>
+<text xml:space="preserve" text-anchor="middle" x="513.68" y="-428.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">nf90_redef</text>
+</g>
+<!-- proc~define_nc&#45;&gt;nf90_redef -->
+<g id="proc~~stats_define_pedestrian_wind~~CallsGraph_edge9" class="edge">
+<title>proc~define_nc&#45;&gt;nf90_redef</title>
+<path fill="none" stroke="#ff0000" d="M331.95,-360.75C359.18,-374.25 404.3,-395.79 444.54,-411.13 452.09,-414.01 460.21,-416.79 468.13,-419.33"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="467.08,-422.66 477.66,-422.29 469.16,-415.98 467.08,-422.66"/>
+</g>
+<!-- proc~nchandle_error -->
+<g id="proc~~stats_define_pedestrian_wind~~CallsGraph_node17" class="node">
+<title>proc~nchandle_error</title>
+<g id="a_proc~~stats_define_pedestrian_wind~~CallsGraph_node17"><a xlink:href="../proc/nchandle_error.html" xlink:title="nchandle_error">
+<polygon fill="#d9534f" stroke="#d9534f" points="559.94,-402.27 467.42,-402.27 467.42,-378 559.94,-378 559.94,-402.27"/>
+<text xml:space="preserve" text-anchor="middle" x="513.68" y="-386.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">nchandle_error</text>
+</a>
+</g>
+</g>
+<!-- proc~define_nc&#45;&gt;proc~nchandle_error -->
+<g id="proc~~stats_define_pedestrian_wind~~CallsGraph_edge10" class="edge">
+<title>proc~define_nc&#45;&gt;proc~nchandle_error</title>
+<path fill="none" stroke="#ff0000" d="M337.82,-354.42C369.02,-360.8 418.02,-370.8 456.22,-378.6"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="455.2,-381.97 465.7,-380.54 456.6,-375.11 455.2,-381.97"/>
+</g>
+<!-- nf90_def_dim -->
+<g id="proc~~stats_define_pedestrian_wind~~CallsGraph_node5" class="node">
+<title>nf90_def_dim</title>
+<polygon fill="#777777" stroke="#777777" points="555.44,-360.27 471.92,-360.27 471.92,-336 555.44,-336 555.44,-360.27"/>
+<text xml:space="preserve" text-anchor="middle" x="513.68" y="-344.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">nf90_def_dim</text>
+</g>
+<!-- proc~write_pedestrian_wind_heights_nc&#45;&gt;nf90_def_dim -->
+<g id="proc~~stats_define_pedestrian_wind~~CallsGraph_edge11" class="edge">
+<title>proc~write_pedestrian_wind_heights_nc&#45;&gt;nf90_def_dim</title>
+<path fill="none" stroke="#00ff00" d="M331.95,-276.75C359.18,-290.25 404.3,-311.79 444.54,-327.13 449.83,-329.15 455.4,-331.12 460.98,-332.98"/>
+<polygon fill="#00ff00" stroke="#00ff00" points="459.63,-336.23 470.23,-335.98 461.79,-329.57 459.63,-336.23"/>
+</g>
+<!-- proc~write_pedestrian_wind_heights_nc&#45;&gt;nf90_def_var -->
+<g id="proc~~stats_define_pedestrian_wind~~CallsGraph_edge12" class="edge">
+<title>proc~write_pedestrian_wind_heights_nc&#45;&gt;nf90_def_var</title>
+<path fill="none" stroke="#00ff00" d="M402.63,-264.13C423.02,-264.13 443.79,-264.13 461.72,-264.13"/>
+<polygon fill="#00ff00" stroke="#00ff00" points="461.54,-267.64 471.54,-264.14 461.54,-260.64 461.54,-267.64"/>
+</g>
+<!-- proc~write_pedestrian_wind_heights_nc&#45;&gt;nf90_enddef -->
+<g id="proc~~stats_define_pedestrian_wind~~CallsGraph_edge13" class="edge">
+<title>proc~write_pedestrian_wind_heights_nc&#45;&gt;nf90_enddef</title>
+<path fill="none" stroke="#00ff00" d="M368.73,-251.53C398.89,-245.37 434.69,-238.06 463.05,-232.27"/>
+<polygon fill="#00ff00" stroke="#00ff00" points="463.73,-235.7 472.82,-230.27 462.33,-228.85 463.73,-235.7"/>
+</g>
+<!-- nf90_get_var -->
+<g id="proc~~stats_define_pedestrian_wind~~CallsGraph_node8" class="node">
+<title>nf90_get_var</title>
+<polygon fill="#777777" stroke="#777777" points="553.94,-108.27 473.42,-108.27 473.42,-84 553.94,-84 553.94,-108.27"/>
+<text xml:space="preserve" text-anchor="middle" x="513.68" y="-92.54" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">nf90_get_var</text>
+</g>
+<!-- proc~write_pedestrian_wind_heights_nc&#45;&gt;nf90_get_var -->
+<g id="proc~~stats_define_pedestrian_wind~~CallsGraph_edge14" class="edge">
+<title>proc~write_pedestrian_wind_heights_nc&#45;&gt;nf90_get_var</title>
+<path fill="none" stroke="#00ff00" d="M396.84,-251.72C401.04,-249.28 404.98,-246.44 408.54,-243.13 451.22,-203.51 403.79,-158.74 444.54,-117.14 449.54,-112.03 455.75,-108.16 462.38,-105.22"/>
+<polygon fill="#00ff00" stroke="#00ff00" points="463.39,-108.58 471.58,-101.86 460.99,-102 463.39,-108.58"/>
+</g>
+<!-- proc~write_pedestrian_wind_heights_nc&#45;&gt;nf90_inq_dimid -->
+<g id="proc~~stats_define_pedestrian_wind~~CallsGraph_edge15" class="edge">
+<title>proc~write_pedestrian_wind_heights_nc&#45;&gt;nf90_inq_dimid</title>
+<path fill="none" stroke="#00ff00" d="M340.37,-276.59C363.04,-286.77 391.83,-303.39 408.54,-327.13 452.49,-389.58 392.97,-438.82 444.54,-495.13 448.02,-498.93 452.17,-502.05 456.68,-504.61"/>
+<polygon fill="#00ff00" stroke="#00ff00" points="455.08,-507.73 465.63,-508.74 458.01,-501.37 455.08,-507.73"/>
+</g>
+<!-- proc~write_pedestrian_wind_heights_nc&#45;&gt;nf90_inq_varid -->
+<g id="proc~~stats_define_pedestrian_wind~~CallsGraph_edge16" class="edge">
+<title>proc~write_pedestrian_wind_heights_nc&#45;&gt;nf90_inq_varid</title>
+<path fill="none" stroke="#00ff00" d="M390.72,-251.56C396.94,-249.21 402.96,-246.43 408.54,-243.13 429.71,-230.64 423.98,-214.62 444.54,-201.13 448.73,-198.39 453.3,-195.98 458.02,-193.88"/>
+<polygon fill="#00ff00" stroke="#00ff00" points="459.08,-197.23 467.1,-190.31 456.51,-190.71 459.08,-197.23"/>
+</g>
+<!-- nf90_inquire_dimension -->
+<g id="proc~~stats_define_pedestrian_wind~~CallsGraph_node11" class="node">
+<title>nf90_inquire_dimension</title>
+<polygon fill="#777777" stroke="#777777" points="582.81,-318.27 444.54,-318.27 444.54,-294 582.81,-294 582.81,-318.27"/>
+<text xml:space="preserve" text-anchor="middle" x="513.68" y="-302.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">nf90_inquire_dimension</text>
+</g>
+<!-- proc~write_pedestrian_wind_heights_nc&#45;&gt;nf90_inquire_dimension -->
+<g id="proc~~stats_define_pedestrian_wind~~CallsGraph_edge17" class="edge">
+<title>proc~write_pedestrian_wind_heights_nc&#45;&gt;nf90_inquire_dimension</title>
+<path fill="none" stroke="#00ff00" d="M368.73,-276.74C391.1,-281.3 416.57,-286.51 439.81,-291.25"/>
+<polygon fill="#00ff00" stroke="#00ff00" points="439.04,-294.67 449.54,-293.24 440.44,-287.81 439.04,-294.67"/>
+</g>
+<!-- nf90_inquire_variable -->
+<g id="proc~~stats_define_pedestrian_wind~~CallsGraph_node12" class="node">
+<title>nf90_inquire_variable</title>
+<polygon fill="#777777" stroke="#777777" points="576.81,-66.27 450.54,-66.27 450.54,-42 576.81,-42 576.81,-66.27"/>
+<text xml:space="preserve" text-anchor="middle" x="513.68" y="-50.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">nf90_inquire_variable</text>
+</g>
+<!-- proc~write_pedestrian_wind_heights_nc&#45;&gt;nf90_inquire_variable -->
+<g id="proc~~stats_define_pedestrian_wind~~CallsGraph_edge18" class="edge">
+<title>proc~write_pedestrian_wind_heights_nc&#45;&gt;nf90_inquire_variable</title>
+<path fill="none" stroke="#00ff00" d="M397.57,-251.72C401.53,-249.28 405.22,-246.43 408.54,-243.13 462.73,-189.33 392.97,-131.45 444.54,-75.14 445.01,-74.62 445.49,-74.12 445.99,-73.63"/>
+<polygon fill="#00ff00" stroke="#00ff00" points="447.93,-76.55 453.68,-67.65 443.63,-71.03 447.93,-76.55"/>
+</g>
+<!-- proc~write_pedestrian_wind_heights_nc&#45;&gt;nf90_put_att -->
+<g id="proc~~stats_define_pedestrian_wind~~CallsGraph_edge19" class="edge">
+<title>proc~write_pedestrian_wind_heights_nc&#45;&gt;nf90_put_att</title>
+<path fill="none" stroke="#00ff00" d="M339.41,-276.72C361.91,-287.06 390.92,-303.8 408.54,-327.13 443.64,-373.61 403.79,-411.53 444.54,-453.13 449.89,-458.6 456.63,-462.65 463.78,-465.65"/>
+<polygon fill="#00ff00" stroke="#00ff00" points="462.4,-468.88 473,-468.84 464.69,-462.26 462.4,-468.88"/>
+</g>
+<!-- nf90_put_var -->
+<g id="proc~~stats_define_pedestrian_wind~~CallsGraph_node14" class="node">
+<title>nf90_put_var</title>
+<polygon fill="#777777" stroke="#777777" points="553.94,-24.27 473.42,-24.27 473.42,0 553.94,0 553.94,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="513.68" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">nf90_put_var</text>
+</g>
+<!-- proc~write_pedestrian_wind_heights_nc&#45;&gt;nf90_put_var -->
+<g id="proc~~stats_define_pedestrian_wind~~CallsGraph_edge20" class="edge">
+<title>proc~write_pedestrian_wind_heights_nc&#45;&gt;nf90_put_var</title>
+<path fill="none" stroke="#00ff00" d="M398.19,-251.6C401.93,-249.17 405.41,-246.37 408.54,-243.13 474.34,-175.04 382.04,-104.28 444.54,-33.13 449.48,-27.51 455.89,-23.37 462.79,-20.33"/>
+<polygon fill="#00ff00" stroke="#00ff00" points="463.5,-23.8 471.73,-17.13 461.14,-17.21 463.5,-23.8"/>
+</g>
+<!-- proc~write_pedestrian_wind_heights_nc&#45;&gt;nf90_redef -->
+<g id="proc~~stats_define_pedestrian_wind~~CallsGraph_edge21" class="edge">
+<title>proc~write_pedestrian_wind_heights_nc&#45;&gt;nf90_redef</title>
+<path fill="none" stroke="#00ff00" d="M337.14,-276.75C359.38,-287.38 389.07,-304.49 408.54,-327.13 435.02,-357.93 414.34,-383.97 444.54,-411.13 451.27,-417.19 459.71,-421.5 468.35,-424.56"/>
+<polygon fill="#00ff00" stroke="#00ff00" points="467.23,-427.88 477.81,-427.39 469.23,-421.17 467.23,-427.88"/>
+</g>
+<!-- nf90_sync -->
+<g id="proc~~stats_define_pedestrian_wind~~CallsGraph_node16" class="node">
+<title>nf90_sync</title>
+<polygon fill="#777777" stroke="#777777" points="546.06,-150.27 481.29,-150.27 481.29,-126 546.06,-126 546.06,-150.27"/>
+<text xml:space="preserve" text-anchor="middle" x="513.68" y="-134.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">nf90_sync</text>
+</g>
+<!-- proc~write_pedestrian_wind_heights_nc&#45;&gt;nf90_sync -->
+<g id="proc~~stats_define_pedestrian_wind~~CallsGraph_edge22" class="edge">
+<title>proc~write_pedestrian_wind_heights_nc&#45;&gt;nf90_sync</title>
+<path fill="none" stroke="#00ff00" d="M395.39,-251.67C400.07,-249.26 404.5,-246.44 408.54,-243.13 440,-217.44 414.34,-186.3 444.54,-159.13 451.75,-152.65 460.93,-148.17 470.2,-145.07"/>
+<polygon fill="#00ff00" stroke="#00ff00" points="470.87,-148.52 479.54,-142.44 468.97,-141.78 470.87,-148.52"/>
+</g>
+<!-- proc~write_pedestrian_wind_heights_nc&#45;&gt;proc~nchandle_error -->
+<g id="proc~~stats_define_pedestrian_wind~~CallsGraph_edge23" class="edge">
+<title>proc~write_pedestrian_wind_heights_nc&#45;&gt;proc~nchandle_error</title>
+<path fill="none" stroke="#00ff00" d="M331.83,-276.72C353.31,-288.25 384.61,-306.61 408.54,-327.13 427.2,-343.14 423.98,-355.65 444.54,-369.13 448.28,-371.59 452.31,-373.76 456.49,-375.69"/>
+<polygon fill="#00ff00" stroke="#00ff00" points="455.1,-378.91 465.68,-379.44 457.74,-372.42 455.1,-378.91"/>
+</g>
+<!-- proc~write_pedestrian_wind_metadata_nc&#45;&gt;nf90_def_var -->
+<g id="proc~~stats_define_pedestrian_wind~~CallsGraph_edge24" class="edge">
+<title>proc~write_pedestrian_wind_metadata_nc&#45;&gt;nf90_def_var</title>
+<path fill="none" stroke="#0000ff" d="M368.73,-234.74C398.47,-240.81 433.7,-248.01 461.87,-253.76"/>
+<polygon fill="#0000ff" stroke="#0000ff" points="461.09,-257.17 471.59,-255.74 462.49,-250.31 461.09,-257.17"/>
+</g>
+<!-- proc~write_pedestrian_wind_metadata_nc&#45;&gt;nf90_enddef -->
+<g id="proc~~stats_define_pedestrian_wind~~CallsGraph_edge25" class="edge">
+<title>proc~write_pedestrian_wind_metadata_nc&#45;&gt;nf90_enddef</title>
+<path fill="none" stroke="#0000ff" d="M408.95,-222.13C427.64,-222.13 446.37,-222.13 462.67,-222.13"/>
+<polygon fill="#0000ff" stroke="#0000ff" points="462.57,-225.64 472.57,-222.14 462.57,-218.64 462.57,-225.64"/>
+</g>
+<!-- proc~write_pedestrian_wind_metadata_nc&#45;&gt;nf90_get_var -->
+<g id="proc~~stats_define_pedestrian_wind~~CallsGraph_edge26" class="edge">
+<title>proc~write_pedestrian_wind_metadata_nc&#45;&gt;nf90_get_var</title>
+<path fill="none" stroke="#0000ff" d="M319.99,-209.66C343.17,-187.97 394.07,-143.13 444.54,-117.14 450.25,-114.19 456.45,-111.58 462.69,-109.29"/>
+<polygon fill="#0000ff" stroke="#0000ff" points="463.41,-112.74 471.75,-106.21 461.16,-106.11 463.41,-112.74"/>
+</g>
+<!-- proc~write_pedestrian_wind_metadata_nc&#45;&gt;nf90_inq_varid -->
+<g id="proc~~stats_define_pedestrian_wind~~CallsGraph_edge27" class="edge">
+<title>proc~write_pedestrian_wind_metadata_nc&#45;&gt;nf90_inq_varid</title>
+<path fill="none" stroke="#0000ff" d="M368.73,-209.53C397.01,-203.76 430.27,-196.97 457.68,-191.37"/>
+<polygon fill="#0000ff" stroke="#0000ff" points="458.07,-194.86 467.17,-189.43 456.67,-188 458.07,-194.86"/>
+</g>
+<!-- proc~write_pedestrian_wind_metadata_nc&#45;&gt;nf90_inquire_variable -->
+<g id="proc~~stats_define_pedestrian_wind~~CallsGraph_edge28" class="edge">
+<title>proc~write_pedestrian_wind_metadata_nc&#45;&gt;nf90_inquire_variable</title>
+<path fill="none" stroke="#0000ff" d="M315.1,-209.85C334.18,-181.76 384.98,-112.38 444.54,-75.14 446.67,-73.8 448.89,-72.55 451.18,-71.37"/>
+<polygon fill="#0000ff" stroke="#0000ff" points="452.48,-74.62 460.14,-67.3 449.59,-68.25 452.48,-74.62"/>
+</g>
+<!-- proc~write_pedestrian_wind_metadata_nc&#45;&gt;nf90_put_att -->
+<g id="proc~~stats_define_pedestrian_wind~~CallsGraph_edge29" class="edge">
+<title>proc~write_pedestrian_wind_metadata_nc&#45;&gt;nf90_put_att</title>
+<path fill="none" stroke="#0000ff" d="M398.19,-234.67C401.93,-237.1 405.41,-239.9 408.54,-243.13 474.34,-311.23 382.04,-381.99 444.54,-453.13 449.7,-459.01 456.46,-463.26 463.72,-466.34"/>
+<polygon fill="#0000ff" stroke="#0000ff" points="462.55,-469.64 473.15,-469.56 464.82,-463.01 462.55,-469.64"/>
+</g>
+<!-- proc~write_pedestrian_wind_metadata_nc&#45;&gt;nf90_put_var -->
+<g id="proc~~stats_define_pedestrian_wind~~CallsGraph_edge30" class="edge">
+<title>proc~write_pedestrian_wind_metadata_nc&#45;&gt;nf90_put_var</title>
+<path fill="none" stroke="#0000ff" d="M312.48,-209.87C328.01,-176.3 375.87,-82.2 444.54,-33.13 449.96,-29.26 456.11,-26.09 462.45,-23.49"/>
+<polygon fill="#0000ff" stroke="#0000ff" points="463.53,-26.83 471.77,-20.16 461.17,-20.23 463.53,-26.83"/>
+</g>
+<!-- proc~write_pedestrian_wind_metadata_nc&#45;&gt;nf90_redef -->
+<g id="proc~~stats_define_pedestrian_wind~~CallsGraph_edge31" class="edge">
+<title>proc~write_pedestrian_wind_metadata_nc&#45;&gt;nf90_redef</title>
+<path fill="none" stroke="#0000ff" d="M397.57,-234.55C401.53,-236.99 405.22,-239.84 408.54,-243.13 462.73,-296.94 392.97,-354.82 444.54,-411.13 450.84,-418.01 459.33,-422.66 468.19,-425.8"/>
+<polygon fill="#0000ff" stroke="#0000ff" points="467.01,-429.1 477.58,-428.5 468.94,-422.37 467.01,-429.1"/>
+</g>
+<!-- proc~write_pedestrian_wind_metadata_nc&#45;&gt;nf90_sync -->
+<g id="proc~~stats_define_pedestrian_wind~~CallsGraph_edge32" class="edge">
+<title>proc~write_pedestrian_wind_metadata_nc&#45;&gt;nf90_sync</title>
+<path fill="none" stroke="#0000ff" d="M331.95,-209.52C359.18,-196.02 404.3,-174.48 444.54,-159.13 452.66,-156.04 461.46,-153.06 469.94,-150.37"/>
+<polygon fill="#0000ff" stroke="#0000ff" points="470.86,-153.75 479.39,-147.46 468.8,-147.06 470.86,-153.75"/>
+</g>
+<!-- proc~write_pedestrian_wind_metadata_nc&#45;&gt;proc~nchandle_error -->
+<g id="proc~~stats_define_pedestrian_wind~~CallsGraph_edge33" class="edge">
+<title>proc~write_pedestrian_wind_metadata_nc&#45;&gt;proc~nchandle_error</title>
+<path fill="none" stroke="#0000ff" d="M396.84,-234.55C401.04,-236.99 404.98,-239.83 408.54,-243.13 451.22,-282.76 403.79,-327.53 444.54,-369.13 448.1,-372.76 452.26,-375.77 456.75,-378.26"/>
+<polygon fill="#0000ff" stroke="#0000ff" points="455.06,-381.33 465.61,-382.29 457.96,-374.96 455.06,-381.33"/>
+</g>
+<!-- nf90_strerror -->
+<g id="proc~~stats_define_pedestrian_wind~~CallsGraph_node18" class="node">
+<title>nf90_strerror</title>
+<polygon fill="#777777" stroke="#777777" points="698.58,-402.27 618.81,-402.27 618.81,-378 698.58,-378 698.58,-402.27"/>
+<text xml:space="preserve" text-anchor="middle" x="658.7" y="-386.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">nf90_strerror</text>
+</g>
+<!-- proc~nchandle_error&#45;&gt;nf90_strerror -->
+<g id="proc~~stats_define_pedestrian_wind~~CallsGraph_edge34" class="edge">
+<title>proc~nchandle_error&#45;&gt;nf90_strerror</title>
+<path fill="none" stroke="#ff0075" d="M560.32,-390.13C575.3,-390.13 592.04,-390.13 607.35,-390.13"/>
+<polygon fill="#ff0075" stroke="#ff0075" points="607.21,-393.64 617.21,-390.14 607.21,-386.64 607.21,-393.64"/>
+</g>
+</g>
+</svg>
+</div>                <script>
+                  var panprocstats_define_pedestrian_windCallsGraph = svgPanZoom('#procstats_define_pedestrian_windCallsGraph',
+                    {zoomEnabled: true, controlIconsEnabled: true, fit: true, center: true,}
+                  );
+                </script>          <div>
+            <a type="button" class="graph-help" data-bs-toggle="modal" href="#CallsGraph-help-text">Help</a>
+          </div>
+          <div class="modal fade" id="CallsGraph-help-text" tabindex="-1" role="dialog">
+            <div class="modal-dialog modal-lg" role="document">
+              <div class="modal-content">
+                <div class="modal-header">
+                  <h4 class="modal-title" id="-graph-help-label">Graph Key</h4>
+                  <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+<p>Nodes of different colours represent the following: </p>
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
+ "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<!-- Generated by graphviz version 14.1.3 (0)
+ -->
+<!-- Title: Graph Key Pages: 1 -->
+<svg width="641pt" height="28pt"
+ viewBox="0.00 0.00 641.00 28.00" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<g id="graph0" class="graph" transform="scale(0.873868 0.873868) rotate(0) translate(4 28.27)">
+<title>Graph Key</title>
+<polygon fill="white" stroke="none" points="-4,4 -4,-28.27 729.52,-28.27 729.52,4 -4,4"/>
+<!-- Subroutine -->
+<g id="node1" class="node">
+<title>Subroutine</title>
+<polygon fill="#d9534f" stroke="#d9534f" points="69.27,-24.27 0,-24.27 0,0 69.27,0 69.27,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="34.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Subroutine</text>
+</g>
+<!-- Function -->
+<g id="node2" class="node">
+<title>Function</title>
+<polygon fill="#d94e8f" stroke="#d94e8f" points="143.89,-24.27 87.38,-24.27 87.38,0 143.89,0 143.89,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="115.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Function</text>
+</g>
+<!-- Interface -->
+<g id="node3" class="node">
+<title>Interface</title>
+<polygon fill="#a7506f" stroke="#a7506f" points="221.39,-24.27 161.88,-24.27 161.88,0 221.39,0 221.39,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="191.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Interface</text>
+</g>
+<!-- Type Bound Procedure -->
+<g id="node4" class="node">
+<title>Type Bound Procedure</title>
+<polygon fill="#a7506f" stroke="#a7506f" points="368.27,-24.27 239,-24.27 239,0 368.27,0 368.27,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="303.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Type Bound Procedure</text>
+</g>
+<!-- Unknown Procedure Type -->
+<g id="node5" class="node">
+<title>Unknown Procedure Type</title>
+<polygon fill="#777777" stroke="#777777" points="529.39,-24.27 385.88,-24.27 385.88,0 529.39,0 529.39,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="457.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Unknown Procedure Type</text>
+</g>
+<!-- Program -->
+<g id="node6" class="node">
+<title>Program</title>
+<polygon fill="#f0ad4e" stroke="#f0ad4e" points="603.89,-24.27 547.38,-24.27 547.38,0 603.89,0 603.89,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="575.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Program</text>
+</g>
+<!-- This Page&#39;s Entity -->
+<g id="node7" class="node">
+<title>This Page&#39;s Entity</title>
+<polygon fill="none" stroke="black" points="725.52,-24.27 621.75,-24.27 621.75,0 725.52,0 725.52,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="673.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50">This Page&#39;s Entity</text>
+</g>
+</g>
+</svg>
+
+<p>Solid arrows point from a procedure to one which it calls. Dashed 
+arrows point from an interface to procedures which implement that interface.
+This could include the module procedures in a generic interface or the
+implementation in a submodule of an interface in a parent module.
+</p>
+ Where possible, edges connecting nodes are
+given different colours to make them easier to distinguish in
+large graphs.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-header">
+  <h3 class="card-title">Called by</h3>
+      </div>
+      <div class="card-body">
+  <div class="depgraph"><?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
+ "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<!-- Generated by graphviz version 14.1.3 (0)
+ -->
+<!-- Title: proc~~stats_define_pedestrian_wind~~CalledByGraph Pages: 1 -->
+<svg id="procstats_define_pedestrian_windCalledByGraph" width="641pt" height="73pt"
+ viewBox="0.00 0.00 641.00 73.00" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<g id="proc~~stats_define_pedestrian_wind~~CalledByGraph" class="graph" transform="scale(0.983385 0.983385) rotate(0) translate(4 70.27)">
+<title>proc~~stats_define_pedestrian_wind~~CalledByGraph</title>
+<polygon fill="white" stroke="none" points="-4,4 -4,-70.27 647.83,-70.27 647.83,4 -4,4"/>
+<!-- proc~stats_define_pedestrian_wind -->
+<g id="proc~~stats_define_pedestrian_wind~~CalledByGraph_node1" class="node">
+<title>proc~stats_define_pedestrian_wind</title>
+<polygon fill="none" stroke="black" points="643.83,-45.27 476.31,-45.27 476.31,-21 643.83,-21 643.83,-45.27"/>
+<text xml:space="preserve" text-anchor="middle" x="560.07" y="-29.53" font-family="Helvetica,sans-Serif" font-size="10.50">stats_define_pedestrian_wind</text>
+</g>
+<!-- proc~stats_createnc_tavg -->
+<g id="proc~~stats_define_pedestrian_wind~~CalledByGraph_node2" class="node">
+<title>proc~stats_createnc_tavg</title>
+<g id="a_proc~~stats_define_pedestrian_wind~~CalledByGraph_node2"><a xlink:href="../proc/stats_createnc_tavg.html" xlink:title="stats_createnc_tavg">
+<polygon fill="#d9534f" stroke="#d9534f" points="435.06,-66.27 318.54,-66.27 318.54,-42 435.06,-42 435.06,-66.27"/>
+<text xml:space="preserve" text-anchor="middle" x="376.8" y="-50.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">stats_createnc_tavg</text>
+</a>
+</g>
+</g>
+<!-- proc~stats_createnc_tavg&#45;&gt;proc~stats_define_pedestrian_wind -->
+<g id="proc~~stats_define_pedestrian_wind~~CalledByGraph_edge1" class="edge">
+<title>proc~stats_createnc_tavg&#45;&gt;proc~stats_define_pedestrian_wind</title>
+<path fill="none" stroke="#ff0000" d="M435.15,-47.49C444.58,-46.4 454.55,-45.24 464.59,-44.08"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="464.89,-47.57 474.43,-42.94 464.09,-40.62 464.89,-47.57"/>
+</g>
+<!-- proc~stats_createnc_tkslice -->
+<g id="proc~~stats_define_pedestrian_wind~~CalledByGraph_node3" class="node">
+<title>proc~stats_createnc_tkslice</title>
+<g id="a_proc~~stats_define_pedestrian_wind~~CalledByGraph_node3"><a xlink:href="../proc/stats_createnc_tkslice.html" xlink:title="stats_createnc_tkslice">
+<polygon fill="#d9534f" stroke="#d9534f" points="440.31,-24.27 313.29,-24.27 313.29,0 440.31,0 440.31,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="376.8" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">stats_createnc_tkslice</text>
+</a>
+</g>
+</g>
+<!-- proc~stats_createnc_tkslice&#45;&gt;proc~stats_define_pedestrian_wind -->
+<g id="proc~~stats_define_pedestrian_wind~~CalledByGraph_edge2" class="edge">
+<title>proc~stats_createnc_tkslice&#45;&gt;proc~stats_define_pedestrian_wind</title>
+<path fill="none" stroke="#ff0000" d="M440.69,-19.42C448.41,-20.31 456.42,-21.24 464.47,-22.18"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="464.02,-25.65 474.35,-23.32 464.82,-18.69 464.02,-25.65"/>
+</g>
+<!-- proc~stats_prepare -->
+<g id="proc~~stats_define_pedestrian_wind~~CalledByGraph_node4" class="node">
+<title>proc~stats_prepare</title>
+<g id="a_proc~~stats_define_pedestrian_wind~~CalledByGraph_node4"><a xlink:href="../proc/stats_prepare.html" xlink:title="stats_prepare">
+<polygon fill="#d9534f" stroke="#d9534f" points="277.29,-45.27 194.52,-45.27 194.52,-21 277.29,-21 277.29,-45.27"/>
+<text xml:space="preserve" text-anchor="middle" x="235.9" y="-29.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">stats_prepare</text>
+</a>
+</g>
+</g>
+<!-- proc~stats_prepare&#45;&gt;proc~stats_createnc_tavg -->
+<g id="proc~~stats_define_pedestrian_wind~~CalledByGraph_edge3" class="edge">
+<title>proc~stats_prepare&#45;&gt;proc~stats_createnc_tavg</title>
+<path fill="none" stroke="#ff0000" d="M277.45,-39.27C286.7,-40.66 296.79,-42.19 306.85,-43.71"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="306.26,-47.16 316.67,-45.2 307.31,-40.24 306.26,-47.16"/>
+</g>
+<!-- proc~stats_prepare&#45;&gt;proc~stats_createnc_tkslice -->
+<g id="proc~~stats_define_pedestrian_wind~~CalledByGraph_edge4" class="edge">
+<title>proc~stats_prepare&#45;&gt;proc~stats_createnc_tkslice</title>
+<path fill="none" stroke="#00ffff" d="M277.45,-27C285.1,-25.85 293.33,-24.6 301.64,-23.35"/>
+<polygon fill="#00ffff" stroke="#00ffff" points="302.12,-26.81 311.49,-21.86 301.08,-19.89 302.12,-26.81"/>
+</g>
+<!-- proc~stats_main -->
+<g id="proc~~stats_define_pedestrian_wind~~CalledByGraph_node5" class="node">
+<title>proc~stats_main</title>
+<g id="a_proc~~stats_define_pedestrian_wind~~CalledByGraph_node5"><a xlink:href="../proc/stats_main.html" xlink:title="stats_main">
+<polygon fill="#d9534f" stroke="#d9534f" points="158.52,-45.27 90,-45.27 90,-21 158.52,-21 158.52,-45.27"/>
+<text xml:space="preserve" text-anchor="middle" x="124.26" y="-29.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">stats_main</text>
+</a>
+</g>
+</g>
+<!-- proc~stats_main&#45;&gt;proc~stats_prepare -->
+<g id="proc~~stats_define_pedestrian_wind~~CalledByGraph_edge5" class="edge">
+<title>proc~stats_main&#45;&gt;proc~stats_prepare</title>
+<path fill="none" stroke="#ff0000" d="M158.75,-33.13C166.37,-33.13 174.64,-33.13 182.83,-33.13"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="182.76,-36.64 192.76,-33.14 182.76,-29.64 182.76,-36.64"/>
+</g>
+<!-- program~udales -->
+<g id="proc~~stats_define_pedestrian_wind~~CalledByGraph_node6" class="node">
+<title>program~udales</title>
+<g id="a_proc~~stats_define_pedestrian_wind~~CalledByGraph_node6"><a xlink:href="../program/udales.html" xlink:title="uDALES">
+<polygon fill="#f0ad4e" stroke="#f0ad4e" points="54,-45.27 0,-45.27 0,-21 54,-21 54,-45.27"/>
+<text xml:space="preserve" text-anchor="middle" x="27" y="-29.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">uDALES</text>
+</a>
+</g>
+</g>
+<!-- program~udales&#45;&gt;proc~stats_main -->
+<g id="proc~~stats_define_pedestrian_wind~~CalledByGraph_edge6" class="edge">
+<title>program~udales&#45;&gt;proc~stats_main</title>
+<path fill="none" stroke="#ff0000" d="M54.28,-33.13C61.69,-33.13 69.97,-33.13 78.16,-33.13"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="78.04,-36.64 88.04,-33.14 78.04,-29.64 78.04,-36.64"/>
+</g>
+</g>
+</svg>
+</div>                <script>
+                  var panprocstats_define_pedestrian_windCalledByGraph = svgPanZoom('#procstats_define_pedestrian_windCalledByGraph',
+                    {zoomEnabled: true, controlIconsEnabled: true, fit: true, center: true,}
+                  );
+                </script>          <div>
+            <a type="button" class="graph-help" data-bs-toggle="modal" href="#CalledByGraph-help-text">Help</a>
+          </div>
+          <div class="modal fade" id="CalledByGraph-help-text" tabindex="-1" role="dialog">
+            <div class="modal-dialog modal-lg" role="document">
+              <div class="modal-content">
+                <div class="modal-header">
+                  <h4 class="modal-title" id="-graph-help-label">Graph Key</h4>
+                  <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+<p>Nodes of different colours represent the following: </p>
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
+ "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<!-- Generated by graphviz version 14.1.3 (0)
+ -->
+<!-- Title: Graph Key Pages: 1 -->
+<svg width="641pt" height="28pt"
+ viewBox="0.00 0.00 641.00 28.00" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<g id="graph0" class="graph" transform="scale(0.873868 0.873868) rotate(0) translate(4 28.27)">
+<title>Graph Key</title>
+<polygon fill="white" stroke="none" points="-4,4 -4,-28.27 729.52,-28.27 729.52,4 -4,4"/>
+<!-- Subroutine -->
+<g id="node1" class="node">
+<title>Subroutine</title>
+<polygon fill="#d9534f" stroke="#d9534f" points="69.27,-24.27 0,-24.27 0,0 69.27,0 69.27,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="34.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Subroutine</text>
+</g>
+<!-- Function -->
+<g id="node2" class="node">
+<title>Function</title>
+<polygon fill="#d94e8f" stroke="#d94e8f" points="143.89,-24.27 87.38,-24.27 87.38,0 143.89,0 143.89,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="115.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Function</text>
+</g>
+<!-- Interface -->
+<g id="node3" class="node">
+<title>Interface</title>
+<polygon fill="#a7506f" stroke="#a7506f" points="221.39,-24.27 161.88,-24.27 161.88,0 221.39,0 221.39,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="191.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Interface</text>
+</g>
+<!-- Type Bound Procedure -->
+<g id="node4" class="node">
+<title>Type Bound Procedure</title>
+<polygon fill="#a7506f" stroke="#a7506f" points="368.27,-24.27 239,-24.27 239,0 368.27,0 368.27,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="303.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Type Bound Procedure</text>
+</g>
+<!-- Unknown Procedure Type -->
+<g id="node5" class="node">
+<title>Unknown Procedure Type</title>
+<polygon fill="#777777" stroke="#777777" points="529.39,-24.27 385.88,-24.27 385.88,0 529.39,0 529.39,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="457.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Unknown Procedure Type</text>
+</g>
+<!-- Program -->
+<g id="node6" class="node">
+<title>Program</title>
+<polygon fill="#f0ad4e" stroke="#f0ad4e" points="603.89,-24.27 547.38,-24.27 547.38,0 603.89,0 603.89,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="575.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Program</text>
+</g>
+<!-- This Page&#39;s Entity -->
+<g id="node7" class="node">
+<title>This Page&#39;s Entity</title>
+<polygon fill="none" stroke="black" points="725.52,-24.27 621.75,-24.27 621.75,0 725.52,0 725.52,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="673.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50">This Page&#39;s Entity</text>
+</g>
+</g>
+</svg>
+
+<p>Solid arrows point from a procedure to one which it calls. Dashed 
+arrows point from an interface to procedures which implement that interface.
+This could include the module procedures in a generic interface or the
+implementation in a submodule of an interface in a parent module.
+</p>
+ Where possible, edges connecting nodes are
+given different colours to make them easier to distinguish in
+large graphs.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <br>
+
+
+    
+    
+
+    
+    
+
+
+
+    
+    <section>
+    <h2><span class="anchor" id="src"></span>Source Code</h2>
+    <div class="hl codehilite"><pre><span></span><span class="w">    </span><span class="k">subroutine </span><span class="n">stats_define_pedestrian_wind</span><span class="p">(</span><span class="n">ncid</span><span class="p">)</span>
+<span class="w">      </span><span class="k">implicit none</span>
+<span class="k">      </span><span class="kt">integer</span><span class="p">,</span><span class="w"> </span><span class="k">intent</span><span class="p">(</span><span class="n">in</span><span class="p">)</span><span class="w"> </span><span class="kd">::</span><span class="w"> </span><span class="n">ncid</span>
+
+<span class="w">      </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">size</span><span class="p">(</span><span class="n">wind_heights</span><span class="p">)</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="mi">1</span><span class="p">)</span><span class="w"> </span><span class="k">then</span>
+<span class="k">        call </span><span class="n">define_nc</span><span class="p">(</span><span class="n">ncid</span><span class="p">,</span><span class="w"> </span><span class="n">size</span><span class="p">(</span><span class="n">pedestrianWindVars</span><span class="p">,</span><span class="mi">1</span><span class="p">),</span><span class="w"> </span><span class="n">pedestrianWindVars</span><span class="p">)</span>
+<span class="w">        </span><span class="k">call </span><span class="n">write_pedestrian_wind_metadata_nc</span><span class="p">(</span><span class="n">ncid</span><span class="p">,</span><span class="w"> </span><span class="n">wind_heights</span><span class="p">(</span><span class="mi">1</span><span class="p">))</span>
+<span class="w">      </span><span class="k">else</span>
+<span class="k">        call </span><span class="n">define_nc</span><span class="p">(</span><span class="n">ncid</span><span class="p">,</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="n">pedestrianWindVars</span><span class="p">(</span><span class="mi">2</span><span class="p">:</span><span class="mi">2</span><span class="p">,:))</span>
+<span class="w">        </span><span class="k">call </span><span class="n">write_pedestrian_wind_heights_nc</span><span class="p">(</span><span class="n">ncid</span><span class="p">,</span><span class="w"> </span><span class="n">wind_heights</span><span class="p">)</span>
+<span class="w">      </span><span class="k">end if</span>
+<span class="k">    end subroutine </span><span class="n">stats_define_pedestrian_wind</span>
+</pre></div>
+
+    </section>
+    <br>
+    
+    </div>
+  </div>
+
+      <hr>
+    </div> <!-- /container -->
+    <footer>
+      <div class="container">
+        <div class="row justify-content-between">
+          <div class="col">
+            <p>
+              uDALES
+ was developed by The uDALES Team<br>              &copy; 2026 
+</p>
+          </div>
+          <div class="col">
+            <p class="text-end">
+              Documentation generated by
+              <a href="https://github.com/Fortran-FOSS-Programmers/ford">FORD</a>
+ on 2026-11-27 14:34 +0000             </p>
+          </div>
+        </div>
+        <br>
+      </div> <!-- /container -->
+    </footer>
+  </body>
+</html>

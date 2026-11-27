@@ -1,0 +1,838 @@
+<!-- -*- mode: jinja2 -*- -->
+
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+      <meta name="description" content="API documentation of the Fortran source code of uDALES, the open-source multi-physics large-eddy simulation model for urban environments.">
+    <meta name="author" content="The uDALES Team" >
+    <link rel="icon" href="../favicon.png">
+
+    <title>instant_create_nckslice &ndash; uDALES</title>
+
+    <!-- Bootstrap -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet"
+          integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"
+            integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
+    <!-- Font Awesome -->
+    <link href="../css/fontawesome.min.css" rel="stylesheet">
+    <link href="../css/brands.min.css" rel="stylesheet">
+    <link href="../css/regular.min.css" rel="stylesheet">
+    <link href="../css/solid.min.css" rel="stylesheet">
+    <link href="../css/v4-font-face.min.css" rel="stylesheet">
+    <link href="../css/v4-shims.min.css" rel="stylesheet">
+    <!-- MathJax -->
+    <script type="text/x-mathjax-config">
+      MathJax.Hub.Config({
+        TeX: { equationNumbers: { autoNumber: "AMS" } }
+      });
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/mathjax@2.7.9/MathJax.js?config=TeX-AMS-MML_HTMLorMML" async
+            integrity="sha256-DViIOMYdwlM/axqoGDPeUyf0urLoHMN4QACBKyB58Uw=" crossorigin="anonymous"></script>
+    <!-- Other scripts and stylesheets -->
+    <link href="../css/local.css" rel="stylesheet">
+    <link href="../css/pygments.css" rel="stylesheet">
+    <script src="../js/svg-pan-zoom.min.js"></script>
+  </head>
+
+  <body>
+
+    <!-- Fixed navbar -->
+    <div class="container-fluid mb-sm-4 mb-xl-2">
+      <nav class="navbar navbar-expand-lg navbar-dark bg-dark fixed-top">
+        <div class="container">
+          <a class="navbar-brand" href="../index.html">uDALES </a>
+          <button type="button" class="navbar-toggler" data-bs-toggle="collapse" data-bs-target="#navbar"
+                  aria-expanded="false" aria-controls="navbar" aria-label="Toggle navigation">
+                  <span class="navbar-toggler-icon">
+          </button>
+
+          <div id="navbar" class="navbar-collapse collapse">
+            <ul class="navbar-nav">
+                  <li class="nav-item">
+                    <a class="nav-link" href="../lists/files.html">Source Files</a>
+                  </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="../lists/modules.html">Modules</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="../lists/procedures.html">Procedures</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="../lists/absint.html">Abstract Interfaces</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="../lists/types.html">Derived Types</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="../lists/namelists.html">Namelists</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="../program/udales.html">Program</a>
+                </li>
+            </ul>
+              <div class="d-flex align-items-end flex-grow-1">
+                <form action="../search.html" role="search" class="ms-auto">
+                  <input type="text" class="form-control" aria-label="Search" placeholder="Search" name="q" id="tipue_search_input" autocomplete="off" required>
+                </form>
+              </div>
+          </div><!--/.nav-collapse -->
+        </div>
+      </nav>
+    </div>
+
+    <div class="container">
+  <div class="row">
+    <h1>instant_create_nckslice
+      <small>Subroutine</small>
+      
+    </h1>
+      <div class="container p-2 mb-4 bg-light border rounded-3">
+    <div class="row align-items-center justify-content-between" id="info-bar">
+      <div class="col">
+        <ul class="list-inline" style="margin-bottom:0px;display:inline">
+
+            <li class="list-inline-item" id="statements"><i class="fa fa-list-ol"></i>
+              <a data-bs-toggle="tooltip" data-bs-placement="bottom" data-bs-html="true"
+                 title=" 0.1% of total for procedures.">16 statements</a>
+            </li>
+
+            <li class="list-inline-item" id="source-file">
+              <i class="fa fa-code"></i>
+              <a href="../src/out_instants.f90"> Source File</a>
+            </li>
+        </ul>
+      </div>
+      <div class="col">
+        <nav aria-label="breadcrumb">
+          <ol class="breadcrumb justify-content-end mb-0">
+                <li class="breadcrumb-item"><a href='../sourcefile/out_instants.f90.html'>out_instants.f90</a></li>
+                <li class="breadcrumb-item"><a href='../module/instant.html'>instant</a></li>
+            <li class="breadcrumb-item active" aria-current="page">instant_create_nckslice</li>
+          </ol>
+        </nav>
+      </div>
+    </div>
+  </div>
+  <script>
+    // Enable Bootstrap tooltips
+    (function () {
+      const tooltipTriggerList = document.querySelectorAll('[data-bs-toggle="tooltip"]')
+      const tooltipList = [...tooltipTriggerList].map(tooltipTriggerEl => new bootstrap.Tooltip(tooltipTriggerEl))
+    })();
+  </script>
+
+  </div>
+  
+  <div class="row">
+    <div class="col-md-3 hidden-xs hidden-sm visible-md visible-lg">
+      <div id="sidebar">
+      <h3>Contents</h3>
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+    <div class="card card-primary">
+      <div class="card-header text-left"><h3 class="card-title">Source Code</h3></div>
+      <div class="list-group">
+        <a class="list-group-item" href="../proc/instant_create_nckslice.html#src">instant_create_nckslice</a>
+      </div>
+    </div>
+
+
+  </div>
+
+    </div>
+    
+    <div class="col-md-9" id='text'>
+    <h2>private  subroutine instant_create_nckslice()  
+</h2>
+    
+
+
+
+    <h3>Arguments</h3>
+    <em>None</em>
+    <br>
+    <br>
+    <div class="card">
+      <div class="card-header">
+  <h3 class="card-title">Calls</h3>
+      </div>
+      <div class="card-body">
+  <div class="depgraph"><?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
+ "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<!-- Generated by graphviz version 14.1.3 (0)
+ -->
+<!-- Title: proc~~instant_create_nckslice~~CallsGraph Pages: 1 -->
+<svg id="procinstant_create_ncksliceCallsGraph" width="624pt" height="620pt"
+ viewBox="0.00 0.00 624.00 620.00" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<g id="proc~~instant_create_nckslice~~CallsGraph" class="graph" transform="scale(1 1) rotate(0) translate(4 616.27)">
+<title>proc~~instant_create_nckslice~~CallsGraph</title>
+<polygon fill="white" stroke="none" points="-4,4 -4,-616.27 620.08,-616.27 620.08,4 -4,4"/>
+<!-- proc~instant_create_nckslice -->
+<g id="proc~~instant_create_nckslice~~CallsGraph_node1" class="node">
+<title>proc~instant_create_nckslice</title>
+<polygon fill="none" stroke="black" points="134.52,-443.27 0,-443.27 0,-419 134.52,-419 134.52,-443.27"/>
+<text xml:space="preserve" text-anchor="middle" x="67.26" y="-427.53" font-family="Helvetica,sans-Serif" font-size="10.50">instant_create_nckslice</text>
+</g>
+<!-- proc~define_nc -->
+<g id="proc~~instant_create_nckslice~~CallsGraph_node2" class="node">
+<title>proc~define_nc</title>
+<g id="a_proc~~instant_create_nckslice~~CallsGraph_node2"><a xlink:href="../proc/define_nc.html" xlink:title="define_nc">
+<polygon fill="#d9534f" stroke="#d9534f" points="279.92,-412.27 216.65,-412.27 216.65,-388 279.92,-388 279.92,-412.27"/>
+<text xml:space="preserve" text-anchor="middle" x="248.28" y="-396.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">define_nc</text>
+</a>
+</g>
+</g>
+<!-- proc~instant_create_nckslice&#45;&gt;proc~define_nc -->
+<g id="proc~~instant_create_nckslice~~CallsGraph_edge1" class="edge">
+<title>proc~instant_create_nckslice&#45;&gt;proc~define_nc</title>
+<path fill="none" stroke="#ff0000" d="M134.92,-419.59C158.57,-415.5 184.51,-411 205.5,-407.37"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="205.85,-410.86 215.11,-405.71 204.66,-403.96 205.85,-410.86"/>
+</g>
+<!-- proc~instant_write_kslice_zcoord -->
+<g id="proc~~instant_create_nckslice~~CallsGraph_node3" class="node">
+<title>proc~instant_write_kslice_zcoord</title>
+<g id="a_proc~~instant_create_nckslice~~CallsGraph_node3"><a xlink:href="../proc/instant_write_kslice_zcoord.html" xlink:title="instant_write_kslice_zcoord">
+<polygon fill="#d9534f" stroke="#d9534f" points="326.04,-475.27 170.52,-475.27 170.52,-451 326.04,-451 326.04,-475.27"/>
+<text xml:space="preserve" text-anchor="middle" x="248.28" y="-459.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">instant_write_kslice_zcoord</text>
+</a>
+</g>
+</g>
+<!-- proc~instant_create_nckslice&#45;&gt;proc~instant_write_kslice_zcoord -->
+<g id="proc~~instant_create_nckslice~~CallsGraph_edge2" class="edge">
+<title>proc~instant_create_nckslice&#45;&gt;proc~instant_write_kslice_zcoord</title>
+<path fill="none" stroke="#ff0000" d="M134.92,-443.05C144.92,-444.84 155.33,-446.7 165.6,-448.54"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="164.72,-451.93 175.18,-450.25 165.95,-445.04 164.72,-451.93"/>
+</g>
+<!-- proc~open_nc -->
+<g id="proc~~instant_create_nckslice~~CallsGraph_node4" class="node">
+<title>proc~open_nc</title>
+<g id="a_proc~~instant_create_nckslice~~CallsGraph_node4"><a xlink:href="../proc/open_nc.html" xlink:title="open_nc">
+<polygon fill="#d9534f" stroke="#d9534f" points="276.54,-276.27 220.02,-276.27 220.02,-252 276.54,-252 276.54,-276.27"/>
+<text xml:space="preserve" text-anchor="middle" x="248.28" y="-260.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">open_nc</text>
+</a>
+</g>
+</g>
+<!-- proc~instant_create_nckslice&#45;&gt;proc~open_nc -->
+<g id="proc~~instant_create_nckslice~~CallsGraph_edge3" class="edge">
+<title>proc~instant_create_nckslice&#45;&gt;proc~open_nc</title>
+<path fill="none" stroke="#ff0000" d="M81.72,-418.58C112.58,-389.79 188.68,-318.8 225.98,-284.01"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="228.12,-286.79 233.05,-277.41 223.35,-281.67 228.12,-286.79"/>
+</g>
+<!-- proc~writestat_dims_nc -->
+<g id="proc~~instant_create_nckslice~~CallsGraph_node5" class="node">
+<title>proc~writestat_dims_nc</title>
+<g id="a_proc~~instant_create_nckslice~~CallsGraph_node5"><a xlink:href="../proc/writestat_dims_nc.html" xlink:title="writestat_dims_nc">
+<polygon fill="#d9534f" stroke="#d9534f" points="301.29,-549.27 195.27,-549.27 195.27,-525 301.29,-525 301.29,-549.27"/>
+<text xml:space="preserve" text-anchor="middle" x="248.28" y="-533.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">writestat_dims_nc</text>
+</a>
+</g>
+</g>
+<!-- proc~instant_create_nckslice&#45;&gt;proc~writestat_dims_nc -->
+<g id="proc~~instant_create_nckslice~~CallsGraph_edge4" class="edge">
+<title>proc~instant_create_nckslice&#45;&gt;proc~writestat_dims_nc</title>
+<path fill="none" stroke="#ff0000" d="M89.5,-443.71C120.99,-462.36 180.25,-497.44 216.5,-518.91"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="214.38,-521.72 224.77,-523.8 217.94,-515.7 214.38,-521.72"/>
+</g>
+<!-- nf90_def_var -->
+<g id="proc~~instant_create_nckslice~~CallsGraph_node8" class="node">
+<title>nf90_def_var</title>
+<polygon fill="#777777" stroke="#777777" points="471.44,-276.27 390.92,-276.27 390.92,-252 471.44,-252 471.44,-276.27"/>
+<text xml:space="preserve" text-anchor="middle" x="431.18" y="-260.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">nf90_def_var</text>
+</g>
+<!-- proc~define_nc&#45;&gt;nf90_def_var -->
+<g id="proc~~instant_create_nckslice~~CallsGraph_edge5" class="edge">
+<title>proc~define_nc&#45;&gt;nf90_def_var</title>
+<path fill="none" stroke="#ff0000" d="M258.03,-387.77C275.27,-364.32 315.95,-313.21 362.04,-285.13 367.59,-281.75 373.74,-278.87 379.99,-276.43"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="380.84,-279.85 389.12,-273.23 378.52,-273.24 380.84,-279.85"/>
+</g>
+<!-- nf90_enddef -->
+<g id="proc~~instant_create_nckslice~~CallsGraph_node9" class="node">
+<title>nf90_enddef</title>
+<polygon fill="#777777" stroke="#777777" points="470.31,-444.27 392.04,-444.27 392.04,-420 470.31,-420 470.31,-444.27"/>
+<text xml:space="preserve" text-anchor="middle" x="431.18" y="-428.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">nf90_enddef</text>
+</g>
+<!-- proc~define_nc&#45;&gt;nf90_enddef -->
+<g id="proc~~instant_create_nckslice~~CallsGraph_edge6" class="edge">
+<title>proc~define_nc&#45;&gt;nf90_enddef</title>
+<path fill="none" stroke="#ff0000" d="M280.38,-405.64C307.94,-410.51 348.66,-417.72 380.69,-423.38"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="379.68,-426.76 390.14,-425.05 380.9,-419.86 379.68,-426.76"/>
+</g>
+<!-- nf90_inq_dimid -->
+<g id="proc~~instant_create_nckslice~~CallsGraph_node11" class="node">
+<title>nf90_inq_dimid</title>
+<polygon fill="#777777" stroke="#777777" points="477.44,-318.27 384.92,-318.27 384.92,-294 477.44,-294 477.44,-318.27"/>
+<text xml:space="preserve" text-anchor="middle" x="431.18" y="-302.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">nf90_inq_dimid</text>
+</g>
+<!-- proc~define_nc&#45;&gt;nf90_inq_dimid -->
+<g id="proc~~instant_create_nckslice~~CallsGraph_edge7" class="edge">
+<title>proc~define_nc&#45;&gt;nf90_inq_dimid</title>
+<path fill="none" stroke="#ff0000" d="M265.26,-387.75C286.39,-371.86 325.27,-344.3 362.04,-327.13 365.79,-325.38 369.73,-323.73 373.74,-322.18"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="374.79,-325.52 383.01,-318.83 372.42,-318.94 374.79,-325.52"/>
+</g>
+<!-- nf90_inq_varid -->
+<g id="proc~~instant_create_nckslice~~CallsGraph_node12" class="node">
+<title>nf90_inq_varid</title>
+<polygon fill="#777777" stroke="#777777" points="475.94,-528.27 386.42,-528.27 386.42,-504 475.94,-504 475.94,-528.27"/>
+<text xml:space="preserve" text-anchor="middle" x="431.18" y="-512.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">nf90_inq_varid</text>
+</g>
+<!-- proc~define_nc&#45;&gt;nf90_inq_varid -->
+<g id="proc~~instant_create_nckslice~~CallsGraph_edge8" class="edge">
+<title>proc~define_nc&#45;&gt;nf90_inq_varid</title>
+<path fill="none" stroke="#ff0000" d="M279.83,-412.72C294.84,-419.88 312.55,-429.88 326.04,-442.13 347.12,-461.28 339.14,-478.21 362.04,-495.13 366.13,-498.16 370.65,-500.75 375.37,-502.97"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="373.94,-506.17 384.53,-506.7 376.59,-499.68 373.94,-506.17"/>
+</g>
+<!-- nf90_put_att -->
+<g id="proc~~instant_create_nckslice~~CallsGraph_node16" class="node">
+<title>nf90_put_att</title>
+<polygon fill="#777777" stroke="#777777" points="469.94,-360.27 392.42,-360.27 392.42,-336 469.94,-336 469.94,-360.27"/>
+<text xml:space="preserve" text-anchor="middle" x="431.18" y="-344.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">nf90_put_att</text>
+</g>
+<!-- proc~define_nc&#45;&gt;nf90_put_att -->
+<g id="proc~~instant_create_nckslice~~CallsGraph_edge9" class="edge">
+<title>proc~define_nc&#45;&gt;nf90_put_att</title>
+<path fill="none" stroke="#ff0000" d="M280.38,-391.2C308.03,-383.25 348.93,-371.49 381.01,-362.27"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="381.85,-365.67 390.5,-359.54 379.92,-358.94 381.85,-365.67"/>
+</g>
+<!-- nf90_redef -->
+<g id="proc~~instant_create_nckslice~~CallsGraph_node18" class="node">
+<title>nf90_redef</title>
+<polygon fill="#777777" stroke="#777777" points="465.44,-486.27 396.92,-486.27 396.92,-462 465.44,-462 465.44,-486.27"/>
+<text xml:space="preserve" text-anchor="middle" x="431.18" y="-470.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">nf90_redef</text>
+</g>
+<!-- proc~define_nc&#45;&gt;nf90_redef -->
+<g id="proc~~instant_create_nckslice~~CallsGraph_edge10" class="edge">
+<title>proc~define_nc&#45;&gt;nf90_redef</title>
+<path fill="none" stroke="#ff0000" d="M273.48,-412.73C296.03,-424.16 330.77,-441.04 362.04,-453.13 369.57,-456.05 377.69,-458.84 385.61,-461.39"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="384.55,-464.72 395.14,-464.35 386.63,-458.04 384.55,-464.72"/>
+</g>
+<!-- proc~nchandle_error -->
+<g id="proc~~instant_create_nckslice~~CallsGraph_node20" class="node">
+<title>proc~nchandle_error</title>
+<g id="a_proc~~instant_create_nckslice~~CallsGraph_node20"><a xlink:href="../proc/nchandle_error.html" xlink:title="nchandle_error">
+<polygon fill="#d9534f" stroke="#d9534f" points="477.44,-402.27 384.92,-402.27 384.92,-378 477.44,-378 477.44,-402.27"/>
+<text xml:space="preserve" text-anchor="middle" x="431.18" y="-386.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">nchandle_error</text>
+</a>
+</g>
+</g>
+<!-- proc~define_nc&#45;&gt;proc~nchandle_error -->
+<g id="proc~~instant_create_nckslice~~CallsGraph_edge11" class="edge">
+<title>proc~define_nc&#45;&gt;proc~nchandle_error</title>
+<path fill="none" stroke="#ff0000" d="M280.38,-398.42C305.82,-397.01 342.47,-394.98 373.15,-393.29"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="373.28,-396.79 383.07,-392.74 372.89,-389.8 373.28,-396.79"/>
+</g>
+<!-- proc~instant_write_kslice_zcoord&#45;&gt;nf90_enddef -->
+<g id="proc~~instant_create_nckslice~~CallsGraph_edge12" class="edge">
+<title>proc~instant_write_kslice_zcoord&#45;&gt;nf90_enddef</title>
+<path fill="none" stroke="#7fff00" d="M322.86,-450.53C342.27,-447.2 362.77,-443.69 380.58,-440.63"/>
+<polygon fill="#7fff00" stroke="#7fff00" points="381.11,-444.09 390.38,-438.96 379.93,-437.19 381.11,-444.09"/>
+</g>
+<!-- proc~instant_write_kslice_zcoord&#45;&gt;nf90_inq_varid -->
+<g id="proc~~instant_create_nckslice~~CallsGraph_edge13" class="edge">
+<title>proc~instant_write_kslice_zcoord&#45;&gt;nf90_inq_varid</title>
+<path fill="none" stroke="#7fff00" d="M292.15,-475.7C317.4,-483.09 349.57,-492.52 376.5,-500.41"/>
+<polygon fill="#7fff00" stroke="#7fff00" points="375.27,-503.69 385.85,-503.15 377.24,-496.98 375.27,-503.69"/>
+</g>
+<!-- proc~instant_write_kslice_zcoord&#45;&gt;nf90_put_att -->
+<g id="proc~~instant_create_nckslice~~CallsGraph_edge14" class="edge">
+<title>proc~instant_write_kslice_zcoord&#45;&gt;nf90_put_att</title>
+<path fill="none" stroke="#7fff00" d="M279.41,-450.67C294.48,-443.49 312.38,-433.43 326.04,-421.13 346.93,-402.33 339.36,-385.74 362.04,-369.13 367.81,-364.91 374.44,-361.52 381.25,-358.81"/>
+<polygon fill="#7fff00" stroke="#7fff00" points="382.28,-362.16 390.58,-355.58 379.99,-355.55 382.28,-362.16"/>
+</g>
+<!-- nf90_put_var -->
+<g id="proc~~instant_create_nckslice~~CallsGraph_node17" class="node">
+<title>nf90_put_var</title>
+<polygon fill="#777777" stroke="#777777" points="471.44,-612.27 390.92,-612.27 390.92,-588 471.44,-588 471.44,-612.27"/>
+<text xml:space="preserve" text-anchor="middle" x="431.18" y="-596.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">nf90_put_var</text>
+</g>
+<!-- proc~instant_write_kslice_zcoord&#45;&gt;nf90_put_var -->
+<g id="proc~~instant_create_nckslice~~CallsGraph_edge15" class="edge">
+<title>proc~instant_write_kslice_zcoord&#45;&gt;nf90_put_var</title>
+<path fill="none" stroke="#7fff00" d="M272.83,-475.63C289.19,-485.15 310.71,-499.44 326.04,-516.13 347.85,-539.89 336.87,-558.97 362.04,-579.13 367.3,-583.35 373.41,-586.72 379.76,-589.42"/>
+<polygon fill="#7fff00" stroke="#7fff00" points="378.56,-592.71 389.16,-592.83 380.95,-586.13 378.56,-592.71"/>
+</g>
+<!-- proc~instant_write_kslice_zcoord&#45;&gt;nf90_redef -->
+<g id="proc~~instant_create_nckslice~~CallsGraph_edge16" class="edge">
+<title>proc~instant_write_kslice_zcoord&#45;&gt;nf90_redef</title>
+<path fill="none" stroke="#7fff00" d="M326.52,-467.83C346.59,-469.05 367.55,-470.33 385.32,-471.41"/>
+<polygon fill="#7fff00" stroke="#7fff00" points="385.08,-474.9 395.27,-472.01 385.51,-467.91 385.08,-474.9"/>
+</g>
+<!-- nf90_create -->
+<g id="proc~~instant_create_nckslice~~CallsGraph_node6" class="node">
+<title>nf90_create</title>
+<polygon fill="#777777" stroke="#777777" points="468.44,-108.27 393.92,-108.27 393.92,-84 468.44,-84 468.44,-108.27"/>
+<text xml:space="preserve" text-anchor="middle" x="431.18" y="-92.54" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">nf90_create</text>
+</g>
+<!-- proc~open_nc&#45;&gt;nf90_create -->
+<g id="proc~~instant_create_nckslice~~CallsGraph_edge17" class="edge">
+<title>proc~open_nc&#45;&gt;nf90_create</title>
+<path fill="none" stroke="#00ffff" d="M255.31,-251.81C269.72,-223.62 308.96,-154.05 362.04,-117.14 368.32,-112.77 375.54,-109.28 382.88,-106.51"/>
+<polygon fill="#00ffff" stroke="#00ffff" points="383.8,-109.89 392.19,-103.42 381.59,-103.25 383.8,-109.89"/>
+</g>
+<!-- nf90_def_dim -->
+<g id="proc~~instant_create_nckslice~~CallsGraph_node7" class="node">
+<title>nf90_def_dim</title>
+<polygon fill="#777777" stroke="#777777" points="472.94,-66.27 389.42,-66.27 389.42,-42 472.94,-42 472.94,-66.27"/>
+<text xml:space="preserve" text-anchor="middle" x="431.18" y="-50.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">nf90_def_dim</text>
+</g>
+<!-- proc~open_nc&#45;&gt;nf90_def_dim -->
+<g id="proc~~instant_create_nckslice~~CallsGraph_edge18" class="edge">
+<title>proc~open_nc&#45;&gt;nf90_def_dim</title>
+<path fill="none" stroke="#00ffff" d="M253.09,-251.87C264.17,-218.32 299.55,-124.23 362.04,-75.14 366.97,-71.26 372.61,-68.1 378.49,-65.52"/>
+<polygon fill="#00ffff" stroke="#00ffff" points="379.7,-68.81 387.82,-62.01 377.23,-62.26 379.7,-68.81"/>
+</g>
+<!-- proc~open_nc&#45;&gt;nf90_def_var -->
+<g id="proc~~instant_create_nckslice~~CallsGraph_edge19" class="edge">
+<title>proc~open_nc&#45;&gt;nf90_def_var</title>
+<path fill="none" stroke="#00ffff" d="M276.75,-264.13C303.9,-264.13 346.06,-264.13 379.32,-264.13"/>
+<polygon fill="#00ffff" stroke="#00ffff" points="379.16,-267.64 389.16,-264.14 379.16,-260.64 379.16,-267.64"/>
+</g>
+<!-- proc~open_nc&#45;&gt;nf90_enddef -->
+<g id="proc~~instant_create_nckslice~~CallsGraph_edge20" class="edge">
+<title>proc~open_nc&#45;&gt;nf90_enddef</title>
+<path fill="none" stroke="#00ffff" d="M257.39,-276.6C278.4,-308.56 334.84,-392.22 362.04,-411.13 367.84,-415.17 374.44,-418.45 381.2,-421.11"/>
+<polygon fill="#00ffff" stroke="#00ffff" points="379.83,-424.34 390.43,-424.31 382.12,-417.73 379.83,-424.34"/>
+</g>
+<!-- nf90_get_var -->
+<g id="proc~~instant_create_nckslice~~CallsGraph_node10" class="node">
+<title>nf90_get_var</title>
+<polygon fill="#777777" stroke="#777777" points="471.44,-24.27 390.92,-24.27 390.92,0 471.44,0 471.44,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="431.18" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">nf90_get_var</text>
+</g>
+<!-- proc~open_nc&#45;&gt;nf90_get_var -->
+<g id="proc~~instant_create_nckslice~~CallsGraph_edge21" class="edge">
+<title>proc~open_nc&#45;&gt;nf90_get_var</title>
+<path fill="none" stroke="#00ffff" d="M251.7,-251.73C259.86,-213.26 289.99,-94.79 362.04,-33.13 367.35,-28.59 373.63,-25.03 380.19,-22.24"/>
+<polygon fill="#00ffff" stroke="#00ffff" points="381.01,-25.67 389.22,-18.98 378.62,-19.09 381.01,-25.67"/>
+</g>
+<!-- proc~open_nc&#45;&gt;nf90_inq_dimid -->
+<g id="proc~~instant_create_nckslice~~CallsGraph_edge22" class="edge">
+<title>proc~open_nc&#45;&gt;nf90_inq_dimid</title>
+<path fill="none" stroke="#00ffff" d="M276.75,-270.51C302.31,-276.45 341.17,-285.47 373.39,-292.95"/>
+<polygon fill="#00ffff" stroke="#00ffff" points="372.46,-296.33 383,-295.18 374.05,-289.51 372.46,-296.33"/>
+</g>
+<!-- proc~open_nc&#45;&gt;nf90_inq_varid -->
+<g id="proc~~instant_create_nckslice~~CallsGraph_edge23" class="edge">
+<title>proc~open_nc&#45;&gt;nf90_inq_varid</title>
+<path fill="none" stroke="#00ffff" d="M259.31,-276.51C275.36,-296.84 306.93,-339.05 326.04,-379.13 349.26,-427.87 323.83,-457 362.04,-495.13 365.94,-499.03 370.55,-502.2 375.49,-504.79"/>
+<polygon fill="#00ffff" stroke="#00ffff" points="374.05,-507.98 384.62,-508.72 376.82,-501.55 374.05,-507.98"/>
+</g>
+<!-- nf90_inquire -->
+<g id="proc~~instant_create_nckslice~~CallsGraph_node13" class="node">
+<title>nf90_inquire</title>
+<polygon fill="#777777" stroke="#777777" points="469.94,-234.27 392.42,-234.27 392.42,-210 469.94,-210 469.94,-234.27"/>
+<text xml:space="preserve" text-anchor="middle" x="431.18" y="-218.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">nf90_inquire</text>
+</g>
+<!-- proc~open_nc&#45;&gt;nf90_inquire -->
+<g id="proc~~instant_create_nckslice~~CallsGraph_edge24" class="edge">
+<title>proc~open_nc&#45;&gt;nf90_inquire</title>
+<path fill="none" stroke="#00ffff" d="M276.75,-257.76C304.37,-251.34 347.54,-241.32 381.06,-233.54"/>
+<polygon fill="#00ffff" stroke="#00ffff" points="381.59,-237.01 390.54,-231.34 380.01,-230.19 381.59,-237.01"/>
+</g>
+<!-- nf90_inquire_dimension -->
+<g id="proc~~instant_create_nckslice~~CallsGraph_node14" class="node">
+<title>nf90_inquire_dimension</title>
+<polygon fill="#777777" stroke="#777777" points="500.31,-570.27 362.04,-570.27 362.04,-546 500.31,-546 500.31,-570.27"/>
+<text xml:space="preserve" text-anchor="middle" x="431.18" y="-554.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">nf90_inquire_dimension</text>
+</g>
+<!-- proc~open_nc&#45;&gt;nf90_inquire_dimension -->
+<g id="proc~~instant_create_nckslice~~CallsGraph_edge25" class="edge">
+<title>proc~open_nc&#45;&gt;nf90_inquire_dimension</title>
+<path fill="none" stroke="#00ffff" d="M259.94,-276.68C276.57,-296.9 308.58,-338.56 326.04,-379.13 354.5,-445.29 313.06,-484.34 362.04,-537.13 362.51,-537.65 363,-538.14 363.5,-538.63"/>
+<polygon fill="#00ffff" stroke="#00ffff" points="361.16,-541.25 371.22,-544.58 365.43,-535.7 361.16,-541.25"/>
+</g>
+<!-- nf90_open -->
+<g id="proc~~instant_create_nckslice~~CallsGraph_node15" class="node">
+<title>nf90_open</title>
+<polygon fill="#777777" stroke="#777777" points="465.06,-192.27 397.29,-192.27 397.29,-168 465.06,-168 465.06,-192.27"/>
+<text xml:space="preserve" text-anchor="middle" x="431.18" y="-176.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">nf90_open</text>
+</g>
+<!-- proc~open_nc&#45;&gt;nf90_open -->
+<g id="proc~~instant_create_nckslice~~CallsGraph_edge26" class="edge">
+<title>proc~open_nc&#45;&gt;nf90_open</title>
+<path fill="none" stroke="#00ffff" d="M268.6,-251.68C290.56,-237.92 327.82,-215.78 362.04,-201.13 369.71,-197.85 378.06,-194.85 386.2,-192.19"/>
+<polygon fill="#00ffff" stroke="#00ffff" points="387.14,-195.57 395.65,-189.26 385.06,-188.88 387.14,-195.57"/>
+</g>
+<!-- proc~open_nc&#45;&gt;nf90_put_att -->
+<g id="proc~~instant_create_nckslice~~CallsGraph_edge27" class="edge">
+<title>proc~open_nc&#45;&gt;nf90_put_att</title>
+<path fill="none" stroke="#00ffff" d="M268.6,-276.59C290.56,-290.35 327.82,-312.49 362.04,-327.13 368.16,-329.75 374.72,-332.2 381.27,-334.43"/>
+<polygon fill="#00ffff" stroke="#00ffff" points="380.15,-337.75 390.74,-337.51 382.31,-331.09 380.15,-337.75"/>
+</g>
+<!-- nf90_sync -->
+<g id="proc~~instant_create_nckslice~~CallsGraph_node19" class="node">
+<title>nf90_sync</title>
+<polygon fill="#777777" stroke="#777777" points="463.56,-150.27 398.79,-150.27 398.79,-126 463.56,-126 463.56,-150.27"/>
+<text xml:space="preserve" text-anchor="middle" x="431.18" y="-134.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">nf90_sync</text>
+</g>
+<!-- proc~open_nc&#45;&gt;nf90_sync -->
+<g id="proc~~instant_create_nckslice~~CallsGraph_edge28" class="edge">
+<title>proc~open_nc&#45;&gt;nf90_sync</title>
+<path fill="none" stroke="#00ffff" d="M259.42,-251.52C277.67,-229.62 318.28,-184.45 362.04,-159.13 369.88,-154.6 378.79,-150.95 387.54,-148.04"/>
+<polygon fill="#00ffff" stroke="#00ffff" points="388.42,-151.43 396.98,-145.18 386.39,-144.73 388.42,-151.43"/>
+</g>
+<!-- proc~writestat_dims_nc&#45;&gt;nf90_inq_varid -->
+<g id="proc~~instant_create_nckslice~~CallsGraph_edge29" class="edge">
+<title>proc~writestat_dims_nc&#45;&gt;nf90_inq_varid</title>
+<path fill="none" stroke="#7f00ff" d="M301.6,-531.06C324.45,-528.41 351.28,-525.29 374.5,-522.6"/>
+<polygon fill="#7f00ff" stroke="#7f00ff" points="374.89,-526.08 384.42,-521.45 374.08,-519.12 374.89,-526.08"/>
+</g>
+<!-- proc~writestat_dims_nc&#45;&gt;nf90_inquire_dimension -->
+<g id="proc~~instant_create_nckslice~~CallsGraph_edge30" class="edge">
+<title>proc~writestat_dims_nc&#45;&gt;nf90_inquire_dimension</title>
+<path fill="none" stroke="#7f00ff" d="M301.6,-543.21C316.86,-544.98 333.9,-546.96 350.44,-548.88"/>
+<polygon fill="#7f00ff" stroke="#7f00ff" points="349.95,-552.35 360.29,-550.02 350.76,-545.39 349.95,-552.35"/>
+</g>
+<!-- proc~writestat_dims_nc&#45;&gt;nf90_put_var -->
+<g id="proc~~instant_create_nckslice~~CallsGraph_edge31" class="edge">
+<title>proc~writestat_dims_nc&#45;&gt;nf90_put_var</title>
+<path fill="none" stroke="#7f00ff" d="M281.67,-549.76C304.11,-558.37 334.75,-569.85 362.04,-579.13 367.75,-581.08 373.76,-583.04 379.74,-584.95"/>
+<polygon fill="#7f00ff" stroke="#7f00ff" points="378.39,-588.19 388.98,-587.85 380.48,-581.51 378.39,-588.19"/>
+</g>
+<!-- nf90_strerror -->
+<g id="proc~~instant_create_nckslice~~CallsGraph_node21" class="node">
+<title>nf90_strerror</title>
+<polygon fill="#777777" stroke="#777777" points="616.08,-402.27 536.31,-402.27 536.31,-378 616.08,-378 616.08,-402.27"/>
+<text xml:space="preserve" text-anchor="middle" x="576.2" y="-386.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">nf90_strerror</text>
+</g>
+<!-- proc~nchandle_error&#45;&gt;nf90_strerror -->
+<g id="proc~~instant_create_nckslice~~CallsGraph_edge32" class="edge">
+<title>proc~nchandle_error&#45;&gt;nf90_strerror</title>
+<path fill="none" stroke="#ff0066" d="M477.82,-390.13C492.8,-390.13 509.54,-390.13 524.85,-390.13"/>
+<polygon fill="#ff0066" stroke="#ff0066" points="524.71,-393.64 534.71,-390.14 524.71,-386.64 524.71,-393.64"/>
+</g>
+</g>
+</svg>
+</div>          <div>
+            <a type="button" class="graph-help" data-bs-toggle="modal" href="#CallsGraph-help-text">Help</a>
+          </div>
+          <div class="modal fade" id="CallsGraph-help-text" tabindex="-1" role="dialog">
+            <div class="modal-dialog modal-lg" role="document">
+              <div class="modal-content">
+                <div class="modal-header">
+                  <h4 class="modal-title" id="-graph-help-label">Graph Key</h4>
+                  <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+<p>Nodes of different colours represent the following: </p>
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
+ "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<!-- Generated by graphviz version 14.1.3 (0)
+ -->
+<!-- Title: Graph Key Pages: 1 -->
+<svg width="641pt" height="28pt"
+ viewBox="0.00 0.00 641.00 28.00" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<g id="graph0" class="graph" transform="scale(0.873868 0.873868) rotate(0) translate(4 28.27)">
+<title>Graph Key</title>
+<polygon fill="white" stroke="none" points="-4,4 -4,-28.27 729.52,-28.27 729.52,4 -4,4"/>
+<!-- Subroutine -->
+<g id="node1" class="node">
+<title>Subroutine</title>
+<polygon fill="#d9534f" stroke="#d9534f" points="69.27,-24.27 0,-24.27 0,0 69.27,0 69.27,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="34.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Subroutine</text>
+</g>
+<!-- Function -->
+<g id="node2" class="node">
+<title>Function</title>
+<polygon fill="#d94e8f" stroke="#d94e8f" points="143.89,-24.27 87.38,-24.27 87.38,0 143.89,0 143.89,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="115.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Function</text>
+</g>
+<!-- Interface -->
+<g id="node3" class="node">
+<title>Interface</title>
+<polygon fill="#a7506f" stroke="#a7506f" points="221.39,-24.27 161.88,-24.27 161.88,0 221.39,0 221.39,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="191.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Interface</text>
+</g>
+<!-- Type Bound Procedure -->
+<g id="node4" class="node">
+<title>Type Bound Procedure</title>
+<polygon fill="#a7506f" stroke="#a7506f" points="368.27,-24.27 239,-24.27 239,0 368.27,0 368.27,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="303.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Type Bound Procedure</text>
+</g>
+<!-- Unknown Procedure Type -->
+<g id="node5" class="node">
+<title>Unknown Procedure Type</title>
+<polygon fill="#777777" stroke="#777777" points="529.39,-24.27 385.88,-24.27 385.88,0 529.39,0 529.39,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="457.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Unknown Procedure Type</text>
+</g>
+<!-- Program -->
+<g id="node6" class="node">
+<title>Program</title>
+<polygon fill="#f0ad4e" stroke="#f0ad4e" points="603.89,-24.27 547.38,-24.27 547.38,0 603.89,0 603.89,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="575.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Program</text>
+</g>
+<!-- This Page&#39;s Entity -->
+<g id="node7" class="node">
+<title>This Page&#39;s Entity</title>
+<polygon fill="none" stroke="black" points="725.52,-24.27 621.75,-24.27 621.75,0 725.52,0 725.52,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="673.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50">This Page&#39;s Entity</text>
+</g>
+</g>
+</svg>
+
+<p>Solid arrows point from a procedure to one which it calls. Dashed 
+arrows point from an interface to procedures which implement that interface.
+This could include the module procedures in a generic interface or the
+implementation in a submodule of an interface in a parent module.
+</p>
+ Where possible, edges connecting nodes are
+given different colours to make them easier to distinguish in
+large graphs.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-header">
+  <h3 class="card-title">Called by</h3>
+      </div>
+      <div class="card-body">
+  <div class="depgraph"><?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
+ "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<!-- Generated by graphviz version 14.1.3 (0)
+ -->
+<!-- Title: proc~~instant_create_nckslice~~CalledByGraph Pages: 1 -->
+<svg id="procinstant_create_ncksliceCalledByGraph" width="613pt" height="32pt"
+ viewBox="0.00 0.00 613.00 32.00" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<g id="proc~~instant_create_nckslice~~CalledByGraph" class="graph" transform="scale(1 1) rotate(0) translate(4 28.27)">
+<title>proc~~instant_create_nckslice~~CalledByGraph</title>
+<polygon fill="white" stroke="none" points="-4,4 -4,-28.27 608.83,-28.27 608.83,4 -4,4"/>
+<!-- proc~instant_create_nckslice -->
+<g id="proc~~instant_create_nckslice~~CalledByGraph_node1" class="node">
+<title>proc~instant_create_nckslice</title>
+<polygon fill="none" stroke="black" points="604.83,-24.27 470.31,-24.27 470.31,0 604.83,0 604.83,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="537.57" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50">instant_create_nckslice</text>
+</g>
+<!-- proc~instant_slice_init -->
+<g id="proc~~instant_create_nckslice~~CalledByGraph_node2" class="node">
+<title>proc~instant_slice_init</title>
+<g id="a_proc~~instant_create_nckslice~~CalledByGraph_node2"><a xlink:href="../proc/instant_slice_init.html" xlink:title="instant_slice_init">
+<polygon fill="#d9534f" stroke="#d9534f" points="434.31,-24.27 335.79,-24.27 335.79,0 434.31,0 434.31,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="385.05" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">instant_slice_init</text>
+</a>
+</g>
+</g>
+<!-- proc~instant_slice_init&#45;&gt;proc~instant_create_nckslice -->
+<g id="proc~~instant_create_nckslice~~CalledByGraph_edge1" class="edge">
+<title>proc~instant_slice_init&#45;&gt;proc~instant_create_nckslice</title>
+<path fill="none" stroke="#ff0000" d="M434.5,-12.13C442.16,-12.13 450.23,-12.13 458.36,-12.13"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="458.32,-15.64 468.32,-12.14 458.32,-8.64 458.32,-15.64"/>
+</g>
+<!-- proc~instant_prepare -->
+<g id="proc~~instant_create_nckslice~~CalledByGraph_node3" class="node">
+<title>proc~instant_prepare</title>
+<g id="a_proc~~instant_create_nckslice~~CalledByGraph_node3"><a xlink:href="../proc/instant_prepare.html" xlink:title="instant_prepare">
+<polygon fill="#d9534f" stroke="#d9534f" points="299.79,-24.27 205.77,-24.27 205.77,0 299.79,0 299.79,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="252.78" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">instant_prepare</text>
+</a>
+</g>
+</g>
+<!-- proc~instant_prepare&#45;&gt;proc~instant_slice_init -->
+<g id="proc~~instant_create_nckslice~~CalledByGraph_edge2" class="edge">
+<title>proc~instant_prepare&#45;&gt;proc~instant_slice_init</title>
+<path fill="none" stroke="#ff0000" d="M300.08,-12.13C307.93,-12.13 316.18,-12.13 324.32,-12.13"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="324.19,-15.64 334.19,-12.14 324.19,-8.64 324.19,-15.64"/>
+</g>
+<!-- proc~instant_main -->
+<g id="proc~~instant_create_nckslice~~CalledByGraph_node4" class="node">
+<title>proc~instant_main</title>
+<g id="a_proc~~instant_create_nckslice~~CalledByGraph_node4"><a xlink:href="../proc/instant_main.html" xlink:title="instant_main">
+<polygon fill="#d9534f" stroke="#d9534f" points="169.77,-24.27 90,-24.27 90,0 169.77,0 169.77,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="129.88" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">instant_main</text>
+</a>
+</g>
+</g>
+<!-- proc~instant_main&#45;&gt;proc~instant_prepare -->
+<g id="proc~~instant_create_nckslice~~CalledByGraph_edge3" class="edge">
+<title>proc~instant_main&#45;&gt;proc~instant_prepare</title>
+<path fill="none" stroke="#ff0000" d="M170.14,-12.13C177.82,-12.13 186.03,-12.13 194.17,-12.13"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="194.06,-15.64 204.06,-12.14 194.06,-8.64 194.06,-15.64"/>
+</g>
+<!-- program~udales -->
+<g id="proc~~instant_create_nckslice~~CalledByGraph_node5" class="node">
+<title>program~udales</title>
+<g id="a_proc~~instant_create_nckslice~~CalledByGraph_node5"><a xlink:href="../program/udales.html" xlink:title="uDALES">
+<polygon fill="#f0ad4e" stroke="#f0ad4e" points="54,-24.27 0,-24.27 0,0 54,0 54,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="27" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">uDALES</text>
+</a>
+</g>
+</g>
+<!-- program~udales&#45;&gt;proc~instant_main -->
+<g id="proc~~instant_create_nckslice~~CalledByGraph_edge4" class="edge">
+<title>program~udales&#45;&gt;proc~instant_main</title>
+<path fill="none" stroke="#ff0000" d="M54.24,-12.13C61.71,-12.13 70.1,-12.13 78.49,-12.13"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="78.33,-15.64 88.33,-12.14 78.33,-8.64 78.33,-15.64"/>
+</g>
+</g>
+</svg>
+</div>          <div>
+            <a type="button" class="graph-help" data-bs-toggle="modal" href="#CalledByGraph-help-text">Help</a>
+          </div>
+          <div class="modal fade" id="CalledByGraph-help-text" tabindex="-1" role="dialog">
+            <div class="modal-dialog modal-lg" role="document">
+              <div class="modal-content">
+                <div class="modal-header">
+                  <h4 class="modal-title" id="-graph-help-label">Graph Key</h4>
+                  <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+<p>Nodes of different colours represent the following: </p>
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
+ "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<!-- Generated by graphviz version 14.1.3 (0)
+ -->
+<!-- Title: Graph Key Pages: 1 -->
+<svg width="641pt" height="28pt"
+ viewBox="0.00 0.00 641.00 28.00" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<g id="graph0" class="graph" transform="scale(0.873868 0.873868) rotate(0) translate(4 28.27)">
+<title>Graph Key</title>
+<polygon fill="white" stroke="none" points="-4,4 -4,-28.27 729.52,-28.27 729.52,4 -4,4"/>
+<!-- Subroutine -->
+<g id="node1" class="node">
+<title>Subroutine</title>
+<polygon fill="#d9534f" stroke="#d9534f" points="69.27,-24.27 0,-24.27 0,0 69.27,0 69.27,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="34.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Subroutine</text>
+</g>
+<!-- Function -->
+<g id="node2" class="node">
+<title>Function</title>
+<polygon fill="#d94e8f" stroke="#d94e8f" points="143.89,-24.27 87.38,-24.27 87.38,0 143.89,0 143.89,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="115.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Function</text>
+</g>
+<!-- Interface -->
+<g id="node3" class="node">
+<title>Interface</title>
+<polygon fill="#a7506f" stroke="#a7506f" points="221.39,-24.27 161.88,-24.27 161.88,0 221.39,0 221.39,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="191.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Interface</text>
+</g>
+<!-- Type Bound Procedure -->
+<g id="node4" class="node">
+<title>Type Bound Procedure</title>
+<polygon fill="#a7506f" stroke="#a7506f" points="368.27,-24.27 239,-24.27 239,0 368.27,0 368.27,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="303.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Type Bound Procedure</text>
+</g>
+<!-- Unknown Procedure Type -->
+<g id="node5" class="node">
+<title>Unknown Procedure Type</title>
+<polygon fill="#777777" stroke="#777777" points="529.39,-24.27 385.88,-24.27 385.88,0 529.39,0 529.39,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="457.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Unknown Procedure Type</text>
+</g>
+<!-- Program -->
+<g id="node6" class="node">
+<title>Program</title>
+<polygon fill="#f0ad4e" stroke="#f0ad4e" points="603.89,-24.27 547.38,-24.27 547.38,0 603.89,0 603.89,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="575.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Program</text>
+</g>
+<!-- This Page&#39;s Entity -->
+<g id="node7" class="node">
+<title>This Page&#39;s Entity</title>
+<polygon fill="none" stroke="black" points="725.52,-24.27 621.75,-24.27 621.75,0 725.52,0 725.52,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="673.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50">This Page&#39;s Entity</text>
+</g>
+</g>
+</svg>
+
+<p>Solid arrows point from a procedure to one which it calls. Dashed 
+arrows point from an interface to procedures which implement that interface.
+This could include the module procedures in a generic interface or the
+implementation in a submodule of an interface in a parent module.
+</p>
+ Where possible, edges connecting nodes are
+given different colours to make them easier to distinguish in
+large graphs.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <br>
+
+
+    
+    
+
+    
+    
+
+
+
+    
+    <section>
+    <h2><span class="anchor" id="src"></span>Source Code</h2>
+    <div class="hl codehilite"><pre><span></span><span class="w">    </span><span class="k">subroutine </span><span class="n">instant_create_nckslice</span>
+<span class="w">      </span><span class="k">implicit none</span>
+
+<span class="k">      if</span><span class="w"> </span><span class="p">(</span><span class="n">myidy</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="mi">0</span><span class="p">)</span><span class="w"> </span><span class="k">then</span>
+<span class="k">        </span><span class="n">filenamekslice</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s1">'ins_kslice.xxx.xxx.nc'</span>
+<span class="w">        </span><span class="n">filenamekslice</span><span class="p">(</span><span class="mi">12</span><span class="p">:</span><span class="mi">14</span><span class="p">)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">cmyidx</span><span class="w">   </span><span class="c">! Only x-processor ID</span>
+<span class="w">        </span><span class="n">filenamekslice</span><span class="p">(</span><span class="mi">16</span><span class="p">:</span><span class="mi">18</span><span class="p">)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">cexpnr</span><span class="w">  </span><span class="c">! Experiment number</span>
+
+<span class="w">        </span><span class="n">nreckslice</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span>
+<span class="w">        </span><span class="c">! Use kdim (nkslice) as the z-dimension, jtot as global y-dimension</span>
+<span class="w">        </span><span class="k">call </span><span class="n">open_nc</span><span class="p">(</span><span class="n">filenamekslice</span><span class="p">,</span><span class="w"> </span><span class="n">ncidkslice</span><span class="p">,</span><span class="w"> </span><span class="n">nreckslice</span><span class="p">,</span><span class="w"> </span><span class="n">n1</span><span class="o">=</span><span class="n">xdim</span><span class="p">,</span><span class="w"> </span><span class="n">n2</span><span class="o">=</span><span class="n">jtot</span><span class="p">,</span><span class="w"> </span><span class="n">n3</span><span class="o">=</span><span class="n">kdim</span><span class="p">)</span>
+<span class="w">        </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">nreckslice</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="mi">0</span><span class="p">)</span><span class="w"> </span><span class="k">then</span>
+<span class="k">          call </span><span class="n">define_nc</span><span class="p">(</span><span class="n">ncidkslice</span><span class="p">,</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="n">slicetimeVar</span><span class="p">)</span>
+<span class="w">          </span><span class="k">call </span><span class="n">writestat_dims_nc</span><span class="p">(</span><span class="n">ncidkslice</span><span class="p">)</span>
+<span class="w">          </span><span class="c">! Add kslice-specific z coordinate information</span>
+<span class="w">          </span><span class="k">call </span><span class="n">instant_write_kslice_zcoord</span><span class="p">(</span><span class="n">ncidkslice</span><span class="p">,</span><span class="w"> </span><span class="n">nkslice</span><span class="p">,</span><span class="w"> </span><span class="n">kslice</span><span class="p">)</span>
+<span class="w">        </span><span class="k">end if</span>
+<span class="k">        call </span><span class="n">define_nc</span><span class="p">(</span><span class="n">ncidkslice</span><span class="p">,</span><span class="w"> </span><span class="n">nslicevars</span><span class="p">,</span><span class="w"> </span><span class="n">ksliceVars</span><span class="p">)</span>
+<span class="w">      </span><span class="k">end if</span>
+<span class="k">    end subroutine </span><span class="n">instant_create_nckslice</span>
+</pre></div>
+
+    </section>
+    <br>
+    
+    </div>
+  </div>
+
+      <hr>
+    </div> <!-- /container -->
+    <footer>
+      <div class="container">
+        <div class="row justify-content-between">
+          <div class="col">
+            <p>
+              uDALES
+ was developed by The uDALES Team<br>              &copy; 2026 
+</p>
+          </div>
+          <div class="col">
+            <p class="text-end">
+              Documentation generated by
+              <a href="https://github.com/Fortran-FOSS-Programmers/ford">FORD</a>
+ on 2026-11-27 14:34 +0000             </p>
+          </div>
+        </div>
+        <br>
+      </div> <!-- /container -->
+    </footer>
+  </body>
+</html>

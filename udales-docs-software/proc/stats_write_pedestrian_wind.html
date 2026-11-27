@@ -1,0 +1,683 @@
+<!-- -*- mode: jinja2 -*- -->
+
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+      <meta name="description" content="API documentation of the Fortran source code of uDALES, the open-source multi-physics large-eddy simulation model for urban environments.">
+    <meta name="author" content="The uDALES Team" >
+    <link rel="icon" href="../favicon.png">
+
+    <title>stats_write_pedestrian_wind &ndash; uDALES</title>
+
+    <!-- Bootstrap -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet"
+          integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"
+            integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
+    <!-- Font Awesome -->
+    <link href="../css/fontawesome.min.css" rel="stylesheet">
+    <link href="../css/brands.min.css" rel="stylesheet">
+    <link href="../css/regular.min.css" rel="stylesheet">
+    <link href="../css/solid.min.css" rel="stylesheet">
+    <link href="../css/v4-font-face.min.css" rel="stylesheet">
+    <link href="../css/v4-shims.min.css" rel="stylesheet">
+    <!-- MathJax -->
+    <script type="text/x-mathjax-config">
+      MathJax.Hub.Config({
+        TeX: { equationNumbers: { autoNumber: "AMS" } }
+      });
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/mathjax@2.7.9/MathJax.js?config=TeX-AMS-MML_HTMLorMML" async
+            integrity="sha256-DViIOMYdwlM/axqoGDPeUyf0urLoHMN4QACBKyB58Uw=" crossorigin="anonymous"></script>
+    <!-- Other scripts and stylesheets -->
+    <link href="../css/local.css" rel="stylesheet">
+    <link href="../css/pygments.css" rel="stylesheet">
+    <script src="../js/svg-pan-zoom.min.js"></script>
+  </head>
+
+  <body>
+
+    <!-- Fixed navbar -->
+    <div class="container-fluid mb-sm-4 mb-xl-2">
+      <nav class="navbar navbar-expand-lg navbar-dark bg-dark fixed-top">
+        <div class="container">
+          <a class="navbar-brand" href="../index.html">uDALES </a>
+          <button type="button" class="navbar-toggler" data-bs-toggle="collapse" data-bs-target="#navbar"
+                  aria-expanded="false" aria-controls="navbar" aria-label="Toggle navigation">
+                  <span class="navbar-toggler-icon">
+          </button>
+
+          <div id="navbar" class="navbar-collapse collapse">
+            <ul class="navbar-nav">
+                  <li class="nav-item">
+                    <a class="nav-link" href="../lists/files.html">Source Files</a>
+                  </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="../lists/modules.html">Modules</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="../lists/procedures.html">Procedures</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="../lists/absint.html">Abstract Interfaces</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="../lists/types.html">Derived Types</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="../lists/namelists.html">Namelists</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="../program/udales.html">Program</a>
+                </li>
+            </ul>
+              <div class="d-flex align-items-end flex-grow-1">
+                <form action="../search.html" role="search" class="ms-auto">
+                  <input type="text" class="form-control" aria-label="Search" placeholder="Search" name="q" id="tipue_search_input" autocomplete="off" required>
+                </form>
+              </div>
+          </div><!--/.nav-collapse -->
+        </div>
+      </nav>
+    </div>
+
+    <div class="container">
+  <div class="row">
+    <h1>stats_write_pedestrian_wind
+      <small>Subroutine</small>
+      
+    </h1>
+      <div class="container p-2 mb-4 bg-light border rounded-3">
+    <div class="row align-items-center justify-content-between" id="info-bar">
+      <div class="col">
+        <ul class="list-inline" style="margin-bottom:0px;display:inline">
+
+            <li class="list-inline-item" id="statements"><i class="fa fa-list-ol"></i>
+              <a data-bs-toggle="tooltip" data-bs-placement="bottom" data-bs-html="true"
+                 title=" 0.1% of total for procedures.">23 statements</a>
+            </li>
+
+            <li class="list-inline-item" id="source-file">
+              <i class="fa fa-code"></i>
+              <a href="../src/out_stats.f90"> Source File</a>
+            </li>
+        </ul>
+      </div>
+      <div class="col">
+        <nav aria-label="breadcrumb">
+          <ol class="breadcrumb justify-content-end mb-0">
+                <li class="breadcrumb-item"><a href='../sourcefile/out_stats.f90.html'>out_stats.f90</a></li>
+                <li class="breadcrumb-item"><a href='../module/stats.html'>stats</a></li>
+            <li class="breadcrumb-item active" aria-current="page">stats_write_pedestrian_wind</li>
+          </ol>
+        </nav>
+      </div>
+    </div>
+  </div>
+  <script>
+    // Enable Bootstrap tooltips
+    (function () {
+      const tooltipTriggerList = document.querySelectorAll('[data-bs-toggle="tooltip"]')
+      const tooltipList = [...tooltipTriggerList].map(tooltipTriggerEl => new bootstrap.Tooltip(tooltipTriggerEl))
+    })();
+  </script>
+
+  </div>
+  
+  <div class="row">
+    <div class="col-md-3 hidden-xs hidden-sm visible-md visible-lg">
+      <div id="sidebar">
+      <h3>Contents</h3>
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+    <div class="card card-primary">
+      <div class="card-header text-left"><h3 class="card-title">Source Code</h3></div>
+      <div class="list-group">
+        <a class="list-group-item" href="../proc/stats_write_pedestrian_wind.html#src">stats_write_pedestrian_wind</a>
+      </div>
+    </div>
+
+
+  </div>
+
+    </div>
+    
+    <div class="col-md-9" id='text'>
+    <h2>private  subroutine stats_write_pedestrian_wind(ncid, record)  
+</h2>
+    
+
+
+
+    <h3>Arguments</h3>
+        <table class="table table-striped varlist">
+    <thead>
+      <tr>
+        <th scope="col">Type</th>
+<th scope="col">Intent</th><th scope="col">Optional</th>        <th scope="col">Attributes</th>
+        <th scope="col"></th>
+        <th scope="col">Name</th>
+        <th scope="col"></th>
+    </thead>
+    <tbody>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-ncid~6"></span>
+              integer,
+            </td>
+<td>intent(in)</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>ncid</strong></td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-record"></span>
+              integer,
+            </td>
+<td>intent(in)</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>record</strong></td>
+            <td>
+                
+            </td>
+        </tr>
+    </tbody>
+  </table>
+
+    <br>
+    <div class="card">
+      <div class="card-header">
+  <h3 class="card-title">Calls</h3>
+      </div>
+      <div class="card-body">
+  <div class="depgraph"><?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
+ "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<!-- Generated by graphviz version 14.1.3 (0)
+ -->
+<!-- Title: proc~~stats_write_pedestrian_wind~~CallsGraph Pages: 1 -->
+<svg id="procstats_write_pedestrian_windCallsGraph" width="416pt" height="200pt"
+ viewBox="0.00 0.00 416.00 200.00" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<g id="proc~~stats_write_pedestrian_wind~~CallsGraph" class="graph" transform="scale(1 1) rotate(0) translate(4 196.27)">
+<title>proc~~stats_write_pedestrian_wind~~CallsGraph</title>
+<polygon fill="white" stroke="none" points="-4,4 -4,-196.27 412.06,-196.27 412.06,4 -4,4"/>
+<!-- proc~stats_write_pedestrian_wind -->
+<g id="proc~~stats_write_pedestrian_wind~~CallsGraph_node1" class="node">
+<title>proc~stats_write_pedestrian_wind</title>
+<polygon fill="none" stroke="black" points="160.02,-108.27 0,-108.27 0,-84 160.02,-84 160.02,-108.27"/>
+<text xml:space="preserve" text-anchor="middle" x="80.01" y="-92.54" font-family="Helvetica,sans-Serif" font-size="10.50">stats_write_pedestrian_wind</text>
+</g>
+<!-- proc~writeoffset -->
+<g id="proc~~stats_write_pedestrian_wind~~CallsGraph_node2" class="node">
+<title>proc~writeoffset</title>
+<g id="a_proc~~stats_write_pedestrian_wind~~CallsGraph_node2"><a xlink:href="../proc/writeoffset.html" xlink:title="writeoffset">
+<polygon fill="#d9534f" stroke="#d9534f" points="273.16,-129.27 205.39,-129.27 205.39,-105 273.16,-105 273.16,-129.27"/>
+<text xml:space="preserve" text-anchor="middle" x="239.28" y="-113.54" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">writeoffset</text>
+</a>
+</g>
+</g>
+<!-- proc~stats_write_pedestrian_wind&#45;&gt;proc~writeoffset -->
+<g id="proc~~stats_write_pedestrian_wind~~CallsGraph_edge1" class="edge">
+<title>proc~stats_write_pedestrian_wind&#45;&gt;proc~writeoffset</title>
+<path fill="none" stroke="#ff0000" d="M160.11,-106.7C171.67,-108.24 183.21,-109.78 193.75,-111.19"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="193.28,-114.66 203.66,-112.51 194.21,-107.72 193.28,-114.66"/>
+</g>
+<!-- proc~writeoffset_2d -->
+<g id="proc~~stats_write_pedestrian_wind~~CallsGraph_node3" class="node">
+<title>proc~writeoffset_2d</title>
+<g id="a_proc~~stats_write_pedestrian_wind~~CallsGraph_node3"><a xlink:href="../proc/writeoffset_2d.html" xlink:title="writeoffset_2d">
+<polygon fill="#d9534f" stroke="#d9534f" points="282.54,-87.27 196.02,-87.27 196.02,-63 282.54,-63 282.54,-87.27"/>
+<text xml:space="preserve" text-anchor="middle" x="239.28" y="-71.54" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">writeoffset_2d</text>
+</a>
+</g>
+</g>
+<!-- proc~stats_write_pedestrian_wind&#45;&gt;proc~writeoffset_2d -->
+<g id="proc~~stats_write_pedestrian_wind~~CallsGraph_edge2" class="edge">
+<title>proc~stats_write_pedestrian_wind&#45;&gt;proc~writeoffset_2d</title>
+<path fill="none" stroke="#ff0000" d="M160.11,-85.57C168.33,-84.48 176.54,-83.38 184.39,-82.33"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="184.64,-85.83 194.09,-81.04 183.72,-78.89 184.64,-85.83"/>
+</g>
+<!-- mpi_barrier -->
+<g id="proc~~stats_write_pedestrian_wind~~CallsGraph_node4" class="node">
+<title>mpi_barrier</title>
+<polygon fill="#777777" stroke="#777777" points="400.18,-150.27 326.41,-150.27 326.41,-126 400.18,-126 400.18,-150.27"/>
+<text xml:space="preserve" text-anchor="middle" x="363.3" y="-134.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">mpi_barrier</text>
+</g>
+<!-- proc~writeoffset&#45;&gt;mpi_barrier -->
+<g id="proc~~stats_write_pedestrian_wind~~CallsGraph_edge3" class="edge">
+<title>proc~writeoffset&#45;&gt;mpi_barrier</title>
+<path fill="none" stroke="#ff0000" d="M273.62,-122.87C286.3,-125.06 301,-127.59 314.75,-129.95"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="314.06,-133.38 324.51,-131.63 315.25,-126.49 314.06,-133.38"/>
+</g>
+<!-- mpi_sendrecv -->
+<g id="proc~~stats_write_pedestrian_wind~~CallsGraph_node5" class="node">
+<title>mpi_sendrecv</title>
+<polygon fill="#777777" stroke="#777777" points="405.81,-108.27 320.79,-108.27 320.79,-84 405.81,-84 405.81,-108.27"/>
+<text xml:space="preserve" text-anchor="middle" x="363.3" y="-92.54" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">mpi_sendrecv</text>
+</g>
+<!-- proc~writeoffset&#45;&gt;mpi_sendrecv -->
+<g id="proc~~stats_write_pedestrian_wind~~CallsGraph_edge4" class="edge">
+<title>proc~writeoffset&#45;&gt;mpi_sendrecv</title>
+<path fill="none" stroke="#ff0000" d="M273.62,-111.4C284.75,-109.48 297.44,-107.3 309.67,-105.19"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="309.96,-108.69 319.22,-103.55 308.77,-101.8 309.96,-108.69"/>
+</g>
+<!-- nf90_inq_varid -->
+<g id="proc~~stats_write_pedestrian_wind~~CallsGraph_node6" class="node">
+<title>nf90_inq_varid</title>
+<polygon fill="#777777" stroke="#777777" points="408.06,-66.27 318.54,-66.27 318.54,-42 408.06,-42 408.06,-66.27"/>
+<text xml:space="preserve" text-anchor="middle" x="363.3" y="-50.54" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">nf90_inq_varid</text>
+</g>
+<!-- proc~writeoffset&#45;&gt;nf90_inq_varid -->
+<g id="proc~~stats_write_pedestrian_wind~~CallsGraph_edge5" class="edge">
+<title>proc~writeoffset&#45;&gt;nf90_inq_varid</title>
+<path fill="none" stroke="#ff0000" d="M266.35,-104.52C271.73,-101.82 277.35,-98.94 282.54,-96.14 298.84,-87.34 302.18,-83.82 318.54,-75.14 320.63,-74.02 322.8,-72.9 324.99,-71.79"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="326.53,-74.93 333.93,-67.35 323.41,-68.66 326.53,-74.93"/>
+</g>
+<!-- nf90_put_var -->
+<g id="proc~~stats_write_pedestrian_wind~~CallsGraph_node7" class="node">
+<title>nf90_put_var</title>
+<polygon fill="#777777" stroke="#777777" points="403.56,-24.27 323.04,-24.27 323.04,0 403.56,0 403.56,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="363.3" y="-8.54" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">nf90_put_var</text>
+</g>
+<!-- proc~writeoffset&#45;&gt;nf90_put_var -->
+<g id="proc~~stats_write_pedestrian_wind~~CallsGraph_edge6" class="edge">
+<title>proc~writeoffset&#45;&gt;nf90_put_var</title>
+<path fill="none" stroke="#ff0000" d="M270.81,-104.73C275.02,-102.26 279.08,-99.4 282.54,-96.14 305.99,-74 294.93,-55.11 318.54,-33.14 319.3,-32.43 320.08,-31.75 320.89,-31.08"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="322.72,-34.07 328.98,-25.53 318.76,-28.3 322.72,-34.07"/>
+</g>
+<!-- nf90_sync -->
+<g id="proc~~stats_write_pedestrian_wind~~CallsGraph_node8" class="node">
+<title>nf90_sync</title>
+<polygon fill="#777777" stroke="#777777" points="395.68,-192.27 330.91,-192.27 330.91,-168 395.68,-168 395.68,-192.27"/>
+<text xml:space="preserve" text-anchor="middle" x="363.3" y="-176.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">nf90_sync</text>
+</g>
+<!-- proc~writeoffset&#45;&gt;nf90_sync -->
+<g id="proc~~stats_write_pedestrian_wind~~CallsGraph_edge7" class="edge">
+<title>proc~writeoffset&#45;&gt;nf90_sync</title>
+<path fill="none" stroke="#ff0000" d="M263.08,-129.72C278.62,-138.21 299.71,-149.57 318.54,-159.13 320.8,-160.28 323.13,-161.45 325.49,-162.62"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="323.94,-165.76 334.47,-167 327.02,-159.47 323.94,-165.76"/>
+</g>
+<!-- proc~writeoffset_2d&#45;&gt;mpi_barrier -->
+<g id="proc~~stats_write_pedestrian_wind~~CallsGraph_edge8" class="edge">
+<title>proc~writeoffset_2d&#45;&gt;mpi_barrier</title>
+<path fill="none" stroke="#00ffff" d="M266.35,-87.75C271.73,-90.45 277.35,-93.33 282.54,-96.14 298.84,-104.93 302.18,-108.45 318.54,-117.14 320.63,-118.25 322.8,-119.37 324.99,-120.48"/>
+<polygon fill="#00ffff" stroke="#00ffff" points="323.41,-123.61 333.93,-124.92 326.53,-117.34 323.41,-123.61"/>
+</g>
+<!-- proc~writeoffset_2d&#45;&gt;mpi_sendrecv -->
+<g id="proc~~stats_write_pedestrian_wind~~CallsGraph_edge9" class="edge">
+<title>proc~writeoffset_2d&#45;&gt;mpi_sendrecv</title>
+<path fill="none" stroke="#00ffff" d="M282.96,-82.48C291.56,-83.96 300.7,-85.53 309.59,-87.06"/>
+<polygon fill="#00ffff" stroke="#00ffff" points="308.74,-90.47 319.18,-88.71 309.92,-83.57 308.74,-90.47"/>
+</g>
+<!-- proc~writeoffset_2d&#45;&gt;nf90_inq_varid -->
+<g id="proc~~stats_write_pedestrian_wind~~CallsGraph_edge10" class="edge">
+<title>proc~writeoffset_2d&#45;&gt;nf90_inq_varid</title>
+<path fill="none" stroke="#00ffff" d="M282.96,-67.79C290.71,-66.46 298.9,-65.05 306.96,-63.66"/>
+<polygon fill="#00ffff" stroke="#00ffff" points="307.45,-67.13 316.71,-61.98 306.26,-60.23 307.45,-67.13"/>
+</g>
+<!-- proc~writeoffset_2d&#45;&gt;nf90_put_var -->
+<g id="proc~~stats_write_pedestrian_wind~~CallsGraph_edge11" class="edge">
+<title>proc~writeoffset_2d&#45;&gt;nf90_put_var</title>
+<path fill="none" stroke="#00ffff" d="M263.08,-62.55C278.62,-54.06 299.71,-42.7 318.54,-33.14 320.8,-31.99 323.13,-30.82 325.49,-29.65"/>
+<polygon fill="#00ffff" stroke="#00ffff" points="327.02,-32.8 334.47,-25.27 323.94,-26.51 327.02,-32.8"/>
+</g>
+<!-- proc~writeoffset_2d&#45;&gt;nf90_sync -->
+<g id="proc~~stats_write_pedestrian_wind~~CallsGraph_edge12" class="edge">
+<title>proc~writeoffset_2d&#45;&gt;nf90_sync</title>
+<path fill="none" stroke="#00ffff" d="M270.81,-87.54C275.02,-90.01 279.08,-92.87 282.54,-96.14 305.99,-118.27 294.93,-137.16 318.54,-159.13 319.43,-159.97 320.37,-160.77 321.33,-161.55"/>
+<polygon fill="#00ffff" stroke="#00ffff" points="319.18,-164.32 329.43,-167.01 323.09,-158.52 319.18,-164.32"/>
+</g>
+</g>
+</svg>
+</div>          <div>
+            <a type="button" class="graph-help" data-bs-toggle="modal" href="#CallsGraph-help-text">Help</a>
+          </div>
+          <div class="modal fade" id="CallsGraph-help-text" tabindex="-1" role="dialog">
+            <div class="modal-dialog modal-lg" role="document">
+              <div class="modal-content">
+                <div class="modal-header">
+                  <h4 class="modal-title" id="-graph-help-label">Graph Key</h4>
+                  <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+<p>Nodes of different colours represent the following: </p>
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
+ "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<!-- Generated by graphviz version 14.1.3 (0)
+ -->
+<!-- Title: Graph Key Pages: 1 -->
+<svg width="641pt" height="28pt"
+ viewBox="0.00 0.00 641.00 28.00" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<g id="graph0" class="graph" transform="scale(0.873868 0.873868) rotate(0) translate(4 28.27)">
+<title>Graph Key</title>
+<polygon fill="white" stroke="none" points="-4,4 -4,-28.27 729.52,-28.27 729.52,4 -4,4"/>
+<!-- Subroutine -->
+<g id="node1" class="node">
+<title>Subroutine</title>
+<polygon fill="#d9534f" stroke="#d9534f" points="69.27,-24.27 0,-24.27 0,0 69.27,0 69.27,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="34.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Subroutine</text>
+</g>
+<!-- Function -->
+<g id="node2" class="node">
+<title>Function</title>
+<polygon fill="#d94e8f" stroke="#d94e8f" points="143.89,-24.27 87.38,-24.27 87.38,0 143.89,0 143.89,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="115.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Function</text>
+</g>
+<!-- Interface -->
+<g id="node3" class="node">
+<title>Interface</title>
+<polygon fill="#a7506f" stroke="#a7506f" points="221.39,-24.27 161.88,-24.27 161.88,0 221.39,0 221.39,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="191.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Interface</text>
+</g>
+<!-- Type Bound Procedure -->
+<g id="node4" class="node">
+<title>Type Bound Procedure</title>
+<polygon fill="#a7506f" stroke="#a7506f" points="368.27,-24.27 239,-24.27 239,0 368.27,0 368.27,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="303.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Type Bound Procedure</text>
+</g>
+<!-- Unknown Procedure Type -->
+<g id="node5" class="node">
+<title>Unknown Procedure Type</title>
+<polygon fill="#777777" stroke="#777777" points="529.39,-24.27 385.88,-24.27 385.88,0 529.39,0 529.39,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="457.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Unknown Procedure Type</text>
+</g>
+<!-- Program -->
+<g id="node6" class="node">
+<title>Program</title>
+<polygon fill="#f0ad4e" stroke="#f0ad4e" points="603.89,-24.27 547.38,-24.27 547.38,0 603.89,0 603.89,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="575.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Program</text>
+</g>
+<!-- This Page&#39;s Entity -->
+<g id="node7" class="node">
+<title>This Page&#39;s Entity</title>
+<polygon fill="none" stroke="black" points="725.52,-24.27 621.75,-24.27 621.75,0 725.52,0 725.52,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="673.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50">This Page&#39;s Entity</text>
+</g>
+</g>
+</svg>
+
+<p>Solid arrows point from a procedure to one which it calls. Dashed 
+arrows point from an interface to procedures which implement that interface.
+This could include the module procedures in a generic interface or the
+implementation in a submodule of an interface in a parent module.
+</p>
+ Where possible, edges connecting nodes are
+given different colours to make them easier to distinguish in
+large graphs.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-header">
+  <h3 class="card-title">Called by</h3>
+      </div>
+      <div class="card-body">
+  <div class="depgraph"><?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
+ "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<!-- Generated by graphviz version 14.1.3 (0)
+ -->
+<!-- Title: proc~~stats_write_pedestrian_wind~~CalledByGraph Pages: 1 -->
+<svg id="procstats_write_pedestrian_windCalledByGraph" width="530pt" height="74pt"
+ viewBox="0.00 0.00 530.00 74.00" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<g id="proc~~stats_write_pedestrian_wind~~CalledByGraph" class="graph" transform="scale(1 1) rotate(0) translate(4 70.27)">
+<title>proc~~stats_write_pedestrian_wind~~CalledByGraph</title>
+<polygon fill="white" stroke="none" points="-4,4 -4,-70.27 526.06,-70.27 526.06,4 -4,4"/>
+<!-- proc~stats_write_pedestrian_wind -->
+<g id="proc~~stats_write_pedestrian_wind~~CalledByGraph_node1" class="node">
+<title>proc~stats_write_pedestrian_wind</title>
+<polygon fill="none" stroke="black" points="522.06,-45.27 362.04,-45.27 362.04,-21 522.06,-21 522.06,-45.27"/>
+<text xml:space="preserve" text-anchor="middle" x="442.05" y="-29.53" font-family="Helvetica,sans-Serif" font-size="10.50">stats_write_pedestrian_wind</text>
+</g>
+<!-- proc~stats_write_tavg -->
+<g id="proc~~stats_write_pedestrian_wind~~CalledByGraph_node2" class="node">
+<title>proc~stats_write_tavg</title>
+<g id="a_proc~~stats_write_pedestrian_wind~~CalledByGraph_node2"><a xlink:href="../proc/stats_write_tavg.html" xlink:title="stats_write_tavg">
+<polygon fill="#d9534f" stroke="#d9534f" points="308.42,-66.27 212.15,-66.27 212.15,-42 308.42,-42 308.42,-66.27"/>
+<text xml:space="preserve" text-anchor="middle" x="260.28" y="-50.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">stats_write_tavg</text>
+</a>
+</g>
+</g>
+<!-- proc~stats_write_tavg&#45;&gt;proc~stats_write_pedestrian_wind -->
+<g id="proc~~stats_write_pedestrian_wind~~CalledByGraph_edge1" class="edge">
+<title>proc~stats_write_tavg&#45;&gt;proc~stats_write_pedestrian_wind</title>
+<path fill="none" stroke="#ff0000" d="M308.51,-48.62C321.53,-47.1 336.1,-45.4 350.68,-43.69"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="350.78,-47.2 360.31,-42.57 349.97,-40.25 350.78,-47.2"/>
+</g>
+<!-- proc~stats_write_tavg_kslice -->
+<g id="proc~~stats_write_pedestrian_wind~~CalledByGraph_node3" class="node">
+<title>proc~stats_write_tavg_kslice</title>
+<g id="a_proc~~stats_write_pedestrian_wind~~CalledByGraph_node3"><a xlink:href="../proc/stats_write_tavg_kslice.html" xlink:title="stats_write_tavg_kslice">
+<polygon fill="#d9534f" stroke="#d9534f" points="326.04,-24.27 194.52,-24.27 194.52,0 326.04,0 326.04,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="260.28" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">stats_write_tavg_kslice</text>
+</a>
+</g>
+</g>
+<!-- proc~stats_write_tavg_kslice&#45;&gt;proc~stats_write_pedestrian_wind -->
+<g id="proc~~stats_write_pedestrian_wind~~CalledByGraph_edge2" class="edge">
+<title>proc~stats_write_tavg_kslice&#45;&gt;proc~stats_write_pedestrian_wind</title>
+<path fill="none" stroke="#ff0000" d="M326.44,-19.75C334.22,-20.66 342.28,-21.6 350.34,-22.54"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="349.87,-26.01 360.21,-23.69 350.69,-19.06 349.87,-26.01"/>
+</g>
+<!-- proc~stats_main -->
+<g id="proc~~stats_write_pedestrian_wind~~CalledByGraph_node4" class="node">
+<title>proc~stats_main</title>
+<g id="a_proc~~stats_write_pedestrian_wind~~CalledByGraph_node4"><a xlink:href="../proc/stats_main.html" xlink:title="stats_main">
+<polygon fill="#d9534f" stroke="#d9534f" points="158.52,-45.27 90,-45.27 90,-21 158.52,-21 158.52,-45.27"/>
+<text xml:space="preserve" text-anchor="middle" x="124.26" y="-29.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">stats_main</text>
+</a>
+</g>
+</g>
+<!-- proc~stats_main&#45;&gt;proc~stats_write_tavg -->
+<g id="proc~~stats_write_pedestrian_wind~~CalledByGraph_edge3" class="edge">
+<title>proc~stats_main&#45;&gt;proc~stats_write_tavg</title>
+<path fill="none" stroke="#ff0000" d="M158.73,-38.38C171.4,-40.36 186.21,-42.69 200.52,-44.93"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="199.92,-48.38 210.34,-46.47 201,-41.46 199.92,-48.38"/>
+</g>
+<!-- proc~stats_main&#45;&gt;proc~stats_write_tavg_kslice -->
+<g id="proc~~stats_write_pedestrian_wind~~CalledByGraph_edge4" class="edge">
+<title>proc~stats_main&#45;&gt;proc~stats_write_tavg_kslice</title>
+<path fill="none" stroke="#00ffff" d="M158.73,-27.89C166.23,-26.72 174.47,-25.42 182.92,-24.1"/>
+<polygon fill="#00ffff" stroke="#00ffff" points="183.27,-27.59 192.61,-22.58 182.18,-20.67 183.27,-27.59"/>
+</g>
+<!-- program~udales -->
+<g id="proc~~stats_write_pedestrian_wind~~CalledByGraph_node5" class="node">
+<title>program~udales</title>
+<g id="a_proc~~stats_write_pedestrian_wind~~CalledByGraph_node5"><a xlink:href="../program/udales.html" xlink:title="uDALES">
+<polygon fill="#f0ad4e" stroke="#f0ad4e" points="54,-45.27 0,-45.27 0,-21 54,-21 54,-45.27"/>
+<text xml:space="preserve" text-anchor="middle" x="27" y="-29.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">uDALES</text>
+</a>
+</g>
+</g>
+<!-- program~udales&#45;&gt;proc~stats_main -->
+<g id="proc~~stats_write_pedestrian_wind~~CalledByGraph_edge5" class="edge">
+<title>program~udales&#45;&gt;proc~stats_main</title>
+<path fill="none" stroke="#ff0000" d="M54.28,-33.13C61.69,-33.13 69.97,-33.13 78.16,-33.13"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="78.04,-36.64 88.04,-33.14 78.04,-29.64 78.04,-36.64"/>
+</g>
+</g>
+</svg>
+</div>          <div>
+            <a type="button" class="graph-help" data-bs-toggle="modal" href="#CalledByGraph-help-text">Help</a>
+          </div>
+          <div class="modal fade" id="CalledByGraph-help-text" tabindex="-1" role="dialog">
+            <div class="modal-dialog modal-lg" role="document">
+              <div class="modal-content">
+                <div class="modal-header">
+                  <h4 class="modal-title" id="-graph-help-label">Graph Key</h4>
+                  <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+<p>Nodes of different colours represent the following: </p>
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
+ "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<!-- Generated by graphviz version 14.1.3 (0)
+ -->
+<!-- Title: Graph Key Pages: 1 -->
+<svg width="641pt" height="28pt"
+ viewBox="0.00 0.00 641.00 28.00" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<g id="graph0" class="graph" transform="scale(0.873868 0.873868) rotate(0) translate(4 28.27)">
+<title>Graph Key</title>
+<polygon fill="white" stroke="none" points="-4,4 -4,-28.27 729.52,-28.27 729.52,4 -4,4"/>
+<!-- Subroutine -->
+<g id="node1" class="node">
+<title>Subroutine</title>
+<polygon fill="#d9534f" stroke="#d9534f" points="69.27,-24.27 0,-24.27 0,0 69.27,0 69.27,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="34.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Subroutine</text>
+</g>
+<!-- Function -->
+<g id="node2" class="node">
+<title>Function</title>
+<polygon fill="#d94e8f" stroke="#d94e8f" points="143.89,-24.27 87.38,-24.27 87.38,0 143.89,0 143.89,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="115.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Function</text>
+</g>
+<!-- Interface -->
+<g id="node3" class="node">
+<title>Interface</title>
+<polygon fill="#a7506f" stroke="#a7506f" points="221.39,-24.27 161.88,-24.27 161.88,0 221.39,0 221.39,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="191.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Interface</text>
+</g>
+<!-- Type Bound Procedure -->
+<g id="node4" class="node">
+<title>Type Bound Procedure</title>
+<polygon fill="#a7506f" stroke="#a7506f" points="368.27,-24.27 239,-24.27 239,0 368.27,0 368.27,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="303.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Type Bound Procedure</text>
+</g>
+<!-- Unknown Procedure Type -->
+<g id="node5" class="node">
+<title>Unknown Procedure Type</title>
+<polygon fill="#777777" stroke="#777777" points="529.39,-24.27 385.88,-24.27 385.88,0 529.39,0 529.39,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="457.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Unknown Procedure Type</text>
+</g>
+<!-- Program -->
+<g id="node6" class="node">
+<title>Program</title>
+<polygon fill="#f0ad4e" stroke="#f0ad4e" points="603.89,-24.27 547.38,-24.27 547.38,0 603.89,0 603.89,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="575.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Program</text>
+</g>
+<!-- This Page&#39;s Entity -->
+<g id="node7" class="node">
+<title>This Page&#39;s Entity</title>
+<polygon fill="none" stroke="black" points="725.52,-24.27 621.75,-24.27 621.75,0 725.52,0 725.52,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="673.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50">This Page&#39;s Entity</text>
+</g>
+</g>
+</svg>
+
+<p>Solid arrows point from a procedure to one which it calls. Dashed 
+arrows point from an interface to procedures which implement that interface.
+This could include the module procedures in a generic interface or the
+implementation in a submodule of an interface in a parent module.
+</p>
+ Where possible, edges connecting nodes are
+given different colours to make them easier to distinguish in
+large graphs.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <br>
+
+
+    
+    
+
+    
+    
+
+
+
+    
+    <section>
+    <h2><span class="anchor" id="src"></span>Source Code</h2>
+    <div class="hl codehilite"><pre><span></span><span class="w">    </span><span class="k">subroutine </span><span class="n">stats_write_pedestrian_wind</span><span class="p">(</span><span class="n">ncid</span><span class="p">,</span><span class="w"> </span><span class="n">record</span><span class="p">)</span>
+<span class="w">      </span><span class="k">implicit none</span>
+<span class="k">      </span><span class="kt">integer</span><span class="p">,</span><span class="w"> </span><span class="k">intent</span><span class="p">(</span><span class="n">in</span><span class="p">)</span><span class="w"> </span><span class="kd">::</span><span class="w"> </span><span class="n">ncid</span><span class="p">,</span><span class="w"> </span><span class="n">record</span>
+<span class="w">      </span><span class="kt">real</span><span class="p">,</span><span class="w"> </span><span class="k">allocatable</span><span class="w"> </span><span class="kd">::</span><span class="w"> </span><span class="n">fld2d</span><span class="p">(:,:),</span><span class="w"> </span><span class="n">fld3d</span><span class="p">(:,:,:)</span>
+
+<span class="w">      </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">size</span><span class="p">(</span><span class="n">wind_heights</span><span class="p">)</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="mi">1</span><span class="p">)</span><span class="w"> </span><span class="k">then</span>
+<span class="k">        allocate</span><span class="p">(</span><span class="n">fld2d</span><span class="p">(</span><span class="n">ib</span><span class="p">:</span><span class="n">ie</span><span class="p">,</span><span class="n">jb</span><span class="p">:</span><span class="n">je</span><span class="p">))</span>
+<span class="w">        </span><span class="n">fld2d</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">ws_localt</span><span class="p">(:,:,</span><span class="mi">1</span><span class="p">)</span>
+<span class="w">        </span><span class="k">where</span><span class="w"> </span><span class="p">(.</span><span class="nb">not</span><span class="p">.</span><span class="w"> </span><span class="n">ws_local_valid</span><span class="p">(:,:,</span><span class="mi">1</span><span class="p">))</span><span class="w"> </span><span class="n">fld2d</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">nc_fillvalue</span>
+<span class="w">        </span><span class="k">call </span><span class="n">writeoffset_2d</span><span class="p">(</span><span class="n">ncid</span><span class="p">,</span><span class="w"> </span><span class="s1">'ws_local'</span><span class="p">,</span><span class="w"> </span><span class="n">fld2d</span><span class="p">,</span><span class="w"> </span><span class="n">record</span><span class="p">,</span><span class="w"> </span><span class="n">xdim</span><span class="p">,</span><span class="w"> </span><span class="n">ydim</span><span class="p">)</span>
+<span class="w">        </span><span class="k">deallocate</span><span class="p">(</span><span class="n">fld2d</span><span class="p">)</span>
+<span class="w">      </span><span class="k">else</span>
+<span class="k">        allocate</span><span class="p">(</span><span class="n">fld3d</span><span class="p">(</span><span class="n">ib</span><span class="p">:</span><span class="n">ie</span><span class="p">,</span><span class="n">jb</span><span class="p">:</span><span class="n">je</span><span class="p">,</span><span class="mi">1</span><span class="p">:</span><span class="n">size</span><span class="p">(</span><span class="n">wind_heights</span><span class="p">)))</span>
+<span class="w">        </span><span class="n">fld3d</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">ws_localt</span>
+<span class="w">        </span><span class="k">where</span><span class="w"> </span><span class="p">(.</span><span class="nb">not</span><span class="p">.</span><span class="w"> </span><span class="n">ws_local_valid</span><span class="p">)</span><span class="w"> </span><span class="n">fld3d</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">nc_fillvalue</span>
+<span class="w">        </span><span class="k">call </span><span class="n">writeoffset</span><span class="p">(</span><span class="n">ncid</span><span class="p">,</span><span class="w"> </span><span class="s1">'ws_local'</span><span class="p">,</span><span class="w"> </span><span class="n">fld3d</span><span class="p">,</span><span class="w"> </span><span class="n">record</span><span class="p">,</span><span class="w"> </span><span class="n">xdim</span><span class="p">,</span><span class="w"> </span><span class="n">ydim</span><span class="p">,</span><span class="w"> </span><span class="n">size</span><span class="p">(</span><span class="n">wind_heights</span><span class="p">))</span>
+<span class="w">        </span><span class="k">deallocate</span><span class="p">(</span><span class="n">fld3d</span><span class="p">)</span>
+<span class="w">      </span><span class="k">end if</span>
+
+<span class="k">      allocate</span><span class="p">(</span><span class="n">fld2d</span><span class="p">(</span><span class="n">ib</span><span class="p">:</span><span class="n">ie</span><span class="p">,</span><span class="n">jb</span><span class="p">:</span><span class="n">je</span><span class="p">))</span>
+<span class="w">      </span><span class="n">fld2d</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">ws_10t</span>
+<span class="w">      </span><span class="k">where</span><span class="w"> </span><span class="p">(.</span><span class="nb">not</span><span class="p">.</span><span class="w"> </span><span class="n">ws_10_valid</span><span class="p">)</span><span class="w"> </span><span class="n">fld2d</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">nc_fillvalue</span>
+<span class="w">      </span><span class="k">call </span><span class="n">writeoffset_2d</span><span class="p">(</span><span class="n">ncid</span><span class="p">,</span><span class="w"> </span><span class="s1">'ws_10'</span><span class="p">,</span><span class="w"> </span><span class="n">fld2d</span><span class="p">,</span><span class="w"> </span><span class="n">record</span><span class="p">,</span><span class="w"> </span><span class="n">xdim</span><span class="p">,</span><span class="w"> </span><span class="n">ydim</span><span class="p">)</span>
+<span class="w">      </span><span class="k">deallocate</span><span class="p">(</span><span class="n">fld2d</span><span class="p">)</span>
+<span class="w">    </span><span class="k">end subroutine </span><span class="n">stats_write_pedestrian_wind</span>
+</pre></div>
+
+    </section>
+    <br>
+    
+    </div>
+  </div>
+
+      <hr>
+    </div> <!-- /container -->
+    <footer>
+      <div class="container">
+        <div class="row justify-content-between">
+          <div class="col">
+            <p>
+              uDALES
+ was developed by The uDALES Team<br>              &copy; 2026 
+</p>
+          </div>
+          <div class="col">
+            <p class="text-end">
+              Documentation generated by
+              <a href="https://github.com/Fortran-FOSS-Programmers/ford">FORD</a>
+ on 2026-11-27 14:34 +0000             </p>
+          </div>
+        </div>
+        <br>
+      </div> <!-- /container -->
+    </footer>
+  </body>
+</html>

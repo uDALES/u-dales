@@ -1,0 +1,974 @@
+<!-- -*- mode: jinja2 -*- -->
+
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+      <meta name="description" content="API documentation of the Fortran source code of uDALES, the open-source multi-physics large-eddy simulation model for urban environments.">
+    <meta name="author" content="The uDALES Team" >
+    <link rel="icon" href="../favicon.png">
+
+    <title>stats_createnc_tavg &ndash; uDALES</title>
+
+    <!-- Bootstrap -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet"
+          integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"
+            integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
+    <!-- Font Awesome -->
+    <link href="../css/fontawesome.min.css" rel="stylesheet">
+    <link href="../css/brands.min.css" rel="stylesheet">
+    <link href="../css/regular.min.css" rel="stylesheet">
+    <link href="../css/solid.min.css" rel="stylesheet">
+    <link href="../css/v4-font-face.min.css" rel="stylesheet">
+    <link href="../css/v4-shims.min.css" rel="stylesheet">
+    <!-- MathJax -->
+    <script type="text/x-mathjax-config">
+      MathJax.Hub.Config({
+        TeX: { equationNumbers: { autoNumber: "AMS" } }
+      });
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/mathjax@2.7.9/MathJax.js?config=TeX-AMS-MML_HTMLorMML" async
+            integrity="sha256-DViIOMYdwlM/axqoGDPeUyf0urLoHMN4QACBKyB58Uw=" crossorigin="anonymous"></script>
+    <!-- Other scripts and stylesheets -->
+    <link href="../css/local.css" rel="stylesheet">
+    <link href="../css/pygments.css" rel="stylesheet">
+    <script src="../js/svg-pan-zoom.min.js"></script>
+  </head>
+
+  <body>
+
+    <!-- Fixed navbar -->
+    <div class="container-fluid mb-sm-4 mb-xl-2">
+      <nav class="navbar navbar-expand-lg navbar-dark bg-dark fixed-top">
+        <div class="container">
+          <a class="navbar-brand" href="../index.html">uDALES </a>
+          <button type="button" class="navbar-toggler" data-bs-toggle="collapse" data-bs-target="#navbar"
+                  aria-expanded="false" aria-controls="navbar" aria-label="Toggle navigation">
+                  <span class="navbar-toggler-icon">
+          </button>
+
+          <div id="navbar" class="navbar-collapse collapse">
+            <ul class="navbar-nav">
+                  <li class="nav-item">
+                    <a class="nav-link" href="../lists/files.html">Source Files</a>
+                  </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="../lists/modules.html">Modules</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="../lists/procedures.html">Procedures</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="../lists/absint.html">Abstract Interfaces</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="../lists/types.html">Derived Types</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="../lists/namelists.html">Namelists</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="../program/udales.html">Program</a>
+                </li>
+            </ul>
+              <div class="d-flex align-items-end flex-grow-1">
+                <form action="../search.html" role="search" class="ms-auto">
+                  <input type="text" class="form-control" aria-label="Search" placeholder="Search" name="q" id="tipue_search_input" autocomplete="off" required>
+                </form>
+              </div>
+          </div><!--/.nav-collapse -->
+        </div>
+      </nav>
+    </div>
+
+    <div class="container">
+  <div class="row">
+    <h1>stats_createnc_tavg
+      <small>Subroutine</small>
+      
+    </h1>
+      <div class="container p-2 mb-4 bg-light border rounded-3">
+    <div class="row align-items-center justify-content-between" id="info-bar">
+      <div class="col">
+        <ul class="list-inline" style="margin-bottom:0px;display:inline">
+
+            <li class="list-inline-item" id="statements"><i class="fa fa-list-ol"></i>
+              <a data-bs-toggle="tooltip" data-bs-placement="bottom" data-bs-html="true"
+                 title=" 0.1% of total for procedures.">16 statements</a>
+            </li>
+
+            <li class="list-inline-item" id="source-file">
+              <i class="fa fa-code"></i>
+              <a href="../src/out_stats.f90"> Source File</a>
+            </li>
+        </ul>
+      </div>
+      <div class="col">
+        <nav aria-label="breadcrumb">
+          <ol class="breadcrumb justify-content-end mb-0">
+                <li class="breadcrumb-item"><a href='../sourcefile/out_stats.f90.html'>out_stats.f90</a></li>
+                <li class="breadcrumb-item"><a href='../module/stats.html'>stats</a></li>
+            <li class="breadcrumb-item active" aria-current="page">stats_createnc_tavg</li>
+          </ol>
+        </nav>
+      </div>
+    </div>
+  </div>
+  <script>
+    // Enable Bootstrap tooltips
+    (function () {
+      const tooltipTriggerList = document.querySelectorAll('[data-bs-toggle="tooltip"]')
+      const tooltipList = [...tooltipTriggerList].map(tooltipTriggerEl => new bootstrap.Tooltip(tooltipTriggerEl))
+    })();
+  </script>
+
+  </div>
+  
+  <div class="row">
+    <div class="col-md-3 hidden-xs hidden-sm visible-md visible-lg">
+      <div id="sidebar">
+      <h3>Contents</h3>
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+    <div class="card card-primary">
+      <div class="card-header text-left"><h3 class="card-title">Source Code</h3></div>
+      <div class="list-group">
+        <a class="list-group-item" href="../proc/stats_createnc_tavg.html#src">stats_createnc_tavg</a>
+      </div>
+    </div>
+
+
+  </div>
+
+    </div>
+    
+    <div class="col-md-9" id='text'>
+    <h2>private  subroutine stats_createnc_tavg()  
+</h2>
+    
+
+
+
+    <h3>Arguments</h3>
+    <em>None</em>
+    <br>
+    <br>
+    <div class="card">
+      <div class="card-header">
+  <h3 class="card-title">Calls</h3>
+      </div>
+      <div class="card-body">
+  <div class="depgraph"><?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
+ "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<!-- Generated by graphviz version 14.1.3 (0)
+ -->
+<!-- Title: proc~~stats_createnc_tavg~~CallsGraph Pages: 1 -->
+<svg id="procstats_createnc_tavgCallsGraph" width="641pt" height="494pt"
+ viewBox="0.00 0.00 641.00 494.00" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<g id="proc~~stats_createnc_tavg~~CallsGraph" class="graph" transform="scale(0.74613 0.74613) rotate(0) translate(4 658.27)">
+<title>proc~~stats_createnc_tavg~~CallsGraph</title>
+<polygon fill="white" stroke="none" points="-4,4 -4,-658.27 855.1,-658.27 855.1,4 -4,4"/>
+<!-- proc~stats_createnc_tavg -->
+<g id="proc~~stats_createnc_tavg~~CallsGraph_node1" class="node">
+<title>proc~stats_createnc_tavg</title>
+<polygon fill="none" stroke="black" points="116.52,-328.27 0,-328.27 0,-304 116.52,-304 116.52,-328.27"/>
+<text xml:space="preserve" text-anchor="middle" x="58.26" y="-312.53" font-family="Helvetica,sans-Serif" font-size="10.50">stats_createnc_tavg</text>
+</g>
+<!-- proc~define_nc -->
+<g id="proc~~stats_createnc_tavg~~CallsGraph_node2" class="node">
+<title>proc~define_nc</title>
+<g id="a_proc~~stats_createnc_tavg~~CallsGraph_node2"><a xlink:href="../proc/define_nc.html" xlink:title="define_nc">
+<polygon fill="#d9534f" stroke="#d9534f" points="490.19,-350.27 426.92,-350.27 426.92,-326 490.19,-326 490.19,-350.27"/>
+<text xml:space="preserve" text-anchor="middle" x="458.55" y="-334.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">define_nc</text>
+</a>
+</g>
+</g>
+<!-- proc~stats_createnc_tavg&#45;&gt;proc~define_nc -->
+<g id="proc~~stats_createnc_tavg~~CallsGraph_edge1" class="edge">
+<title>proc~stats_createnc_tavg&#45;&gt;proc~define_nc</title>
+<path fill="none" stroke="#ff0000" d="M116.75,-319.31C197.76,-323.79 343.63,-331.84 415.37,-335.81"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="414.95,-339.29 425.13,-336.34 415.34,-332.3 414.95,-339.29"/>
+</g>
+<!-- proc~open_nc -->
+<g id="proc~~stats_createnc_tavg~~CallsGraph_node3" class="node">
+<title>proc~open_nc</title>
+<g id="a_proc~~stats_createnc_tavg~~CallsGraph_node3"><a xlink:href="../proc/open_nc.html" xlink:title="open_nc">
+<polygon fill="#d9534f" stroke="#d9534f" points="486.81,-402.27 430.29,-402.27 430.29,-378 486.81,-378 486.81,-402.27"/>
+<text xml:space="preserve" text-anchor="middle" x="458.55" y="-386.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">open_nc</text>
+</a>
+</g>
+</g>
+<!-- proc~stats_createnc_tavg&#45;&gt;proc~open_nc -->
+<g id="proc~~stats_createnc_tavg~~CallsGraph_edge2" class="edge">
+<title>proc~stats_createnc_tavg&#45;&gt;proc~open_nc</title>
+<path fill="none" stroke="#ff0000" d="M104.61,-328.67C119.77,-332.63 136.81,-336.83 152.52,-340.13 247.59,-360.12 360.73,-376.84 418.85,-384.92"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="418.17,-388.36 428.56,-386.26 419.13,-381.43 418.17,-388.36"/>
+</g>
+<!-- proc~stats_define_pedestrian_wind -->
+<g id="proc~~stats_createnc_tavg~~CallsGraph_node4" class="node">
+<title>proc~stats_define_pedestrian_wind</title>
+<g id="a_proc~~stats_createnc_tavg~~CallsGraph_node4"><a xlink:href="../proc/stats_define_pedestrian_wind.html" xlink:title="stats_define_pedestrian_wind">
+<polygon fill="#d9534f" stroke="#d9534f" points="320.04,-308.27 152.52,-308.27 152.52,-284 320.04,-284 320.04,-308.27"/>
+<text xml:space="preserve" text-anchor="middle" x="236.28" y="-292.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">stats_define_pedestrian_wind</text>
+</a>
+</g>
+</g>
+<!-- proc~stats_createnc_tavg&#45;&gt;proc~stats_define_pedestrian_wind -->
+<g id="proc~~stats_createnc_tavg~~CallsGraph_edge3" class="edge">
+<title>proc~stats_createnc_tavg&#45;&gt;proc~stats_define_pedestrian_wind</title>
+<path fill="none" stroke="#ff0000" d="M116.9,-309.59C124.68,-308.7 132.84,-307.78 141.06,-306.84"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="141.25,-310.34 150.79,-305.74 140.46,-303.39 141.25,-310.34"/>
+</g>
+<!-- proc~writestat_dims_nc -->
+<g id="proc~~stats_createnc_tavg~~CallsGraph_node5" class="node">
+<title>proc~writestat_dims_nc</title>
+<g id="a_proc~~stats_createnc_tavg~~CallsGraph_node5"><a xlink:href="../proc/writestat_dims_nc.html" xlink:title="writestat_dims_nc">
+<polygon fill="#d9534f" stroke="#d9534f" points="511.56,-213.27 405.54,-213.27 405.54,-189 511.56,-189 511.56,-213.27"/>
+<text xml:space="preserve" text-anchor="middle" x="458.55" y="-197.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">writestat_dims_nc</text>
+</a>
+</g>
+</g>
+<!-- proc~stats_createnc_tavg&#45;&gt;proc~writestat_dims_nc -->
+<g id="proc~~stats_createnc_tavg~~CallsGraph_edge4" class="edge">
+<title>proc~stats_createnc_tavg&#45;&gt;proc~writestat_dims_nc</title>
+<path fill="none" stroke="#ff0000" d="M84.51,-303.58C103,-294.75 128.9,-283.12 152.52,-275.13 234.28,-247.48 331.64,-225.72 393.99,-213.15"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="394.61,-216.59 403.73,-211.2 393.24,-209.73 394.61,-216.59"/>
+</g>
+<!-- nf90_def_var -->
+<g id="proc~~stats_createnc_tavg~~CallsGraph_node8" class="node">
+<title>nf90_def_var</title>
+<polygon fill="#777777" stroke="#777777" points="706.46,-444.27 625.94,-444.27 625.94,-420 706.46,-420 706.46,-444.27"/>
+<text xml:space="preserve" text-anchor="middle" x="666.2" y="-428.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">nf90_def_var</text>
+</g>
+<!-- proc~define_nc&#45;&gt;nf90_def_var -->
+<g id="proc~~stats_createnc_tavg~~CallsGraph_edge5" class="edge">
+<title>proc~define_nc&#45;&gt;nf90_def_var</title>
+<path fill="none" stroke="#ff0000" d="M490.35,-342.86C511.54,-347.18 539.63,-355.11 561.06,-369.13 581.63,-382.59 576.5,-397.65 597.06,-411.13 602.56,-414.75 608.72,-417.76 615.02,-420.27"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="613.65,-423.5 624.24,-423.54 615.99,-416.9 613.65,-423.5"/>
+</g>
+<!-- nf90_enddef -->
+<g id="proc~~stats_createnc_tavg~~CallsGraph_node9" class="node">
+<title>nf90_enddef</title>
+<polygon fill="#777777" stroke="#777777" points="705.33,-402.27 627.06,-402.27 627.06,-378 705.33,-378 705.33,-402.27"/>
+<text xml:space="preserve" text-anchor="middle" x="666.2" y="-386.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">nf90_enddef</text>
+</g>
+<!-- proc~define_nc&#45;&gt;nf90_enddef -->
+<g id="proc~~stats_createnc_tavg~~CallsGraph_edge6" class="edge">
+<title>proc~define_nc&#45;&gt;nf90_enddef</title>
+<path fill="none" stroke="#ff0000" d="M490.34,-345.92C523.48,-354.3 576.69,-367.76 615.72,-377.62"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="614.81,-381 625.36,-380.06 616.53,-374.22 614.81,-381"/>
+</g>
+<!-- nf90_inq_dimid -->
+<g id="proc~~stats_createnc_tavg~~CallsGraph_node11" class="node">
+<title>nf90_inq_dimid</title>
+<polygon fill="#777777" stroke="#777777" points="712.46,-528.27 619.94,-528.27 619.94,-504 712.46,-504 712.46,-528.27"/>
+<text xml:space="preserve" text-anchor="middle" x="666.2" y="-512.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">nf90_inq_dimid</text>
+</g>
+<!-- proc~define_nc&#45;&gt;nf90_inq_dimid -->
+<g id="proc~~stats_createnc_tavg~~CallsGraph_edge7" class="edge">
+<title>proc~define_nc&#45;&gt;nf90_inq_dimid</title>
+<path fill="none" stroke="#ff0000" d="M490.63,-339.93C513.09,-342.87 542.6,-350.33 561.06,-369.13 601.87,-410.69 556.31,-453.53 597.06,-495.13 600.62,-498.76 604.78,-501.77 609.27,-504.26"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="607.58,-507.33 618.13,-508.29 610.48,-500.96 607.58,-507.33"/>
+</g>
+<!-- nf90_inq_varid -->
+<g id="proc~~stats_createnc_tavg~~CallsGraph_node12" class="node">
+<title>nf90_inq_varid</title>
+<polygon fill="#777777" stroke="#777777" points="710.96,-234.27 621.44,-234.27 621.44,-210 710.96,-210 710.96,-234.27"/>
+<text xml:space="preserve" text-anchor="middle" x="666.2" y="-218.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">nf90_inq_varid</text>
+</g>
+<!-- proc~define_nc&#45;&gt;nf90_inq_varid -->
+<g id="proc~~stats_createnc_tavg~~CallsGraph_edge8" class="edge">
+<title>proc~define_nc&#45;&gt;nf90_inq_varid</title>
+<path fill="none" stroke="#ff0000" d="M490.47,-338.66C512.27,-337.5 541.03,-332.71 561.06,-317.13 589.93,-294.68 569.29,-266.93 597.06,-243.13 601.13,-239.64 605.78,-236.73 610.69,-234.31"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="611.77,-237.65 619.64,-230.56 609.07,-231.19 611.77,-237.65"/>
+</g>
+<!-- nf90_put_att -->
+<g id="proc~~stats_createnc_tavg~~CallsGraph_node16" class="node">
+<title>nf90_put_att</title>
+<polygon fill="#777777" stroke="#777777" points="704.96,-360.27 627.44,-360.27 627.44,-336 704.96,-336 704.96,-360.27"/>
+<text xml:space="preserve" text-anchor="middle" x="666.2" y="-344.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">nf90_put_att</text>
+</g>
+<!-- proc~define_nc&#45;&gt;nf90_put_att -->
+<g id="proc~~stats_createnc_tavg~~CallsGraph_edge9" class="edge">
+<title>proc~define_nc&#45;&gt;nf90_put_att</title>
+<path fill="none" stroke="#ff0000" d="M490.34,-339.63C523.51,-341.25 576.79,-343.84 615.83,-345.73"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="615.52,-349.22 625.68,-346.21 615.86,-342.23 615.52,-349.22"/>
+</g>
+<!-- nf90_redef -->
+<g id="proc~~stats_createnc_tavg~~CallsGraph_node18" class="node">
+<title>nf90_redef</title>
+<polygon fill="#777777" stroke="#777777" points="700.46,-150.27 631.94,-150.27 631.94,-126 700.46,-126 700.46,-150.27"/>
+<text xml:space="preserve" text-anchor="middle" x="666.2" y="-134.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">nf90_redef</text>
+</g>
+<!-- proc~define_nc&#45;&gt;nf90_redef -->
+<g id="proc~~stats_createnc_tavg~~CallsGraph_edge10" class="edge">
+<title>proc~define_nc&#45;&gt;nf90_redef</title>
+<path fill="none" stroke="#ff0000" d="M490.68,-340C513.16,-339.59 542.68,-335.15 561.06,-317.13 612.49,-266.72 548.08,-211.93 597.06,-159.13 603.4,-152.3 611.92,-147.66 620.77,-144.53"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="621.53,-147.96 630.17,-141.83 619.59,-141.23 621.53,-147.96"/>
+</g>
+<!-- proc~nchandle_error -->
+<g id="proc~~stats_createnc_tavg~~CallsGraph_node20" class="node">
+<title>proc~nchandle_error</title>
+<g id="a_proc~~stats_createnc_tavg~~CallsGraph_node20"><a xlink:href="../proc/nchandle_error.html" xlink:title="nchandle_error">
+<polygon fill="#d9534f" stroke="#d9534f" points="712.46,-108.27 619.94,-108.27 619.94,-84 712.46,-84 712.46,-108.27"/>
+<text xml:space="preserve" text-anchor="middle" x="666.2" y="-92.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">nchandle_error</text>
+</a>
+</g>
+</g>
+<!-- proc~define_nc&#45;&gt;proc~nchandle_error -->
+<g id="proc~~stats_createnc_tavg~~CallsGraph_edge11" class="edge">
+<title>proc~define_nc&#45;&gt;proc~nchandle_error</title>
+<path fill="none" stroke="#ff0000" d="M490.45,-340.25C513.12,-340.02 542.97,-335.7 561.06,-317.13 624.09,-252.45 537.17,-184.74 597.06,-117.13 600.52,-113.22 604.7,-110.03 609.25,-107.43"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="610.71,-110.61 618.33,-103.25 607.78,-104.25 610.71,-110.61"/>
+</g>
+<!-- nf90_create -->
+<g id="proc~~stats_createnc_tavg~~CallsGraph_node6" class="node">
+<title>nf90_create</title>
+<polygon fill="#777777" stroke="#777777" points="703.46,-654.27 628.94,-654.27 628.94,-630 703.46,-630 703.46,-654.27"/>
+<text xml:space="preserve" text-anchor="middle" x="666.2" y="-638.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">nf90_create</text>
+</g>
+<!-- proc~open_nc&#45;&gt;nf90_create -->
+<g id="proc~~stats_createnc_tavg~~CallsGraph_edge12" class="edge">
+<title>proc~open_nc&#45;&gt;nf90_create</title>
+<path fill="none" stroke="#7fff00" d="M463.36,-402.57C475.82,-441.13 519.1,-559.83 597.06,-621.13 603.14,-625.92 610.31,-629.61 617.68,-632.47"/>
+<polygon fill="#7fff00" stroke="#7fff00" points="616.48,-635.76 627.07,-635.61 618.7,-629.12 616.48,-635.76"/>
+</g>
+<!-- nf90_def_dim -->
+<g id="proc~~stats_createnc_tavg~~CallsGraph_node7" class="node">
+<title>nf90_def_dim</title>
+<polygon fill="#777777" stroke="#777777" points="707.96,-486.27 624.44,-486.27 624.44,-462 707.96,-462 707.96,-486.27"/>
+<text xml:space="preserve" text-anchor="middle" x="666.2" y="-470.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">nf90_def_dim</text>
+</g>
+<!-- proc~open_nc&#45;&gt;nf90_def_dim -->
+<g id="proc~~stats_createnc_tavg~~CallsGraph_edge13" class="edge">
+<title>proc~open_nc&#45;&gt;nf90_def_dim</title>
+<path fill="none" stroke="#7fff00" d="M484.47,-402.75C511.7,-416.25 556.82,-437.79 597.06,-453.13 602.35,-455.15 607.92,-457.12 613.5,-458.98"/>
+<polygon fill="#7fff00" stroke="#7fff00" points="612.15,-462.23 622.75,-461.98 614.31,-455.57 612.15,-462.23"/>
+</g>
+<!-- proc~open_nc&#45;&gt;nf90_def_var -->
+<g id="proc~~stats_createnc_tavg~~CallsGraph_edge14" class="edge">
+<title>proc~open_nc&#45;&gt;nf90_def_var</title>
+<path fill="none" stroke="#7fff00" d="M487.28,-395.8C519.78,-402.44 574.29,-413.57 614.42,-421.77"/>
+<polygon fill="#7fff00" stroke="#7fff00" points="613.61,-425.17 624.11,-423.74 615.01,-418.31 613.61,-425.17"/>
+</g>
+<!-- proc~open_nc&#45;&gt;nf90_enddef -->
+<g id="proc~~stats_createnc_tavg~~CallsGraph_edge15" class="edge">
+<title>proc~open_nc&#45;&gt;nf90_enddef</title>
+<path fill="none" stroke="#7fff00" d="M487.28,-390.13C520.01,-390.13 575.06,-390.13 615.27,-390.13"/>
+<polygon fill="#7fff00" stroke="#7fff00" points="615.2,-393.64 625.2,-390.14 615.2,-386.64 615.2,-393.64"/>
+</g>
+<!-- nf90_get_var -->
+<g id="proc~~stats_createnc_tavg~~CallsGraph_node10" class="node">
+<title>nf90_get_var</title>
+<polygon fill="#777777" stroke="#777777" points="706.46,-318.27 625.94,-318.27 625.94,-294 706.46,-294 706.46,-318.27"/>
+<text xml:space="preserve" text-anchor="middle" x="666.2" y="-302.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">nf90_get_var</text>
+</g>
+<!-- proc~open_nc&#45;&gt;nf90_get_var -->
+<g id="proc~~stats_createnc_tavg~~CallsGraph_edge16" class="edge">
+<title>proc~open_nc&#45;&gt;nf90_get_var</title>
+<path fill="none" stroke="#7fff00" d="M487.11,-385.08C508.29,-380.42 537.76,-372.21 561.06,-359.13 579.73,-348.66 578.41,-337.64 597.06,-327.13 602.66,-323.98 608.78,-321.25 615,-318.89"/>
+<polygon fill="#7fff00" stroke="#7fff00" points="615.72,-322.34 624.02,-315.76 613.43,-315.73 615.72,-322.34"/>
+</g>
+<!-- proc~open_nc&#45;&gt;nf90_inq_dimid -->
+<g id="proc~~stats_createnc_tavg~~CallsGraph_edge17" class="edge">
+<title>proc~open_nc&#45;&gt;nf90_inq_dimid</title>
+<path fill="none" stroke="#7fff00" d="M472.51,-402.61C495.69,-424.3 546.59,-469.14 597.06,-495.13 600.91,-497.12 604.98,-498.95 609.14,-500.64"/>
+<polygon fill="#7fff00" stroke="#7fff00" points="607.58,-503.79 618.17,-504.01 610.03,-497.23 607.58,-503.79"/>
+</g>
+<!-- proc~open_nc&#45;&gt;nf90_inq_varid -->
+<g id="proc~~stats_createnc_tavg~~CallsGraph_edge18" class="edge">
+<title>proc~open_nc&#45;&gt;nf90_inq_varid</title>
+<path fill="none" stroke="#7fff00" d="M487.27,-388.62C509.99,-385.93 541.47,-378.64 561.06,-359.13 599.32,-321.05 558.85,-281.27 597.06,-243.13 600.96,-239.24 605.57,-236.07 610.51,-233.48"/>
+<polygon fill="#7fff00" stroke="#7fff00" points="611.84,-236.72 619.64,-229.55 609.07,-230.29 611.84,-236.72"/>
+</g>
+<!-- nf90_inquire -->
+<g id="proc~~stats_createnc_tavg~~CallsGraph_node13" class="node">
+<title>nf90_inquire</title>
+<polygon fill="#777777" stroke="#777777" points="704.96,-612.27 627.44,-612.27 627.44,-588 704.96,-588 704.96,-612.27"/>
+<text xml:space="preserve" text-anchor="middle" x="666.2" y="-596.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">nf90_inquire</text>
+</g>
+<!-- proc~open_nc&#45;&gt;nf90_inquire -->
+<g id="proc~~stats_createnc_tavg~~CallsGraph_edge19" class="edge">
+<title>proc~open_nc&#45;&gt;nf90_inquire</title>
+<path fill="none" stroke="#7fff00" d="M465,-402.4C480.53,-435.97 528.39,-530.07 597.06,-579.13 602.88,-583.29 609.54,-586.64 616.36,-589.34"/>
+<polygon fill="#7fff00" stroke="#7fff00" points="615.1,-592.6 625.7,-592.56 617.39,-585.99 615.1,-592.6"/>
+</g>
+<!-- nf90_inquire_dimension -->
+<g id="proc~~stats_createnc_tavg~~CallsGraph_node14" class="node">
+<title>nf90_inquire_dimension</title>
+<polygon fill="#777777" stroke="#777777" points="735.33,-192.27 597.06,-192.27 597.06,-168 735.33,-168 735.33,-192.27"/>
+<text xml:space="preserve" text-anchor="middle" x="666.2" y="-176.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">nf90_inquire_dimension</text>
+</g>
+<!-- proc~open_nc&#45;&gt;nf90_inquire_dimension -->
+<g id="proc~~stats_createnc_tavg~~CallsGraph_edge20" class="edge">
+<title>proc~open_nc&#45;&gt;nf90_inquire_dimension</title>
+<path fill="none" stroke="#7fff00" d="M487.21,-389.05C510.2,-386.63 542.11,-379.51 561.06,-359.13 610.11,-306.4 548.08,-253.93 597.06,-201.13 597.53,-200.62 598.02,-200.13 598.52,-199.64"/>
+<polygon fill="#7fff00" stroke="#7fff00" points="600.45,-202.57 606.24,-193.69 596.18,-197.02 600.45,-202.57"/>
+</g>
+<!-- nf90_open -->
+<g id="proc~~stats_createnc_tavg~~CallsGraph_node15" class="node">
+<title>nf90_open</title>
+<polygon fill="#777777" stroke="#777777" points="700.08,-570.27 632.31,-570.27 632.31,-546 700.08,-546 700.08,-570.27"/>
+<text xml:space="preserve" text-anchor="middle" x="666.2" y="-554.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">nf90_open</text>
+</g>
+<!-- proc~open_nc&#45;&gt;nf90_open -->
+<g id="proc~~stats_createnc_tavg~~CallsGraph_edge21" class="edge">
+<title>proc~open_nc&#45;&gt;nf90_open</title>
+<path fill="none" stroke="#7fff00" d="M467.62,-402.42C486.7,-430.51 537.5,-499.89 597.06,-537.13 604.36,-541.7 612.72,-545.33 621.02,-548.2"/>
+<polygon fill="#7fff00" stroke="#7fff00" points="619.79,-551.48 630.37,-551.11 621.86,-544.8 619.79,-551.48"/>
+</g>
+<!-- proc~open_nc&#45;&gt;nf90_put_att -->
+<g id="proc~~stats_createnc_tavg~~CallsGraph_edge22" class="edge">
+<title>proc~open_nc&#45;&gt;nf90_put_att</title>
+<path fill="none" stroke="#7fff00" d="M487.28,-384.47C520.18,-377.75 575.63,-366.43 615.9,-358.2"/>
+<polygon fill="#7fff00" stroke="#7fff00" points="616.5,-361.65 625.6,-356.22 615.1,-354.79 616.5,-361.65"/>
+</g>
+<!-- nf90_sync -->
+<g id="proc~~stats_createnc_tavg~~CallsGraph_node19" class="node">
+<title>nf90_sync</title>
+<polygon fill="#777777" stroke="#777777" points="698.58,-276.27 633.81,-276.27 633.81,-252 698.58,-252 698.58,-276.27"/>
+<text xml:space="preserve" text-anchor="middle" x="666.2" y="-260.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">nf90_sync</text>
+</g>
+<!-- proc~open_nc&#45;&gt;nf90_sync -->
+<g id="proc~~stats_createnc_tavg~~CallsGraph_edge23" class="edge">
+<title>proc~open_nc&#45;&gt;nf90_sync</title>
+<path fill="none" stroke="#7fff00" d="M486.99,-387.76C509.23,-384.55 540.19,-376.97 561.06,-359.13 588.86,-335.37 569.29,-308.93 597.06,-285.13 604.28,-278.95 613.29,-274.59 622.38,-271.51"/>
+<polygon fill="#7fff00" stroke="#7fff00" points="623.28,-274.89 631.93,-268.77 621.35,-268.16 623.28,-274.89"/>
+</g>
+<!-- proc~stats_define_pedestrian_wind&#45;&gt;proc~define_nc -->
+<g id="proc~~stats_createnc_tavg~~CallsGraph_edge24" class="edge">
+<title>proc~stats_define_pedestrian_wind&#45;&gt;proc~define_nc</title>
+<path fill="none" stroke="#00ffff" d="M303.37,-308.74C339.71,-315.67 383.71,-324.06 415.39,-330.1"/>
+<polygon fill="#00ffff" stroke="#00ffff" points="414.5,-333.49 424.98,-331.93 415.81,-326.61 414.5,-333.49"/>
+</g>
+<!-- proc~write_pedestrian_wind_heights_nc -->
+<g id="proc~~stats_createnc_tavg~~CallsGraph_node21" class="node">
+<title>proc~write_pedestrian_wind_heights_nc</title>
+<g id="a_proc~~stats_createnc_tavg~~CallsGraph_node21"><a xlink:href="../proc/write_pedestrian_wind_heights_nc.html" xlink:title="write_pedestrian_wind_heights_nc">
+<polygon fill="#d9534f" stroke="#d9534f" points="554.69,-308.27 362.42,-308.27 362.42,-284 554.69,-284 554.69,-308.27"/>
+<text xml:space="preserve" text-anchor="middle" x="458.55" y="-292.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">write_pedestrian_wind_heights_nc</text>
+</a>
+</g>
+</g>
+<!-- proc~stats_define_pedestrian_wind&#45;&gt;proc~write_pedestrian_wind_heights_nc -->
+<g id="proc~~stats_createnc_tavg~~CallsGraph_edge25" class="edge">
+<title>proc~stats_define_pedestrian_wind&#45;&gt;proc~write_pedestrian_wind_heights_nc</title>
+<path fill="none" stroke="#00ffff" d="M320.24,-296.13C330.16,-296.13 340.4,-296.13 350.6,-296.13"/>
+<polygon fill="#00ffff" stroke="#00ffff" points="350.57,-299.64 360.57,-296.14 350.57,-292.64 350.57,-299.64"/>
+</g>
+<!-- proc~write_pedestrian_wind_metadata_nc -->
+<g id="proc~~stats_createnc_tavg~~CallsGraph_node22" class="node">
+<title>proc~write_pedestrian_wind_metadata_nc</title>
+<g id="a_proc~~stats_createnc_tavg~~CallsGraph_node22"><a xlink:href="../proc/write_pedestrian_wind_metadata_nc.html" xlink:title="write_pedestrian_wind_metadata_nc">
+<polygon fill="#d9534f" stroke="#d9534f" points="561.06,-266.27 356.04,-266.27 356.04,-242 561.06,-242 561.06,-266.27"/>
+<text xml:space="preserve" text-anchor="middle" x="458.55" y="-250.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">write_pedestrian_wind_metadata_nc</text>
+</a>
+</g>
+</g>
+<!-- proc~stats_define_pedestrian_wind&#45;&gt;proc~write_pedestrian_wind_metadata_nc -->
+<g id="proc~~stats_createnc_tavg~~CallsGraph_edge26" class="edge">
+<title>proc~stats_define_pedestrian_wind&#45;&gt;proc~write_pedestrian_wind_metadata_nc</title>
+<path fill="none" stroke="#00ffff" d="M303.37,-283.53C327.65,-278.9 355.36,-273.62 380.52,-268.82"/>
+<polygon fill="#00ffff" stroke="#00ffff" points="380.85,-272.32 390.02,-267.01 379.54,-265.45 380.85,-272.32"/>
+</g>
+<!-- proc~writestat_dims_nc&#45;&gt;nf90_inq_varid -->
+<g id="proc~~stats_createnc_tavg~~CallsGraph_edge27" class="edge">
+<title>proc~writestat_dims_nc&#45;&gt;nf90_inq_varid</title>
+<path fill="none" stroke="#7f00ff" d="M511.98,-206.49C541.94,-209.55 579.5,-213.38 609.93,-216.49"/>
+<polygon fill="#7f00ff" stroke="#7f00ff" points="609.4,-219.96 619.7,-217.49 610.11,-212.99 609.4,-219.96"/>
+</g>
+<!-- proc~writestat_dims_nc&#45;&gt;nf90_inquire_dimension -->
+<g id="proc~~stats_createnc_tavg~~CallsGraph_edge28" class="edge">
+<title>proc~writestat_dims_nc&#45;&gt;nf90_inquire_dimension</title>
+<path fill="none" stroke="#7f00ff" d="M511.98,-195.78C534.37,-193.49 561,-190.78 585.73,-188.25"/>
+<polygon fill="#7f00ff" stroke="#7f00ff" points="585.83,-191.76 595.43,-187.26 585.12,-184.79 585.83,-191.76"/>
+</g>
+<!-- nf90_put_var -->
+<g id="proc~~stats_createnc_tavg~~CallsGraph_node17" class="node">
+<title>nf90_put_var</title>
+<polygon fill="#777777" stroke="#777777" points="706.46,-24.27 625.94,-24.27 625.94,0 706.46,0 706.46,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="666.2" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">nf90_put_var</text>
+</g>
+<!-- proc~writestat_dims_nc&#45;&gt;nf90_put_var -->
+<g id="proc~~stats_createnc_tavg~~CallsGraph_edge29" class="edge">
+<title>proc~writestat_dims_nc&#45;&gt;nf90_put_var</title>
+<path fill="none" stroke="#7f00ff" d="M466.11,-188.92C483.33,-158.04 532.94,-76.25 597.06,-33.13 602.52,-29.46 608.65,-26.41 614.94,-23.88"/>
+<polygon fill="#7f00ff" stroke="#7f00ff" points="615.91,-27.25 624.16,-20.6 613.56,-20.65 615.91,-27.25"/>
+</g>
+<!-- nf90_strerror -->
+<g id="proc~~stats_createnc_tavg~~CallsGraph_node24" class="node">
+<title>nf90_strerror</title>
+<polygon fill="#777777" stroke="#777777" points="851.1,-108.27 771.33,-108.27 771.33,-84 851.1,-84 851.1,-108.27"/>
+<text xml:space="preserve" text-anchor="middle" x="811.22" y="-92.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">nf90_strerror</text>
+</g>
+<!-- proc~nchandle_error&#45;&gt;nf90_strerror -->
+<g id="proc~~stats_createnc_tavg~~CallsGraph_edge30" class="edge">
+<title>proc~nchandle_error&#45;&gt;nf90_strerror</title>
+<path fill="none" stroke="#f000ff" d="M712.84,-96.13C727.82,-96.13 744.56,-96.13 759.87,-96.13"/>
+<polygon fill="#f000ff" stroke="#f000ff" points="759.73,-99.64 769.73,-96.14 759.73,-92.64 759.73,-99.64"/>
+</g>
+<!-- proc~write_pedestrian_wind_heights_nc&#45;&gt;nf90_def_dim -->
+<g id="proc~~stats_createnc_tavg~~CallsGraph_edge31" class="edge">
+<title>proc~write_pedestrian_wind_heights_nc&#45;&gt;nf90_def_dim</title>
+<path fill="none" stroke="#ff00b4" d="M549.9,-308.74C553.91,-311.14 557.66,-313.92 561.06,-317.13 606.47,-360.12 553.74,-408.04 597.06,-453.13 601.67,-457.94 607.36,-461.65 613.46,-464.52"/>
+<polygon fill="#ff00b4" stroke="#ff00b4" points="612.01,-467.71 622.6,-468.04 614.53,-461.18 612.01,-467.71"/>
+</g>
+<!-- proc~write_pedestrian_wind_heights_nc&#45;&gt;nf90_def_var -->
+<g id="proc~~stats_createnc_tavg~~CallsGraph_edge32" class="edge">
+<title>proc~write_pedestrian_wind_heights_nc&#45;&gt;nf90_def_var</title>
+<path fill="none" stroke="#ff00b4" d="M548.55,-308.67C553.01,-311.07 557.22,-313.87 561.06,-317.13 595.15,-346.11 564.39,-380.57 597.06,-411.13 602.22,-415.96 608.47,-419.68 615.06,-422.55"/>
+<polygon fill="#ff00b4" stroke="#ff00b4" points="613.59,-425.73 624.18,-425.86 615.98,-419.15 613.59,-425.73"/>
+</g>
+<!-- proc~write_pedestrian_wind_heights_nc&#45;&gt;nf90_enddef -->
+<g id="proc~~stats_createnc_tavg~~CallsGraph_edge33" class="edge">
+<title>proc~write_pedestrian_wind_heights_nc&#45;&gt;nf90_enddef</title>
+<path fill="none" stroke="#ff00b4" d="M545.16,-308.72C550.75,-311.08 556.11,-313.86 561.06,-317.13 584.5,-332.65 574.38,-352.53 597.06,-369.13 602.76,-373.31 609.31,-376.67 616.04,-379.37"/>
+<polygon fill="#ff00b4" stroke="#ff00b4" points="614.65,-382.59 625.25,-382.58 616.96,-375.98 614.65,-382.59"/>
+</g>
+<!-- proc~write_pedestrian_wind_heights_nc&#45;&gt;nf90_get_var -->
+<g id="proc~~stats_createnc_tavg~~CallsGraph_edge34" class="edge">
+<title>proc~write_pedestrian_wind_heights_nc&#45;&gt;nf90_get_var</title>
+<path fill="none" stroke="#ff00b4" d="M555.15,-300.78C575.54,-301.78 596.31,-302.79 614.24,-303.66"/>
+<polygon fill="#ff00b4" stroke="#ff00b4" points="613.9,-307.14 624.06,-304.13 614.24,-300.15 613.9,-307.14"/>
+</g>
+<!-- proc~write_pedestrian_wind_heights_nc&#45;&gt;nf90_inq_dimid -->
+<g id="proc~~stats_createnc_tavg~~CallsGraph_edge35" class="edge">
+<title>proc~write_pedestrian_wind_heights_nc&#45;&gt;nf90_inq_dimid</title>
+<path fill="none" stroke="#ff00b4" d="M550.14,-308.5C554.08,-310.96 557.76,-313.82 561.06,-317.13 618.01,-374.33 542.89,-435.3 597.06,-495.13 600.52,-498.95 604.65,-502.09 609.15,-504.66"/>
+<polygon fill="#ff00b4" stroke="#ff00b4" points="607.55,-507.77 618.09,-508.79 610.48,-501.42 607.55,-507.77"/>
+</g>
+<!-- proc~write_pedestrian_wind_heights_nc&#45;&gt;nf90_inq_varid -->
+<g id="proc~~stats_createnc_tavg~~CallsGraph_edge36" class="edge">
+<title>proc~write_pedestrian_wind_heights_nc&#45;&gt;nf90_inq_varid</title>
+<path fill="none" stroke="#ff00b4" d="M540.13,-283.58C547.38,-281.23 554.47,-278.45 561.06,-275.13 580.19,-265.53 578.41,-253.64 597.06,-243.13 601.36,-240.71 605.98,-238.53 610.71,-236.59"/>
+<polygon fill="#ff00b4" stroke="#ff00b4" points="611.6,-239.99 619.74,-233.2 609.14,-233.43 611.6,-239.99"/>
+</g>
+<!-- proc~write_pedestrian_wind_heights_nc&#45;&gt;nf90_inquire_dimension -->
+<g id="proc~~stats_createnc_tavg~~CallsGraph_edge37" class="edge">
+<title>proc~write_pedestrian_wind_heights_nc&#45;&gt;nf90_inquire_dimension</title>
+<path fill="none" stroke="#ff00b4" d="M547.24,-283.68C552.14,-281.28 556.8,-278.45 561.06,-275.13 589.93,-252.68 569.29,-224.93 597.06,-201.13 598.14,-200.21 599.27,-199.32 600.43,-198.47"/>
+<polygon fill="#ff00b4" stroke="#ff00b4" points="601.88,-201.68 608.6,-193.49 598.24,-195.7 601.88,-201.68"/>
+</g>
+<!-- proc~write_pedestrian_wind_heights_nc&#45;&gt;nf90_put_att -->
+<g id="proc~~stats_createnc_tavg~~CallsGraph_edge39" class="edge">
+<title>proc~write_pedestrian_wind_heights_nc&#45;&gt;nf90_put_att</title>
+<path fill="none" stroke="#ff00b4" d="M524.72,-308.76C536.84,-311.35 549.37,-314.19 561.06,-317.13 571.82,-319.84 594.68,-326.61 616.24,-333.13"/>
+<polygon fill="#ff00b4" stroke="#ff00b4" points="614.96,-336.4 625.55,-335.95 617,-329.7 614.96,-336.4"/>
+</g>
+<!-- proc~write_pedestrian_wind_heights_nc&#45;&gt;nf90_put_var -->
+<g id="proc~~stats_createnc_tavg~~CallsGraph_edge40" class="edge">
+<title>proc~write_pedestrian_wind_heights_nc&#45;&gt;nf90_put_var</title>
+<path fill="none" stroke="#ff00b4" d="M550.8,-283.68C554.51,-281.24 557.97,-278.4 561.06,-275.13 635.75,-196.11 526.2,-115.62 597.06,-33.13 601.94,-27.46 608.31,-23.29 615.2,-20.24"/>
+<polygon fill="#ff00b4" stroke="#ff00b4" points="615.91,-23.7 624.14,-17.03 613.54,-17.12 615.91,-23.7"/>
+</g>
+<!-- proc~write_pedestrian_wind_heights_nc&#45;&gt;nf90_redef -->
+<g id="proc~~stats_createnc_tavg~~CallsGraph_edge41" class="edge">
+<title>proc~write_pedestrian_wind_heights_nc&#45;&gt;nf90_redef</title>
+<path fill="none" stroke="#ff00b4" d="M549.27,-283.63C553.49,-281.21 557.46,-278.4 561.06,-275.13 601.03,-238.86 558.85,-197.27 597.06,-159.13 603.53,-152.68 611.93,-148.2 620.62,-145.1"/>
+<polygon fill="#ff00b4" stroke="#ff00b4" points="621.59,-148.46 630.19,-142.28 619.61,-141.74 621.59,-148.46"/>
+</g>
+<!-- proc~write_pedestrian_wind_heights_nc&#45;&gt;nf90_sync -->
+<g id="proc~~stats_createnc_tavg~~CallsGraph_edge42" class="edge">
+<title>proc~write_pedestrian_wind_heights_nc&#45;&gt;nf90_sync</title>
+<path fill="none" stroke="#ff00b4" d="M540.53,-283.53C568.45,-279.19 598.61,-274.5 622.28,-270.81"/>
+<polygon fill="#ff00b4" stroke="#ff00b4" points="622.5,-274.32 631.84,-269.33 621.42,-267.4 622.5,-274.32"/>
+</g>
+<!-- proc~write_pedestrian_wind_heights_nc&#45;&gt;proc~nchandle_error -->
+<g id="proc~~stats_createnc_tavg~~CallsGraph_edge43" class="edge">
+<title>proc~write_pedestrian_wind_heights_nc&#45;&gt;proc~nchandle_error</title>
+<path fill="none" stroke="#ff00b4" d="M550.04,-283.67C554.01,-281.24 557.72,-278.41 561.06,-275.13 612.49,-224.72 548.08,-169.93 597.06,-117.13 600.56,-113.36 604.73,-110.25 609.25,-107.7"/>
+<polygon fill="#ff00b4" stroke="#ff00b4" points="610.59,-110.94 618.22,-103.59 607.67,-104.58 610.59,-110.94"/>
+</g>
+<!-- nf90_inquire_variable -->
+<g id="proc~~stats_createnc_tavg~~CallsGraph_node23" class="node">
+<title>nf90_inquire_variable</title>
+<polygon fill="#777777" stroke="#777777" points="729.33,-66.27 603.06,-66.27 603.06,-42 729.33,-42 729.33,-66.27"/>
+<text xml:space="preserve" text-anchor="middle" x="666.2" y="-50.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">nf90_inquire_variable</text>
+</g>
+<!-- proc~write_pedestrian_wind_heights_nc&#45;&gt;nf90_inquire_variable -->
+<g id="proc~~stats_createnc_tavg~~CallsGraph_edge38" class="edge">
+<title>proc~write_pedestrian_wind_heights_nc&#45;&gt;nf90_inquire_variable</title>
+<path fill="none" stroke="#ff00b4" d="M550.68,-283.57C554.43,-281.15 557.92,-278.36 561.06,-275.13 624.09,-210.45 537.17,-142.74 597.06,-75.13 597.52,-74.61 598,-74.11 598.48,-73.61"/>
+<polygon fill="#ff00b4" stroke="#ff00b4" points="600.44,-76.52 606.09,-67.56 596.08,-71.05 600.44,-76.52"/>
+</g>
+<!-- proc~write_pedestrian_wind_metadata_nc&#45;&gt;nf90_def_var -->
+<g id="proc~~stats_createnc_tavg~~CallsGraph_edge44" class="edge">
+<title>proc~write_pedestrian_wind_metadata_nc&#45;&gt;nf90_def_var</title>
+<path fill="none" stroke="#ff005a" d="M549.9,-266.74C553.91,-269.14 557.66,-271.92 561.06,-275.13 606.47,-318.12 553.74,-366.04 597.06,-411.13 602.07,-416.35 608.34,-420.28 615.03,-423.23"/>
+<polygon fill="#ff005a" stroke="#ff005a" points="613.77,-426.5 624.36,-426.61 616.15,-419.92 613.77,-426.5"/>
+</g>
+<!-- proc~write_pedestrian_wind_metadata_nc&#45;&gt;nf90_enddef -->
+<g id="proc~~stats_createnc_tavg~~CallsGraph_edge45" class="edge">
+<title>proc~write_pedestrian_wind_metadata_nc&#45;&gt;nf90_enddef</title>
+<path fill="none" stroke="#ff005a" d="M548.55,-266.67C553.01,-269.07 557.22,-271.87 561.06,-275.13 595.15,-304.11 564.39,-338.57 597.06,-369.13 602.53,-374.25 609.21,-378.12 616.24,-381.04"/>
+<polygon fill="#ff005a" stroke="#ff005a" points="614.64,-384.2 625.24,-384.2 616.95,-377.59 614.64,-384.2"/>
+</g>
+<!-- proc~write_pedestrian_wind_metadata_nc&#45;&gt;nf90_get_var -->
+<g id="proc~~stats_createnc_tavg~~CallsGraph_edge46" class="edge">
+<title>proc~write_pedestrian_wind_metadata_nc&#45;&gt;nf90_get_var</title>
+<path fill="none" stroke="#ff005a" d="M524.72,-266.76C536.84,-269.35 549.37,-272.19 561.06,-275.13 571.57,-277.78 593.65,-284.3 614.77,-290.69"/>
+<polygon fill="#ff005a" stroke="#ff005a" points="613.64,-294 624.22,-293.55 615.67,-287.3 613.64,-294"/>
+</g>
+<!-- proc~write_pedestrian_wind_metadata_nc&#45;&gt;nf90_inq_varid -->
+<g id="proc~~stats_createnc_tavg~~CallsGraph_edge47" class="edge">
+<title>proc~write_pedestrian_wind_metadata_nc&#45;&gt;nf90_inq_varid</title>
+<path fill="none" stroke="#ff005a" d="M540.53,-241.53C563.78,-237.92 588.59,-234.06 609.9,-230.74"/>
+<polygon fill="#ff005a" stroke="#ff005a" points="610.19,-234.24 619.53,-229.24 609.11,-227.32 610.19,-234.24"/>
+</g>
+<!-- proc~write_pedestrian_wind_metadata_nc&#45;&gt;nf90_put_att -->
+<g id="proc~~stats_createnc_tavg~~CallsGraph_edge49" class="edge">
+<title>proc~write_pedestrian_wind_metadata_nc&#45;&gt;nf90_put_att</title>
+<path fill="none" stroke="#ff005a" d="M545.16,-266.72C550.75,-269.08 556.11,-271.86 561.06,-275.13 584.5,-290.65 574.38,-310.53 597.06,-327.13 602.83,-331.36 609.46,-334.75 616.27,-337.46"/>
+<polygon fill="#ff005a" stroke="#ff005a" points="615.01,-340.72 625.6,-340.69 617.3,-334.11 615.01,-340.72"/>
+</g>
+<!-- proc~write_pedestrian_wind_metadata_nc&#45;&gt;nf90_put_var -->
+<g id="proc~~stats_createnc_tavg~~CallsGraph_edge50" class="edge">
+<title>proc~write_pedestrian_wind_metadata_nc&#45;&gt;nf90_put_var</title>
+<path fill="none" stroke="#ff005a" d="M532.97,-241.61C543.57,-236.99 553.45,-230.7 561.06,-222.13 617.88,-158.23 540.03,-96.85 597.06,-33.13 602.05,-27.56 608.49,-23.44 615.4,-20.41"/>
+<polygon fill="#ff005a" stroke="#ff005a" points="616.11,-23.88 624.35,-17.21 613.75,-17.29 616.11,-23.88"/>
+</g>
+<!-- proc~write_pedestrian_wind_metadata_nc&#45;&gt;nf90_redef -->
+<g id="proc~~stats_createnc_tavg~~CallsGraph_edge51" class="edge">
+<title>proc~write_pedestrian_wind_metadata_nc&#45;&gt;nf90_redef</title>
+<path fill="none" stroke="#ff005a" d="M524.64,-241.53C537.62,-236.93 550.49,-230.66 561.06,-222.13 586.17,-201.89 571.89,-179.3 597.06,-159.13 603.91,-153.65 612.2,-149.59 620.59,-146.59"/>
+<polygon fill="#ff005a" stroke="#ff005a" points="621.6,-149.94 630.14,-143.66 619.55,-143.25 621.6,-149.94"/>
+</g>
+<!-- proc~write_pedestrian_wind_metadata_nc&#45;&gt;nf90_sync -->
+<g id="proc~~stats_createnc_tavg~~CallsGraph_edge52" class="edge">
+<title>proc~write_pedestrian_wind_metadata_nc&#45;&gt;nf90_sync</title>
+<path fill="none" stroke="#ff005a" d="M561.47,-259.09C582.91,-260.13 604.4,-261.18 622.21,-262.04"/>
+<polygon fill="#ff005a" stroke="#ff005a" points="621.96,-265.54 632.12,-262.53 622.3,-258.54 621.96,-265.54"/>
+</g>
+<!-- proc~write_pedestrian_wind_metadata_nc&#45;&gt;proc~nchandle_error -->
+<g id="proc~~stats_createnc_tavg~~CallsGraph_edge53" class="edge">
+<title>proc~write_pedestrian_wind_metadata_nc&#45;&gt;proc~nchandle_error</title>
+<path fill="none" stroke="#ff005a" d="M529.61,-241.6C541.19,-237 552.26,-230.71 561.06,-222.13 596.38,-187.69 561.63,-151.47 597.06,-117.13 600.71,-113.6 604.94,-110.66 609.47,-108.21"/>
+<polygon fill="#ff005a" stroke="#ff005a" points="610.68,-111.5 618.38,-104.22 607.82,-105.11 610.68,-111.5"/>
+</g>
+<!-- proc~write_pedestrian_wind_metadata_nc&#45;&gt;nf90_inquire_variable -->
+<g id="proc~~stats_createnc_tavg~~CallsGraph_edge48" class="edge">
+<title>proc~write_pedestrian_wind_metadata_nc&#45;&gt;nf90_inquire_variable</title>
+<path fill="none" stroke="#ff005a" d="M531.81,-241.59C542.75,-236.98 553.04,-230.7 561.06,-222.13 607.05,-173.05 550.92,-124.08 597.06,-75.13 597.65,-74.51 598.26,-73.9 598.88,-73.32"/>
+<polygon fill="#ff005a" stroke="#ff005a" points="600.69,-76.33 606.6,-67.54 596.5,-70.72 600.69,-76.33"/>
+</g>
+</g>
+</svg>
+</div>                <script>
+                  var panprocstats_createnc_tavgCallsGraph = svgPanZoom('#procstats_createnc_tavgCallsGraph',
+                    {zoomEnabled: true, controlIconsEnabled: true, fit: true, center: true,}
+                  );
+                </script>          <div>
+            <a type="button" class="graph-help" data-bs-toggle="modal" href="#CallsGraph-help-text">Help</a>
+          </div>
+          <div class="modal fade" id="CallsGraph-help-text" tabindex="-1" role="dialog">
+            <div class="modal-dialog modal-lg" role="document">
+              <div class="modal-content">
+                <div class="modal-header">
+                  <h4 class="modal-title" id="-graph-help-label">Graph Key</h4>
+                  <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+<p>Nodes of different colours represent the following: </p>
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
+ "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<!-- Generated by graphviz version 14.1.3 (0)
+ -->
+<!-- Title: Graph Key Pages: 1 -->
+<svg width="641pt" height="28pt"
+ viewBox="0.00 0.00 641.00 28.00" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<g id="graph0" class="graph" transform="scale(0.873868 0.873868) rotate(0) translate(4 28.27)">
+<title>Graph Key</title>
+<polygon fill="white" stroke="none" points="-4,4 -4,-28.27 729.52,-28.27 729.52,4 -4,4"/>
+<!-- Subroutine -->
+<g id="node1" class="node">
+<title>Subroutine</title>
+<polygon fill="#d9534f" stroke="#d9534f" points="69.27,-24.27 0,-24.27 0,0 69.27,0 69.27,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="34.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Subroutine</text>
+</g>
+<!-- Function -->
+<g id="node2" class="node">
+<title>Function</title>
+<polygon fill="#d94e8f" stroke="#d94e8f" points="143.89,-24.27 87.38,-24.27 87.38,0 143.89,0 143.89,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="115.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Function</text>
+</g>
+<!-- Interface -->
+<g id="node3" class="node">
+<title>Interface</title>
+<polygon fill="#a7506f" stroke="#a7506f" points="221.39,-24.27 161.88,-24.27 161.88,0 221.39,0 221.39,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="191.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Interface</text>
+</g>
+<!-- Type Bound Procedure -->
+<g id="node4" class="node">
+<title>Type Bound Procedure</title>
+<polygon fill="#a7506f" stroke="#a7506f" points="368.27,-24.27 239,-24.27 239,0 368.27,0 368.27,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="303.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Type Bound Procedure</text>
+</g>
+<!-- Unknown Procedure Type -->
+<g id="node5" class="node">
+<title>Unknown Procedure Type</title>
+<polygon fill="#777777" stroke="#777777" points="529.39,-24.27 385.88,-24.27 385.88,0 529.39,0 529.39,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="457.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Unknown Procedure Type</text>
+</g>
+<!-- Program -->
+<g id="node6" class="node">
+<title>Program</title>
+<polygon fill="#f0ad4e" stroke="#f0ad4e" points="603.89,-24.27 547.38,-24.27 547.38,0 603.89,0 603.89,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="575.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Program</text>
+</g>
+<!-- This Page&#39;s Entity -->
+<g id="node7" class="node">
+<title>This Page&#39;s Entity</title>
+<polygon fill="none" stroke="black" points="725.52,-24.27 621.75,-24.27 621.75,0 725.52,0 725.52,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="673.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50">This Page&#39;s Entity</text>
+</g>
+</g>
+</svg>
+
+<p>Solid arrows point from a procedure to one which it calls. Dashed 
+arrows point from an interface to procedures which implement that interface.
+This could include the module procedures in a generic interface or the
+implementation in a submodule of an interface in a parent module.
+</p>
+ Where possible, edges connecting nodes are
+given different colours to make them easier to distinguish in
+large graphs.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-header">
+  <h3 class="card-title">Called by</h3>
+      </div>
+      <div class="card-body">
+  <div class="depgraph"><?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
+ "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<!-- Generated by graphviz version 14.1.3 (0)
+ -->
+<!-- Title: proc~~stats_createnc_tavg~~CalledByGraph Pages: 1 -->
+<svg id="procstats_createnc_tavgCalledByGraph" width="438pt" height="32pt"
+ viewBox="0.00 0.00 438.00 32.00" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<g id="proc~~stats_createnc_tavg~~CalledByGraph" class="graph" transform="scale(1 1) rotate(0) translate(4 28.27)">
+<title>proc~~stats_createnc_tavg~~CalledByGraph</title>
+<polygon fill="white" stroke="none" points="-4,4 -4,-28.27 433.81,-28.27 433.81,4 -4,4"/>
+<!-- proc~stats_createnc_tavg -->
+<g id="proc~~stats_createnc_tavg~~CalledByGraph_node1" class="node">
+<title>proc~stats_createnc_tavg</title>
+<polygon fill="none" stroke="black" points="429.81,-24.27 313.29,-24.27 313.29,0 429.81,0 429.81,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="371.55" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50">stats_createnc_tavg</text>
+</g>
+<!-- proc~stats_prepare -->
+<g id="proc~~stats_createnc_tavg~~CalledByGraph_node2" class="node">
+<title>proc~stats_prepare</title>
+<g id="a_proc~~stats_createnc_tavg~~CalledByGraph_node2"><a xlink:href="../proc/stats_prepare.html" xlink:title="stats_prepare">
+<polygon fill="#d9534f" stroke="#d9534f" points="277.29,-24.27 194.52,-24.27 194.52,0 277.29,0 277.29,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="235.9" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">stats_prepare</text>
+</a>
+</g>
+</g>
+<!-- proc~stats_prepare&#45;&gt;proc~stats_createnc_tavg -->
+<g id="proc~~stats_createnc_tavg~~CalledByGraph_edge1" class="edge">
+<title>proc~stats_prepare&#45;&gt;proc~stats_createnc_tavg</title>
+<path fill="none" stroke="#ff0000" d="M277.73,-12.13C285.43,-12.13 293.69,-12.13 301.97,-12.13"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="301.73,-15.64 311.73,-12.14 301.73,-8.64 301.73,-15.64"/>
+</g>
+<!-- proc~stats_main -->
+<g id="proc~~stats_createnc_tavg~~CalledByGraph_node3" class="node">
+<title>proc~stats_main</title>
+<g id="a_proc~~stats_createnc_tavg~~CalledByGraph_node3"><a xlink:href="../proc/stats_main.html" xlink:title="stats_main">
+<polygon fill="#d9534f" stroke="#d9534f" points="158.52,-24.27 90,-24.27 90,0 158.52,0 158.52,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="124.26" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">stats_main</text>
+</a>
+</g>
+</g>
+<!-- proc~stats_main&#45;&gt;proc~stats_prepare -->
+<g id="proc~~stats_createnc_tavg~~CalledByGraph_edge2" class="edge">
+<title>proc~stats_main&#45;&gt;proc~stats_prepare</title>
+<path fill="none" stroke="#ff0000" d="M158.75,-12.13C166.37,-12.13 174.64,-12.13 182.83,-12.13"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="182.76,-15.64 192.76,-12.14 182.76,-8.64 182.76,-15.64"/>
+</g>
+<!-- program~udales -->
+<g id="proc~~stats_createnc_tavg~~CalledByGraph_node4" class="node">
+<title>program~udales</title>
+<g id="a_proc~~stats_createnc_tavg~~CalledByGraph_node4"><a xlink:href="../program/udales.html" xlink:title="uDALES">
+<polygon fill="#f0ad4e" stroke="#f0ad4e" points="54,-24.27 0,-24.27 0,0 54,0 54,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="27" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">uDALES</text>
+</a>
+</g>
+</g>
+<!-- program~udales&#45;&gt;proc~stats_main -->
+<g id="proc~~stats_createnc_tavg~~CalledByGraph_edge3" class="edge">
+<title>program~udales&#45;&gt;proc~stats_main</title>
+<path fill="none" stroke="#ff0000" d="M54.28,-12.13C61.69,-12.13 69.97,-12.13 78.16,-12.13"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="78.04,-15.64 88.04,-12.14 78.04,-8.64 78.04,-15.64"/>
+</g>
+</g>
+</svg>
+</div>          <div>
+            <a type="button" class="graph-help" data-bs-toggle="modal" href="#CalledByGraph-help-text">Help</a>
+          </div>
+          <div class="modal fade" id="CalledByGraph-help-text" tabindex="-1" role="dialog">
+            <div class="modal-dialog modal-lg" role="document">
+              <div class="modal-content">
+                <div class="modal-header">
+                  <h4 class="modal-title" id="-graph-help-label">Graph Key</h4>
+                  <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+<p>Nodes of different colours represent the following: </p>
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
+ "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<!-- Generated by graphviz version 14.1.3 (0)
+ -->
+<!-- Title: Graph Key Pages: 1 -->
+<svg width="641pt" height="28pt"
+ viewBox="0.00 0.00 641.00 28.00" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<g id="graph0" class="graph" transform="scale(0.873868 0.873868) rotate(0) translate(4 28.27)">
+<title>Graph Key</title>
+<polygon fill="white" stroke="none" points="-4,4 -4,-28.27 729.52,-28.27 729.52,4 -4,4"/>
+<!-- Subroutine -->
+<g id="node1" class="node">
+<title>Subroutine</title>
+<polygon fill="#d9534f" stroke="#d9534f" points="69.27,-24.27 0,-24.27 0,0 69.27,0 69.27,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="34.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Subroutine</text>
+</g>
+<!-- Function -->
+<g id="node2" class="node">
+<title>Function</title>
+<polygon fill="#d94e8f" stroke="#d94e8f" points="143.89,-24.27 87.38,-24.27 87.38,0 143.89,0 143.89,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="115.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Function</text>
+</g>
+<!-- Interface -->
+<g id="node3" class="node">
+<title>Interface</title>
+<polygon fill="#a7506f" stroke="#a7506f" points="221.39,-24.27 161.88,-24.27 161.88,0 221.39,0 221.39,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="191.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Interface</text>
+</g>
+<!-- Type Bound Procedure -->
+<g id="node4" class="node">
+<title>Type Bound Procedure</title>
+<polygon fill="#a7506f" stroke="#a7506f" points="368.27,-24.27 239,-24.27 239,0 368.27,0 368.27,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="303.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Type Bound Procedure</text>
+</g>
+<!-- Unknown Procedure Type -->
+<g id="node5" class="node">
+<title>Unknown Procedure Type</title>
+<polygon fill="#777777" stroke="#777777" points="529.39,-24.27 385.88,-24.27 385.88,0 529.39,0 529.39,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="457.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Unknown Procedure Type</text>
+</g>
+<!-- Program -->
+<g id="node6" class="node">
+<title>Program</title>
+<polygon fill="#f0ad4e" stroke="#f0ad4e" points="603.89,-24.27 547.38,-24.27 547.38,0 603.89,0 603.89,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="575.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Program</text>
+</g>
+<!-- This Page&#39;s Entity -->
+<g id="node7" class="node">
+<title>This Page&#39;s Entity</title>
+<polygon fill="none" stroke="black" points="725.52,-24.27 621.75,-24.27 621.75,0 725.52,0 725.52,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="673.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50">This Page&#39;s Entity</text>
+</g>
+</g>
+</svg>
+
+<p>Solid arrows point from a procedure to one which it calls. Dashed 
+arrows point from an interface to procedures which implement that interface.
+This could include the module procedures in a generic interface or the
+implementation in a submodule of an interface in a parent module.
+</p>
+ Where possible, edges connecting nodes are
+given different colours to make them easier to distinguish in
+large graphs.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <br>
+
+
+    
+    
+
+    
+    
+
+
+
+    
+    <section>
+    <h2><span class="anchor" id="src"></span>Source Code</h2>
+    <div class="hl codehilite"><pre><span></span><span class="w">    </span><span class="k">subroutine </span><span class="n">stats_createnc_tavg</span>
+<span class="w">      </span><span class="k">implicit none</span>
+<span class="k">      </span><span class="n">filenamet</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s1">'stats_t.xxx.xxx.nc'</span>
+<span class="w">      </span><span class="n">filenamet</span><span class="p">(</span><span class="mi">9</span><span class="p">:</span><span class="mi">11</span><span class="p">)</span><span class="w">  </span><span class="o">=</span><span class="w"> </span><span class="n">cmyidx</span>
+<span class="w">      </span><span class="n">filenamet</span><span class="p">(</span><span class="mi">13</span><span class="p">:</span><span class="mi">15</span><span class="p">)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">cexpnr</span>
+
+<span class="w">      </span><span class="n">nrect</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span>
+<span class="w">      </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">myidy</span><span class="o">==</span><span class="mi">0</span><span class="p">)</span><span class="w"> </span><span class="k">then</span>
+<span class="k">        call </span><span class="n">open_nc</span><span class="p">(</span><span class="n">filenamet</span><span class="p">,</span><span class="w"> </span><span class="n">ncidt</span><span class="p">,</span><span class="w"> </span><span class="n">nrect</span><span class="p">,</span><span class="w"> </span><span class="n">n1</span><span class="o">=</span><span class="n">xdim</span><span class="p">,</span><span class="w"> </span><span class="n">n2</span><span class="o">=</span><span class="n">jtot</span><span class="p">,</span><span class="w"> </span><span class="n">n3</span><span class="o">=</span><span class="n">zdim</span><span class="p">)</span>
+<span class="w">        </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">nrect</span><span class="o">==</span><span class="mi">0</span><span class="p">)</span><span class="w"> </span><span class="k">then</span>
+<span class="k">          call </span><span class="n">define_nc</span><span class="p">(</span><span class="n">ncidt</span><span class="p">,</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="n">timeVar</span><span class="p">)</span>
+<span class="w">          </span><span class="k">call </span><span class="n">writestat_dims_nc</span><span class="p">(</span><span class="n">ncidt</span><span class="p">)</span>
+<span class="w">        </span><span class="k">end if</span>
+<span class="k">        call </span><span class="n">define_nc</span><span class="p">(</span><span class="n">ncidt</span><span class="p">,</span><span class="w"> </span><span class="n">tVarsCount</span><span class="p">,</span><span class="w"> </span><span class="n">tVars</span><span class="p">)</span>
+<span class="w">        </span><span class="k">call </span><span class="n">stats_define_pedestrian_wind</span><span class="p">(</span><span class="n">ncidt</span><span class="p">)</span>
+<span class="w">      </span><span class="k">end if</span>
+<span class="k">    end subroutine </span><span class="n">stats_createnc_tavg</span>
+</pre></div>
+
+    </section>
+    <br>
+    
+    </div>
+  </div>
+
+      <hr>
+    </div> <!-- /container -->
+    <footer>
+      <div class="container">
+        <div class="row justify-content-between">
+          <div class="col">
+            <p>
+              uDALES
+ was developed by The uDALES Team<br>              &copy; 2026 
+</p>
+          </div>
+          <div class="col">
+            <p class="text-end">
+              Documentation generated by
+              <a href="https://github.com/Fortran-FOSS-Programmers/ford">FORD</a>
+ on 2026-11-27 14:34 +0000             </p>
+          </div>
+        </div>
+        <br>
+      </div> <!-- /container -->
+    </footer>
+  </body>
+</html>

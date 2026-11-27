@@ -1,0 +1,655 @@
+<!-- -*- mode: jinja2 -*- -->
+
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+      <meta name="description" content="API documentation of the Fortran source code of uDALES, the open-source multi-physics large-eddy simulation model for urban environments.">
+    <meta name="author" content="The uDALES Team" >
+    <link rel="icon" href="../favicon.png">
+
+    <title>moddriver &ndash; uDALES</title>
+
+    <!-- Bootstrap -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet"
+          integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"
+            integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
+    <!-- Font Awesome -->
+    <link href="../css/fontawesome.min.css" rel="stylesheet">
+    <link href="../css/brands.min.css" rel="stylesheet">
+    <link href="../css/regular.min.css" rel="stylesheet">
+    <link href="../css/solid.min.css" rel="stylesheet">
+    <link href="../css/v4-font-face.min.css" rel="stylesheet">
+    <link href="../css/v4-shims.min.css" rel="stylesheet">
+    <!-- MathJax -->
+    <script type="text/x-mathjax-config">
+      MathJax.Hub.Config({
+        TeX: { equationNumbers: { autoNumber: "AMS" } }
+      });
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/mathjax@2.7.9/MathJax.js?config=TeX-AMS-MML_HTMLorMML" async
+            integrity="sha256-DViIOMYdwlM/axqoGDPeUyf0urLoHMN4QACBKyB58Uw=" crossorigin="anonymous"></script>
+    <!-- Other scripts and stylesheets -->
+    <link href="../css/local.css" rel="stylesheet">
+    <link href="../css/pygments.css" rel="stylesheet">
+    <script src="../js/svg-pan-zoom.min.js"></script>
+  </head>
+
+  <body>
+
+    <!-- Fixed navbar -->
+    <div class="container-fluid mb-sm-4 mb-xl-2">
+      <nav class="navbar navbar-expand-lg navbar-dark bg-dark fixed-top">
+        <div class="container">
+          <a class="navbar-brand" href="../index.html">uDALES </a>
+          <button type="button" class="navbar-toggler" data-bs-toggle="collapse" data-bs-target="#navbar"
+                  aria-expanded="false" aria-controls="navbar" aria-label="Toggle navigation">
+                  <span class="navbar-toggler-icon">
+          </button>
+
+          <div id="navbar" class="navbar-collapse collapse">
+            <ul class="navbar-nav">
+                  <li class="nav-item">
+                    <a class="nav-link" href="../lists/files.html">Source Files</a>
+                  </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="../lists/modules.html">Modules</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="../lists/procedures.html">Procedures</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="../lists/absint.html">Abstract Interfaces</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="../lists/types.html">Derived Types</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="../lists/namelists.html">Namelists</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="../program/udales.html">Program</a>
+                </li>
+            </ul>
+              <div class="d-flex align-items-end flex-grow-1">
+                <form action="../search.html" role="search" class="ms-auto">
+                  <input type="text" class="form-control" aria-label="Search" placeholder="Search" name="q" id="tipue_search_input" autocomplete="off" required>
+                </form>
+              </div>
+          </div><!--/.nav-collapse -->
+        </div>
+      </nav>
+    </div>
+
+    <div class="container">
+  <div class="row">
+    <h1>moddriver
+      <small>Module</small>
+      
+    </h1>
+      <div class="container p-2 mb-4 bg-light border rounded-3">
+    <div class="row align-items-center justify-content-between" id="info-bar">
+      <div class="col">
+        <ul class="list-inline" style="margin-bottom:0px;display:inline">
+
+            <li class="list-inline-item" id="statements"><i class="fa fa-list-ol"></i>
+              <a data-bs-toggle="tooltip" data-bs-placement="bottom" data-bs-html="true"
+                 title=" 3.9% of total for modules and submodules.">732 statements</a>
+            </li>
+
+            <li class="list-inline-item" id="source-file">
+              <i class="fa fa-code"></i>
+              <a href="../src/moddriver.f90"> Source File</a>
+            </li>
+        </ul>
+      </div>
+      <div class="col">
+        <nav aria-label="breadcrumb">
+          <ol class="breadcrumb justify-content-end mb-0">
+                <li class="breadcrumb-item"><a href='../sourcefile/moddriver.f90.html'>moddriver.f90</a></li>
+            <li class="breadcrumb-item active" aria-current="page">moddriver</li>
+          </ol>
+        </nav>
+      </div>
+    </div>
+  </div>
+  <script>
+    // Enable Bootstrap tooltips
+    (function () {
+      const tooltipTriggerList = document.querySelectorAll('[data-bs-toggle="tooltip"]')
+      const tooltipList = [...tooltipTriggerList].map(tooltipTriggerEl => new bootstrap.Tooltip(tooltipTriggerEl))
+    })();
+  </script>
+
+  </div>
+
+  <div class="row">
+    <div class="col-md-3">
+        <div id="sidebar">
+      <h3>Contents</h3>
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+      <div class="card mb-4">
+      <a data-bs-toggle="collapse" href="#subs-0"
+         aria-expanded="false" aria-controls="subs-0">
+         <h4 class="card-header bg-primary text-white">Subroutines</h4>
+      </a>
+      <div id="subs-0" class="collapse">
+        <div class="list-group list-group-flush">
+            <a class="list-group-item" href="../module/moddriver.html#proc-initdriver">initdriver</a>
+            <a class="list-group-item" href="../module/moddriver.html#proc-drivergen">drivergen</a>
+            <a class="list-group-item" href="../module/moddriver.html#proc-writedriverfile">writedriverfile</a>
+            <a class="list-group-item" href="../module/moddriver.html#proc-readdriverfile">readdriverfile</a>
+            <a class="list-group-item" href="../module/moddriver.html#proc-readdriverfile_chunk">readdriverfile_chunk</a>
+            <a class="list-group-item" href="../module/moddriver.html#proc-driverchunkread">driverchunkread</a>
+            <a class="list-group-item" href="../module/moddriver.html#proc-exitdriver">exitdriver</a>
+        </div>
+      </div>
+    </div>
+
+  
+  
+  
+  
+  
+  
+  
+
+
+  </div>
+
+    </div>
+
+    <div class="col-md-9" id='text'>
+      
+<br>          <div class="card mb-4">
+      <h3 class="card-header card-title bg-light">Uses</h3>
+      <div class="card-body">
+        <ul class="list-group list-group-flush">
+            <li class="list-group-item">
+              <ul class="list-inline">
+                  <li class="list-inline-item"><a href='modinletdata.html'>modinletdata</a></li>
+              </ul>
+            </li>
+            <li class="list-group-item">
+              <div class="depgraph"><?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
+ "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<!-- Generated by graphviz version 14.1.3 (0)
+ -->
+<!-- Title: module~~moddriver~~UsesGraph Pages: 1 -->
+<svg id="modulemoddriverUsesGraph" width="194pt" height="32pt"
+ viewBox="0.00 0.00 194.00 32.00" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<g id="module~~moddriver~~UsesGraph" class="graph" transform="scale(1 1) rotate(0) translate(4 28.27)">
+<title>module~~moddriver~~UsesGraph</title>
+<polygon fill="white" stroke="none" points="-4,4 -4,-28.27 189.79,-28.27 189.79,4 -4,4"/>
+<!-- module~moddriver -->
+<g id="module~~moddriver~~UsesGraph_node1" class="node">
+<title>module~moddriver</title>
+<polygon fill="none" stroke="black" points="185.79,-24.27 118.77,-24.27 118.77,0 185.79,0 185.79,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="152.28" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50">moddriver</text>
+</g>
+<!-- module~modinletdata -->
+<g id="module~~moddriver~~UsesGraph_node2" class="node">
+<title>module~modinletdata</title>
+<g id="a_module~~moddriver~~UsesGraph_node2"><a xlink:href="../module/modinletdata.html" xlink:title="modinletdata">
+<polygon fill="#337ab7" stroke="#337ab7" points="82.77,-24.27 0,-24.27 0,0 82.77,0 82.77,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="41.38" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">modinletdata</text>
+</a>
+</g>
+</g>
+<!-- module~moddriver&#45;&gt;module~modinletdata -->
+<g id="module~~moddriver~~UsesGraph_edge1" class="edge">
+<title>module~moddriver&#45;&gt;module~modinletdata</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M118.31,-12.13C110.74,-12.13 102.51,-12.13 94.35,-12.13"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="94.45,-8.64 84.45,-12.14 94.45,-15.64 94.45,-8.64"/>
+</g>
+</g>
+</svg>
+</div>          <div>
+            <a type="button" class="graph-help" data-bs-toggle="modal" href="#UsesGraph-help-text">Help</a>
+          </div>
+          <div class="modal fade" id="UsesGraph-help-text" tabindex="-1" role="dialog">
+            <div class="modal-dialog modal-lg" role="document">
+              <div class="modal-content">
+                <div class="modal-header">
+                  <h4 class="modal-title" id="-graph-help-label">Graph Key</h4>
+                  <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+<p>Nodes of different colours represent the following: </p>
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
+ "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<!-- Generated by graphviz version 14.1.3 (0)
+ -->
+<!-- Title: Graph Key Pages: 1 -->
+<svg width="511pt" height="32pt"
+ viewBox="0.00 0.00 511.00 32.00" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<g id="graph0" class="graph" transform="scale(1 1) rotate(0) translate(4 28.27)">
+<title>Graph Key</title>
+<polygon fill="white" stroke="none" points="-4,4 -4,-28.27 506.88,-28.27 506.88,4 -4,4"/>
+<!-- Module -->
+<g id="node1" class="node">
+<title>Module</title>
+<polygon fill="#337ab7" stroke="#337ab7" points="54,-24.27 0,-24.27 0,0 54,0 54,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="27" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Module</text>
+</g>
+<!-- Submodule -->
+<g id="node2" class="node">
+<title>Submodule</title>
+<polygon fill="#5bc0de" stroke="#5bc0de" points="144.13,-24.27 71.87,-24.27 71.87,0 144.13,0 144.13,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="108" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Submodule</text>
+</g>
+<!-- Subroutine -->
+<g id="node3" class="node">
+<title>Subroutine</title>
+<polygon fill="#d9534f" stroke="#d9534f" points="231.63,-24.27 162.37,-24.27 162.37,0 231.63,0 231.63,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="197" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Subroutine</text>
+</g>
+<!-- Function -->
+<g id="node4" class="node">
+<title>Function</title>
+<polygon fill="#d94e8f" stroke="#d94e8f" points="306.26,-24.27 249.74,-24.27 249.74,0 306.26,0 306.26,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="278" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Function</text>
+</g>
+<!-- Program -->
+<g id="node5" class="node">
+<title>Program</title>
+<polygon fill="#f0ad4e" stroke="#f0ad4e" points="381.26,-24.27 324.74,-24.27 324.74,0 381.26,0 381.26,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="353" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Program</text>
+</g>
+<!-- This Page&#39;s Entity -->
+<g id="node6" class="node">
+<title>This Page&#39;s Entity</title>
+<polygon fill="none" stroke="black" points="502.88,-24.27 399.12,-24.27 399.12,0 502.88,0 502.88,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="451" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50">This Page&#39;s Entity</text>
+</g>
+</g>
+</svg>
+
+<p>Solid arrows point from a submodule to the (sub)module which it is
+descended from. Dashed arrows point from a module or program unit to 
+modules which it uses.
+</p>
+ Where possible, edges connecting nodes are
+given different colours to make them easier to distinguish in
+large graphs.</div>
+            </div>
+          </div>
+        </div>
+            </li>
+        </ul>
+      </div>
+    </div>
+
+          <div class="card">
+      <h3 class="card-header card-title bg-light">Used by</h3>
+      <div class="card-body">
+        <ul class="list-group list-group-flush">
+            <li class="list-group-item">
+              <div class="depgraph"><?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
+ "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<!-- Generated by graphviz version 14.1.3 (0)
+ -->
+<!-- Title: module~~moddriver~~UsedByGraph Pages: 1 -->
+<svg id="modulemoddriverUsedByGraph" width="418pt" height="148pt"
+ viewBox="0.00 0.00 418.00 148.00" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<g id="module~~moddriver~~UsedByGraph" class="graph" transform="scale(1 1) rotate(0) translate(4 143.58)">
+<title>module~~moddriver~~UsedByGraph</title>
+<polygon fill="white" stroke="none" points="-4,4 -4,-143.58 413.83,-143.58 413.83,4 -4,4"/>
+<!-- module~moddriver -->
+<g id="module~~moddriver~~UsedByGraph_node1" class="node">
+<title>module~moddriver</title>
+<polygon fill="none" stroke="black" points="67.02,-76.58 0,-76.58 0,-52.31 67.02,-52.31 67.02,-76.58"/>
+<text xml:space="preserve" text-anchor="middle" x="33.51" y="-60.84" font-family="Helvetica,sans-Serif" font-size="10.50">moddriver</text>
+</g>
+<!-- module~modstartup -->
+<g id="module~~moddriver~~UsedByGraph_node2" class="node">
+<title>module~modstartup</title>
+<g id="a_module~~moddriver~~UsedByGraph_node2"><a xlink:href="../module/modstartup.html" xlink:title="modstartup">
+<polygon fill="#337ab7" stroke="#337ab7" points="307.19,-139.58 234.17,-139.58 234.17,-115.31 307.19,-115.31 307.19,-139.58"/>
+<text xml:space="preserve" text-anchor="middle" x="270.68" y="-123.84" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">modstartup</text>
+</a>
+</g>
+</g>
+<!-- module~modstartup&#45;&gt;module~moddriver -->
+<g id="module~~moddriver~~UsedByGraph_edge1" class="edge">
+<title>module~modstartup&#45;&gt;module~moddriver</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M233.89,-127.26C199.45,-126.1 146.36,-121.66 103.02,-106.44 87.65,-101.04 72.04,-91.83 59.62,-83.41"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="61.83,-80.68 51.64,-77.78 57.79,-86.4 61.83,-80.68"/>
+</g>
+<!-- module~readnamelists -->
+<g id="module~~moddriver~~UsedByGraph_node3" class="node">
+<title>module~readnamelists</title>
+<g id="a_module~~moddriver~~UsedByGraph_node3"><a xlink:href="../module/readnamelists.html" xlink:title="readnamelists">
+<polygon fill="#337ab7" stroke="#337ab7" points="189.54,-97.58 103.02,-97.58 103.02,-73.31 189.54,-73.31 189.54,-97.58"/>
+<text xml:space="preserve" text-anchor="middle" x="146.28" y="-81.84" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">readnamelists</text>
+</a>
+</g>
+</g>
+<!-- module~modstartup&#45;&gt;module~readnamelists -->
+<g id="module~~moddriver~~UsedByGraph_edge8" class="edge">
+<title>module~modstartup&#45;&gt;module~readnamelists</title>
+<path fill="none" stroke="#cbff00" stroke-dasharray="5,2" d="M233.94,-115.18C221.6,-110.94 207.56,-106.13 194.44,-101.62"/>
+<polygon fill="#cbff00" stroke="#cbff00" points="195.72,-98.36 185.12,-98.43 193.45,-104.98 195.72,-98.36"/>
+</g>
+<!-- module~readnamelists&#45;&gt;module~moddriver -->
+<g id="module~~moddriver~~UsedByGraph_edge2" class="edge">
+<title>module~readnamelists&#45;&gt;module~moddriver</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M102.77,-77.38C94.9,-75.89 86.66,-74.33 78.74,-72.83"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="79.41,-69.39 68.93,-70.97 78.1,-76.27 79.41,-69.39"/>
+</g>
+<!-- proc~boundary -->
+<g id="module~~moddriver~~UsedByGraph_node4" class="node">
+<title>proc~boundary</title>
+<g id="a_module~~moddriver~~UsedByGraph_node4"><a xlink:href="../proc/boundary.html" xlink:title="boundary">
+<polygon fill="#d9534f" stroke="#d9534f" points="177.54,-55.58 115.02,-55.58 115.02,-31.31 177.54,-31.31 177.54,-55.58"/>
+<text xml:space="preserve" text-anchor="middle" x="146.28" y="-39.84" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">boundary</text>
+</a>
+</g>
+</g>
+<!-- proc~boundary&#45;&gt;module~moddriver -->
+<g id="module~~moddriver~~UsedByGraph_edge3" class="edge">
+<title>proc~boundary&#45;&gt;module~moddriver</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M114.72,-49.23C103.56,-51.35 90.7,-53.79 78.59,-56.08"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="77.96,-52.64 68.79,-57.94 79.26,-59.52 77.96,-52.64"/>
+</g>
+<!-- proc~readinitfiles -->
+<g id="module~~moddriver~~UsedByGraph_node5" class="node">
+<title>proc~readinitfiles</title>
+<g id="a_module~~moddriver~~UsedByGraph_node5"><a xlink:href="../proc/readinitfiles.html" xlink:title="readinitfiles">
+<polygon fill="#d9534f" stroke="#d9534f" points="307.56,-55.58 233.79,-55.58 233.79,-31.31 307.56,-31.31 307.56,-55.58"/>
+<text xml:space="preserve" text-anchor="middle" x="270.68" y="-39.84" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">readinitfiles</text>
+</a>
+</g>
+</g>
+<!-- proc~readinitfiles&#45;&gt;module~moddriver -->
+<g id="module~~moddriver~~UsedByGraph_edge4" class="edge">
+<title>proc~readinitfiles&#45;&gt;module~moddriver</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M250.62,-31.02C226.92,-17.04 184.97,2.96 147.28,-3.44"/>
+</g>
+<!-- proc~readinitfiles&#45;&gt;module~readnamelists -->
+<g id="module~~moddriver~~UsedByGraph_edge9" class="edge">
+<title>proc~readinitfiles&#45;&gt;module~readnamelists</title>
+<path fill="none" stroke="#cbff00" stroke-dasharray="5,2" d="M233.61,-55.82C221.38,-60.01 207.53,-64.76 194.56,-69.22"/>
+<polygon fill="#cbff00" stroke="#cbff00" points="193.68,-65.82 185.36,-72.37 195.96,-72.44 193.68,-65.82"/>
+</g>
+<!-- program~udales -->
+<g id="module~~moddriver~~UsedByGraph_node6" class="node">
+<title>program~udales</title>
+<g id="a_module~~moddriver~~UsedByGraph_node6"><a xlink:href="../program/udales.html" xlink:title="uDALES">
+<polygon fill="#f0ad4e" stroke="#f0ad4e" points="407.82,-56.58 353.82,-56.58 353.82,-32.31 407.82,-32.31 407.82,-56.58"/>
+<text xml:space="preserve" text-anchor="middle" x="380.82" y="-40.84" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">uDALES</text>
+</a>
+</g>
+</g>
+<!-- program~udales&#45;&gt;module~moddriver -->
+<g id="module~~moddriver~~UsedByGraph_edge5" class="edge">
+<title>program~udales&#45;&gt;module~moddriver</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M353.33,-33.8C310.19,-17.81 222.05,9.26 147.28,-3.44"/>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M145.28,-3.44C112.16,-8.53 79.16,-29.23 57.91,-45.12"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="55.97,-42.19 50.21,-51.08 60.26,-47.73 55.97,-42.19"/>
+</g>
+<!-- program~udales&#45;&gt;module~modstartup -->
+<g id="module~~moddriver~~UsedByGraph_edge7" class="edge">
+<title>program~udales&#45;&gt;module~modstartup</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M369.47,-56.61C357.56,-70.07 336.91,-91.8 315.81,-106.44 314.28,-107.51 312.68,-108.54 311.04,-109.55"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="309.73,-106.27 302.71,-114.21 313.14,-112.38 309.73,-106.27"/>
+</g>
+<!-- proc~init_tests -->
+<g id="module~~moddriver~~UsedByGraph_node7" class="node">
+<title>proc~init_tests</title>
+<g id="a_module~~moddriver~~UsedByGraph_node7"><a xlink:href="../proc/init_tests.html" xlink:title="init_tests">
+<polygon fill="#d9534f" stroke="#d9534f" points="409.83,-139.58 351.81,-139.58 351.81,-115.31 409.83,-115.31 409.83,-139.58"/>
+<text xml:space="preserve" text-anchor="middle" x="380.82" y="-123.84" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">init_tests</text>
+</a>
+</g>
+</g>
+<!-- proc~init_tests&#45;&gt;module~modstartup -->
+<g id="module~~moddriver~~UsedByGraph_edge6" class="edge">
+<title>proc~init_tests&#45;&gt;module~modstartup</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M351.41,-127.44C341.47,-127.44 330.02,-127.44 318.96,-127.44"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="319.17,-123.94 309.17,-127.44 319.17,-130.94 319.17,-123.94"/>
+</g>
+<!-- proc~tests_roundtrip -->
+<g id="module~~moddriver~~UsedByGraph_node8" class="node">
+<title>proc~tests_roundtrip</title>
+<g id="a_module~~moddriver~~UsedByGraph_node8"><a xlink:href="../proc/tests_roundtrip.html" xlink:title="tests_roundtrip">
+<polygon fill="#d9534f" stroke="#d9534f" points="315.81,-97.58 225.54,-97.58 225.54,-73.31 315.81,-73.31 315.81,-97.58"/>
+<text xml:space="preserve" text-anchor="middle" x="270.68" y="-81.84" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">tests_roundtrip</text>
+</a>
+</g>
+</g>
+<!-- proc~tests_roundtrip&#45;&gt;module~readnamelists -->
+<g id="module~~moddriver~~UsedByGraph_edge10" class="edge">
+<title>proc~tests_roundtrip&#45;&gt;module~readnamelists</title>
+<path fill="none" stroke="#cbff00" stroke-dasharray="5,2" d="M225.14,-85.44C217.43,-85.44 209.33,-85.44 201.39,-85.44"/>
+<polygon fill="#cbff00" stroke="#cbff00" points="201.46,-81.94 191.46,-85.44 201.46,-88.94 201.46,-81.94"/>
+</g>
+</g>
+</svg>
+</div>          <div>
+            <a type="button" class="graph-help" data-bs-toggle="modal" href="#UsedByGraph-help-text">Help</a>
+          </div>
+          <div class="modal fade" id="UsedByGraph-help-text" tabindex="-1" role="dialog">
+            <div class="modal-dialog modal-lg" role="document">
+              <div class="modal-content">
+                <div class="modal-header">
+                  <h4 class="modal-title" id="-graph-help-label">Graph Key</h4>
+                  <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+<p>Nodes of different colours represent the following: </p>
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
+ "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<!-- Generated by graphviz version 14.1.3 (0)
+ -->
+<!-- Title: Graph Key Pages: 1 -->
+<svg width="511pt" height="32pt"
+ viewBox="0.00 0.00 511.00 32.00" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<g id="graph0" class="graph" transform="scale(1 1) rotate(0) translate(4 28.27)">
+<title>Graph Key</title>
+<polygon fill="white" stroke="none" points="-4,4 -4,-28.27 506.88,-28.27 506.88,4 -4,4"/>
+<!-- Module -->
+<g id="node1" class="node">
+<title>Module</title>
+<polygon fill="#337ab7" stroke="#337ab7" points="54,-24.27 0,-24.27 0,0 54,0 54,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="27" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Module</text>
+</g>
+<!-- Submodule -->
+<g id="node2" class="node">
+<title>Submodule</title>
+<polygon fill="#5bc0de" stroke="#5bc0de" points="144.13,-24.27 71.87,-24.27 71.87,0 144.13,0 144.13,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="108" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Submodule</text>
+</g>
+<!-- Subroutine -->
+<g id="node3" class="node">
+<title>Subroutine</title>
+<polygon fill="#d9534f" stroke="#d9534f" points="231.63,-24.27 162.37,-24.27 162.37,0 231.63,0 231.63,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="197" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Subroutine</text>
+</g>
+<!-- Function -->
+<g id="node4" class="node">
+<title>Function</title>
+<polygon fill="#d94e8f" stroke="#d94e8f" points="306.26,-24.27 249.74,-24.27 249.74,0 306.26,0 306.26,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="278" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Function</text>
+</g>
+<!-- Program -->
+<g id="node5" class="node">
+<title>Program</title>
+<polygon fill="#f0ad4e" stroke="#f0ad4e" points="381.26,-24.27 324.74,-24.27 324.74,0 381.26,0 381.26,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="353" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Program</text>
+</g>
+<!-- This Page&#39;s Entity -->
+<g id="node6" class="node">
+<title>This Page&#39;s Entity</title>
+<polygon fill="none" stroke="black" points="502.88,-24.27 399.12,-24.27 399.12,0 502.88,0 502.88,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="451" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50">This Page&#39;s Entity</text>
+</g>
+</g>
+</svg>
+
+<p>Solid arrows point from a submodule to the (sub)module which it is
+descended from. Dashed arrows point from a module or program unit to 
+modules which it uses.
+</p>
+ Where possible, edges connecting nodes are
+given different colours to make them easier to distinguish in
+large graphs.</div>
+            </div>
+          </div>
+        </div>
+            </li>
+        </ul>
+      </div>
+    </div>
+
+      <br>
+
+
+
+
+
+
+
+
+        <section>
+          <h2>Subroutines</h2>
+              <div class="card">
+    <div class="card-header codesum"><span class="anchor" id="proc-initdriver"></span> <h3>public  subroutine <a href='../proc/initdriver.html'>initdriver</a>()  
+</h3></div>
+    <div class="card-body">
+          
+  
+
+  <h4>Arguments</h4>
+    <em>None</em>
+
+    </div>
+  </div>
+
+              <div class="card">
+    <div class="card-header codesum"><span class="anchor" id="proc-drivergen"></span> <h3>public  subroutine <a href='../proc/drivergen.html'>drivergen</a>()  
+</h3></div>
+    <div class="card-body">
+          
+  
+
+  <h4>Arguments</h4>
+    <em>None</em>
+
+    </div>
+  </div>
+
+              <div class="card">
+    <div class="card-header codesum"><span class="anchor" id="proc-writedriverfile"></span> <h3>public  subroutine <a href='../proc/writedriverfile.html'>writedriverfile</a>()  
+</h3></div>
+    <div class="card-body">
+          
+  
+
+  <h4>Arguments</h4>
+    <em>None</em>
+
+    </div>
+  </div>
+
+              <div class="card">
+    <div class="card-header codesum"><span class="anchor" id="proc-readdriverfile"></span> <h3>public  subroutine <a href='../proc/readdriverfile.html'>readdriverfile</a>()  
+</h3></div>
+    <div class="card-body">
+          
+  
+
+  <h4>Arguments</h4>
+    <em>None</em>
+
+    </div>
+  </div>
+
+              <div class="card">
+    <div class="card-header codesum"><span class="anchor" id="proc-readdriverfile_chunk"></span> <h3>public  subroutine <a href='../proc/readdriverfile_chunk.html'>readdriverfile_chunk</a>()  
+</h3></div>
+    <div class="card-body">
+          
+  
+
+  <h4>Arguments</h4>
+    <em>None</em>
+
+    </div>
+  </div>
+
+              <div class="card">
+    <div class="card-header codesum"><span class="anchor" id="proc-driverchunkread"></span> <h3>public  subroutine <a href='../proc/driverchunkread.html'>driverchunkread</a>()  
+</h3></div>
+    <div class="card-body">
+          
+  
+
+  <h4>Arguments</h4>
+    <em>None</em>
+
+    </div>
+  </div>
+
+              <div class="card">
+    <div class="card-header codesum"><span class="anchor" id="proc-exitdriver"></span> <h3>public  subroutine <a href='../proc/exitdriver.html'>exitdriver</a>()  
+</h3></div>
+    <div class="card-body">
+          
+  
+
+  <h4>Arguments</h4>
+    <em>None</em>
+
+    </div>
+  </div>
+
+        </section>
+        <br>
+
+
+
+    </div>
+  </div>
+
+      <hr>
+    </div> <!-- /container -->
+    <footer>
+      <div class="container">
+        <div class="row justify-content-between">
+          <div class="col">
+            <p>
+              uDALES
+ was developed by The uDALES Team<br>              &copy; 2026 
+</p>
+          </div>
+          <div class="col">
+            <p class="text-end">
+              Documentation generated by
+              <a href="https://github.com/Fortran-FOSS-Programmers/ford">FORD</a>
+ on 2026-11-27 14:34 +0000             </p>
+          </div>
+        </div>
+        <br>
+      </div> <!-- /container -->
+    </footer>
+  </body>
+</html>

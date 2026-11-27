@@ -1,0 +1,2810 @@
+<!-- -*- mode: jinja2 -*- -->
+
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+      <meta name="description" content="API documentation of the Fortran source code of uDALES, the open-source multi-physics large-eddy simulation model for urban environments.">
+    <meta name="author" content="The uDALES Team" >
+    <link rel="icon" href="../favicon.png">
+
+    <title>instant &ndash; uDALES</title>
+
+    <!-- Bootstrap -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet"
+          integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"
+            integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
+    <!-- Font Awesome -->
+    <link href="../css/fontawesome.min.css" rel="stylesheet">
+    <link href="../css/brands.min.css" rel="stylesheet">
+    <link href="../css/regular.min.css" rel="stylesheet">
+    <link href="../css/solid.min.css" rel="stylesheet">
+    <link href="../css/v4-font-face.min.css" rel="stylesheet">
+    <link href="../css/v4-shims.min.css" rel="stylesheet">
+    <!-- MathJax -->
+    <script type="text/x-mathjax-config">
+      MathJax.Hub.Config({
+        TeX: { equationNumbers: { autoNumber: "AMS" } }
+      });
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/mathjax@2.7.9/MathJax.js?config=TeX-AMS-MML_HTMLorMML" async
+            integrity="sha256-DViIOMYdwlM/axqoGDPeUyf0urLoHMN4QACBKyB58Uw=" crossorigin="anonymous"></script>
+    <!-- Other scripts and stylesheets -->
+    <link href="../css/local.css" rel="stylesheet">
+    <link href="../css/pygments.css" rel="stylesheet">
+    <script src="../js/svg-pan-zoom.min.js"></script>
+  </head>
+
+  <body>
+
+    <!-- Fixed navbar -->
+    <div class="container-fluid mb-sm-4 mb-xl-2">
+      <nav class="navbar navbar-expand-lg navbar-dark bg-dark fixed-top">
+        <div class="container">
+          <a class="navbar-brand" href="../index.html">uDALES </a>
+          <button type="button" class="navbar-toggler" data-bs-toggle="collapse" data-bs-target="#navbar"
+                  aria-expanded="false" aria-controls="navbar" aria-label="Toggle navigation">
+                  <span class="navbar-toggler-icon">
+          </button>
+
+          <div id="navbar" class="navbar-collapse collapse">
+            <ul class="navbar-nav">
+                  <li class="nav-item">
+                    <a class="nav-link" href="../lists/files.html">Source Files</a>
+                  </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="../lists/modules.html">Modules</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="../lists/procedures.html">Procedures</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="../lists/absint.html">Abstract Interfaces</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="../lists/types.html">Derived Types</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="../lists/namelists.html">Namelists</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="../program/udales.html">Program</a>
+                </li>
+            </ul>
+              <div class="d-flex align-items-end flex-grow-1">
+                <form action="../search.html" role="search" class="ms-auto">
+                  <input type="text" class="form-control" aria-label="Search" placeholder="Search" name="q" id="tipue_search_input" autocomplete="off" required>
+                </form>
+              </div>
+          </div><!--/.nav-collapse -->
+        </div>
+      </nav>
+    </div>
+
+    <div class="container">
+  <div class="row">
+    <h1>instant
+      <small>Module</small>
+      
+    </h1>
+      <div class="container p-2 mb-4 bg-light border rounded-3">
+    <div class="row align-items-center justify-content-between" id="info-bar">
+      <div class="col">
+        <ul class="list-inline" style="margin-bottom:0px;display:inline">
+
+            <li class="list-inline-item" id="statements"><i class="fa fa-list-ol"></i>
+              <a data-bs-toggle="tooltip" data-bs-placement="bottom" data-bs-html="true"
+                 title=" 8.2% of total for modules and submodules.">1533 statements</a>
+            </li>
+
+            <li class="list-inline-item" id="source-file">
+              <i class="fa fa-code"></i>
+              <a href="../src/out_instants.f90"> Source File</a>
+            </li>
+        </ul>
+      </div>
+      <div class="col">
+        <nav aria-label="breadcrumb">
+          <ol class="breadcrumb justify-content-end mb-0">
+                <li class="breadcrumb-item"><a href='../sourcefile/out_instants.f90.html'>out_instants.f90</a></li>
+            <li class="breadcrumb-item active" aria-current="page">instant</li>
+          </ol>
+        </nav>
+      </div>
+    </div>
+  </div>
+  <script>
+    // Enable Bootstrap tooltips
+    (function () {
+      const tooltipTriggerList = document.querySelectorAll('[data-bs-toggle="tooltip"]')
+      const tooltipList = [...tooltipTriggerList].map(tooltipTriggerEl => new bootstrap.Tooltip(tooltipTriggerEl))
+    })();
+  </script>
+
+  </div>
+
+  <div class="row">
+    <div class="col-md-3">
+        <div id="sidebar">
+      <h3>Contents</h3>
+  
+      <div class="card mb-4">
+      <a data-bs-toggle="collapse" href="#vars-0"
+         aria-expanded="false" aria-controls="vars-0">
+         <h4 class="card-header bg-primary text-white">Variables</h4>
+      </a>
+      <div id="vars-0" class="collapse">
+        <div class="list-group list-group-flush">
+            <a class="list-group-item" href="../module/instant.html#variable-tnextinstantdump">tnextinstantdump</a>
+            <a class="list-group-item" href="../module/instant.html#variable-linstantdump">linstantdump</a>
+            <a class="list-group-item" href="../module/instant.html#variable-linstantprepared">linstantprepared</a>
+            <a class="list-group-item" href="../module/instant.html#variable-lfieldtemp">lfieldtemp</a>
+            <a class="list-group-item" href="../module/instant.html#variable-lslicetemp">lslicetemp</a>
+            <a class="list-group-item" href="../module/instant.html#variable-lfieldrh">lfieldrh</a>
+            <a class="list-group-item" href="../module/instant.html#variable-lslicerh">lslicerh</a>
+            <a class="list-group-item" href="../module/instant.html#variable-lfieldpabs">lfieldpabs</a>
+            <a class="list-group-item" href="../module/instant.html#variable-xdimfield">xdimfield</a>
+            <a class="list-group-item" href="../module/instant.html#variable-ydimfield">ydimfield</a>
+            <a class="list-group-item" href="../module/instant.html#variable-zdimfield">zdimfield</a>
+            <a class="list-group-item" href="../module/instant.html#variable-nfieldvars">nfieldvars</a>
+            <a class="list-group-item" href="../module/instant.html#variable-filenamefield">filenamefield</a>
+            <a class="list-group-item" href="../module/instant.html#variable-fieldtimevar">fieldtimeVar</a>
+            <a class="list-group-item" href="../module/instant.html#variable-fldvars">fldVars</a>
+            <a class="list-group-item" href="../module/instant.html#variable-ncidfield">ncidfield</a>
+            <a class="list-group-item" href="../module/instant.html#variable-nrecfield">nrecfield</a>
+            <a class="list-group-item" href="../module/instant.html#variable-pfields">pfields</a>
+            <a class="list-group-item" href="../module/instant.html#variable-deriv_div">DERIV_DIV</a>
+            <a class="list-group-item" href="../module/instant.html#variable-deriv_dudx">DERIV_DUDX</a>
+            <a class="list-group-item" href="../module/instant.html#variable-deriv_dvdy">DERIV_DVDY</a>
+            <a class="list-group-item" href="../module/instant.html#variable-deriv_dwdz">DERIV_DWDZ</a>
+            <a class="list-group-item" href="../module/instant.html#variable-deriv_prhs">DERIV_PRHS</a>
+            <a class="list-group-item" href="../module/instant.html#variable-deriv_pdx">DERIV_PDX</a>
+            <a class="list-group-item" href="../module/instant.html#variable-deriv_pdy">DERIV_PDY</a>
+            <a class="list-group-item" href="../module/instant.html#variable-deriv_pdz">DERIV_PDZ</a>
+            <a class="list-group-item" href="../module/instant.html#variable-derived_kind">derived_kind</a>
+            <a class="list-group-item" href="../module/instant.html#variable-derived_slot">derived_slot</a>
+            <a class="list-group-item" href="../module/instant.html#variable-nderived">nderived</a>
+            <a class="list-group-item" href="../module/instant.html#variable-dbuf">dbuf</a>
+            <a class="list-group-item" href="../module/instant.html#variable-xdim">xdim</a>
+            <a class="list-group-item" href="../module/instant.html#variable-ydim">ydim</a>
+            <a class="list-group-item" href="../module/instant.html#variable-zdim">zdim</a>
+            <a class="list-group-item" href="../module/instant.html#variable-kdim">kdim</a>
+            <a class="list-group-item" href="../module/instant.html#variable-local_nislice">local_nislice</a>
+            <a class="list-group-item" href="../module/instant.html#variable-local_njslice">local_njslice</a>
+            <a class="list-group-item" href="../module/instant.html#variable-nslicevars">nslicevars</a>
+            <a class="list-group-item" href="../module/instant.html#variable-filenameislice">filenameislice</a>
+            <a class="list-group-item" href="../module/instant.html#variable-filenamejslice">filenamejslice</a>
+            <a class="list-group-item" href="../module/instant.html#variable-filenamekslice">filenamekslice</a>
+            <a class="list-group-item" href="../module/instant.html#variable-slicetimevar">slicetimeVar</a>
+            <a class="list-group-item" href="../module/instant.html#variable-islicevars">isliceVars</a>
+            <a class="list-group-item" href="../module/instant.html#variable-jslicevars">jsliceVars</a>
+            <a class="list-group-item" href="../module/instant.html#variable-kslicevars">ksliceVars</a>
+            <a class="list-group-item" href="../module/instant.html#variable-ncidislice">ncidislice</a>
+            <a class="list-group-item" href="../module/instant.html#variable-nrecislice">nrecislice</a>
+            <a class="list-group-item" href="../module/instant.html#variable-ncidjslice">ncidjslice</a>
+            <a class="list-group-item" href="../module/instant.html#variable-nrecjslice">nrecjslice</a>
+            <a class="list-group-item" href="../module/instant.html#variable-ncidkslice">ncidkslice</a>
+            <a class="list-group-item" href="../module/instant.html#variable-nreckslice">nreckslice</a>
+            <a class="list-group-item" href="../module/instant.html#variable-nprobevars">nprobevars</a>
+            <a class="list-group-item" href="../module/instant.html#variable-filenameprobe">filenameprobe</a>
+            <a class="list-group-item" href="../module/instant.html#variable-ncidprobe">ncidprobe</a>
+            <a class="list-group-item" href="../module/instant.html#variable-nrecprobe">nrecprobe</a>
+            <a class="list-group-item" href="../module/instant.html#variable-varid_time">varid_time</a>
+            <a class="list-group-item" href="../module/instant.html#variable-varid_vals">varid_vals</a>
+        </div>
+      </div>
+    </div>
+
+  
+  
+  
+  
+  
+  
+  
+  
+      <div class="card mb-4">
+      <a data-bs-toggle="collapse" href="#types-0"
+         aria-expanded="false" aria-controls="types-0">
+         <h4 class="card-header bg-primary text-white">Derived Types</h4>
+      </a>
+      <div id="types-0" class="collapse">
+        <div class="list-group list-group-flush">
+            <a class="list-group-item" href="../module/instant.html#type-domainptr">domainptr</a>
+        </div>
+      </div>
+    </div>
+
+      <div class="card mb-4">
+      <a data-bs-toggle="collapse" href="#funcs-0"
+         aria-expanded="false" aria-controls="funcs-0">
+         <h4 class="card-header bg-primary text-white">Functions</h4>
+      </a>
+      <div id="funcs-0" class="collapse">
+        <div class="list-group list-group-flush">
+            <a class="list-group-item" href="../module/instant.html#proc-ispresent">ispresent</a>
+            <a class="list-group-item" href="../module/instant.html#proc-instant_get_nc_varname">instant_get_nc_varname</a>
+        </div>
+      </div>
+    </div>
+
+      <div class="card mb-4">
+      <a data-bs-toggle="collapse" href="#subs-0"
+         aria-expanded="false" aria-controls="subs-0">
+         <h4 class="card-header bg-primary text-white">Subroutines</h4>
+      </a>
+      <div id="subs-0" class="collapse">
+        <div class="list-group list-group-flush">
+            <a class="list-group-item" href="../module/instant.html#proc-instant_init">instant_init</a>
+            <a class="list-group-item" href="../module/instant.html#proc-instant_prepare">instant_prepare</a>
+            <a class="list-group-item" href="../module/instant.html#proc-instant_main">instant_main</a>
+            <a class="list-group-item" href="../module/instant.html#proc-instant_exit">instant_exit</a>
+            <a class="list-group-item" href="../module/instant.html#proc-instant_field_init">instant_field_init</a>
+            <a class="list-group-item" href="../module/instant.html#proc-instant_field_main">instant_field_main</a>
+            <a class="list-group-item" href="../module/instant.html#proc-instant_field_exit">instant_field_exit</a>
+            <a class="list-group-item" href="../module/instant.html#proc-register_derived">register_derived</a>
+            <a class="list-group-item" href="../module/instant.html#proc-compute_derived">compute_derived</a>
+            <a class="list-group-item" href="../module/instant.html#proc-instant_slice_init">instant_slice_init</a>
+            <a class="list-group-item" href="../module/instant.html#proc-instant_slice_main">instant_slice_main</a>
+            <a class="list-group-item" href="../module/instant.html#proc-instant_ncdescription_islice">instant_ncdescription_islice</a>
+            <a class="list-group-item" href="../module/instant.html#proc-instant_ncdescription_jslice">instant_ncdescription_jslice</a>
+            <a class="list-group-item" href="../module/instant.html#proc-instant_ncdescription_kslice">instant_ncdescription_kslice</a>
+            <a class="list-group-item" href="../module/instant.html#proc-instant_create_ncislice">instant_create_ncislice</a>
+            <a class="list-group-item" href="../module/instant.html#proc-instant_create_ncjslice">instant_create_ncjslice</a>
+            <a class="list-group-item" href="../module/instant.html#proc-instant_create_nckslice">instant_create_nckslice</a>
+            <a class="list-group-item" href="../module/instant.html#proc-instant_write_islice">instant_write_islice</a>
+            <a class="list-group-item" href="../module/instant.html#proc-instant_write_jslice">instant_write_jslice</a>
+            <a class="list-group-item" href="../module/instant.html#proc-instant_write_islice_xcoord_local">instant_write_islice_xcoord_local</a>
+            <a class="list-group-item" href="../module/instant.html#proc-instant_write_jslice_ycoord_local">instant_write_jslice_ycoord_local</a>
+            <a class="list-group-item" href="../module/instant.html#proc-instant_write_kslice_zcoord">instant_write_kslice_zcoord</a>
+            <a class="list-group-item" href="../module/instant.html#proc-instant_write_kslice">instant_write_kslice</a>
+            <a class="list-group-item" href="../module/instant.html#proc-instant_probe_init">instant_probe_init</a>
+            <a class="list-group-item" href="../module/instant.html#proc-instant_probe_main">instant_probe_main</a>
+            <a class="list-group-item" href="../module/instant.html#proc-instant_gather_probe_var">instant_gather_probe_var</a>
+            <a class="list-group-item" href="../module/instant.html#proc-instant_add_var_atts">instant_add_var_atts</a>
+            <a class="list-group-item" href="../module/instant.html#proc-check">check</a>
+            <a class="list-group-item" href="../module/instant.html#proc-instant_validate_output_vars">instant_validate_output_vars</a>
+            <a class="list-group-item" href="../module/instant.html#proc-instant_validate_slice_inputs">instant_validate_slice_inputs</a>
+        </div>
+      </div>
+    </div>
+
+  
+  
+  
+  
+  
+  
+  
+
+
+  </div>
+
+    </div>
+
+    <div class="col-md-9" id='text'>
+      
+<br>          <div class="card mb-4">
+      <h3 class="card-header card-title bg-light">Uses</h3>
+      <div class="card-body">
+        <ul class="list-group list-group-flush">
+            <li class="list-group-item">
+              <ul class="list-inline">
+                  <li class="list-inline-item"><a href='http://www.mpi-forum.org/docs/mpi-3.1/mpi31-report/node410.htm'>mpi</a></li>
+                  <li class="list-inline-item">modpois</li>
+                  <li class="list-inline-item"><a href='modthermodynamics.html'>modthermodynamics</a></li>
+                  <li class="list-inline-item"><a href='modglobal.html'>modglobal</a></li>
+                  <li class="list-inline-item"><a href='modfields.html'>modfields</a></li>
+                  <li class="list-inline-item">decomp_2d</li>
+                  <li class="list-inline-item"><a href='modstat_nc.html'>modstat_nc</a></li>
+                  <li class="list-inline-item">netcdf</li>
+                  <li class="list-inline-item"><a href='modmpi.html'>modmpi</a></li>
+                  <li class="list-inline-item"><a href='modibm.html'>modibm</a></li>
+              </ul>
+            </li>
+            <li class="list-group-item">
+              <div class="depgraph"><?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
+ "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<!-- Generated by graphviz version 14.1.3 (0)
+ -->
+<!-- Title: module~~instant~~UsesGraph Pages: 1 -->
+<svg id="moduleinstantUsesGraph" width="429pt" height="351pt"
+ viewBox="0.00 0.00 429.00 351.00" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<g id="module~~instant~~UsesGraph" class="graph" transform="scale(1 1) rotate(0) translate(4 346.72)">
+<title>module~~instant~~UsesGraph</title>
+<polygon fill="white" stroke="none" points="-4,4 -4,-346.72 425.29,-346.72 425.29,4 -4,4"/>
+<!-- module~instant -->
+<g id="module~~instant~~UsesGraph_node1" class="node">
+<title>module~instant</title>
+<polygon fill="none" stroke="black" points="421.29,-190.29 367.29,-190.29 367.29,-166.02 421.29,-166.02 421.29,-190.29"/>
+<text xml:space="preserve" text-anchor="middle" x="394.29" y="-174.56" font-family="Helvetica,sans-Serif" font-size="10.50">instant</text>
+</g>
+<!-- decomp_2d -->
+<g id="module~~instant~~UsesGraph_node2" class="node">
+<title>decomp_2d</title>
+<polygon fill="#337ab7" stroke="#337ab7" points="166.77,-315.29 93,-315.29 93,-291.02 166.77,-291.02 166.77,-315.29"/>
+<text xml:space="preserve" text-anchor="middle" x="129.88" y="-299.56" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">decomp_2d</text>
+</g>
+<!-- module~instant&#45;&gt;decomp_2d -->
+<g id="module~~instant~~UsesGraph_edge1" class="edge">
+<title>module~instant&#45;&gt;decomp_2d</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M392.44,-190.45C389.67,-219.85 378.14,-294.07 331.29,-325.16 281.79,-358 209.84,-337.62 166.96,-320.16"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="168.42,-316.98 157.85,-316.29 165.69,-323.42 168.42,-316.98"/>
+</g>
+<!-- modpois -->
+<g id="module~~instant~~UsesGraph_node3" class="node">
+<title>modpois</title>
+<polygon fill="#337ab7" stroke="#337ab7" points="297.16,-316.29 239.89,-316.29 239.89,-292.02 297.16,-292.02 297.16,-316.29"/>
+<text xml:space="preserve" text-anchor="middle" x="268.53" y="-300.56" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">modpois</text>
+</g>
+<!-- module~instant&#45;&gt;modpois -->
+<g id="module~~instant~~UsesGraph_edge2" class="edge">
+<title>module~instant&#45;&gt;modpois</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M389.15,-190.78C381.33,-212.71 362.34,-257.92 331.29,-283.16 324.64,-288.56 316.54,-292.6 308.41,-295.62"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="307.35,-292.28 298.89,-298.66 309.48,-298.95 307.35,-292.28"/>
+</g>
+<!-- module~modfields -->
+<g id="module~~instant~~UsesGraph_node4" class="node">
+<title>module~modfields</title>
+<g id="a_module~~instant~~UsesGraph_node4"><a xlink:href="../module/modfields.html" xlink:title="modfields">
+<polygon fill="#337ab7" stroke="#337ab7" points="300.54,-274.29 236.52,-274.29 236.52,-250.02 300.54,-250.02 300.54,-274.29"/>
+<text xml:space="preserve" text-anchor="middle" x="268.53" y="-258.56" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">modfields</text>
+</a>
+</g>
+</g>
+<!-- module~instant&#45;&gt;module~modfields -->
+<g id="module~~instant~~UsesGraph_edge3" class="edge">
+<title>module~instant&#45;&gt;module~modfields</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M383.89,-190.76C372.77,-204.87 352.99,-227.53 331.29,-241.16 325.25,-244.95 318.44,-248.15 311.61,-250.81"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="310.65,-247.44 302.39,-254.07 312.98,-254.04 310.65,-247.44"/>
+</g>
+<!-- module~modglobal -->
+<g id="module~~instant~~UsesGraph_node5" class="node">
+<title>module~modglobal</title>
+<g id="a_module~~instant~~UsesGraph_node5"><a xlink:href="../module/modglobal.html" xlink:title="modglobal">
+<polygon fill="#337ab7" stroke="#337ab7" points="302.79,-232.29 234.27,-232.29 234.27,-208.02 302.79,-208.02 302.79,-232.29"/>
+<text xml:space="preserve" text-anchor="middle" x="268.53" y="-216.56" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">modglobal</text>
+</a>
+</g>
+</g>
+<!-- module~instant&#45;&gt;module~modglobal -->
+<g id="module~~instant~~UsesGraph_edge4" class="edge">
+<title>module~instant&#45;&gt;module~modglobal</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M367.04,-187.06C351.65,-192.29 331.79,-199.03 314.02,-205.06"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="313.05,-201.69 304.71,-208.22 315.3,-208.32 313.05,-201.69"/>
+</g>
+<!-- module~modibm -->
+<g id="module~~instant~~UsesGraph_node6" class="node">
+<title>module~modibm</title>
+<g id="a_module~~instant~~UsesGraph_node6"><a xlink:href="../module/modibm.html" xlink:title="modibm">
+<polygon fill="#337ab7" stroke="#337ab7" points="296.41,-190.29 240.64,-190.29 240.64,-166.02 296.41,-166.02 296.41,-190.29"/>
+<text xml:space="preserve" text-anchor="middle" x="268.53" y="-174.56" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">modibm</text>
+</a>
+</g>
+</g>
+<!-- module~instant&#45;&gt;module~modibm -->
+<g id="module~~instant~~UsesGraph_edge5" class="edge">
+<title>module~instant&#45;&gt;module~modibm</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M367.04,-178.16C349.89,-178.16 327.18,-178.16 308,-178.16"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="308.11,-174.66 298.11,-178.16 308.11,-181.66 308.11,-174.66"/>
+</g>
+<!-- module~modmpi -->
+<g id="module~~instant~~UsesGraph_node7" class="node">
+<title>module~modmpi</title>
+<g id="a_module~~instant~~UsesGraph_node7"><a xlink:href="../module/modmpi.html" xlink:title="modmpi">
+<polygon fill="#337ab7" stroke="#337ab7" points="157.77,-110.29 102,-110.29 102,-86.02 157.77,-86.02 157.77,-110.29"/>
+<text xml:space="preserve" text-anchor="middle" x="129.88" y="-94.56" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">modmpi</text>
+</a>
+</g>
+</g>
+<!-- module~instant&#45;&gt;module~modmpi -->
+<g id="module~~instant~~UsesGraph_edge6" class="edge">
+<title>module~instant&#45;&gt;module~modmpi</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M366.82,-168.93C355.86,-165.17 342.99,-160.86 331.29,-157.16 275.15,-139.39 209.61,-120.43 169.18,-108.93"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="170.25,-105.6 159.68,-106.24 168.34,-112.33 170.25,-105.6"/>
+</g>
+<!-- module~modstat_nc -->
+<g id="module~~instant~~UsesGraph_node8" class="node">
+<title>module~modstat_nc</title>
+<g id="a_module~~instant~~UsesGraph_node8"><a xlink:href="../module/modstat_nc.html" xlink:title="modstat_nc">
+<polygon fill="#337ab7" stroke="#337ab7" points="305.04,-110.29 232.02,-110.29 232.02,-86.02 305.04,-86.02 305.04,-110.29"/>
+<text xml:space="preserve" text-anchor="middle" x="268.53" y="-94.56" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">modstat_nc</text>
+</a>
+</g>
+</g>
+<!-- module~instant&#45;&gt;module~modstat_nc -->
+<g id="module~~instant~~UsesGraph_edge7" class="edge">
+<title>module~instant&#45;&gt;module~modstat_nc</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M381.4,-165.72C369.56,-153.86 350.43,-136.09 331.29,-124.16 326.17,-120.96 320.59,-118 314.94,-115.3"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="316.73,-112.26 306.18,-111.35 313.86,-118.65 316.73,-112.26"/>
+</g>
+<!-- module~modthermodynamics -->
+<g id="module~~instant~~UsesGraph_node9" class="node">
+<title>module~modthermodynamics</title>
+<g id="a_module~~instant~~UsesGraph_node9"><a xlink:href="../module/modthermodynamics.html" xlink:title="modthermodynamics">
+<polygon fill="#337ab7" stroke="#337ab7" points="331.29,-68.29 205.77,-68.29 205.77,-44.02 331.29,-44.02 331.29,-68.29"/>
+<text xml:space="preserve" text-anchor="middle" x="268.53" y="-52.56" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">modthermodynamics</text>
+</a>
+</g>
+</g>
+<!-- module~instant&#45;&gt;module~modthermodynamics -->
+<g id="module~~instant~~UsesGraph_edge8" class="edge">
+<title>module~instant&#45;&gt;module~modthermodynamics</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M388.89,-165.67C380.78,-144.45 361.51,-101.3 331.29,-77.16 329.99,-76.12 328.64,-75.13 327.24,-74.19"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="329.23,-71.3 318.81,-69.4 325.77,-77.38 329.23,-71.3"/>
+</g>
+<!-- mpi -->
+<g id="module~~instant~~UsesGraph_node10" class="node">
+<title>mpi</title>
+<g id="a_module~~instant~~UsesGraph_node10"><a xlink:href="http://www.mpi-forum.org/docs/mpi-3.1/mpi31-report/node410.htm" xlink:title="mpi">
+<polygon fill="#337ab7" stroke="#337ab7" points="54,-110.29 0,-110.29 0,-86.02 54,-86.02 54,-110.29"/>
+<text xml:space="preserve" text-anchor="middle" x="27" y="-94.56" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">mpi</text>
+</a>
+</g>
+</g>
+<!-- module~instant&#45;&gt;mpi -->
+<g id="module~~instant~~UsesGraph_edge9" class="edge">
+<title>module~instant&#45;&gt;mpi</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M391.48,-165.8C386.77,-138.23 371.62,-71.25 331.29,-35.16 309.89,-16 296.16,-26.91 269.53,-16.16"/>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M267.53,-16.16C193.95,13.55 161.45,-0.64 90,-35.16 70.8,-44.43 54.18,-62.19 42.99,-76.5"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="40.21,-74.38 37.05,-84.49 45.83,-78.55 40.21,-74.38"/>
+</g>
+<!-- netcdf -->
+<g id="module~~instant~~UsesGraph_node11" class="node">
+<title>netcdf</title>
+<polygon fill="#337ab7" stroke="#337ab7" points="156.88,-68.29 102.88,-68.29 102.88,-44.02 156.88,-44.02 156.88,-68.29"/>
+<text xml:space="preserve" text-anchor="middle" x="129.88" y="-52.56" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">netcdf</text>
+</g>
+<!-- module~instant&#45;&gt;netcdf -->
+<g id="module~~instant~~UsesGraph_edge10" class="edge">
+<title>module~instant&#45;&gt;netcdf</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M267.53,-16.16C230.58,-1.24 185.98,-20.97 158.02,-37.63"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="156.43,-34.49 149.8,-42.75 160.14,-40.43 156.43,-34.49"/>
+</g>
+<!-- module~modfields&#45;&gt;decomp_2d -->
+<g id="module~~instant~~UsesGraph_edge11" class="edge">
+<title>module~modfields&#45;&gt;decomp_2d</title>
+<path fill="none" stroke="#cbff00" stroke-dasharray="5,2" d="M236.18,-271.56C218.92,-276.74 197.16,-283.27 177.91,-289.05"/>
+<polygon fill="#cbff00" stroke="#cbff00" points="176.94,-285.68 168.37,-291.91 178.95,-292.39 176.94,-285.68"/>
+</g>
+<!-- module~modibm&#45;&gt;mpi -->
+<g id="module~~instant~~UsesGraph_edge13" class="edge">
+<title>module~modibm&#45;&gt;mpi</title>
+<path fill="none" stroke="#00ff66" stroke-dasharray="5,2" d="M240.15,-181.12C203.92,-183.84 138.92,-184.45 90,-161.16 70.75,-151.99 54.13,-134.22 42.96,-119.88"/>
+<polygon fill="#00ff66" stroke="#00ff66" points="45.79,-117.82 37.03,-111.87 40.17,-121.99 45.79,-117.82"/>
+</g>
+<!-- module~modibmdata -->
+<g id="module~~instant~~UsesGraph_node12" class="node">
+<title>module~modibmdata</title>
+<g id="a_module~~instant~~UsesGraph_node12"><a xlink:href="../module/modibmdata.html" xlink:title="modibmdata">
+<polygon fill="#337ab7" stroke="#337ab7" points="169.77,-152.29 90,-152.29 90,-128.02 169.77,-128.02 169.77,-152.29"/>
+<text xml:space="preserve" text-anchor="middle" x="129.88" y="-136.56" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">modibmdata</text>
+</a>
+</g>
+</g>
+<!-- module~modibm&#45;&gt;module~modibmdata -->
+<g id="module~~instant~~UsesGraph_edge12" class="edge">
+<title>module~modibm&#45;&gt;module~modibmdata</title>
+<path fill="none" stroke="#00ff66" stroke-dasharray="5,2" d="M240.21,-170.56C223.25,-165.84 200.95,-159.64 180.92,-154.07"/>
+<polygon fill="#00ff66" stroke="#00ff66" points="182.1,-150.77 171.53,-151.46 180.22,-157.51 182.1,-150.77"/>
+</g>
+<!-- module~modmpi&#45;&gt;mpi -->
+<g id="module~~instant~~UsesGraph_edge14" class="edge">
+<title>module~modmpi&#45;&gt;mpi</title>
+<path fill="none" stroke="#00ffff" stroke-dasharray="5,2" d="M101.58,-98.16C90.56,-98.16 77.64,-98.16 65.74,-98.16"/>
+<polygon fill="#00ffff" stroke="#00ffff" points="65.79,-94.66 55.79,-98.16 65.79,-101.66 65.79,-94.66"/>
+</g>
+<!-- module~modstat_nc&#45;&gt;module~modmpi -->
+<g id="module~~instant~~UsesGraph_edge15" class="edge">
+<title>module~modstat_nc&#45;&gt;module~modmpi</title>
+<path fill="none" stroke="#0066ff" stroke-dasharray="5,2" d="M231.63,-98.16C212.42,-98.16 188.75,-98.16 169.19,-98.16"/>
+<polygon fill="#0066ff" stroke="#0066ff" points="169.43,-94.66 159.43,-98.16 169.43,-101.66 169.43,-94.66"/>
+</g>
+<!-- module~modstat_nc&#45;&gt;netcdf -->
+<g id="module~~instant~~UsesGraph_edge16" class="edge">
+<title>module~modstat_nc&#45;&gt;netcdf</title>
+<path fill="none" stroke="#0066ff" stroke-dasharray="5,2" d="M231.63,-87.12C211.97,-81.08 187.65,-73.6 167.83,-67.51"/>
+<polygon fill="#0066ff" stroke="#0066ff" points="169.08,-64.24 158.5,-64.64 167.03,-70.93 169.08,-64.24"/>
+</g>
+</g>
+</svg>
+</div>          <div>
+            <a type="button" class="graph-help" data-bs-toggle="modal" href="#UsesGraph-help-text">Help</a>
+          </div>
+          <div class="modal fade" id="UsesGraph-help-text" tabindex="-1" role="dialog">
+            <div class="modal-dialog modal-lg" role="document">
+              <div class="modal-content">
+                <div class="modal-header">
+                  <h4 class="modal-title" id="-graph-help-label">Graph Key</h4>
+                  <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+<p>Nodes of different colours represent the following: </p>
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
+ "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<!-- Generated by graphviz version 14.1.3 (0)
+ -->
+<!-- Title: Graph Key Pages: 1 -->
+<svg width="511pt" height="32pt"
+ viewBox="0.00 0.00 511.00 32.00" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<g id="graph0" class="graph" transform="scale(1 1) rotate(0) translate(4 28.27)">
+<title>Graph Key</title>
+<polygon fill="white" stroke="none" points="-4,4 -4,-28.27 506.88,-28.27 506.88,4 -4,4"/>
+<!-- Module -->
+<g id="node1" class="node">
+<title>Module</title>
+<polygon fill="#337ab7" stroke="#337ab7" points="54,-24.27 0,-24.27 0,0 54,0 54,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="27" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Module</text>
+</g>
+<!-- Submodule -->
+<g id="node2" class="node">
+<title>Submodule</title>
+<polygon fill="#5bc0de" stroke="#5bc0de" points="144.13,-24.27 71.87,-24.27 71.87,0 144.13,0 144.13,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="108" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Submodule</text>
+</g>
+<!-- Subroutine -->
+<g id="node3" class="node">
+<title>Subroutine</title>
+<polygon fill="#d9534f" stroke="#d9534f" points="231.63,-24.27 162.37,-24.27 162.37,0 231.63,0 231.63,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="197" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Subroutine</text>
+</g>
+<!-- Function -->
+<g id="node4" class="node">
+<title>Function</title>
+<polygon fill="#d94e8f" stroke="#d94e8f" points="306.26,-24.27 249.74,-24.27 249.74,0 306.26,0 306.26,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="278" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Function</text>
+</g>
+<!-- Program -->
+<g id="node5" class="node">
+<title>Program</title>
+<polygon fill="#f0ad4e" stroke="#f0ad4e" points="381.26,-24.27 324.74,-24.27 324.74,0 381.26,0 381.26,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="353" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Program</text>
+</g>
+<!-- This Page&#39;s Entity -->
+<g id="node6" class="node">
+<title>This Page&#39;s Entity</title>
+<polygon fill="none" stroke="black" points="502.88,-24.27 399.12,-24.27 399.12,0 502.88,0 502.88,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="451" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50">This Page&#39;s Entity</text>
+</g>
+</g>
+</svg>
+
+<p>Solid arrows point from a submodule to the (sub)module which it is
+descended from. Dashed arrows point from a module or program unit to 
+modules which it uses.
+</p>
+ Where possible, edges connecting nodes are
+given different colours to make them easier to distinguish in
+large graphs.</div>
+            </div>
+          </div>
+        </div>
+            </li>
+        </ul>
+      </div>
+    </div>
+
+          <div class="card">
+      <h3 class="card-header card-title bg-light">Used by</h3>
+      <div class="card-body">
+        <ul class="list-group list-group-flush">
+            <li class="list-group-item">
+              <div class="depgraph"><?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
+ "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<!-- Generated by graphviz version 14.1.3 (0)
+ -->
+<!-- Title: module~~instant~~UsedByGraph Pages: 1 -->
+<svg id="moduleinstantUsedByGraph" width="152pt" height="32pt"
+ viewBox="0.00 0.00 152.00 32.00" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<g id="module~~instant~~UsedByGraph" class="graph" transform="scale(1 1) rotate(0) translate(4 28.27)">
+<title>module~~instant~~UsedByGraph</title>
+<polygon fill="white" stroke="none" points="-4,4 -4,-28.27 148,-28.27 148,4 -4,4"/>
+<!-- module~instant -->
+<g id="module~~instant~~UsedByGraph_node1" class="node">
+<title>module~instant</title>
+<polygon fill="none" stroke="black" points="54,-24.27 0,-24.27 0,0 54,0 54,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="27" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50">instant</text>
+</g>
+<!-- program~udales -->
+<g id="module~~instant~~UsedByGraph_node2" class="node">
+<title>program~udales</title>
+<g id="a_module~~instant~~UsedByGraph_node2"><a xlink:href="../program/udales.html" xlink:title="uDALES">
+<polygon fill="#f0ad4e" stroke="#f0ad4e" points="144,-24.27 90,-24.27 90,0 144,0 144,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="117" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">uDALES</text>
+</a>
+</g>
+</g>
+<!-- program~udales&#45;&gt;module~instant -->
+<g id="module~~instant~~UsedByGraph_edge1" class="edge">
+<title>program~udales&#45;&gt;module~instant</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M89.6,-12.13C82.11,-12.13 73.82,-12.13 65.8,-12.13"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="65.9,-8.64 55.9,-12.14 65.9,-15.64 65.9,-8.64"/>
+</g>
+</g>
+</svg>
+</div>          <div>
+            <a type="button" class="graph-help" data-bs-toggle="modal" href="#UsedByGraph-help-text">Help</a>
+          </div>
+          <div class="modal fade" id="UsedByGraph-help-text" tabindex="-1" role="dialog">
+            <div class="modal-dialog modal-lg" role="document">
+              <div class="modal-content">
+                <div class="modal-header">
+                  <h4 class="modal-title" id="-graph-help-label">Graph Key</h4>
+                  <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+<p>Nodes of different colours represent the following: </p>
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
+ "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<!-- Generated by graphviz version 14.1.3 (0)
+ -->
+<!-- Title: Graph Key Pages: 1 -->
+<svg width="511pt" height="32pt"
+ viewBox="0.00 0.00 511.00 32.00" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<g id="graph0" class="graph" transform="scale(1 1) rotate(0) translate(4 28.27)">
+<title>Graph Key</title>
+<polygon fill="white" stroke="none" points="-4,4 -4,-28.27 506.88,-28.27 506.88,4 -4,4"/>
+<!-- Module -->
+<g id="node1" class="node">
+<title>Module</title>
+<polygon fill="#337ab7" stroke="#337ab7" points="54,-24.27 0,-24.27 0,0 54,0 54,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="27" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Module</text>
+</g>
+<!-- Submodule -->
+<g id="node2" class="node">
+<title>Submodule</title>
+<polygon fill="#5bc0de" stroke="#5bc0de" points="144.13,-24.27 71.87,-24.27 71.87,0 144.13,0 144.13,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="108" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Submodule</text>
+</g>
+<!-- Subroutine -->
+<g id="node3" class="node">
+<title>Subroutine</title>
+<polygon fill="#d9534f" stroke="#d9534f" points="231.63,-24.27 162.37,-24.27 162.37,0 231.63,0 231.63,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="197" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Subroutine</text>
+</g>
+<!-- Function -->
+<g id="node4" class="node">
+<title>Function</title>
+<polygon fill="#d94e8f" stroke="#d94e8f" points="306.26,-24.27 249.74,-24.27 249.74,0 306.26,0 306.26,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="278" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Function</text>
+</g>
+<!-- Program -->
+<g id="node5" class="node">
+<title>Program</title>
+<polygon fill="#f0ad4e" stroke="#f0ad4e" points="381.26,-24.27 324.74,-24.27 324.74,0 381.26,0 381.26,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="353" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Program</text>
+</g>
+<!-- This Page&#39;s Entity -->
+<g id="node6" class="node">
+<title>This Page&#39;s Entity</title>
+<polygon fill="none" stroke="black" points="502.88,-24.27 399.12,-24.27 399.12,0 502.88,0 502.88,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="451" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50">This Page&#39;s Entity</text>
+</g>
+</g>
+</svg>
+
+<p>Solid arrows point from a submodule to the (sub)module which it is
+descended from. Dashed arrows point from a module or program unit to 
+modules which it uses.
+</p>
+ Where possible, edges connecting nodes are
+given different colours to make them easier to distinguish in
+large graphs.</div>
+            </div>
+          </div>
+        </div>
+            </li>
+        </ul>
+      </div>
+    </div>
+
+      <br>
+
+
+        <section>
+          <h2>Variables</h2>
+            <table class="table table-striped varlist">
+    <thead>
+      <tr>
+        <th scope="col">Type</th>
+<th scope="col">Visibility</th>        <th scope="col">Attributes</th>
+        <th scope="col"></th>
+        <th scope="col">Name</th>
+<th></th><th scope="col">Initial</th>        <th scope="col"></th>
+    </thead>
+    <tbody>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-tnextinstantdump"></span>
+              real,
+            </td>
+              <td>private</td>
+            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>tnextinstantdump</strong></td>
+                <td></td>
+                <td></td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-linstantdump"></span>
+              logical,
+            </td>
+              <td>private</td>
+            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>linstantdump</strong></td>
+                <td></td>
+                <td></td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-linstantprepared"></span>
+              logical,
+            </td>
+              <td>private</td>
+            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>linstantprepared</strong></td>
+<td> =</td>
+                <td>.false.</td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-lfieldtemp"></span>
+              logical,
+            </td>
+              <td>private</td>
+            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>lfieldtemp</strong></td>
+<td> =</td>
+                <td>.false.</td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-lslicetemp"></span>
+              logical,
+            </td>
+              <td>private</td>
+            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>lslicetemp</strong></td>
+<td> =</td>
+                <td>.false.</td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-lfieldrh"></span>
+              logical,
+            </td>
+              <td>private</td>
+            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>lfieldrh</strong></td>
+<td> =</td>
+                <td>.false.</td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-lslicerh"></span>
+              logical,
+            </td>
+              <td>private</td>
+            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>lslicerh</strong></td>
+<td> =</td>
+                <td>.false.</td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-lfieldpabs"></span>
+              logical,
+            </td>
+              <td>private</td>
+            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>lfieldpabs</strong></td>
+<td> =</td>
+                <td>.false.</td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-xdimfield"></span>
+              integer,
+            </td>
+              <td>private</td>
+            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>xdimfield</strong></td>
+                <td></td>
+                <td></td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-ydimfield"></span>
+              integer,
+            </td>
+              <td>private</td>
+            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>ydimfield</strong></td>
+                <td></td>
+                <td></td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-zdimfield"></span>
+              integer,
+            </td>
+              <td>private</td>
+            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>zdimfield</strong></td>
+                <td></td>
+                <td></td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-nfieldvars"></span>
+              integer,
+            </td>
+              <td>private</td>
+            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>nfieldvars</strong></td>
+                <td></td>
+                <td></td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-filenamefield"></span>
+              character(len=80),
+            </td>
+              <td>private</td>
+            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>filenamefield</strong></td>
+                <td></td>
+                <td></td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-fieldtimevar"></span>
+              character(len=80),
+            </td>
+              <td>private,</td>
+            <td>
+              dimension(1,4)
+            </td>
+            <td>::</td>
+            <td><strong>fieldtimeVar</strong></td>
+                <td></td>
+                <td></td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-fldvars"></span>
+              character(len=80),
+            </td>
+              <td>private,</td>
+            <td>
+              allocatable
+            </td>
+            <td>::</td>
+            <td><strong>fldVars</strong>(:,:)</td>
+                <td></td>
+                <td></td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-ncidfield"></span>
+              integer,
+            </td>
+              <td>private</td>
+            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>ncidfield</strong></td>
+                <td></td>
+                <td></td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-nrecfield"></span>
+              integer,
+            </td>
+              <td>private</td>
+            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>nrecfield</strong></td>
+                <td></td>
+                <td></td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-pfields"></span>
+              type(<a href='../type/domainptr.html'>domainptr</a>),
+            </td>
+              <td>private,</td>
+            <td>
+              dimension(30)
+            </td>
+            <td>::</td>
+            <td><strong>pfields</strong></td>
+                <td></td>
+                <td></td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-deriv_div"></span>
+              integer,
+            </td>
+              <td>private,</td>
+            <td>
+parameter               
+            </td>
+            <td>::</td>
+            <td><strong>DERIV_DIV</strong></td>
+<td> =</td>
+                <td>1</td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-deriv_dudx"></span>
+              integer,
+            </td>
+              <td>private,</td>
+            <td>
+parameter               
+            </td>
+            <td>::</td>
+            <td><strong>DERIV_DUDX</strong></td>
+<td> =</td>
+                <td>2</td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-deriv_dvdy"></span>
+              integer,
+            </td>
+              <td>private,</td>
+            <td>
+parameter               
+            </td>
+            <td>::</td>
+            <td><strong>DERIV_DVDY</strong></td>
+<td> =</td>
+                <td>3</td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-deriv_dwdz"></span>
+              integer,
+            </td>
+              <td>private,</td>
+            <td>
+parameter               
+            </td>
+            <td>::</td>
+            <td><strong>DERIV_DWDZ</strong></td>
+<td> =</td>
+                <td>4</td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-deriv_prhs"></span>
+              integer,
+            </td>
+              <td>private,</td>
+            <td>
+parameter               
+            </td>
+            <td>::</td>
+            <td><strong>DERIV_PRHS</strong></td>
+<td> =</td>
+                <td>5</td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-deriv_pdx"></span>
+              integer,
+            </td>
+              <td>private,</td>
+            <td>
+parameter               
+            </td>
+            <td>::</td>
+            <td><strong>DERIV_PDX</strong></td>
+<td> =</td>
+                <td>6</td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-deriv_pdy"></span>
+              integer,
+            </td>
+              <td>private,</td>
+            <td>
+parameter               
+            </td>
+            <td>::</td>
+            <td><strong>DERIV_PDY</strong></td>
+<td> =</td>
+                <td>7</td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-deriv_pdz"></span>
+              integer,
+            </td>
+              <td>private,</td>
+            <td>
+parameter               
+            </td>
+            <td>::</td>
+            <td><strong>DERIV_PDZ</strong></td>
+<td> =</td>
+                <td>8</td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-derived_kind"></span>
+              integer,
+            </td>
+              <td>private</td>
+            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>derived_kind</strong>(30)</td>
+<td> =</td>
+                <td>0</td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-derived_slot"></span>
+              integer,
+            </td>
+              <td>private</td>
+            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>derived_slot</strong>(30)</td>
+<td> =</td>
+                <td>0</td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-nderived"></span>
+              integer,
+            </td>
+              <td>private</td>
+            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>nderived</strong></td>
+<td> =</td>
+                <td>0</td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-dbuf"></span>
+              real,
+            </td>
+              <td>private,</td>
+            <td>
+              allocatable, target
+            </td>
+            <td>::</td>
+            <td><strong>dbuf</strong>(:,:,:,:)</td>
+                <td></td>
+                <td></td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-xdim"></span>
+              integer,
+            </td>
+              <td>private</td>
+            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>xdim</strong></td>
+                <td></td>
+                <td></td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-ydim"></span>
+              integer,
+            </td>
+              <td>private</td>
+            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>ydim</strong></td>
+                <td></td>
+                <td></td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-zdim"></span>
+              integer,
+            </td>
+              <td>private</td>
+            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>zdim</strong></td>
+                <td></td>
+                <td></td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-kdim"></span>
+              integer,
+            </td>
+              <td>private</td>
+            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>kdim</strong></td>
+                <td></td>
+                <td></td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-local_nislice"></span>
+              integer,
+            </td>
+              <td>private</td>
+            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>local_nislice</strong></td>
+                <td></td>
+                <td></td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-local_njslice"></span>
+              integer,
+            </td>
+              <td>private</td>
+            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>local_njslice</strong></td>
+                <td></td>
+                <td></td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-nslicevars"></span>
+              integer,
+            </td>
+              <td>private</td>
+            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>nslicevars</strong></td>
+                <td></td>
+                <td></td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-filenameislice"></span>
+              character(len=80),
+            </td>
+              <td>private</td>
+            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>filenameislice</strong></td>
+                <td></td>
+                <td></td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-filenamejslice"></span>
+              character(len=80),
+            </td>
+              <td>private</td>
+            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>filenamejslice</strong></td>
+                <td></td>
+                <td></td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-filenamekslice"></span>
+              character(len=80),
+            </td>
+              <td>private</td>
+            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>filenamekslice</strong></td>
+                <td></td>
+                <td></td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-slicetimevar"></span>
+              character(len=80),
+            </td>
+              <td>private</td>
+            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>slicetimeVar</strong>(1,4)</td>
+                <td></td>
+                <td></td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-islicevars"></span>
+              character(len=80),
+            </td>
+              <td>private,</td>
+            <td>
+              allocatable
+            </td>
+            <td>::</td>
+            <td><strong>isliceVars</strong>(:,:)</td>
+                <td></td>
+                <td></td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-jslicevars"></span>
+              character(len=80),
+            </td>
+              <td>private,</td>
+            <td>
+              allocatable
+            </td>
+            <td>::</td>
+            <td><strong>jsliceVars</strong>(:,:)</td>
+                <td></td>
+                <td></td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-kslicevars"></span>
+              character(len=80),
+            </td>
+              <td>private,</td>
+            <td>
+              allocatable
+            </td>
+            <td>::</td>
+            <td><strong>ksliceVars</strong>(:,:)</td>
+                <td></td>
+                <td></td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-ncidislice"></span>
+              integer,
+            </td>
+              <td>private</td>
+            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>ncidislice</strong></td>
+                <td></td>
+                <td></td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-nrecislice"></span>
+              integer,
+            </td>
+              <td>private</td>
+            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>nrecislice</strong></td>
+                <td></td>
+                <td></td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-ncidjslice"></span>
+              integer,
+            </td>
+              <td>private</td>
+            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>ncidjslice</strong></td>
+                <td></td>
+                <td></td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-nrecjslice"></span>
+              integer,
+            </td>
+              <td>private</td>
+            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>nrecjslice</strong></td>
+                <td></td>
+                <td></td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-ncidkslice"></span>
+              integer,
+            </td>
+              <td>private</td>
+            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>ncidkslice</strong></td>
+                <td></td>
+                <td></td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-nreckslice"></span>
+              integer,
+            </td>
+              <td>private</td>
+            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>nreckslice</strong></td>
+                <td></td>
+                <td></td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-nprobevars"></span>
+              integer,
+            </td>
+              <td>private</td>
+            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>nprobevars</strong></td>
+                <td></td>
+                <td></td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-filenameprobe"></span>
+              character(len=80),
+            </td>
+              <td>private</td>
+            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>filenameprobe</strong></td>
+                <td></td>
+                <td></td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-ncidprobe"></span>
+              integer,
+            </td>
+              <td>private</td>
+            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>ncidprobe</strong></td>
+                <td></td>
+                <td></td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-nrecprobe"></span>
+              integer,
+            </td>
+              <td>private</td>
+            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>nrecprobe</strong></td>
+<td> =</td>
+                <td>0</td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-varid_time"></span>
+              integer,
+            </td>
+              <td>private</td>
+            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>varid_time</strong></td>
+                <td></td>
+                <td></td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-varid_vals"></span>
+              integer,
+            </td>
+              <td>private,</td>
+            <td>
+              allocatable
+            </td>
+            <td>::</td>
+            <td><strong>varid_vals</strong>(:)</td>
+                <td></td>
+                <td></td>
+            <td>
+                
+            </td>
+        </tr>
+    </tbody>
+  </table>
+
+        </section>
+        <br>
+
+
+
+
+        <section>
+          <h2>Derived Types</h2>
+              <div class="card">
+    <div class="card-header codesum">
+      <span class="anchor" id="type-domainptr"></span>
+      <h3>
+        type, private&nbsp;::&nbsp;
+        <a href='../type/domainptr.html'>domainptr</a>
+        
+      </h3>
+    </div>
+    <div class="card-body">
+      
+
+        <h4>Components</h4>
+          <table class="table table-striped varlist">
+    <thead>
+      <tr>
+        <th scope="col">Type</th>
+<th scope="col">Visibility</th>        <th scope="col">Attributes</th>
+        <th scope="col"></th>
+        <th scope="col">Name</th>
+<th></th><th scope="col">Initial</th>        <th scope="col"></th>
+    </thead>
+    <tbody>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-point"></span>
+              real,
+            </td>
+              <td>public,</td>
+            <td>
+              pointer
+            </td>
+            <td>::</td>
+            <td><strong>point</strong>(:,:,:)</td>
+                <td></td>
+                <td></td>
+            <td>
+
+            </td>
+        </tr>
+    </tbody>
+  </table>
+
+
+
+
+    </div>
+  </div>
+
+        </section>
+        <br>
+
+        <section>
+          <h2>Functions</h2>
+              <div class="card">
+    <div class="card-header codesum"><span class="anchor" id="proc-ispresent"></span> <h3>private  function <a href='../proc/ispresent.html'>ispresent</a>(str)  
+</h3></div>
+    <div class="card-body">
+          
+  
+
+  <h4>Arguments</h4>
+      <table class="table table-striped varlist">
+    <thead>
+      <tr>
+        <th scope="col">Type</th>
+<th scope="col">Intent</th><th scope="col">Optional</th>        <th scope="col">Attributes</th>
+        <th scope="col"></th>
+        <th scope="col">Name</th>
+        <th scope="col"></th>
+    </thead>
+    <tbody>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-str"></span>
+              character(len=*),
+            </td>
+<td>intent(in)</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>str</strong></td>
+            <td>
+
+            </td>
+        </tr>
+    </tbody>
+  </table>
+
+    <h4>
+    Return Value
+    <small>logical</small>
+    </h4>
+    
+
+    </div>
+  </div>
+
+              <div class="card">
+    <div class="card-header codesum"><span class="anchor" id="proc-instant_get_nc_varname"></span> <h3>private  function <a href='../proc/instant_get_nc_varname.html'>instant_get_nc_varname</a>(vname) result(ncname)  
+</h3></div>
+    <div class="card-body">
+          
+  
+
+  <h4>Arguments</h4>
+      <table class="table table-striped varlist">
+    <thead>
+      <tr>
+        <th scope="col">Type</th>
+<th scope="col">Intent</th><th scope="col">Optional</th>        <th scope="col">Attributes</th>
+        <th scope="col"></th>
+        <th scope="col">Name</th>
+        <th scope="col"></th>
+    </thead>
+    <tbody>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-vname~2"></span>
+              character(len=*),
+            </td>
+<td>intent(in)</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>vname</strong></td>
+            <td>
+
+            </td>
+        </tr>
+    </tbody>
+  </table>
+
+    <h4>
+    Return Value
+    <small>character(len=10)</small>
+    </h4>
+    
+
+    </div>
+  </div>
+
+        </section>
+        <br>
+
+        <section>
+          <h2>Subroutines</h2>
+              <div class="card">
+    <div class="card-header codesum"><span class="anchor" id="proc-instant_init"></span> <h3>public  subroutine <a href='../proc/instant_init.html'>instant_init</a>()  
+</h3></div>
+    <div class="card-body">
+          
+  
+
+  <h4>Arguments</h4>
+    <em>None</em>
+
+    </div>
+  </div>
+
+              <div class="card">
+    <div class="card-header codesum"><span class="anchor" id="proc-instant_prepare"></span> <h3>private  subroutine <a href='../proc/instant_prepare.html'>instant_prepare</a>()  
+</h3></div>
+    <div class="card-body">
+          
+  
+
+  <h4>Arguments</h4>
+    <em>None</em>
+
+    </div>
+  </div>
+
+              <div class="card">
+    <div class="card-header codesum"><span class="anchor" id="proc-instant_main"></span> <h3>public  subroutine <a href='../proc/instant_main.html'>instant_main</a>()  
+</h3></div>
+    <div class="card-body">
+          
+  
+
+  <h4>Arguments</h4>
+    <em>None</em>
+
+    </div>
+  </div>
+
+              <div class="card">
+    <div class="card-header codesum"><span class="anchor" id="proc-instant_exit"></span> <h3>public  subroutine <a href='../proc/instant_exit.html'>instant_exit</a>()  
+</h3></div>
+    <div class="card-body">
+          
+  
+
+  <h4>Arguments</h4>
+    <em>None</em>
+
+    </div>
+  </div>
+
+              <div class="card">
+    <div class="card-header codesum"><span class="anchor" id="proc-instant_field_init"></span> <h3>private  subroutine <a href='../proc/instant_field_init.html'>instant_field_init</a>()  
+</h3></div>
+    <div class="card-body">
+          
+  
+
+  <h4>Arguments</h4>
+    <em>None</em>
+
+    </div>
+  </div>
+
+              <div class="card">
+    <div class="card-header codesum"><span class="anchor" id="proc-instant_field_main"></span> <h3>private  subroutine <a href='../proc/instant_field_main.html'>instant_field_main</a>()  
+</h3></div>
+    <div class="card-body">
+          
+  
+
+  <h4>Arguments</h4>
+    <em>None</em>
+
+    </div>
+  </div>
+
+              <div class="card">
+    <div class="card-header codesum"><span class="anchor" id="proc-instant_field_exit"></span> <h3>private  subroutine <a href='../proc/instant_field_exit.html'>instant_field_exit</a>()  
+</h3></div>
+    <div class="card-body">
+          
+  
+
+  <h4>Arguments</h4>
+    <em>None</em>
+
+    </div>
+  </div>
+
+              <div class="card">
+    <div class="card-header codesum"><span class="anchor" id="proc-register_derived"></span> <h3>private  subroutine <a href='../proc/register_derived.html'>register_derived</a>(n, kind)  
+</h3></div>
+    <div class="card-body">
+          
+  
+
+  <h4>Arguments</h4>
+      <table class="table table-striped varlist">
+    <thead>
+      <tr>
+        <th scope="col">Type</th>
+<th scope="col">Intent</th><th scope="col">Optional</th>        <th scope="col">Attributes</th>
+        <th scope="col"></th>
+        <th scope="col">Name</th>
+        <th scope="col"></th>
+    </thead>
+    <tbody>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-n~33"></span>
+              integer,
+            </td>
+<td>intent(in)</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>n</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-kind"></span>
+              integer,
+            </td>
+<td>intent(in)</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>kind</strong></td>
+            <td>
+
+            </td>
+        </tr>
+    </tbody>
+  </table>
+
+
+    </div>
+  </div>
+
+              <div class="card">
+    <div class="card-header codesum"><span class="anchor" id="proc-compute_derived"></span> <h3>private  subroutine <a href='../proc/compute_derived.html'>compute_derived</a>(kind, out)  
+</h3></div>
+    <div class="card-body">
+          
+  
+
+  <h4>Arguments</h4>
+      <table class="table table-striped varlist">
+    <thead>
+      <tr>
+        <th scope="col">Type</th>
+<th scope="col">Intent</th><th scope="col">Optional</th>        <th scope="col">Attributes</th>
+        <th scope="col"></th>
+        <th scope="col">Name</th>
+        <th scope="col"></th>
+    </thead>
+    <tbody>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-kind~2"></span>
+              integer,
+            </td>
+<td>intent(in)</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>kind</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-out"></span>
+              real,
+            </td>
+<td>intent(out)</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>out</strong>(ib:ie,jb:je,kb:ke)</td>
+            <td>
+
+            </td>
+        </tr>
+    </tbody>
+  </table>
+
+
+    </div>
+  </div>
+
+              <div class="card">
+    <div class="card-header codesum"><span class="anchor" id="proc-instant_slice_init"></span> <h3>private  subroutine <a href='../proc/instant_slice_init.html'>instant_slice_init</a>()  
+</h3></div>
+    <div class="card-body">
+          
+  
+
+  <h4>Arguments</h4>
+    <em>None</em>
+
+    </div>
+  </div>
+
+              <div class="card">
+    <div class="card-header codesum"><span class="anchor" id="proc-instant_slice_main"></span> <h3>private  subroutine <a href='../proc/instant_slice_main.html'>instant_slice_main</a>()  
+</h3></div>
+    <div class="card-body">
+          
+  
+
+  <h4>Arguments</h4>
+    <em>None</em>
+
+    </div>
+  </div>
+
+              <div class="card">
+    <div class="card-header codesum"><span class="anchor" id="proc-instant_ncdescription_islice"></span> <h3>private  subroutine <a href='../proc/instant_ncdescription_islice.html'>instant_ncdescription_islice</a>()  
+</h3></div>
+    <div class="card-body">
+          
+  
+
+  <h4>Arguments</h4>
+    <em>None</em>
+
+    </div>
+  </div>
+
+              <div class="card">
+    <div class="card-header codesum"><span class="anchor" id="proc-instant_ncdescription_jslice"></span> <h3>private  subroutine <a href='../proc/instant_ncdescription_jslice.html'>instant_ncdescription_jslice</a>()  
+</h3></div>
+    <div class="card-body">
+          
+  
+
+  <h4>Arguments</h4>
+    <em>None</em>
+
+    </div>
+  </div>
+
+              <div class="card">
+    <div class="card-header codesum"><span class="anchor" id="proc-instant_ncdescription_kslice"></span> <h3>private  subroutine <a href='../proc/instant_ncdescription_kslice.html'>instant_ncdescription_kslice</a>()  
+</h3></div>
+    <div class="card-body">
+          
+  
+
+  <h4>Arguments</h4>
+    <em>None</em>
+
+    </div>
+  </div>
+
+              <div class="card">
+    <div class="card-header codesum"><span class="anchor" id="proc-instant_create_ncislice"></span> <h3>private  subroutine <a href='../proc/instant_create_ncislice.html'>instant_create_ncislice</a>()  
+</h3></div>
+    <div class="card-body">
+          
+  
+
+  <h4>Arguments</h4>
+    <em>None</em>
+
+    </div>
+  </div>
+
+              <div class="card">
+    <div class="card-header codesum"><span class="anchor" id="proc-instant_create_ncjslice"></span> <h3>private  subroutine <a href='../proc/instant_create_ncjslice.html'>instant_create_ncjslice</a>()  
+</h3></div>
+    <div class="card-body">
+          
+  
+
+  <h4>Arguments</h4>
+    <em>None</em>
+
+    </div>
+  </div>
+
+              <div class="card">
+    <div class="card-header codesum"><span class="anchor" id="proc-instant_create_nckslice"></span> <h3>private  subroutine <a href='../proc/instant_create_nckslice.html'>instant_create_nckslice</a>()  
+</h3></div>
+    <div class="card-body">
+          
+  
+
+  <h4>Arguments</h4>
+    <em>None</em>
+
+    </div>
+  </div>
+
+              <div class="card">
+    <div class="card-header codesum"><span class="anchor" id="proc-instant_write_islice"></span> <h3>private  subroutine <a href='../proc/instant_write_islice.html'>instant_write_islice</a>()  
+</h3></div>
+    <div class="card-body">
+          
+  
+
+  <h4>Arguments</h4>
+    <em>None</em>
+
+    </div>
+  </div>
+
+              <div class="card">
+    <div class="card-header codesum"><span class="anchor" id="proc-instant_write_jslice"></span> <h3>private  subroutine <a href='../proc/instant_write_jslice.html'>instant_write_jslice</a>()  
+</h3></div>
+    <div class="card-body">
+          
+  
+
+  <h4>Arguments</h4>
+    <em>None</em>
+
+    </div>
+  </div>
+
+              <div class="card">
+    <div class="card-header codesum"><span class="anchor" id="proc-instant_write_islice_xcoord_local"></span> <h3>private  subroutine <a href='../proc/instant_write_islice_xcoord_local.html'>instant_write_islice_xcoord_local</a>(ncid, local_n, nislice_total, islice_positions)  
+</h3></div>
+    <div class="card-body">
+          
+  
+
+  <h4>Arguments</h4>
+      <table class="table table-striped varlist">
+    <thead>
+      <tr>
+        <th scope="col">Type</th>
+<th scope="col">Intent</th><th scope="col">Optional</th>        <th scope="col">Attributes</th>
+        <th scope="col"></th>
+        <th scope="col">Name</th>
+        <th scope="col"></th>
+    </thead>
+    <tbody>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-ncid"></span>
+              integer,
+            </td>
+<td>intent(in)</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>ncid</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-local_n"></span>
+              integer,
+            </td>
+<td>intent(in)</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>local_n</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-nislice_total"></span>
+              integer,
+            </td>
+<td>intent(in)</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>nislice_total</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-islice_positions"></span>
+              integer,
+            </td>
+<td>intent(in),</td>
+              <td></td>            <td>
+              dimension(nislice_total)
+            </td>
+            <td>::</td>
+            <td><strong>islice_positions</strong></td>
+            <td>
+
+            </td>
+        </tr>
+    </tbody>
+  </table>
+
+
+    </div>
+  </div>
+
+              <div class="card">
+    <div class="card-header codesum"><span class="anchor" id="proc-instant_write_jslice_ycoord_local"></span> <h3>private  subroutine <a href='../proc/instant_write_jslice_ycoord_local.html'>instant_write_jslice_ycoord_local</a>(ncid, local_n, njslice_total, jslice_positions)  
+</h3></div>
+    <div class="card-body">
+          
+  
+
+  <h4>Arguments</h4>
+      <table class="table table-striped varlist">
+    <thead>
+      <tr>
+        <th scope="col">Type</th>
+<th scope="col">Intent</th><th scope="col">Optional</th>        <th scope="col">Attributes</th>
+        <th scope="col"></th>
+        <th scope="col">Name</th>
+        <th scope="col"></th>
+    </thead>
+    <tbody>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-ncid~2"></span>
+              integer,
+            </td>
+<td>intent(in)</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>ncid</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-local_n~2"></span>
+              integer,
+            </td>
+<td>intent(in)</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>local_n</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-njslice_total"></span>
+              integer,
+            </td>
+<td>intent(in)</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>njslice_total</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-jslice_positions"></span>
+              integer,
+            </td>
+<td>intent(in),</td>
+              <td></td>            <td>
+              dimension(njslice_total)
+            </td>
+            <td>::</td>
+            <td><strong>jslice_positions</strong></td>
+            <td>
+
+            </td>
+        </tr>
+    </tbody>
+  </table>
+
+
+    </div>
+  </div>
+
+              <div class="card">
+    <div class="card-header codesum"><span class="anchor" id="proc-instant_write_kslice_zcoord"></span> <h3>private  subroutine <a href='../proc/instant_write_kslice_zcoord.html'>instant_write_kslice_zcoord</a>(ncid, nkslice_count, kslice_positions)  
+</h3></div>
+    <div class="card-body">
+          
+  
+
+  <h4>Arguments</h4>
+      <table class="table table-striped varlist">
+    <thead>
+      <tr>
+        <th scope="col">Type</th>
+<th scope="col">Intent</th><th scope="col">Optional</th>        <th scope="col">Attributes</th>
+        <th scope="col"></th>
+        <th scope="col">Name</th>
+        <th scope="col"></th>
+    </thead>
+    <tbody>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-ncid~3"></span>
+              integer,
+            </td>
+<td>intent(in)</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>ncid</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-nkslice_count"></span>
+              integer,
+            </td>
+<td>intent(in)</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>nkslice_count</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-kslice_positions"></span>
+              integer,
+            </td>
+<td>intent(in),</td>
+              <td></td>            <td>
+              dimension(nkslice_count)
+            </td>
+            <td>::</td>
+            <td><strong>kslice_positions</strong></td>
+            <td>
+
+            </td>
+        </tr>
+    </tbody>
+  </table>
+
+
+    </div>
+  </div>
+
+              <div class="card">
+    <div class="card-header codesum"><span class="anchor" id="proc-instant_write_kslice"></span> <h3>private  subroutine <a href='../proc/instant_write_kslice.html'>instant_write_kslice</a>()  
+</h3></div>
+    <div class="card-body">
+          
+  
+
+  <h4>Arguments</h4>
+    <em>None</em>
+
+    </div>
+  </div>
+
+              <div class="card">
+    <div class="card-header codesum"><span class="anchor" id="proc-instant_probe_init"></span> <h3>private  subroutine <a href='../proc/instant_probe_init.html'>instant_probe_init</a>()  
+</h3></div>
+    <div class="card-body">
+          
+  
+
+  <h4>Arguments</h4>
+    <em>None</em>
+
+    </div>
+  </div>
+
+              <div class="card">
+    <div class="card-header codesum"><span class="anchor" id="proc-instant_probe_main"></span> <h3>private  subroutine <a href='../proc/instant_probe_main.html'>instant_probe_main</a>()  
+</h3></div>
+    <div class="card-body">
+          
+  
+
+  <h4>Arguments</h4>
+    <em>None</em>
+
+    </div>
+  </div>
+
+              <div class="card">
+    <div class="card-header codesum"><span class="anchor" id="proc-instant_gather_probe_var"></span> <h3>private  subroutine <a href='../proc/instant_gather_probe_var.html'>instant_gather_probe_var</a>(vname, buf)  
+</h3></div>
+    <div class="card-body">
+          
+  
+
+  <h4>Arguments</h4>
+      <table class="table table-striped varlist">
+    <thead>
+      <tr>
+        <th scope="col">Type</th>
+<th scope="col">Intent</th><th scope="col">Optional</th>        <th scope="col">Attributes</th>
+        <th scope="col"></th>
+        <th scope="col">Name</th>
+        <th scope="col"></th>
+    </thead>
+    <tbody>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-vname"></span>
+              character(len=*),
+            </td>
+<td>intent(in)</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>vname</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-buf"></span>
+              real,
+            </td>
+<td>intent(out)</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>buf</strong>(:)</td>
+            <td>
+
+            </td>
+        </tr>
+    </tbody>
+  </table>
+
+
+    </div>
+  </div>
+
+              <div class="card">
+    <div class="card-header codesum"><span class="anchor" id="proc-instant_add_var_atts"></span> <h3>private  subroutine <a href='../proc/instant_add_var_atts.html'>instant_add_var_atts</a>(ncid, vid, vname)  
+</h3></div>
+    <div class="card-body">
+          
+  
+
+  <h4>Arguments</h4>
+      <table class="table table-striped varlist">
+    <thead>
+      <tr>
+        <th scope="col">Type</th>
+<th scope="col">Intent</th><th scope="col">Optional</th>        <th scope="col">Attributes</th>
+        <th scope="col"></th>
+        <th scope="col">Name</th>
+        <th scope="col"></th>
+    </thead>
+    <tbody>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-ncid~4"></span>
+              integer,
+            </td>
+<td>intent(in)</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>ncid</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-vid"></span>
+              integer,
+            </td>
+<td>intent(in)</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>vid</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-vname~3"></span>
+              character(len=*),
+            </td>
+<td>intent(in)</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>vname</strong></td>
+            <td>
+
+            </td>
+        </tr>
+    </tbody>
+  </table>
+
+
+    </div>
+  </div>
+
+              <div class="card">
+    <div class="card-header codesum"><span class="anchor" id="proc-check"></span> <h3>private  subroutine <a href='../proc/check.html'>check</a>(status)  
+</h3></div>
+    <div class="card-body">
+          
+  
+
+  <h4>Arguments</h4>
+      <table class="table table-striped varlist">
+    <thead>
+      <tr>
+        <th scope="col">Type</th>
+<th scope="col">Intent</th><th scope="col">Optional</th>        <th scope="col">Attributes</th>
+        <th scope="col"></th>
+        <th scope="col">Name</th>
+        <th scope="col"></th>
+    </thead>
+    <tbody>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-status"></span>
+              integer,
+            </td>
+<td>intent(in)</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>status</strong></td>
+            <td>
+
+            </td>
+        </tr>
+    </tbody>
+  </table>
+
+
+    </div>
+  </div>
+
+              <div class="card">
+    <div class="card-header codesum"><span class="anchor" id="proc-instant_validate_output_vars"></span> <h3>private  subroutine <a href='../proc/instant_validate_output_vars.html'>instant_validate_output_vars</a>(nvars, vars, var_name, var_flag)  
+</h3></div>
+    <div class="card-body">
+          
+  
+
+  <h4>Arguments</h4>
+      <table class="table table-striped varlist">
+    <thead>
+      <tr>
+        <th scope="col">Type</th>
+<th scope="col">Intent</th><th scope="col">Optional</th>        <th scope="col">Attributes</th>
+        <th scope="col"></th>
+        <th scope="col">Name</th>
+        <th scope="col"></th>
+    </thead>
+    <tbody>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-nvars"></span>
+              integer,
+            </td>
+<td>intent(out)</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>nvars</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-vars"></span>
+              character(len=*),
+            </td>
+<td>intent(in)</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>vars</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-var_name"></span>
+              character(len=*),
+            </td>
+<td>intent(in)</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>var_name</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-var_flag"></span>
+              character(len=*),
+            </td>
+<td>intent(in)</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>var_flag</strong></td>
+            <td>
+
+            </td>
+        </tr>
+    </tbody>
+  </table>
+
+
+    </div>
+  </div>
+
+              <div class="card">
+    <div class="card-header codesum"><span class="anchor" id="proc-instant_validate_slice_inputs"></span> <h3>private  subroutine <a href='../proc/instant_validate_slice_inputs.html'>instant_validate_slice_inputs</a>(slice_enabled, n_slice, slice_array, slice_name)  
+</h3></div>
+    <div class="card-body">
+          
+  
+
+  <h4>Arguments</h4>
+      <table class="table table-striped varlist">
+    <thead>
+      <tr>
+        <th scope="col">Type</th>
+<th scope="col">Intent</th><th scope="col">Optional</th>        <th scope="col">Attributes</th>
+        <th scope="col"></th>
+        <th scope="col">Name</th>
+        <th scope="col"></th>
+    </thead>
+    <tbody>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-slice_enabled"></span>
+              logical,
+            </td>
+<td>intent(in)</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>slice_enabled</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-n_slice"></span>
+              integer,
+            </td>
+<td>intent(in)</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>n_slice</strong></td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-slice_array"></span>
+              integer,
+            </td>
+<td>intent(in)</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>slice_array</strong>(:)</td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-slice_name"></span>
+              character(len=*),
+            </td>
+<td>intent(in)</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>slice_name</strong></td>
+            <td>
+
+            </td>
+        </tr>
+    </tbody>
+  </table>
+
+
+    </div>
+  </div>
+
+        </section>
+        <br>
+
+
+
+    </div>
+  </div>
+
+      <hr>
+    </div> <!-- /container -->
+    <footer>
+      <div class="container">
+        <div class="row justify-content-between">
+          <div class="col">
+            <p>
+              uDALES
+ was developed by The uDALES Team<br>              &copy; 2026 
+</p>
+          </div>
+          <div class="col">
+            <p class="text-end">
+              Documentation generated by
+              <a href="https://github.com/Fortran-FOSS-Programmers/ford">FORD</a>
+ on 2026-11-27 14:34 +0000             </p>
+          </div>
+        </div>
+        <br>
+      </div> <!-- /container -->
+    </footer>
+  </body>
+</html>

@@ -1,0 +1,548 @@
+<!-- -*- mode: jinja2 -*- -->
+
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+      <meta name="description" content="API documentation of the Fortran source code of uDALES, the open-source multi-physics large-eddy simulation model for urban environments.">
+    <meta name="author" content="The uDALES Team" >
+    <link rel="icon" href="../favicon.png">
+
+    <title>stats_init &ndash; uDALES</title>
+
+    <!-- Bootstrap -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet"
+          integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"
+            integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
+    <!-- Font Awesome -->
+    <link href="../css/fontawesome.min.css" rel="stylesheet">
+    <link href="../css/brands.min.css" rel="stylesheet">
+    <link href="../css/regular.min.css" rel="stylesheet">
+    <link href="../css/solid.min.css" rel="stylesheet">
+    <link href="../css/v4-font-face.min.css" rel="stylesheet">
+    <link href="../css/v4-shims.min.css" rel="stylesheet">
+    <!-- MathJax -->
+    <script type="text/x-mathjax-config">
+      MathJax.Hub.Config({
+        TeX: { equationNumbers: { autoNumber: "AMS" } }
+      });
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/mathjax@2.7.9/MathJax.js?config=TeX-AMS-MML_HTMLorMML" async
+            integrity="sha256-DViIOMYdwlM/axqoGDPeUyf0urLoHMN4QACBKyB58Uw=" crossorigin="anonymous"></script>
+    <!-- Other scripts and stylesheets -->
+    <link href="../css/local.css" rel="stylesheet">
+    <link href="../css/pygments.css" rel="stylesheet">
+    <script src="../js/svg-pan-zoom.min.js"></script>
+  </head>
+
+  <body>
+
+    <!-- Fixed navbar -->
+    <div class="container-fluid mb-sm-4 mb-xl-2">
+      <nav class="navbar navbar-expand-lg navbar-dark bg-dark fixed-top">
+        <div class="container">
+          <a class="navbar-brand" href="../index.html">uDALES </a>
+          <button type="button" class="navbar-toggler" data-bs-toggle="collapse" data-bs-target="#navbar"
+                  aria-expanded="false" aria-controls="navbar" aria-label="Toggle navigation">
+                  <span class="navbar-toggler-icon">
+          </button>
+
+          <div id="navbar" class="navbar-collapse collapse">
+            <ul class="navbar-nav">
+                  <li class="nav-item">
+                    <a class="nav-link" href="../lists/files.html">Source Files</a>
+                  </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="../lists/modules.html">Modules</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="../lists/procedures.html">Procedures</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="../lists/absint.html">Abstract Interfaces</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="../lists/types.html">Derived Types</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="../lists/namelists.html">Namelists</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="../program/udales.html">Program</a>
+                </li>
+            </ul>
+              <div class="d-flex align-items-end flex-grow-1">
+                <form action="../search.html" role="search" class="ms-auto">
+                  <input type="text" class="form-control" aria-label="Search" placeholder="Search" name="q" id="tipue_search_input" autocomplete="off" required>
+                </form>
+              </div>
+          </div><!--/.nav-collapse -->
+        </div>
+      </nav>
+    </div>
+
+    <div class="container">
+  <div class="row">
+    <h1>stats_init
+      <small>Subroutine</small>
+      
+    </h1>
+      <div class="container p-2 mb-4 bg-light border rounded-3">
+    <div class="row align-items-center justify-content-between" id="info-bar">
+      <div class="col">
+        <ul class="list-inline" style="margin-bottom:0px;display:inline">
+
+            <li class="list-inline-item" id="statements"><i class="fa fa-list-ol"></i>
+              <a data-bs-toggle="tooltip" data-bs-placement="bottom" data-bs-html="true"
+                 title=" 0.2% of total for procedures.">39 statements</a>
+            </li>
+
+            <li class="list-inline-item" id="source-file">
+              <i class="fa fa-code"></i>
+              <a href="../src/out_stats.f90"> Source File</a>
+            </li>
+        </ul>
+      </div>
+      <div class="col">
+        <nav aria-label="breadcrumb">
+          <ol class="breadcrumb justify-content-end mb-0">
+                <li class="breadcrumb-item"><a href='../sourcefile/out_stats.f90.html'>out_stats.f90</a></li>
+                <li class="breadcrumb-item"><a href='../module/stats.html'>stats</a></li>
+            <li class="breadcrumb-item active" aria-current="page">stats_init</li>
+          </ol>
+        </nav>
+      </div>
+    </div>
+  </div>
+  <script>
+    // Enable Bootstrap tooltips
+    (function () {
+      const tooltipTriggerList = document.querySelectorAll('[data-bs-toggle="tooltip"]')
+      const tooltipList = [...tooltipTriggerList].map(tooltipTriggerEl => new bootstrap.Tooltip(tooltipTriggerEl))
+    })();
+  </script>
+
+  </div>
+  
+  <div class="row">
+    <div class="col-md-3 hidden-xs hidden-sm visible-md visible-lg">
+      <div id="sidebar">
+      <h3>Contents</h3>
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+    <div class="card card-primary">
+      <div class="card-header text-left"><h3 class="card-title">Source Code</h3></div>
+      <div class="list-group">
+        <a class="list-group-item" href="../proc/stats_init.html#src">stats_init</a>
+      </div>
+    </div>
+
+
+  </div>
+
+    </div>
+    
+    <div class="col-md-9" id='text'>
+    <h2>public  subroutine stats_init()  
+</h2>
+    
+
+
+
+    <h3>Arguments</h3>
+    <em>None</em>
+    <br>
+    <br>
+    <div class="card">
+      <div class="card-header">
+  <h3 class="card-title">Calls</h3>
+      </div>
+      <div class="card-body">
+  <div class="depgraph"><?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
+ "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<!-- Generated by graphviz version 14.1.3 (0)
+ -->
+<!-- Title: proc~~stats_init~~CallsGraph Pages: 1 -->
+<svg id="procstats_initCallsGraph" width="253pt" height="116pt"
+ viewBox="0.00 0.00 253.00 116.00" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<g id="proc~~stats_init~~CallsGraph" class="graph" transform="scale(1 1) rotate(0) translate(4 112.27)">
+<title>proc~~stats_init~~CallsGraph</title>
+<polygon fill="white" stroke="none" points="-4,4 -4,-112.27 249.04,-112.27 249.04,4 -4,4"/>
+<!-- proc~stats_init -->
+<g id="proc~~stats_init~~CallsGraph_node1" class="node">
+<title>proc~stats_init</title>
+<polygon fill="none" stroke="black" points="58.02,-66.27 0,-66.27 0,-42 58.02,-42 58.02,-66.27"/>
+<text xml:space="preserve" text-anchor="middle" x="29.01" y="-50.53" font-family="Helvetica,sans-Serif" font-size="10.50">stats_init</text>
+</g>
+<!-- mpi_abort -->
+<g id="proc~~stats_init~~CallsGraph_node2" class="node">
+<title>mpi_abort</title>
+<polygon fill="#777777" stroke="#777777" points="202.29,-108.27 136.77,-108.27 136.77,-84 202.29,-84 202.29,-108.27"/>
+<text xml:space="preserve" text-anchor="middle" x="169.53" y="-92.54" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">mpi_abort</text>
+</g>
+<!-- proc~stats_init&#45;&gt;mpi_abort -->
+<g id="proc~~stats_init~~CallsGraph_edge1" class="edge">
+<title>proc~stats_init&#45;&gt;mpi_abort</title>
+<path fill="none" stroke="#ff0000" d="M58.29,-63.7C69.39,-67.38 82.27,-71.55 94.02,-75.14 104.22,-78.24 115.25,-81.44 125.62,-84.37"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="124.5,-87.7 135.08,-87.03 126.4,-80.96 124.5,-87.7"/>
+</g>
+<!-- proc~ncinfo -->
+<g id="proc~~stats_init~~CallsGraph_node3" class="node">
+<title>proc~ncinfo</title>
+<g id="a_proc~~stats_init~~CallsGraph_node3"><a xlink:href="../proc/ncinfo.html" xlink:title="ncinfo">
+<polygon fill="#d9534f" stroke="#d9534f" points="196.53,-66.27 142.53,-66.27 142.53,-42 196.53,-42 196.53,-66.27"/>
+<text xml:space="preserve" text-anchor="middle" x="169.53" y="-50.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">ncinfo</text>
+</a>
+</g>
+</g>
+<!-- proc~stats_init&#45;&gt;proc~ncinfo -->
+<g id="proc~~stats_init~~CallsGraph_edge2" class="edge">
+<title>proc~stats_init&#45;&gt;proc~ncinfo</title>
+<path fill="none" stroke="#ff0000" d="M58.38,-54.13C79.27,-54.13 107.9,-54.13 130.74,-54.13"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="130.57,-57.64 140.57,-54.14 130.57,-50.64 130.57,-57.64"/>
+</g>
+<!-- proc~stats_validate_slice_inputs -->
+<g id="proc~~stats_init~~CallsGraph_node4" class="node">
+<title>proc~stats_validate_slice_inputs</title>
+<g id="a_proc~~stats_init~~CallsGraph_node4"><a xlink:href="../proc/stats_validate_slice_inputs.html" xlink:title="stats_validate_slice_inputs">
+<polygon fill="#d9534f" stroke="#d9534f" points="245.04,-24.27 94.02,-24.27 94.02,0 245.04,0 245.04,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="169.53" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">stats_validate_slice_inputs</text>
+</a>
+</g>
+</g>
+<!-- proc~stats_init&#45;&gt;proc~stats_validate_slice_inputs -->
+<g id="proc~~stats_init~~CallsGraph_edge3" class="edge">
+<title>proc~stats_init&#45;&gt;proc~stats_validate_slice_inputs</title>
+<path fill="none" stroke="#ff0000" d="M58.29,-44.57C69.39,-40.89 82.27,-36.72 94.02,-33.13 99.81,-31.37 105.86,-29.58 111.91,-27.82"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="112.63,-31.26 121.28,-25.13 110.7,-24.53 112.63,-31.26"/>
+</g>
+</g>
+</svg>
+</div>          <div>
+            <a type="button" class="graph-help" data-bs-toggle="modal" href="#CallsGraph-help-text">Help</a>
+          </div>
+          <div class="modal fade" id="CallsGraph-help-text" tabindex="-1" role="dialog">
+            <div class="modal-dialog modal-lg" role="document">
+              <div class="modal-content">
+                <div class="modal-header">
+                  <h4 class="modal-title" id="-graph-help-label">Graph Key</h4>
+                  <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+<p>Nodes of different colours represent the following: </p>
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
+ "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<!-- Generated by graphviz version 14.1.3 (0)
+ -->
+<!-- Title: Graph Key Pages: 1 -->
+<svg width="641pt" height="28pt"
+ viewBox="0.00 0.00 641.00 28.00" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<g id="graph0" class="graph" transform="scale(0.873868 0.873868) rotate(0) translate(4 28.27)">
+<title>Graph Key</title>
+<polygon fill="white" stroke="none" points="-4,4 -4,-28.27 729.52,-28.27 729.52,4 -4,4"/>
+<!-- Subroutine -->
+<g id="node1" class="node">
+<title>Subroutine</title>
+<polygon fill="#d9534f" stroke="#d9534f" points="69.27,-24.27 0,-24.27 0,0 69.27,0 69.27,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="34.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Subroutine</text>
+</g>
+<!-- Function -->
+<g id="node2" class="node">
+<title>Function</title>
+<polygon fill="#d94e8f" stroke="#d94e8f" points="143.89,-24.27 87.38,-24.27 87.38,0 143.89,0 143.89,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="115.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Function</text>
+</g>
+<!-- Interface -->
+<g id="node3" class="node">
+<title>Interface</title>
+<polygon fill="#a7506f" stroke="#a7506f" points="221.39,-24.27 161.88,-24.27 161.88,0 221.39,0 221.39,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="191.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Interface</text>
+</g>
+<!-- Type Bound Procedure -->
+<g id="node4" class="node">
+<title>Type Bound Procedure</title>
+<polygon fill="#a7506f" stroke="#a7506f" points="368.27,-24.27 239,-24.27 239,0 368.27,0 368.27,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="303.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Type Bound Procedure</text>
+</g>
+<!-- Unknown Procedure Type -->
+<g id="node5" class="node">
+<title>Unknown Procedure Type</title>
+<polygon fill="#777777" stroke="#777777" points="529.39,-24.27 385.88,-24.27 385.88,0 529.39,0 529.39,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="457.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Unknown Procedure Type</text>
+</g>
+<!-- Program -->
+<g id="node6" class="node">
+<title>Program</title>
+<polygon fill="#f0ad4e" stroke="#f0ad4e" points="603.89,-24.27 547.38,-24.27 547.38,0 603.89,0 603.89,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="575.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Program</text>
+</g>
+<!-- This Page&#39;s Entity -->
+<g id="node7" class="node">
+<title>This Page&#39;s Entity</title>
+<polygon fill="none" stroke="black" points="725.52,-24.27 621.75,-24.27 621.75,0 725.52,0 725.52,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="673.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50">This Page&#39;s Entity</text>
+</g>
+</g>
+</svg>
+
+<p>Solid arrows point from a procedure to one which it calls. Dashed 
+arrows point from an interface to procedures which implement that interface.
+This could include the module procedures in a generic interface or the
+implementation in a submodule of an interface in a parent module.
+</p>
+ Where possible, edges connecting nodes are
+given different colours to make them easier to distinguish in
+large graphs.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-header">
+  <h3 class="card-title">Called by</h3>
+      </div>
+      <div class="card-body">
+  <div class="depgraph"><?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
+ "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<!-- Generated by graphviz version 14.1.3 (0)
+ -->
+<!-- Title: proc~~stats_init~~CalledByGraph Pages: 1 -->
+<svg id="procstats_initCalledByGraph" width="156pt" height="32pt"
+ viewBox="0.00 0.00 156.00 32.00" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<g id="proc~~stats_init~~CalledByGraph" class="graph" transform="scale(1 1) rotate(0) translate(4 28.27)">
+<title>proc~~stats_init~~CalledByGraph</title>
+<polygon fill="white" stroke="none" points="-4,4 -4,-28.27 152.02,-28.27 152.02,4 -4,4"/>
+<!-- proc~stats_init -->
+<g id="proc~~stats_init~~CalledByGraph_node1" class="node">
+<title>proc~stats_init</title>
+<polygon fill="none" stroke="black" points="148.02,-24.27 90,-24.27 90,0 148.02,0 148.02,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="119.01" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50">stats_init</text>
+</g>
+<!-- program~udales -->
+<g id="proc~~stats_init~~CalledByGraph_node2" class="node">
+<title>program~udales</title>
+<g id="a_proc~~stats_init~~CalledByGraph_node2"><a xlink:href="../program/udales.html" xlink:title="uDALES">
+<polygon fill="#f0ad4e" stroke="#f0ad4e" points="54,-24.27 0,-24.27 0,0 54,0 54,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="27" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">uDALES</text>
+</a>
+</g>
+</g>
+<!-- program~udales&#45;&gt;proc~stats_init -->
+<g id="proc~~stats_init~~CalledByGraph_edge1" class="edge">
+<title>program~udales&#45;&gt;proc~stats_init</title>
+<path fill="none" stroke="#ff0000" d="M54.03,-12.13C61.59,-12.13 70.01,-12.13 78.2,-12.13"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="78,-15.64 88,-12.14 78,-8.64 78,-15.64"/>
+</g>
+</g>
+</svg>
+</div>          <div>
+            <a type="button" class="graph-help" data-bs-toggle="modal" href="#CalledByGraph-help-text">Help</a>
+          </div>
+          <div class="modal fade" id="CalledByGraph-help-text" tabindex="-1" role="dialog">
+            <div class="modal-dialog modal-lg" role="document">
+              <div class="modal-content">
+                <div class="modal-header">
+                  <h4 class="modal-title" id="-graph-help-label">Graph Key</h4>
+                  <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+<p>Nodes of different colours represent the following: </p>
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
+ "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<!-- Generated by graphviz version 14.1.3 (0)
+ -->
+<!-- Title: Graph Key Pages: 1 -->
+<svg width="641pt" height="28pt"
+ viewBox="0.00 0.00 641.00 28.00" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<g id="graph0" class="graph" transform="scale(0.873868 0.873868) rotate(0) translate(4 28.27)">
+<title>Graph Key</title>
+<polygon fill="white" stroke="none" points="-4,4 -4,-28.27 729.52,-28.27 729.52,4 -4,4"/>
+<!-- Subroutine -->
+<g id="node1" class="node">
+<title>Subroutine</title>
+<polygon fill="#d9534f" stroke="#d9534f" points="69.27,-24.27 0,-24.27 0,0 69.27,0 69.27,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="34.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Subroutine</text>
+</g>
+<!-- Function -->
+<g id="node2" class="node">
+<title>Function</title>
+<polygon fill="#d94e8f" stroke="#d94e8f" points="143.89,-24.27 87.38,-24.27 87.38,0 143.89,0 143.89,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="115.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Function</text>
+</g>
+<!-- Interface -->
+<g id="node3" class="node">
+<title>Interface</title>
+<polygon fill="#a7506f" stroke="#a7506f" points="221.39,-24.27 161.88,-24.27 161.88,0 221.39,0 221.39,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="191.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Interface</text>
+</g>
+<!-- Type Bound Procedure -->
+<g id="node4" class="node">
+<title>Type Bound Procedure</title>
+<polygon fill="#a7506f" stroke="#a7506f" points="368.27,-24.27 239,-24.27 239,0 368.27,0 368.27,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="303.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Type Bound Procedure</text>
+</g>
+<!-- Unknown Procedure Type -->
+<g id="node5" class="node">
+<title>Unknown Procedure Type</title>
+<polygon fill="#777777" stroke="#777777" points="529.39,-24.27 385.88,-24.27 385.88,0 529.39,0 529.39,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="457.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Unknown Procedure Type</text>
+</g>
+<!-- Program -->
+<g id="node6" class="node">
+<title>Program</title>
+<polygon fill="#f0ad4e" stroke="#f0ad4e" points="603.89,-24.27 547.38,-24.27 547.38,0 603.89,0 603.89,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="575.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Program</text>
+</g>
+<!-- This Page&#39;s Entity -->
+<g id="node7" class="node">
+<title>This Page&#39;s Entity</title>
+<polygon fill="none" stroke="black" points="725.52,-24.27 621.75,-24.27 621.75,0 725.52,0 725.52,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="673.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50">This Page&#39;s Entity</text>
+</g>
+</g>
+</svg>
+
+<p>Solid arrows point from a procedure to one which it calls. Dashed 
+arrows point from an interface to procedures which implement that interface.
+This could include the module procedures in a generic interface or the
+implementation in a submodule of an interface in a parent module.
+</p>
+ Where possible, edges connecting nodes are
+given different colours to make them easier to distinguish in
+large graphs.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <br>
+
+
+    
+    
+
+    
+    
+
+
+
+    
+    <section>
+    <h2><span class="anchor" id="src"></span>Source Code</h2>
+    <div class="hl codehilite"><pre><span></span><span class="w">    </span><span class="k">subroutine </span><span class="n">stats_init</span>
+<span class="w">      </span><span class="k">implicit none</span>
+<span class="k">      </span><span class="kt">integer</span><span class="w"> </span><span class="kd">::</span><span class="w"> </span><span class="n">nperiod</span>
+<span class="w">      </span><span class="kt">real</span><span class="w">    </span><span class="kd">::</span><span class="w"> </span><span class="n">tperiod</span>
+
+<span class="w">      </span><span class="n">ltavgslice</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">ltislicedump</span><span class="w"> </span><span class="p">.</span><span class="nb">or</span><span class="p">.</span><span class="w"> </span><span class="n">ltjslicedump</span><span class="w"> </span><span class="p">.</span><span class="nb">or</span><span class="p">.</span><span class="w"> </span><span class="n">ltkslicedump</span>
+<span class="w">      </span><span class="n">ltavg3d</span><span class="w">    </span><span class="o">=</span><span class="w"> </span><span class="n">ltdump</span><span class="w"> </span><span class="p">.</span><span class="nb">or</span><span class="p">.</span><span class="w"> </span><span class="n">ltavgslice</span>
+<span class="w">      </span><span class="n">lstatsdump</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">ltavg3d</span><span class="w"> </span><span class="p">.</span><span class="nb">or</span><span class="p">.</span><span class="w"> </span><span class="n">lxytdump</span><span class="w"> </span><span class="p">.</span><span class="nb">or</span><span class="p">.</span><span class="w"> </span><span class="n">lxydump</span><span class="w"> </span><span class="p">.</span><span class="nb">or</span><span class="p">.</span><span class="w"> </span><span class="n">lytdump</span><span class="w"> </span><span class="p">.</span><span class="nb">or</span><span class="p">.</span><span class="w"> </span><span class="n">lydump</span>
+<span class="w">      </span><span class="n">lstatstavgdump</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">ltavg3d</span><span class="w"> </span><span class="p">.</span><span class="nb">or</span><span class="p">.</span><span class="w"> </span><span class="n">lxytdump</span><span class="w"> </span><span class="p">.</span><span class="nb">or</span><span class="p">.</span><span class="w"> </span><span class="n">lytdump</span>
+<span class="w">      </span><span class="n">lrh</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">ltempeq</span><span class="w"> </span><span class="p">.</span><span class="nb">and</span><span class="p">.</span><span class="w"> </span><span class="n">lmoist</span>
+
+<span class="w">      </span><span class="c">! the time-averaged slices reuse the plane positions of the instantaneous slices</span>
+<span class="w">      </span><span class="k">call </span><span class="n">stats_validate_slice_inputs</span><span class="p">(</span><span class="n">ltislicedump</span><span class="p">,</span><span class="w"> </span><span class="n">nislice</span><span class="p">,</span><span class="w"> </span><span class="n">islice</span><span class="p">,</span><span class="w"> </span><span class="s1">'islice'</span><span class="p">)</span>
+<span class="w">      </span><span class="k">call </span><span class="n">stats_validate_slice_inputs</span><span class="p">(</span><span class="n">ltjslicedump</span><span class="p">,</span><span class="w"> </span><span class="n">njslice</span><span class="p">,</span><span class="w"> </span><span class="n">jslice</span><span class="p">,</span><span class="w"> </span><span class="s1">'jslice'</span><span class="p">)</span>
+<span class="w">      </span><span class="k">call </span><span class="n">stats_validate_slice_inputs</span><span class="p">(</span><span class="n">ltkslicedump</span><span class="p">,</span><span class="w"> </span><span class="n">nkslice</span><span class="p">,</span><span class="w"> </span><span class="n">kslice</span><span class="p">,</span><span class="w"> </span><span class="s1">'kslice'</span><span class="p">)</span>
+<span class="w">      </span>
+<span class="w">      </span><span class="k">if</span><span class="p">(.</span><span class="nb">not</span><span class="p">.(</span><span class="n">lstatsdump</span><span class="w"> </span><span class="p">.</span><span class="nb">or</span><span class="p">.</span><span class="w"> </span><span class="n">ltreedump</span><span class="p">))</span><span class="w"> </span><span class="k">return</span>
+
+<span class="w">      </span><span class="c">! With tstatsgap &gt; 0 the time-averaged statistics follow a fixed, absolute</span>
+<span class="w">      </span><span class="c">! schedule: dumps at tstatstart + n*(tstatsdump + tstatsgap), n = 1, 2, ...,</span>
+<span class="w">      </span><span class="c">! each averaging the tstatsdump seconds that precede it (gap first, averaging</span>
+<span class="w">      </span><span class="c">! window last). E.g. tstatstart = 21600, tstatsdump = 900, tstatsgap = 13500</span>
+<span class="w">      </span><span class="c">! gives 15-min means ending exactly at t = 36000, 50400, 64800, ...</span>
+<span class="w">      </span><span class="c">! The schedule is anchored to absolute time, so a warm-started run keeps the</span>
+<span class="w">      </span><span class="c">! same dump instants: tstatstart is advanced here to the first averaging</span>
+<span class="w">      </span><span class="c">! window that (at least half) lies after the restart time btime.</span>
+<span class="w">      </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">tstatsgap</span><span class="w"> </span><span class="o">&gt;</span><span class="w"> </span><span class="mf">0.</span><span class="p">)</span><span class="w"> </span><span class="k">then</span>
+<span class="k">        </span><span class="n">tperiod</span><span class="w">    </span><span class="o">=</span><span class="w"> </span><span class="n">tstatsdump</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">tstatsgap</span>
+<span class="w">        </span><span class="n">tstatstart</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">tstatstart</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">tstatsgap</span><span class="w">          </span><span class="c">! start of the first averaging window</span>
+<span class="w">        </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">btime</span><span class="w"> </span><span class="o">&gt;</span><span class="w"> </span><span class="n">tstatstart</span><span class="p">)</span><span class="w"> </span><span class="k">then</span>
+<span class="k">          </span><span class="n">nperiod</span><span class="w">    </span><span class="o">=</span><span class="w"> </span><span class="nb">floor</span><span class="p">((</span><span class="n">btime</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">tstatstart</span><span class="p">)</span><span class="o">/</span><span class="n">tperiod</span><span class="p">)</span>
+<span class="w">          </span><span class="n">tstatstart</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">tstatstart</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">nperiod</span><span class="o">*</span><span class="n">tperiod</span><span class="w">  </span><span class="c">! window containing or preceding btime</span>
+<span class="w">          </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">tstatstart</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mf">0.5</span><span class="o">*</span><span class="n">tstatsdump</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="n">btime</span><span class="p">)</span><span class="w"> </span><span class="n">tstatstart</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">tstatstart</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">tperiod</span>
+<span class="w">        </span><span class="k">end if</span>
+<span class="k">        if</span><span class="w"> </span><span class="p">(</span><span class="n">myid</span><span class="o">==</span><span class="mi">0</span><span class="p">)</span><span class="w"> </span><span class="k">write</span><span class="p">(</span><span class="o">*</span><span class="p">,</span><span class="s1">'(a,f12.2,a,f12.2)'</span><span class="p">)</span><span class="w"> </span><span class="p">&amp;</span>
+<span class="w">          </span><span class="s1">' stats: tstatsgap &gt; 0, first averaging window starts at t = '</span><span class="p">,</span><span class="w"> </span><span class="n">tstatstart</span><span class="p">,</span><span class="w"> </span><span class="p">&amp;</span>
+<span class="w">          </span><span class="s1">', first dump at t = '</span><span class="p">,</span><span class="w"> </span><span class="n">tstatstart</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">tstatsdump</span>
+<span class="w">      </span><span class="k">end if</span>
+
+<span class="k">      if</span><span class="p">(</span><span class="w"> </span><span class="p">(</span><span class="n">lstatstavgdump</span><span class="w"> </span><span class="p">.</span><span class="nb">or</span><span class="p">.</span><span class="w"> </span><span class="n">ltreedump</span><span class="p">)</span><span class="w"> </span><span class="p">&amp;</span>
+<span class="w">          </span><span class="p">.</span><span class="nb">and</span><span class="p">.</span><span class="w"> </span><span class="n">runtime</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">btime</span><span class="w"> </span><span class="o">&lt;=</span><span class="w"> </span><span class="n">tstatstart</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">tstatsdump</span><span class="w"> </span><span class="p">)</span><span class="w"> </span><span class="k">then</span>
+<span class="k">        if</span><span class="p">(</span><span class="n">myid</span><span class="o">==</span><span class="mi">0</span><span class="p">)</span><span class="w"> </span><span class="k">then</span>
+<span class="k">          write</span><span class="p">(</span><span class="o">*</span><span class="p">,</span><span class="o">*</span><span class="p">)</span><span class="w"> </span><span class="s2">"ERROR: no time-averaged statistics file will be written as runtime + btime &lt;= tstatstart + tstatsdump. &amp;</span>
+<span class="s2">                      &amp;Note that runtime + btime must be greater than tstatstart + tstatsdump for writing time-averaged statistics files."</span>
+<span class="w">          </span><span class="k">write</span><span class="p">(</span><span class="o">*</span><span class="p">,</span><span class="o">*</span><span class="p">)</span><span class="w"> </span><span class="s2">"You have used runtime = "</span><span class="p">,</span><span class="w"> </span><span class="n">runtime</span><span class="p">,</span><span class="w"> </span><span class="s2">", btime = "</span><span class="p">,</span><span class="w"> </span><span class="n">btime</span><span class="p">,</span><span class="w"> </span><span class="s2">", tstatstart = "</span><span class="p">,</span><span class="w"> </span><span class="n">tstatstart</span><span class="p">,</span><span class="w"> </span><span class="s2">", and &amp;</span>
+<span class="s2">                     &amp;tstatsdump = "</span><span class="p">,</span><span class="w"> </span><span class="n">tstatsdump</span>
+<span class="w">          </span><span class="k">write</span><span class="p">(</span><span class="o">*</span><span class="p">,</span><span class="o">*</span><span class="p">)</span><span class="w"> </span><span class="s2">"Either correct the time settings or change all time-averaged stats writing flags to false."</span>
+<span class="w">          </span><span class="c">!abort every rank: a bare STOP inside a rank-0 guard leaves the other ranks alive until walltime</span>
+<span class="w">          </span><span class="k">call </span><span class="n">MPI_ABORT</span><span class="p">(</span><span class="n">MPI_COMM_WORLD</span><span class="p">,</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="n">mpierr</span><span class="p">)</span>
+<span class="w">        </span><span class="k">end if</span>
+<span class="k">      end if</span>
+<span class="k">      </span>
+<span class="k">      </span><span class="n">xdim</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">ie</span><span class="o">-</span><span class="n">ib</span><span class="o">+</span><span class="mi">1</span>
+<span class="w">      </span><span class="n">ydim</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">je</span><span class="o">-</span><span class="n">jb</span><span class="o">+</span><span class="mi">1</span>
+<span class="w">      </span><span class="n">zdim</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">ke</span><span class="o">-</span><span class="n">kb</span><span class="o">+</span><span class="mi">1</span>
+<span class="w">      </span><span class="n">tsamplep</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">0.</span>
+<span class="w">      </span><span class="n">tstatsdumpp</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">0.</span>
+<span class="w">      </span><span class="n">dumpcount</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span>
+<span class="w">      </span><span class="k">call </span><span class="n">ncinfo</span><span class="p">(</span><span class="n">timeVar</span><span class="p">(</span><span class="w"> </span><span class="mi">1</span><span class="p">,:),</span><span class="w"> </span><span class="s1">'time'</span><span class="p">,</span><span class="w"> </span><span class="s1">'Time'</span><span class="p">,</span><span class="w"> </span><span class="s1">'s'</span><span class="p">,</span><span class="w"> </span><span class="s1">'time'</span><span class="p">)</span>
+<span class="w">    </span><span class="k">end subroutine </span><span class="n">stats_init</span>
+</pre></div>
+
+    </section>
+    <br>
+    
+    </div>
+  </div>
+
+      <hr>
+    </div> <!-- /container -->
+    <footer>
+      <div class="container">
+        <div class="row justify-content-between">
+          <div class="col">
+            <p>
+              uDALES
+ was developed by The uDALES Team<br>              &copy; 2026 
+</p>
+          </div>
+          <div class="col">
+            <p class="text-end">
+              Documentation generated by
+              <a href="https://github.com/Fortran-FOSS-Programmers/ford">FORD</a>
+ on 2026-11-27 14:34 +0000             </p>
+          </div>
+        </div>
+        <br>
+      </div> <!-- /container -->
+    </footer>
+  </body>
+</html>

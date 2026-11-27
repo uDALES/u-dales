@@ -1,0 +1,1299 @@
+<!-- -*- mode: jinja2 -*- -->
+
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+      <meta name="description" content="API documentation of the Fortran source code of uDALES, the open-source multi-physics large-eddy simulation model for urban environments.">
+    <meta name="author" content="The uDALES Team" >
+    <link rel="icon" href="../favicon.png">
+
+    <title>modsurfdata &ndash; uDALES</title>
+
+    <!-- Bootstrap -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet"
+          integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"
+            integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
+    <!-- Font Awesome -->
+    <link href="../css/fontawesome.min.css" rel="stylesheet">
+    <link href="../css/brands.min.css" rel="stylesheet">
+    <link href="../css/regular.min.css" rel="stylesheet">
+    <link href="../css/solid.min.css" rel="stylesheet">
+    <link href="../css/v4-font-face.min.css" rel="stylesheet">
+    <link href="../css/v4-shims.min.css" rel="stylesheet">
+    <!-- MathJax -->
+    <script type="text/x-mathjax-config">
+      MathJax.Hub.Config({
+        TeX: { equationNumbers: { autoNumber: "AMS" } }
+      });
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/mathjax@2.7.9/MathJax.js?config=TeX-AMS-MML_HTMLorMML" async
+            integrity="sha256-DViIOMYdwlM/axqoGDPeUyf0urLoHMN4QACBKyB58Uw=" crossorigin="anonymous"></script>
+    <!-- Other scripts and stylesheets -->
+    <link href="../css/local.css" rel="stylesheet">
+    <link href="../css/pygments.css" rel="stylesheet">
+    <script src="../js/svg-pan-zoom.min.js"></script>
+  </head>
+
+  <body>
+
+    <!-- Fixed navbar -->
+    <div class="container-fluid mb-sm-4 mb-xl-2">
+      <nav class="navbar navbar-expand-lg navbar-dark bg-dark fixed-top">
+        <div class="container">
+          <a class="navbar-brand" href="../index.html">uDALES </a>
+          <button type="button" class="navbar-toggler" data-bs-toggle="collapse" data-bs-target="#navbar"
+                  aria-expanded="false" aria-controls="navbar" aria-label="Toggle navigation">
+                  <span class="navbar-toggler-icon">
+          </button>
+
+          <div id="navbar" class="navbar-collapse collapse">
+            <ul class="navbar-nav">
+                  <li class="nav-item">
+                    <a class="nav-link" href="../lists/files.html">Source Files</a>
+                  </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="../lists/modules.html">Modules</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="../lists/procedures.html">Procedures</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="../lists/absint.html">Abstract Interfaces</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="../lists/types.html">Derived Types</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="../lists/namelists.html">Namelists</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="../program/udales.html">Program</a>
+                </li>
+            </ul>
+              <div class="d-flex align-items-end flex-grow-1">
+                <form action="../search.html" role="search" class="ms-auto">
+                  <input type="text" class="form-control" aria-label="Search" placeholder="Search" name="q" id="tipue_search_input" autocomplete="off" required>
+                </form>
+              </div>
+          </div><!--/.nav-collapse -->
+        </div>
+      </nav>
+    </div>
+
+    <div class="container">
+  <div class="row">
+    <h1>modsurfdata
+      <small>Module</small>
+      
+    </h1>
+      <div class="container p-2 mb-4 bg-light border rounded-3">
+    <div class="row align-items-center justify-content-between" id="info-bar">
+      <div class="col">
+        <ul class="list-inline" style="margin-bottom:0px;display:inline">
+
+            <li class="list-inline-item" id="statements"><i class="fa fa-list-ol"></i>
+              <a data-bs-toggle="tooltip" data-bs-placement="bottom" data-bs-html="true"
+                 title=" 0.2% of total for modules and submodules.">38 statements</a>
+            </li>
+
+            <li class="list-inline-item" id="source-file">
+              <i class="fa fa-code"></i>
+              <a href="../src/modsurfdata.f90"> Source File</a>
+            </li>
+        </ul>
+      </div>
+      <div class="col">
+        <nav aria-label="breadcrumb">
+          <ol class="breadcrumb justify-content-end mb-0">
+                <li class="breadcrumb-item"><a href='../sourcefile/modsurfdata.f90.html'>modsurfdata.f90</a></li>
+            <li class="breadcrumb-item active" aria-current="page">modsurfdata</li>
+          </ol>
+        </nav>
+      </div>
+    </div>
+  </div>
+  <script>
+    // Enable Bootstrap tooltips
+    (function () {
+      const tooltipTriggerList = document.querySelectorAll('[data-bs-toggle="tooltip"]')
+      const tooltipList = [...tooltipTriggerList].map(tooltipTriggerEl => new bootstrap.Tooltip(tooltipTriggerEl))
+    })();
+  </script>
+
+  </div>
+
+  <div class="row">
+    <div class="col-md-3">
+        <div id="sidebar">
+      <h3>Contents</h3>
+  
+      <div class="card mb-4">
+      <a data-bs-toggle="collapse" href="#vars-0"
+         aria-expanded="false" aria-controls="vars-0">
+         <h4 class="card-header bg-primary text-white">Variables</h4>
+      </a>
+      <div id="vars-0" class="collapse">
+        <div class="list-group list-group-flush">
+            <a class="list-group-item" href="../module/modsurfdata.html#variable-tskin">tskin</a>
+            <a class="list-group-item" href="../module/modsurfdata.html#variable-qskin">qskin</a>
+            <a class="list-group-item" href="../module/modsurfdata.html#variable-ps">ps</a>
+            <a class="list-group-item" href="../module/modsurfdata.html#variable-lmostlocal">lmostlocal</a>
+            <a class="list-group-item" href="../module/modsurfdata.html#variable-obl">obl</a>
+            <a class="list-group-item" href="../module/modsurfdata.html#variable-oblav">oblav</a>
+            <a class="list-group-item" href="../module/modsurfdata.html#variable-cm">Cm</a>
+            <a class="list-group-item" href="../module/modsurfdata.html#variable-ustar">ustar</a>
+            <a class="list-group-item" href="../module/modsurfdata.html#variable-thlflux">thlflux</a>
+            <a class="list-group-item" href="../module/modsurfdata.html#variable-qtflux">qtflux</a>
+            <a class="list-group-item" href="../module/modsurfdata.html#variable-svflux">svflux</a>
+            <a class="list-group-item" href="../module/modsurfdata.html#variable-dudz">dudz</a>
+            <a class="list-group-item" href="../module/modsurfdata.html#variable-dvdz">dvdz</a>
+            <a class="list-group-item" href="../module/modsurfdata.html#variable-dqtdz">dqtdz</a>
+            <a class="list-group-item" href="../module/modsurfdata.html#variable-dthldz">dthldz</a>
+            <a class="list-group-item" href="../module/modsurfdata.html#variable-thls">thls</a>
+            <a class="list-group-item" href="../module/modsurfdata.html#variable-thl_top">thl_top</a>
+            <a class="list-group-item" href="../module/modsurfdata.html#variable-qts">qts</a>
+            <a class="list-group-item" href="../module/modsurfdata.html#variable-qt_top">qt_top</a>
+            <a class="list-group-item" href="../module/modsurfdata.html#variable-thvs">thvs</a>
+            <a class="list-group-item" href="../module/modsurfdata.html#variable-svs">svs</a>
+            <a class="list-group-item" href="../module/modsurfdata.html#variable-sv_top">sv_top</a>
+            <a class="list-group-item" href="../module/modsurfdata.html#variable-z0~8">z0</a>
+            <a class="list-group-item" href="../module/modsurfdata.html#variable-z0h~4">z0h</a>
+            <a class="list-group-item" href="../module/modsurfdata.html#variable-cmav">Cmav</a>
+            <a class="list-group-item" href="../module/modsurfdata.html#variable-csav">Csav</a>
+            <a class="list-group-item" href="../module/modsurfdata.html#variable-horvel">horvel</a>
+            <a class="list-group-item" href="../module/modsurfdata.html#variable-wtsurf">wtsurf</a>
+            <a class="list-group-item" href="../module/modsurfdata.html#variable-wttop">wttop</a>
+            <a class="list-group-item" href="../module/modsurfdata.html#variable-wqtop">wqtop</a>
+            <a class="list-group-item" href="../module/modsurfdata.html#variable-wqsurf">wqsurf</a>
+            <a class="list-group-item" href="../module/modsurfdata.html#variable-wsvsurf">wsvsurf</a>
+            <a class="list-group-item" href="../module/modsurfdata.html#variable-wsvtop">wsvtop</a>
+            <a class="list-group-item" href="../module/modsurfdata.html#variable-wsvsurfdum">wsvsurfdum</a>
+            <a class="list-group-item" href="../module/modsurfdata.html#variable-wsvtopdum">wsvtopdum</a>
+        </div>
+      </div>
+    </div>
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+
+
+  </div>
+
+    </div>
+
+    <div class="col-md-9" id='text'>
+      
+<br>      
+          <div class="card">
+      <h3 class="card-header card-title bg-light">Used by</h3>
+      <div class="card-body">
+        <ul class="list-group list-group-flush">
+            <li class="list-group-item">
+              <div class="depgraph"><?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
+ "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<!-- Generated by graphviz version 14.1.3 (0)
+ -->
+<!-- Title: module~~modsurfdata~~UsedByGraph Pages: 1 -->
+<svg id="modulemodsurfdataUsedByGraph" width="499pt" height="789pt"
+ viewBox="0.00 0.00 499.00 789.00" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<g id="module~~modsurfdata~~UsedByGraph" class="graph" transform="scale(1 1) rotate(0) translate(4 785.18)">
+<title>module~~modsurfdata~~UsedByGraph</title>
+<polygon fill="white" stroke="none" points="-4,4 -4,-785.18 494.83,-785.18 494.83,4 -4,4"/>
+<!-- module~modsurfdata -->
+<g id="module~~modsurfdata~~UsedByGraph_node1" class="node">
+<title>module~modsurfdata</title>
+<polygon fill="none" stroke="black" points="79.77,-402.27 0,-402.27 0,-378 79.77,-378 79.77,-402.27"/>
+<text xml:space="preserve" text-anchor="middle" x="39.88" y="-386.53" font-family="Helvetica,sans-Serif" font-size="10.50">modsurfdata</text>
+</g>
+<!-- module~modstartup -->
+<g id="module~~modsurfdata~~UsedByGraph_node2" class="node">
+<title>module~modstartup</title>
+<g id="a_module~~modsurfdata~~UsedByGraph_node2"><a xlink:href="../module/modstartup.html" xlink:title="modstartup">
+<polygon fill="#337ab7" stroke="#337ab7" points="388.19,-692.27 315.17,-692.27 315.17,-668 388.19,-668 388.19,-692.27"/>
+<text xml:space="preserve" text-anchor="middle" x="351.68" y="-676.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">modstartup</text>
+</a>
+</g>
+</g>
+<!-- module~modstartup&#45;&gt;module~modsurfdata -->
+<g id="module~~modsurfdata~~UsedByGraph_edge1" class="edge">
+<title>module~modstartup&#45;&gt;module~modsurfdata</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M315.05,-689.05C264.64,-699.39 172.33,-709.59 115.77,-663.13 76.68,-631.03 52.03,-474.03 43.88,-413.76"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="47.36,-413.4 42.59,-403.94 40.42,-414.32 47.36,-413.4"/>
+</g>
+<!-- module~readnamelists -->
+<g id="module~~modsurfdata~~UsedByGraph_node3" class="node">
+<title>module~readnamelists</title>
+<g id="a_module~~modsurfdata~~UsedByGraph_node3"><a xlink:href="../module/readnamelists.html" xlink:title="readnamelists">
+<polygon fill="#337ab7" stroke="#337ab7" points="236.41,-734.27 149.9,-734.27 149.9,-710 236.41,-710 236.41,-734.27"/>
+<text xml:space="preserve" text-anchor="middle" x="193.16" y="-718.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">readnamelists</text>
+</a>
+</g>
+</g>
+<!-- module~modstartup&#45;&gt;module~readnamelists -->
+<g id="module~~modsurfdata~~UsedByGraph_edge22" class="edge">
+<title>module~modstartup&#45;&gt;module~readnamelists</title>
+<path fill="none" stroke="#ff5000" stroke-dasharray="5,2" d="M314.77,-689.77C294.92,-695.1 269.88,-701.81 247.77,-707.75"/>
+<polygon fill="#ff5000" stroke="#ff5000" points="247.06,-704.31 238.31,-710.29 248.87,-711.08 247.06,-704.31"/>
+</g>
+<!-- module~readnamelists&#45;&gt;module~modsurfdata -->
+<g id="module~~modsurfdata~~UsedByGraph_edge2" class="edge">
+<title>module~readnamelists&#45;&gt;module~modsurfdata</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M149.79,-715.74C137.32,-711.93 124.66,-705.85 115.77,-696.13 77.34,-654.16 51.9,-478.18 43.73,-413.83"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="47.22,-413.52 42.51,-404.03 40.27,-414.38 47.22,-413.52"/>
+</g>
+<!-- proc~bottom -->
+<g id="module~~modsurfdata~~UsedByGraph_node4" class="node">
+<title>proc~bottom</title>
+<g id="a_module~~modsurfdata~~UsedByGraph_node4"><a xlink:href="../proc/bottom.html" xlink:title="bottom">
+<polygon fill="#d9534f" stroke="#d9534f" points="220.16,-654.27 166.16,-654.27 166.16,-630 220.16,-630 220.16,-654.27"/>
+<text xml:space="preserve" text-anchor="middle" x="193.16" y="-638.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">bottom</text>
+</a>
+</g>
+</g>
+<!-- proc~bottom&#45;&gt;module~modsurfdata -->
+<g id="module~~modsurfdata~~UsedByGraph_edge3" class="edge">
+<title>proc~bottom&#45;&gt;module~modsurfdata</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M165.72,-641.05C149.4,-639.03 129.09,-633.87 115.77,-621.13 56.45,-564.43 44.04,-460.41 41.5,-413.8"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="45.01,-413.87 41.09,-404.03 38.02,-414.17 45.01,-413.87"/>
+</g>
+<!-- proc~boundary -->
+<g id="module~~modsurfdata~~UsedByGraph_node5" class="node">
+<title>proc~boundary</title>
+<g id="a_module~~modsurfdata~~UsedByGraph_node5"><a xlink:href="../proc/boundary.html" xlink:title="boundary">
+<polygon fill="#d9534f" stroke="#d9534f" points="224.41,-612.27 161.9,-612.27 161.9,-588 224.41,-588 224.41,-612.27"/>
+<text xml:space="preserve" text-anchor="middle" x="193.16" y="-596.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">boundary</text>
+</a>
+</g>
+</g>
+<!-- proc~boundary&#45;&gt;module~modsurfdata -->
+<g id="module~~modsurfdata~~UsedByGraph_edge4" class="edge">
+<title>proc~boundary&#45;&gt;module~modsurfdata</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M161.55,-598.1C146.2,-595.63 128.26,-590.34 115.77,-579.13 66.34,-534.82 49.12,-453.59 43.46,-413.62"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="46.96,-413.39 42.22,-403.91 40.02,-414.27 46.96,-413.39"/>
+</g>
+<!-- proc~calc_halflev -->
+<g id="module~~modsurfdata~~UsedByGraph_node6" class="node">
+<title>proc~calc_halflev</title>
+<g id="a_module~~modsurfdata~~UsedByGraph_node6"><a xlink:href="../proc/calc_halflev.html" xlink:title="calc_halflev">
+<polygon fill="#d9534f" stroke="#d9534f" points="230.41,-570.27 155.9,-570.27 155.9,-546 230.41,-546 230.41,-570.27"/>
+<text xml:space="preserve" text-anchor="middle" x="193.16" y="-554.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">calc_halflev</text>
+</a>
+</g>
+</g>
+<!-- proc~calc_halflev&#45;&gt;module~modsurfdata -->
+<g id="module~~modsurfdata~~UsedByGraph_edge5" class="edge">
+<title>proc~calc_halflev&#45;&gt;module~modsurfdata</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M155.46,-554.36C141.82,-551.43 126.96,-546.26 115.77,-537.13 76.2,-504.88 55.43,-446.28 46.46,-413.66"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="49.86,-412.81 43.97,-404 43.08,-414.56 49.86,-412.81"/>
+</g>
+<!-- proc~checkinitvalues -->
+<g id="module~~modsurfdata~~UsedByGraph_node7" class="node">
+<title>proc~checkinitvalues</title>
+<g id="a_module~~modsurfdata~~UsedByGraph_node7"><a xlink:href="../proc/checkinitvalues.html" xlink:title="checkinitvalues">
+<polygon fill="#d9534f" stroke="#d9534f" points="240.16,-528.27 146.15,-528.27 146.15,-504 240.16,-504 240.16,-528.27"/>
+<text xml:space="preserve" text-anchor="middle" x="193.16" y="-512.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">checkinitvalues</text>
+</a>
+</g>
+</g>
+<!-- proc~checkinitvalues&#45;&gt;module~modsurfdata -->
+<g id="module~~modsurfdata~~UsedByGraph_edge6" class="edge">
+<title>proc~checkinitvalues&#45;&gt;module~modsurfdata</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M145.88,-508.82C135.36,-505.74 124.68,-501.36 115.77,-495.13 85.66,-474.1 63.39,-436.92 51.28,-412.91"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="54.46,-411.45 46.96,-403.98 48.16,-414.5 54.46,-411.45"/>
+</g>
+<!-- proc~closure -->
+<g id="module~~modsurfdata~~UsedByGraph_node8" class="node">
+<title>proc~closure</title>
+<g id="a_module~~modsurfdata~~UsedByGraph_node8"><a xlink:href="../proc/closure.html" xlink:title="closure">
+<polygon fill="#d9534f" stroke="#d9534f" points="220.16,-486.27 166.16,-486.27 166.16,-462 220.16,-462 220.16,-486.27"/>
+<text xml:space="preserve" text-anchor="middle" x="193.16" y="-470.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">closure</text>
+</a>
+</g>
+</g>
+<!-- proc~closure&#45;&gt;module~modsurfdata -->
+<g id="module~~modsurfdata~~UsedByGraph_edge7" class="edge">
+<title>proc~closure&#45;&gt;module~modsurfdata</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M166.01,-469.85C150.75,-466.66 131.48,-461.39 115.77,-453.13 94.85,-442.14 74.55,-424.49 60.37,-410.66"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="62.99,-408.33 53.46,-403.72 58.03,-413.27 62.99,-408.33"/>
+</g>
+<!-- proc~diagfld -->
+<g id="module~~modsurfdata~~UsedByGraph_node9" class="node">
+<title>proc~diagfld</title>
+<g id="a_module~~modsurfdata~~UsedByGraph_node9"><a xlink:href="../proc/diagfld.html" xlink:title="diagfld">
+<polygon fill="#d9534f" stroke="#d9534f" points="220.16,-444.27 166.16,-444.27 166.16,-420 220.16,-420 220.16,-444.27"/>
+<text xml:space="preserve" text-anchor="middle" x="193.16" y="-428.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">diagfld</text>
+</a>
+</g>
+</g>
+<!-- proc~diagfld&#45;&gt;module~modsurfdata -->
+<g id="module~~modsurfdata~~UsedByGraph_edge8" class="edge">
+<title>proc~diagfld&#45;&gt;module~modsurfdata</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M165.98,-424.98C151.23,-420.93 132.47,-415.77 115.77,-411.13 107.81,-408.92 99.38,-406.57 91.15,-404.27"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="92.16,-400.92 81.59,-401.59 90.27,-407.66 92.16,-400.92"/>
+</g>
+<!-- proc~dispthicknessmo -->
+<g id="module~~modsurfdata~~UsedByGraph_node10" class="node">
+<title>proc~dispthicknessmo</title>
+<g id="a_module~~modsurfdata~~UsedByGraph_node10"><a xlink:href="../proc/dispthicknessmo.html" xlink:title="dispthicknessmo">
+<polygon fill="#d9534f" stroke="#d9534f" points="243.16,-402.27 143.15,-402.27 143.15,-378 243.16,-378 243.16,-402.27"/>
+<text xml:space="preserve" text-anchor="middle" x="193.16" y="-386.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">dispthicknessmo</text>
+</a>
+</g>
+</g>
+<!-- proc~dispthicknessmo&#45;&gt;module~modsurfdata -->
+<g id="module~~modsurfdata~~UsedByGraph_edge9" class="edge">
+<title>proc~dispthicknessmo&#45;&gt;module~modsurfdata</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M143.04,-390.13C126.5,-390.13 108.02,-390.13 91.37,-390.13"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="91.7,-386.64 81.7,-390.14 91.7,-393.64 91.7,-386.64"/>
+</g>
+<!-- proc~enthalpythickness -->
+<g id="module~~modsurfdata~~UsedByGraph_node11" class="node">
+<title>proc~enthalpythickness</title>
+<g id="a_module~~modsurfdata~~UsedByGraph_node11"><a xlink:href="../proc/enthalpythickness.html" xlink:title="enthalpythickness">
+<polygon fill="#d9534f" stroke="#d9534f" points="246.91,-360.27 139.4,-360.27 139.4,-336 246.91,-336 246.91,-360.27"/>
+<text xml:space="preserve" text-anchor="middle" x="193.16" y="-344.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">enthalpythickness</text>
+</a>
+</g>
+</g>
+<!-- proc~enthalpythickness&#45;&gt;module~modsurfdata -->
+<g id="module~~modsurfdata~~UsedByGraph_edge10" class="edge">
+<title>proc~enthalpythickness&#45;&gt;module~modsurfdata</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M146.1,-360.76C136.1,-363.51 125.58,-366.41 115.77,-369.13 107.81,-371.35 99.38,-373.7 91.15,-376"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="90.27,-372.61 81.59,-378.68 92.16,-379.35 90.27,-372.61"/>
+</g>
+<!-- proc~fromztop -->
+<g id="module~~modsurfdata~~UsedByGraph_node12" class="node">
+<title>proc~fromztop</title>
+<g id="a_module~~modsurfdata~~UsedByGraph_node12"><a xlink:href="../proc/fromztop.html" xlink:title="fromztop">
+<polygon fill="#d9534f" stroke="#d9534f" points="222.54,-318.27 163.77,-318.27 163.77,-294 222.54,-294 222.54,-318.27"/>
+<text xml:space="preserve" text-anchor="middle" x="193.16" y="-302.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">fromztop</text>
+</a>
+</g>
+</g>
+<!-- proc~fromztop&#45;&gt;module~modsurfdata -->
+<g id="module~~modsurfdata~~UsedByGraph_edge11" class="edge">
+<title>proc~fromztop&#45;&gt;module~modsurfdata</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M163.49,-310.96C148.67,-314.19 130.62,-319.33 115.77,-327.13 94.85,-338.13 74.55,-355.78 60.37,-369.61"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="58.03,-367 53.46,-376.55 62.99,-371.94 58.03,-367"/>
+</g>
+<!-- proc~inletgen -->
+<g id="module~~modsurfdata~~UsedByGraph_node13" class="node">
+<title>proc~inletgen</title>
+<g id="a_module~~modsurfdata~~UsedByGraph_node13"><a xlink:href="../proc/inletgen.html" xlink:title="inletgen">
+<polygon fill="#d9534f" stroke="#d9534f" points="220.66,-276.27 165.65,-276.27 165.65,-252 220.66,-252 220.66,-276.27"/>
+<text xml:space="preserve" text-anchor="middle" x="193.16" y="-260.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">inletgen</text>
+</a>
+</g>
+</g>
+<!-- proc~inletgen&#45;&gt;module~modsurfdata -->
+<g id="module~~modsurfdata~~UsedByGraph_edge12" class="edge">
+<title>proc~inletgen&#45;&gt;module~modsurfdata</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M165.15,-267.01C149.6,-269.72 130.31,-274.97 115.77,-285.13 85.66,-306.17 63.39,-343.35 51.28,-367.36"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="48.16,-365.77 46.96,-376.29 54.46,-368.82 48.16,-365.77"/>
+</g>
+<!-- proc~readinitfiles -->
+<g id="module~~modsurfdata~~UsedByGraph_node14" class="node">
+<title>proc~readinitfiles</title>
+<g id="a_module~~modsurfdata~~UsedByGraph_node14"><a xlink:href="../proc/readinitfiles.html" xlink:title="readinitfiles">
+<polygon fill="#d9534f" stroke="#d9534f" points="388.56,-776.27 314.79,-776.27 314.79,-752 388.56,-752 388.56,-776.27"/>
+<text xml:space="preserve" text-anchor="middle" x="351.68" y="-760.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">readinitfiles</text>
+</a>
+</g>
+</g>
+<!-- proc~readinitfiles&#45;&gt;module~modsurfdata -->
+<g id="module~~modsurfdata~~UsedByGraph_edge13" class="edge">
+<title>proc~readinitfiles&#45;&gt;module~modsurfdata</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M314.59,-772.78C263.6,-782.65 170.61,-791.76 115.77,-743.13 66.13,-699.12 47.37,-486.34 42.37,-414.15"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="45.87,-413.99 41.72,-404.24 38.89,-414.45 45.87,-413.99"/>
+</g>
+<!-- proc~readinitfiles&#45;&gt;module~readnamelists -->
+<g id="module~~modsurfdata~~UsedByGraph_edge23" class="edge">
+<title>proc~readinitfiles&#45;&gt;module~readnamelists</title>
+<path fill="none" stroke="#ff5000" stroke-dasharray="5,2" d="M314.37,-754.39C294.52,-749.07 269.55,-742.37 247.52,-736.45"/>
+<polygon fill="#ff5000" stroke="#ff5000" points="248.67,-733.14 238.1,-733.93 246.85,-739.9 248.67,-733.14"/>
+</g>
+<!-- proc~readrestartfiles -->
+<g id="module~~modsurfdata~~UsedByGraph_node15" class="node">
+<title>proc~readrestartfiles</title>
+<g id="a_module~~modsurfdata~~UsedByGraph_node15"><a xlink:href="../proc/readrestartfiles.html" xlink:title="readrestartfiles">
+<polygon fill="#d9534f" stroke="#d9534f" points="239.04,-234.27 147.27,-234.27 147.27,-210 239.04,-210 239.04,-234.27"/>
+<text xml:space="preserve" text-anchor="middle" x="193.16" y="-218.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">readrestartfiles</text>
+</a>
+</g>
+</g>
+<!-- proc~readrestartfiles&#45;&gt;module~modsurfdata -->
+<g id="module~~modsurfdata~~UsedByGraph_edge14" class="edge">
+<title>proc~readrestartfiles&#45;&gt;module~modsurfdata</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M146.77,-228.06C135.76,-231.18 124.62,-235.92 115.77,-243.13 76.2,-275.39 55.43,-333.99 46.46,-366.61"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="43.08,-365.71 43.97,-376.27 49.86,-367.46 43.08,-365.71"/>
+</g>
+<!-- proc~reassure_fluxtop_boundary -->
+<g id="module~~modsurfdata~~UsedByGraph_node16" class="node">
+<title>proc~reassure_fluxtop_boundary</title>
+<g id="a_module~~modsurfdata~~UsedByGraph_node16"><a xlink:href="../proc/reassure_fluxtop_boundary.html" xlink:title="reassure_fluxtop_boundary">
+<polygon fill="#d9534f" stroke="#d9534f" points="270.54,-192.27 115.77,-192.27 115.77,-168 270.54,-168 270.54,-192.27"/>
+<text xml:space="preserve" text-anchor="middle" x="193.16" y="-176.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">reassure_fluxtop_boundary</text>
+</a>
+</g>
+</g>
+<!-- proc~reassure_fluxtop_boundary&#45;&gt;module~modsurfdata -->
+<g id="module~~modsurfdata~~UsedByGraph_edge15" class="edge">
+<title>proc~reassure_fluxtop_boundary&#45;&gt;module~modsurfdata</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M128.04,-192.68C123.62,-195.04 119.46,-197.83 115.77,-201.13 66.34,-245.45 49.12,-326.68 43.46,-366.65"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="40.02,-366 42.22,-376.36 46.96,-366.88 40.02,-366"/>
+</g>
+<!-- proc~sources -->
+<g id="module~~modsurfdata~~UsedByGraph_node17" class="node">
+<title>proc~sources</title>
+<g id="a_module~~modsurfdata~~UsedByGraph_node17"><a xlink:href="../proc/sources.html" xlink:title="sources">
+<polygon fill="#d9534f" stroke="#d9534f" points="220.16,-150.27 166.16,-150.27 166.16,-126 220.16,-126 220.16,-150.27"/>
+<text xml:space="preserve" text-anchor="middle" x="193.16" y="-134.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">sources</text>
+</a>
+</g>
+</g>
+<!-- proc~sources&#45;&gt;module~modsurfdata -->
+<g id="module~~modsurfdata~~UsedByGraph_edge16" class="edge">
+<title>proc~sources&#45;&gt;module~modsurfdata</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M165.72,-139.22C149.4,-141.24 129.09,-146.4 115.77,-159.13 56.45,-215.84 44.04,-319.86 41.5,-366.47"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="38.02,-366.1 41.09,-376.24 45.01,-366.4 38.02,-366.1"/>
+</g>
+<!-- proc~tkestatsdump -->
+<g id="module~~modsurfdata~~UsedByGraph_node18" class="node">
+<title>proc~tkestatsdump</title>
+<g id="a_module~~modsurfdata~~UsedByGraph_node18"><a xlink:href="../proc/tkestatsdump.html" xlink:title="tkestatsdump">
+<polygon fill="#d9534f" stroke="#d9534f" points="234.91,-108.27 151.4,-108.27 151.4,-84 234.91,-84 234.91,-108.27"/>
+<text xml:space="preserve" text-anchor="middle" x="193.16" y="-92.54" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">tkestatsdump</text>
+</a>
+</g>
+</g>
+<!-- proc~tkestatsdump&#45;&gt;module~modsurfdata -->
+<g id="module~~modsurfdata~~UsedByGraph_edge17" class="edge">
+<title>proc~tkestatsdump&#45;&gt;module~modsurfdata</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M151.27,-99.45C138.45,-102.4 125.2,-107.7 115.77,-117.14 46.44,-186.5 39.7,-313.6 40.09,-366.28"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="36.59,-366.28 40.27,-376.21 43.59,-366.15 36.59,-366.28"/>
+</g>
+<!-- proc~zinterpolatet -->
+<g id="module~~modsurfdata~~UsedByGraph_node19" class="node">
+<title>proc~zinterpolatet</title>
+<g id="a_module~~modsurfdata~~UsedByGraph_node19"><a xlink:href="../proc/zinterpolatet.html" xlink:title="zinterpolatet">
+<polygon fill="#d9534f" stroke="#d9534f" points="232.66,-66.27 153.65,-66.27 153.65,-42 232.66,-42 232.66,-66.27"/>
+<text xml:space="preserve" text-anchor="middle" x="193.16" y="-50.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">zinterpolatet</text>
+</a>
+</g>
+</g>
+<!-- proc~zinterpolatet&#45;&gt;module~modsurfdata -->
+<g id="module~~modsurfdata~~UsedByGraph_edge18" class="edge">
+<title>proc~zinterpolatet&#45;&gt;module~modsurfdata</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M153.46,-56.75C139.9,-59.56 125.61,-64.94 115.77,-75.14 74.96,-117.4 50.87,-300.65 43.4,-366.48"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="39.95,-365.85 42.33,-376.17 46.91,-366.62 39.95,-365.85"/>
+</g>
+<!-- proc~zinterpolatet1d -->
+<g id="module~~modsurfdata~~UsedByGraph_node20" class="node">
+<title>proc~zinterpolatet1d</title>
+<g id="a_module~~modsurfdata~~UsedByGraph_node20"><a xlink:href="../proc/zinterpolatet1d.html" xlink:title="zinterpolatet1d">
+<polygon fill="#d9534f" stroke="#d9534f" points="239.41,-24.27 146.9,-24.27 146.9,0 239.41,0 239.41,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="193.16" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">zinterpolatet1d</text>
+</a>
+</g>
+</g>
+<!-- proc~zinterpolatet1d&#45;&gt;module~modsurfdata -->
+<g id="module~~modsurfdata~~UsedByGraph_edge19" class="edge">
+<title>proc~zinterpolatet1d&#45;&gt;module~modsurfdata</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M146.56,-16.22C135.15,-19.32 123.87,-24.52 115.77,-33.13 69.83,-81.99 48.65,-294.34 42.7,-366.24"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="39.22,-365.85 41.92,-376.09 46.2,-366.4 39.22,-365.85"/>
+</g>
+<!-- proc~init_tests -->
+<g id="module~~modsurfdata~~UsedByGraph_node21" class="node">
+<title>proc~init_tests</title>
+<g id="a_module~~modsurfdata~~UsedByGraph_node21"><a xlink:href="../proc/init_tests.html" xlink:title="init_tests">
+<polygon fill="#d9534f" stroke="#d9534f" points="490.83,-713.27 432.81,-713.27 432.81,-689 490.83,-689 490.83,-713.27"/>
+<text xml:space="preserve" text-anchor="middle" x="461.82" y="-697.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">init_tests</text>
+</a>
+</g>
+</g>
+<!-- proc~init_tests&#45;&gt;module~modstartup -->
+<g id="module~~modsurfdata~~UsedByGraph_edge20" class="edge">
+<title>proc~init_tests&#45;&gt;module~modstartup</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M432.41,-695.62C422.36,-693.67 410.78,-691.42 399.61,-689.25"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="400.62,-685.88 390.14,-687.41 399.29,-692.75 400.62,-685.88"/>
+</g>
+<!-- proc~tests_roundtrip -->
+<g id="module~~modsurfdata~~UsedByGraph_node22" class="node">
+<title>proc~tests_roundtrip</title>
+<g id="a_module~~modsurfdata~~UsedByGraph_node22"><a xlink:href="../proc/tests_roundtrip.html" xlink:title="tests_roundtrip">
+<polygon fill="#d9534f" stroke="#d9534f" points="396.81,-734.27 306.54,-734.27 306.54,-710 396.81,-710 396.81,-734.27"/>
+<text xml:space="preserve" text-anchor="middle" x="351.68" y="-718.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">tests_roundtrip</text>
+</a>
+</g>
+</g>
+<!-- proc~tests_roundtrip&#45;&gt;module~readnamelists -->
+<g id="module~~modsurfdata~~UsedByGraph_edge24" class="edge">
+<title>proc~tests_roundtrip&#45;&gt;module~readnamelists</title>
+<path fill="none" stroke="#ff5000" stroke-dasharray="5,2" d="M306.24,-722.13C288.2,-722.13 267.2,-722.13 248.28,-722.13"/>
+<polygon fill="#ff5000" stroke="#ff5000" points="248.33,-718.64 238.33,-722.14 248.33,-725.64 248.33,-718.64"/>
+</g>
+<!-- program~udales -->
+<g id="module~~modsurfdata~~UsedByGraph_node23" class="node">
+<title>program~udales</title>
+<g id="a_module~~modsurfdata~~UsedByGraph_node23"><a xlink:href="../program/udales.html" xlink:title="uDALES">
+<polygon fill="#f0ad4e" stroke="#f0ad4e" points="488.82,-671.27 434.82,-671.27 434.82,-647 488.82,-647 488.82,-671.27"/>
+<text xml:space="preserve" text-anchor="middle" x="461.82" y="-655.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">uDALES</text>
+</a>
+</g>
+</g>
+<!-- program~udales&#45;&gt;module~modstartup -->
+<g id="module~~modsurfdata~~UsedByGraph_edge21" class="edge">
+<title>program~udales&#45;&gt;module~modstartup</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M434.36,-664.27C423.94,-666.3 411.64,-668.68 399.8,-670.98"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="399.29,-667.52 390.14,-672.86 400.62,-674.39 399.29,-667.52"/>
+</g>
+</g>
+</svg>
+</div>          <div>
+            <a type="button" class="graph-help" data-bs-toggle="modal" href="#UsedByGraph-help-text">Help</a>
+          </div>
+          <div class="modal fade" id="UsedByGraph-help-text" tabindex="-1" role="dialog">
+            <div class="modal-dialog modal-lg" role="document">
+              <div class="modal-content">
+                <div class="modal-header">
+                  <h4 class="modal-title" id="-graph-help-label">Graph Key</h4>
+                  <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+<p>Nodes of different colours represent the following: </p>
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
+ "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<!-- Generated by graphviz version 14.1.3 (0)
+ -->
+<!-- Title: Graph Key Pages: 1 -->
+<svg width="511pt" height="32pt"
+ viewBox="0.00 0.00 511.00 32.00" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<g id="graph0" class="graph" transform="scale(1 1) rotate(0) translate(4 28.27)">
+<title>Graph Key</title>
+<polygon fill="white" stroke="none" points="-4,4 -4,-28.27 506.88,-28.27 506.88,4 -4,4"/>
+<!-- Module -->
+<g id="node1" class="node">
+<title>Module</title>
+<polygon fill="#337ab7" stroke="#337ab7" points="54,-24.27 0,-24.27 0,0 54,0 54,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="27" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Module</text>
+</g>
+<!-- Submodule -->
+<g id="node2" class="node">
+<title>Submodule</title>
+<polygon fill="#5bc0de" stroke="#5bc0de" points="144.13,-24.27 71.87,-24.27 71.87,0 144.13,0 144.13,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="108" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Submodule</text>
+</g>
+<!-- Subroutine -->
+<g id="node3" class="node">
+<title>Subroutine</title>
+<polygon fill="#d9534f" stroke="#d9534f" points="231.63,-24.27 162.37,-24.27 162.37,0 231.63,0 231.63,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="197" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Subroutine</text>
+</g>
+<!-- Function -->
+<g id="node4" class="node">
+<title>Function</title>
+<polygon fill="#d94e8f" stroke="#d94e8f" points="306.26,-24.27 249.74,-24.27 249.74,0 306.26,0 306.26,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="278" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Function</text>
+</g>
+<!-- Program -->
+<g id="node5" class="node">
+<title>Program</title>
+<polygon fill="#f0ad4e" stroke="#f0ad4e" points="381.26,-24.27 324.74,-24.27 324.74,0 381.26,0 381.26,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="353" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Program</text>
+</g>
+<!-- This Page&#39;s Entity -->
+<g id="node6" class="node">
+<title>This Page&#39;s Entity</title>
+<polygon fill="none" stroke="black" points="502.88,-24.27 399.12,-24.27 399.12,0 502.88,0 502.88,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="451" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50">This Page&#39;s Entity</text>
+</g>
+</g>
+</svg>
+
+<p>Solid arrows point from a submodule to the (sub)module which it is
+descended from. Dashed arrows point from a module or program unit to 
+modules which it uses.
+</p>
+ Where possible, edges connecting nodes are
+given different colours to make them easier to distinguish in
+large graphs.</div>
+            </div>
+          </div>
+        </div>
+            </li>
+        </ul>
+      </div>
+    </div>
+
+      <br>
+
+
+        <section>
+          <h2>Variables</h2>
+            <table class="table table-striped varlist">
+    <thead>
+      <tr>
+        <th scope="col">Type</th>
+<th scope="col">Visibility</th>        <th scope="col">Attributes</th>
+        <th scope="col"></th>
+        <th scope="col">Name</th>
+<th></th><th scope="col">Initial</th>        <th scope="col"></th>
+    </thead>
+    <tbody>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-tskin"></span>
+              real,
+            </td>
+              <td>public,</td>
+            <td>
+              allocatable
+            </td>
+            <td>::</td>
+            <td><strong>tskin</strong>(:,:)</td>
+                <td></td>
+                <td></td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-qskin"></span>
+              real,
+            </td>
+              <td>public,</td>
+            <td>
+              allocatable
+            </td>
+            <td>::</td>
+            <td><strong>qskin</strong>(:,:)</td>
+                <td></td>
+                <td></td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-ps"></span>
+              real,
+            </td>
+              <td>public</td>
+            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>ps</strong></td>
+<td> =</td>
+                <td>101325.</td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-lmostlocal"></span>
+              logical,
+            </td>
+              <td>public</td>
+            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>lmostlocal</strong></td>
+<td> =</td>
+                <td>.false.</td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-obl"></span>
+              real,
+            </td>
+              <td>public,</td>
+            <td>
+              allocatable
+            </td>
+            <td>::</td>
+            <td><strong>obl</strong>(:,:)</td>
+                <td></td>
+                <td></td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-oblav"></span>
+              real,
+            </td>
+              <td>public</td>
+            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>oblav</strong></td>
+<td> =</td>
+                <td>0.001</td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-cm"></span>
+              real,
+            </td>
+              <td>public,</td>
+            <td>
+              allocatable
+            </td>
+            <td>::</td>
+            <td><strong>Cm</strong>(:,:)</td>
+                <td></td>
+                <td></td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-ustar"></span>
+              real,
+            </td>
+              <td>public,</td>
+            <td>
+              allocatable
+            </td>
+            <td>::</td>
+            <td><strong>ustar</strong>(:,:)</td>
+                <td></td>
+                <td></td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-thlflux"></span>
+              real,
+            </td>
+              <td>public,</td>
+            <td>
+              allocatable
+            </td>
+            <td>::</td>
+            <td><strong>thlflux</strong>(:,:)</td>
+                <td></td>
+                <td></td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-qtflux"></span>
+              real,
+            </td>
+              <td>public,</td>
+            <td>
+              allocatable
+            </td>
+            <td>::</td>
+            <td><strong>qtflux</strong>(:,:)</td>
+                <td></td>
+                <td></td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-svflux"></span>
+              real,
+            </td>
+              <td>public,</td>
+            <td>
+              allocatable
+            </td>
+            <td>::</td>
+            <td><strong>svflux</strong>(:,:,:)</td>
+                <td></td>
+                <td></td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-dudz"></span>
+              real,
+            </td>
+              <td>public,</td>
+            <td>
+              allocatable
+            </td>
+            <td>::</td>
+            <td><strong>dudz</strong>(:,:)</td>
+                <td></td>
+                <td></td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-dvdz"></span>
+              real,
+            </td>
+              <td>public,</td>
+            <td>
+              allocatable
+            </td>
+            <td>::</td>
+            <td><strong>dvdz</strong>(:,:)</td>
+                <td></td>
+                <td></td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-dqtdz"></span>
+              real,
+            </td>
+              <td>public,</td>
+            <td>
+              allocatable
+            </td>
+            <td>::</td>
+            <td><strong>dqtdz</strong>(:,:)</td>
+                <td></td>
+                <td></td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-dthldz"></span>
+              real,
+            </td>
+              <td>public,</td>
+            <td>
+              allocatable
+            </td>
+            <td>::</td>
+            <td><strong>dthldz</strong>(:,:)</td>
+                <td></td>
+                <td></td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-thls"></span>
+              real,
+            </td>
+              <td>public</td>
+            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>thls</strong></td>
+<td> =</td>
+                <td>-1.</td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-thl_top"></span>
+              real,
+            </td>
+              <td>public</td>
+            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>thl_top</strong></td>
+<td> =</td>
+                <td>-1.</td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-qts"></span>
+              real,
+            </td>
+              <td>public</td>
+            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>qts</strong></td>
+<td> =</td>
+                <td>-1.</td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-qt_top"></span>
+              real,
+            </td>
+              <td>public</td>
+            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>qt_top</strong></td>
+<td> =</td>
+                <td>-1.</td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-thvs"></span>
+              real,
+            </td>
+              <td>public</td>
+            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>thvs</strong></td>
+<td> =</td>
+                <td>-1.</td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-svs"></span>
+              real,
+            </td>
+              <td>public,</td>
+            <td>
+              allocatable
+            </td>
+            <td>::</td>
+            <td><strong>svs</strong>(:)</td>
+                <td></td>
+                <td></td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-sv_top"></span>
+              real,
+            </td>
+              <td>public,</td>
+            <td>
+              allocatable
+            </td>
+            <td>::</td>
+            <td><strong>sv_top</strong>(:)</td>
+                <td></td>
+                <td></td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-z0~8"></span>
+              real,
+            </td>
+              <td>public</td>
+            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>z0</strong></td>
+<td> =</td>
+                <td>-1.</td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-z0h~4"></span>
+              real,
+            </td>
+              <td>public</td>
+            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>z0h</strong></td>
+<td> =</td>
+                <td>-1.</td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-cmav"></span>
+              real,
+            </td>
+              <td>public</td>
+            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>Cmav</strong></td>
+                <td></td>
+                <td></td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-csav"></span>
+              real,
+            </td>
+              <td>public</td>
+            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>Csav</strong></td>
+                <td></td>
+                <td></td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-horvel"></span>
+              real,
+            </td>
+              <td>public</td>
+            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>horvel</strong></td>
+                <td></td>
+                <td></td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-wtsurf"></span>
+              real,
+            </td>
+              <td>public</td>
+            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>wtsurf</strong></td>
+<td> =</td>
+                <td>-1.</td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-wttop"></span>
+              real,
+            </td>
+              <td>public</td>
+            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>wttop</strong></td>
+<td> =</td>
+                <td>0.</td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-wqtop"></span>
+              real,
+            </td>
+              <td>public</td>
+            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>wqtop</strong></td>
+<td> =</td>
+                <td>0.</td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-wqsurf"></span>
+              real,
+            </td>
+              <td>public</td>
+            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>wqsurf</strong></td>
+<td> =</td>
+                <td>-1.</td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-wsvsurf"></span>
+              real,
+            </td>
+              <td>public,</td>
+            <td>
+              allocatable
+            </td>
+            <td>::</td>
+            <td><strong>wsvsurf</strong>(:)</td>
+                <td></td>
+                <td></td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-wsvtop"></span>
+              real,
+            </td>
+              <td>public,</td>
+            <td>
+              allocatable
+            </td>
+            <td>::</td>
+            <td><strong>wsvtop</strong>(:)</td>
+                <td></td>
+                <td></td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-wsvsurfdum"></span>
+              real,
+            </td>
+              <td>public</td>
+            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>wsvsurfdum</strong>(1:99)</td>
+<td> =</td>
+                <td>0.</td>
+            <td>
+                
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-wsvtopdum"></span>
+              real,
+            </td>
+              <td>public</td>
+            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>wsvtopdum</strong>(1:99)</td>
+<td> =</td>
+                <td>0.</td>
+            <td>
+                
+            </td>
+        </tr>
+    </tbody>
+  </table>
+
+        </section>
+        <br>
+
+
+
+
+
+
+
+
+
+    </div>
+  </div>
+
+      <hr>
+    </div> <!-- /container -->
+    <footer>
+      <div class="container">
+        <div class="row justify-content-between">
+          <div class="col">
+            <p>
+              uDALES
+ was developed by The uDALES Team<br>              &copy; 2026 
+</p>
+          </div>
+          <div class="col">
+            <p class="text-end">
+              Documentation generated by
+              <a href="https://github.com/Fortran-FOSS-Programmers/ford">FORD</a>
+ on 2026-11-27 14:34 +0000             </p>
+          </div>
+        </div>
+        <br>
+      </div> <!-- /container -->
+    </footer>
+  </body>
+</html>

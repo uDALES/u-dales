@@ -1,0 +1,1927 @@
+<!-- -*- mode: jinja2 -*- -->
+
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+      <meta name="description" content="API documentation of the Fortran source code of uDALES, the open-source multi-physics large-eddy simulation model for urban environments.">
+    <meta name="author" content="The uDALES Team" >
+    <link rel="icon" href="../favicon.png">
+
+    <title>tests_sgs_statistics &ndash; uDALES</title>
+
+    <!-- Bootstrap -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet"
+          integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"
+            integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
+    <!-- Font Awesome -->
+    <link href="../css/fontawesome.min.css" rel="stylesheet">
+    <link href="../css/brands.min.css" rel="stylesheet">
+    <link href="../css/regular.min.css" rel="stylesheet">
+    <link href="../css/solid.min.css" rel="stylesheet">
+    <link href="../css/v4-font-face.min.css" rel="stylesheet">
+    <link href="../css/v4-shims.min.css" rel="stylesheet">
+    <!-- MathJax -->
+    <script type="text/x-mathjax-config">
+      MathJax.Hub.Config({
+        TeX: { equationNumbers: { autoNumber: "AMS" } }
+      });
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/mathjax@2.7.9/MathJax.js?config=TeX-AMS-MML_HTMLorMML" async
+            integrity="sha256-DViIOMYdwlM/axqoGDPeUyf0urLoHMN4QACBKyB58Uw=" crossorigin="anonymous"></script>
+    <!-- Other scripts and stylesheets -->
+    <link href="../css/local.css" rel="stylesheet">
+    <link href="../css/pygments.css" rel="stylesheet">
+    <script src="../js/svg-pan-zoom.min.js"></script>
+  </head>
+
+  <body>
+
+    <!-- Fixed navbar -->
+    <div class="container-fluid mb-sm-4 mb-xl-2">
+      <nav class="navbar navbar-expand-lg navbar-dark bg-dark fixed-top">
+        <div class="container">
+          <a class="navbar-brand" href="../index.html">uDALES </a>
+          <button type="button" class="navbar-toggler" data-bs-toggle="collapse" data-bs-target="#navbar"
+                  aria-expanded="false" aria-controls="navbar" aria-label="Toggle navigation">
+                  <span class="navbar-toggler-icon">
+          </button>
+
+          <div id="navbar" class="navbar-collapse collapse">
+            <ul class="navbar-nav">
+                  <li class="nav-item">
+                    <a class="nav-link" href="../lists/files.html">Source Files</a>
+                  </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="../lists/modules.html">Modules</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="../lists/procedures.html">Procedures</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="../lists/absint.html">Abstract Interfaces</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="../lists/types.html">Derived Types</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="../lists/namelists.html">Namelists</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="../program/udales.html">Program</a>
+                </li>
+            </ul>
+              <div class="d-flex align-items-end flex-grow-1">
+                <form action="../search.html" role="search" class="ms-auto">
+                  <input type="text" class="form-control" aria-label="Search" placeholder="Search" name="q" id="tipue_search_input" autocomplete="off" required>
+                </form>
+              </div>
+          </div><!--/.nav-collapse -->
+        </div>
+      </nav>
+    </div>
+
+    <div class="container">
+  <div class="row">
+    <h1>tests_sgs_statistics
+      <small>Function</small>
+      
+    </h1>
+      <div class="container p-2 mb-4 bg-light border rounded-3">
+    <div class="row align-items-center justify-content-between" id="info-bar">
+      <div class="col">
+        <ul class="list-inline" style="margin-bottom:0px;display:inline">
+
+            <li class="list-inline-item" id="statements"><i class="fa fa-list-ol"></i>
+              <a data-bs-toggle="tooltip" data-bs-placement="bottom" data-bs-html="true"
+                 title=" 1.0% of total for procedures.">176 statements</a>
+            </li>
+
+            <li class="list-inline-item" id="source-file">
+              <i class="fa fa-code"></i>
+              <a href="../src/tests.f90"> Source File</a>
+            </li>
+        </ul>
+      </div>
+      <div class="col">
+        <nav aria-label="breadcrumb">
+          <ol class="breadcrumb justify-content-end mb-0">
+                <li class="breadcrumb-item"><a href='../sourcefile/tests.f90.html'>tests.f90</a></li>
+                <li class="breadcrumb-item"><a href='../module/tests.html'>tests</a></li>
+            <li class="breadcrumb-item active" aria-current="page">tests_sgs_statistics</li>
+          </ol>
+        </nav>
+      </div>
+    </div>
+  </div>
+  <script>
+    // Enable Bootstrap tooltips
+    (function () {
+      const tooltipTriggerList = document.querySelectorAll('[data-bs-toggle="tooltip"]')
+      const tooltipList = [...tooltipTriggerList].map(tooltipTriggerEl => new bootstrap.Tooltip(tooltipTriggerEl))
+    })();
+  </script>
+
+  </div>
+  
+  <div class="row">
+    <div class="col-md-3 hidden-xs hidden-sm visible-md visible-lg">
+      <div id="sidebar">
+      <h3>Contents</h3>
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+    <div class="card card-primary">
+      <div class="card-header text-left"><h3 class="card-title">Source Code</h3></div>
+      <div class="list-group">
+        <a class="list-group-item" href="../proc/tests_sgs_statistics.html#src">tests_sgs_statistics</a>
+      </div>
+    </div>
+
+
+  </div>
+
+    </div>
+    
+    <div class="col-md-9" id='text'>
+    <h2>public  function tests_sgs_statistics()  
+</h2>
+        <div class="card mb-4">
+      <h3 class="card-header card-title bg-light">Uses</h3>
+      <div class="card-body">
+        <ul class="list-group list-group-flush">
+            <li class="list-group-item">
+              <ul class="list-inline">
+                  <li class="list-inline-item"><a href='../module/modboundary.html'>modboundary</a></li>
+                  <li class="list-inline-item"><a href='../module/modglobal.html'>modglobal</a></li>
+                  <li class="list-inline-item"><a href='../module/modfields.html'>modfields</a></li>
+                  <li class="list-inline-item"><a href='../module/initfac.html'>initfac</a></li>
+                  <li class="list-inline-item"><a href='../module/modsubgrid.html'>modsubgrid</a></li>
+                  <li class="list-inline-item"><a href='../module/stats.html'>stats</a></li>
+                  <li class="list-inline-item">decomp_2d</li>
+                  <li class="list-inline-item"><a href='../module/modibm.html'>modibm</a></li>
+              </ul>
+            </li>
+            <li class="list-group-item">
+              <div class="depgraph"><?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
+ "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<!-- Generated by graphviz version 14.1.3 (0)
+ -->
+<!-- Title: proc~~tests_sgs_statistics~~UsesGraph Pages: 1 -->
+<svg id="proctests_sgs_statisticsUsesGraph" width="627pt" height="510pt"
+ viewBox="0.00 0.00 627.00 510.00" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<g id="proc~~tests_sgs_statistics~~UsesGraph" class="graph" transform="scale(1 1) rotate(0) translate(4 506.27)">
+<title>proc~~tests_sgs_statistics~~UsesGraph</title>
+<polygon fill="white" stroke="none" points="-4,4 -4,-506.27 623.08,-506.27 623.08,4 -4,4"/>
+<!-- proc~tests_sgs_statistics -->
+<g id="proc~~tests_sgs_statistics~~UsesGraph_node1" class="node">
+<title>proc~tests_sgs_statistics</title>
+<polygon fill="none" stroke="black" points="619.08,-232.27 509.31,-232.27 509.31,-208 619.08,-208 619.08,-232.27"/>
+<text xml:space="preserve" text-anchor="middle" x="564.19" y="-216.53" font-family="Helvetica,sans-Serif" font-size="10.50">tests_sgs_statistics</text>
+</g>
+<!-- decomp_2d -->
+<g id="proc~~tests_sgs_statistics~~UsesGraph_node2" class="node">
+<title>decomp_2d</title>
+<polygon fill="#337ab7" stroke="#337ab7" points="176.52,-424.27 102.75,-424.27 102.75,-400 176.52,-400 176.52,-424.27"/>
+<text xml:space="preserve" text-anchor="middle" x="139.63" y="-408.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">decomp_2d</text>
+</g>
+<!-- proc~tests_sgs_statistics&#45;&gt;decomp_2d -->
+<g id="proc~~tests_sgs_statistics~~UsesGraph_edge1" class="edge">
+<title>proc~tests_sgs_statistics&#45;&gt;decomp_2d</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M429.05,-450.13C344.26,-480.89 237.4,-450.24 180.54,-428.89"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="181.85,-425.65 171.27,-425.31 179.33,-432.18 181.85,-425.65"/>
+</g>
+<!-- module~initfac -->
+<g id="proc~~tests_sgs_statistics~~UsesGraph_node3" class="node">
+<title>module~initfac</title>
+<g id="a_proc~~tests_sgs_statistics~~UsesGraph_node3"><a xlink:href="../module/initfac.html" xlink:title="initfac">
+<polygon fill="#337ab7" stroke="#337ab7" points="457.05,-142.27 403.05,-142.27 403.05,-118 457.05,-118 457.05,-142.27"/>
+<text xml:space="preserve" text-anchor="middle" x="430.05" y="-126.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">initfac</text>
+</a>
+</g>
+</g>
+<!-- proc~tests_sgs_statistics&#45;&gt;module~initfac -->
+<g id="proc~~tests_sgs_statistics~~UsesGraph_edge2" class="edge">
+<title>proc~tests_sgs_statistics&#45;&gt;module~initfac</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M544.82,-207.62C522.43,-192.37 484.4,-166.47 458.53,-148.85"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="460.75,-146.13 450.52,-143.39 456.81,-151.92 460.75,-146.13"/>
+</g>
+<!-- module~modboundary -->
+<g id="proc~~tests_sgs_statistics~~UsesGraph_node4" class="node">
+<title>module~modboundary</title>
+<g id="a_proc~~tests_sgs_statistics~~UsesGraph_node4"><a xlink:href="../module/modboundary.html" xlink:title="modboundary">
+<polygon fill="#337ab7" stroke="#337ab7" points="473.31,-502.27 386.79,-502.27 386.79,-478 473.31,-478 473.31,-502.27"/>
+<text xml:space="preserve" text-anchor="middle" x="430.05" y="-486.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">modboundary</text>
+</a>
+</g>
+</g>
+<!-- proc~tests_sgs_statistics&#45;&gt;module~modboundary -->
+<g id="proc~~tests_sgs_statistics~~UsesGraph_edge3" class="edge">
+<title>proc~tests_sgs_statistics&#45;&gt;module~modboundary</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M561.52,-232.72C555.79,-271.35 533.94,-390.09 473.31,-464.13 471.26,-466.63 468.91,-468.96 466.38,-471.11"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="464.55,-468.11 458.54,-476.83 468.68,-473.76 464.55,-468.11"/>
+</g>
+<!-- module~modfields -->
+<g id="proc~~tests_sgs_statistics~~UsesGraph_node5" class="node">
+<title>module~modfields</title>
+<g id="a_proc~~tests_sgs_statistics~~UsesGraph_node5"><a xlink:href="../module/modfields.html" xlink:title="modfields">
+<polygon fill="#337ab7" stroke="#337ab7" points="320.04,-424.27 256.02,-424.27 256.02,-400 320.04,-400 320.04,-424.27"/>
+<text xml:space="preserve" text-anchor="middle" x="288.03" y="-408.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">modfields</text>
+</a>
+</g>
+</g>
+<!-- proc~tests_sgs_statistics&#45;&gt;module~modfields -->
+<g id="proc~~tests_sgs_statistics~~UsesGraph_edge4" class="edge">
+<title>proc~tests_sgs_statistics&#45;&gt;module~modfields</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M429.05,-450.13C410.94,-456.7 364.49,-441.86 330.03,-428.84"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="331.31,-425.59 320.72,-425.26 328.8,-432.12 331.31,-425.59"/>
+</g>
+<!-- module~modglobal -->
+<g id="proc~~tests_sgs_statistics~~UsesGraph_node6" class="node">
+<title>module~modglobal</title>
+<g id="a_proc~~tests_sgs_statistics~~UsesGraph_node6"><a xlink:href="../module/modglobal.html" xlink:title="modglobal">
+<polygon fill="#337ab7" stroke="#337ab7" points="322.29,-142.27 253.77,-142.27 253.77,-118 322.29,-118 322.29,-142.27"/>
+<text xml:space="preserve" text-anchor="middle" x="288.03" y="-126.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">modglobal</text>
+</a>
+</g>
+</g>
+<!-- proc~tests_sgs_statistics&#45;&gt;module~modglobal -->
+<g id="proc~~tests_sgs_statistics~~UsesGraph_edge5" class="edge">
+<title>proc~tests_sgs_statistics&#45;&gt;module~modglobal</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M524.78,-207.53C474.43,-191 386.28,-162.06 333.22,-144.64"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="334.48,-141.37 323.89,-141.58 332.3,-148.02 334.48,-141.37"/>
+</g>
+<!-- module~modibm -->
+<g id="proc~~tests_sgs_statistics~~UsesGraph_node7" class="node">
+<title>module~modibm</title>
+<g id="a_proc~~tests_sgs_statistics~~UsesGraph_node7"><a xlink:href="../module/modibm.html" xlink:title="modibm">
+<polygon fill="#337ab7" stroke="#337ab7" points="457.93,-64.27 402.16,-64.27 402.16,-40 457.93,-40 457.93,-64.27"/>
+<text xml:space="preserve" text-anchor="middle" x="430.05" y="-48.54" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">modibm</text>
+</a>
+</g>
+</g>
+<!-- proc~tests_sgs_statistics&#45;&gt;module~modibm -->
+<g id="proc~~tests_sgs_statistics~~UsesGraph_edge6" class="edge">
+<title>proc~tests_sgs_statistics&#45;&gt;module~modibm</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M553.26,-207.51C530.77,-178.91 475.73,-108.93 447.84,-73.47"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="450.61,-71.34 441.67,-65.64 445.11,-75.67 450.61,-71.34"/>
+</g>
+<!-- module~modsubgrid -->
+<g id="proc~~tests_sgs_statistics~~UsesGraph_node8" class="node">
+<title>module~modsubgrid</title>
+<g id="a_proc~~tests_sgs_statistics~~UsesGraph_node8"><a xlink:href="../module/modsubgrid.html" xlink:title="modsubgrid">
+<polygon fill="#337ab7" stroke="#337ab7" points="325.66,-344.27 250.39,-344.27 250.39,-320 325.66,-320 325.66,-344.27"/>
+<text xml:space="preserve" text-anchor="middle" x="288.03" y="-328.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">modsubgrid</text>
+</a>
+</g>
+</g>
+<!-- proc~tests_sgs_statistics&#45;&gt;module~modsubgrid -->
+<g id="proc~~tests_sgs_statistics~~UsesGraph_edge7" class="edge">
+<title>proc~tests_sgs_statistics&#45;&gt;module~modsubgrid</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M561.37,-232.74C554.35,-275.79 524.56,-416.22 431.05,-450.13"/>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M429.05,-450.13C421.96,-452.71 348.43,-386.61 310.86,-352.25"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="313.43,-349.85 303.69,-345.67 308.7,-355.01 313.43,-349.85"/>
+</g>
+<!-- module~stats -->
+<g id="proc~~tests_sgs_statistics~~UsesGraph_node9" class="node">
+<title>module~stats</title>
+<g id="a_proc~~tests_sgs_statistics~~UsesGraph_node9"><a xlink:href="../module/stats.html" xlink:title="stats">
+<polygon fill="#337ab7" stroke="#337ab7" points="457.05,-262.27 403.05,-262.27 403.05,-238 457.05,-238 457.05,-262.27"/>
+<text xml:space="preserve" text-anchor="middle" x="430.05" y="-246.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">stats</text>
+</a>
+</g>
+</g>
+<!-- proc~tests_sgs_statistics&#45;&gt;module~stats -->
+<g id="proc~~tests_sgs_statistics~~UsesGraph_edge8" class="edge">
+<title>proc~tests_sgs_statistics&#45;&gt;module~stats</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M509.07,-232.42C495.42,-235.52 481.08,-238.78 468.46,-241.64"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="467.88,-238.18 458.91,-243.81 469.43,-245.01 467.88,-238.18"/>
+</g>
+<!-- module~initfac&#45;&gt;module~modglobal -->
+<g id="proc~~tests_sgs_statistics~~UsesGraph_edge9" class="edge">
+<title>module~initfac&#45;&gt;module~modglobal</title>
+<path fill="none" stroke="#ffbf00" stroke-dasharray="5,2" d="M402.71,-130.13C383.42,-130.13 356.76,-130.13 334.1,-130.13"/>
+<polygon fill="#ffbf00" stroke="#ffbf00" points="334.2,-126.64 324.2,-130.14 334.2,-133.64 334.2,-126.64"/>
+</g>
+<!-- module~modmpi -->
+<g id="proc~~tests_sgs_statistics~~UsesGraph_node11" class="node">
+<title>module~modmpi</title>
+<g id="a_proc~~tests_sgs_statistics~~UsesGraph_node11"><a xlink:href="../module/modmpi.html" xlink:title="modmpi">
+<polygon fill="#337ab7" stroke="#337ab7" points="167.52,-180.27 111.75,-180.27 111.75,-156 167.52,-156 167.52,-180.27"/>
+<text xml:space="preserve" text-anchor="middle" x="139.63" y="-164.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">modmpi</text>
+</a>
+</g>
+</g>
+<!-- module~initfac&#45;&gt;module~modmpi -->
+<g id="proc~~tests_sgs_statistics~~UsesGraph_edge10" class="edge">
+<title>module~initfac&#45;&gt;module~modmpi</title>
+<path fill="none" stroke="#ffbf00" stroke-dasharray="5,2" d="M287.03,-90.14C258.38,-92.09 249.67,-93.99 225.27,-109.14 205.5,-121.4 208.34,-133.81 189.27,-147.13 185.83,-149.54 182.06,-151.76 178.2,-153.78"/>
+<polygon fill="#ffbf00" stroke="#ffbf00" points="176.82,-150.56 169.28,-158 179.82,-156.88 176.82,-150.56"/>
+</g>
+<!-- mpi -->
+<g id="proc~~tests_sgs_statistics~~UsesGraph_node16" class="node">
+<title>mpi</title>
+<g id="a_proc~~tests_sgs_statistics~~UsesGraph_node16"><a xlink:href="http://www.mpi-forum.org/docs/mpi-3.1/mpi31-report/node410.htm" xlink:title="mpi">
+<polygon fill="#337ab7" stroke="#337ab7" points="54,-221.27 0,-221.27 0,-197 54,-197 54,-221.27"/>
+<text xml:space="preserve" text-anchor="middle" x="27" y="-205.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">mpi</text>
+</a>
+</g>
+</g>
+<!-- module~initfac&#45;&gt;mpi -->
+<g id="proc~~tests_sgs_statistics~~UsesGraph_edge11" class="edge">
+<title>module~initfac&#45;&gt;mpi</title>
+<path fill="none" stroke="#ffbf00" stroke-dasharray="5,2" d="M404.83,-117.72C377.34,-104.94 330.9,-87.27 289.03,-90.14"/>
+<path fill="none" stroke="#ffbf00" stroke-dasharray="5,2" d="M287.03,-90.14C222.09,-94.57 198.81,-56.94 140.63,-86.14"/>
+</g>
+<!-- netcdf -->
+<g id="proc~~tests_sgs_statistics~~UsesGraph_node17" class="node">
+<title>netcdf</title>
+<polygon fill="#337ab7" stroke="#337ab7" points="166.63,-222.27 112.63,-222.27 112.63,-198 166.63,-198 166.63,-222.27"/>
+<text xml:space="preserve" text-anchor="middle" x="139.63" y="-206.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">netcdf</text>
+</g>
+<!-- module~initfac&#45;&gt;netcdf -->
+<g id="proc~~tests_sgs_statistics~~UsesGraph_edge12" class="edge">
+<title>module~initfac&#45;&gt;netcdf</title>
+<path fill="none" stroke="#ffbf00" stroke-dasharray="5,2" d="M287.03,-90.14C258.38,-92.09 246.8,-90.13 225.27,-109.14 196.04,-134.94 217.05,-161.78 189.27,-189.13 185.81,-192.55 181.7,-195.45 177.36,-197.9"/>
+<polygon fill="#ffbf00" stroke="#ffbf00" points="175.9,-194.72 168.38,-202.19 178.91,-201.03 175.9,-194.72"/>
+</g>
+<!-- module~modboundary&#45;&gt;mpi -->
+<g id="proc~~tests_sgs_statistics~~UsesGraph_edge13" class="edge">
+<title>module~modboundary&#45;&gt;mpi</title>
+<path fill="none" stroke="#7fff00" stroke-dasharray="5,2" d="M386.41,-496.87C314.73,-505.56 170.07,-511.33 90,-433.13 34.19,-378.63 27.31,-278.7 27.29,-233.04"/>
+<polygon fill="#7fff00" stroke="#7fff00" points="30.79,-233.24 27.42,-223.2 23.79,-233.15 30.79,-233.24"/>
+</g>
+<!-- module~modfields&#45;&gt;decomp_2d -->
+<g id="proc~~tests_sgs_statistics~~UsesGraph_edge14" class="edge">
+<title>module~modfields&#45;&gt;decomp_2d</title>
+<path fill="none" stroke="#00ff3f" stroke-dasharray="5,2" d="M255.62,-412.13C236.04,-412.13 210.45,-412.13 188.39,-412.13"/>
+<polygon fill="#00ff3f" stroke="#00ff3f" points="188.4,-408.64 178.4,-412.14 188.4,-415.64 188.4,-408.64"/>
+</g>
+<!-- module~modibmdata -->
+<g id="proc~~tests_sgs_statistics~~UsesGraph_node10" class="node">
+<title>module~modibmdata</title>
+<g id="a_proc~~tests_sgs_statistics~~UsesGraph_node10"><a xlink:href="../module/modibmdata.html" xlink:title="modibmdata">
+<polygon fill="#337ab7" stroke="#337ab7" points="327.91,-24.27 248.14,-24.27 248.14,0 327.91,0 327.91,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="288.03" y="-8.54" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">modibmdata</text>
+</a>
+</g>
+</g>
+<!-- module~modibm&#45;&gt;module~modibmdata -->
+<g id="proc~~tests_sgs_statistics~~UsesGraph_edge15" class="edge">
+<title>module~modibm&#45;&gt;module~modibmdata</title>
+<path fill="none" stroke="#003fff" stroke-dasharray="5,2" d="M401.72,-44.33C383.98,-39.26 360.32,-32.5 339.26,-26.49"/>
+<polygon fill="#003fff" stroke="#003fff" points="340.25,-23.13 329.67,-23.74 338.32,-29.86 340.25,-23.13"/>
+</g>
+<!-- module~modibm&#45;&gt;mpi -->
+<g id="proc~~tests_sgs_statistics~~UsesGraph_edge16" class="edge">
+<title>module~modibm&#45;&gt;mpi</title>
+<path fill="none" stroke="#003fff" stroke-dasharray="5,2" d="M401.88,-49.43C348.61,-45.36 228.06,-42.27 140.63,-86.14"/>
+<path fill="none" stroke="#003fff" stroke-dasharray="5,2" d="M138.63,-86.14C117.89,-96.54 107.71,-90.13 90,-105.14 64.07,-127.1 46.16,-162.81 36.49,-186.13"/>
+<polygon fill="#003fff" stroke="#003fff" points="33.26,-184.78 32.84,-195.36 39.77,-187.34 33.26,-184.78"/>
+</g>
+<!-- module~modsubgriddata -->
+<g id="proc~~tests_sgs_statistics~~UsesGraph_node13" class="node">
+<title>module~modsubgriddata</title>
+<g id="a_proc~~tests_sgs_statistics~~UsesGraph_node13"><a xlink:href="../module/modsubgriddata.html" xlink:title="modsubgriddata">
+<polygon fill="#337ab7" stroke="#337ab7" points="189.27,-304.27 90,-304.27 90,-280 189.27,-280 189.27,-304.27"/>
+<text xml:space="preserve" text-anchor="middle" x="139.63" y="-288.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">modsubgriddata</text>
+</a>
+</g>
+</g>
+<!-- module~modsubgrid&#45;&gt;module~modsubgriddata -->
+<g id="proc~~tests_sgs_statistics~~UsesGraph_edge17" class="edge">
+<title>module~modsubgrid&#45;&gt;module~modsubgriddata</title>
+<path fill="none" stroke="#7f00ff" stroke-dasharray="5,2" d="M250.09,-322.04C234.17,-317.69 215.18,-312.5 197.53,-307.68"/>
+<polygon fill="#7f00ff" stroke="#7f00ff" points="198.78,-304.39 188.21,-305.13 196.93,-311.15 198.78,-304.39"/>
+</g>
+<!-- module~modsubgrid&#45;&gt;mpi -->
+<g id="proc~~tests_sgs_statistics~~UsesGraph_edge18" class="edge">
+<title>module~modsubgrid&#45;&gt;mpi</title>
+<path fill="none" stroke="#7f00ff" stroke-dasharray="5,2" d="M250.1,-337.94C207.97,-342.57 138.63,-343.94 90,-313.13 60.85,-294.67 43.59,-257.13 34.96,-232.56"/>
+<polygon fill="#7f00ff" stroke="#7f00ff" points="38.31,-231.54 31.87,-223.13 31.66,-233.72 38.31,-231.54"/>
+</g>
+<!-- module~stats&#45;&gt;decomp_2d -->
+<g id="proc~~tests_sgs_statistics~~UsesGraph_edge19" class="edge">
+<title>module~stats&#45;&gt;decomp_2d</title>
+<path fill="none" stroke="#ff00bf" stroke-dasharray="5,2" d="M422.99,-262.7C411.82,-284.5 385.88,-329.26 350.79,-353.13 337.2,-362.38 245.57,-386.18 187.87,-400.57"/>
+<polygon fill="#ff00bf" stroke="#ff00bf" points="187.15,-397.14 178.29,-402.95 188.84,-403.93 187.15,-397.14"/>
+</g>
+<!-- module~stats&#45;&gt;module~modfields -->
+<g id="proc~~tests_sgs_statistics~~UsesGraph_edge20" class="edge">
+<title>module~stats&#45;&gt;module~modfields</title>
+<path fill="none" stroke="#ff00bf" stroke-dasharray="5,2" d="M425.04,-262.42C415.92,-288.6 391.21,-350.43 350.79,-386.13 344.99,-391.26 338.04,-395.47 330.92,-398.91"/>
+<polygon fill="#ff00bf" stroke="#ff00bf" points="329.68,-395.63 321.88,-402.8 332.44,-402.06 329.68,-395.63"/>
+</g>
+<!-- module~stats&#45;&gt;module~modglobal -->
+<g id="proc~~tests_sgs_statistics~~UsesGraph_edge21" class="edge">
+<title>module~stats&#45;&gt;module~modglobal</title>
+<path fill="none" stroke="#ff00bf" stroke-dasharray="5,2" d="M416.86,-237.55C408.22,-228.48 396.49,-215.81 386.79,-204.13 369.75,-183.62 371.81,-172.55 350.79,-156.13 345.31,-151.86 339.03,-148.16 332.62,-145.01"/>
+<polygon fill="#ff00bf" stroke="#ff00bf" points="334.47,-142 323.91,-141.11 331.61,-148.39 334.47,-142"/>
+</g>
+<!-- module~stats&#45;&gt;module~modsubgrid -->
+<g id="proc~~tests_sgs_statistics~~UsesGraph_edge24" class="edge">
+<title>module~stats&#45;&gt;module~modsubgrid</title>
+<path fill="none" stroke="#ff00bf" stroke-dasharray="5,2" d="M415.9,-262.66C401.08,-276.2 375.8,-297.63 350.79,-311.13 346.35,-313.53 341.59,-315.73 336.75,-317.72"/>
+<polygon fill="#ff00bf" stroke="#ff00bf" points="335.65,-314.4 327.55,-321.23 338.14,-320.94 335.65,-314.4"/>
+</g>
+<!-- module~stats&#45;&gt;module~modmpi -->
+<g id="proc~~tests_sgs_statistics~~UsesGraph_edge22" class="edge">
+<title>module~stats&#45;&gt;module~modmpi</title>
+<path fill="none" stroke="#ff00bf" stroke-dasharray="5,2" d="M287.03,-170.13C252.04,-158.02 209.47,-159.04 179.28,-162.18"/>
+<polygon fill="#ff00bf" stroke="#ff00bf" points="178.98,-158.69 169.46,-163.33 179.8,-165.64 178.98,-158.69"/>
+</g>
+<!-- module~modstat_nc -->
+<g id="proc~~tests_sgs_statistics~~UsesGraph_node12" class="node">
+<title>module~modstat_nc</title>
+<g id="a_proc~~tests_sgs_statistics~~UsesGraph_node12"><a xlink:href="../module/modstat_nc.html" xlink:title="modstat_nc">
+<polygon fill="#337ab7" stroke="#337ab7" points="324.54,-222.27 251.52,-222.27 251.52,-198 324.54,-198 324.54,-222.27"/>
+<text xml:space="preserve" text-anchor="middle" x="288.03" y="-206.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">modstat_nc</text>
+</a>
+</g>
+</g>
+<!-- module~stats&#45;&gt;module~modstat_nc -->
+<g id="proc~~tests_sgs_statistics~~UsesGraph_edge23" class="edge">
+<title>module~stats&#45;&gt;module~modstat_nc</title>
+<path fill="none" stroke="#ff00bf" stroke-dasharray="5,2" d="M402.71,-242.61C383.94,-237.25 358.19,-229.89 335.95,-223.54"/>
+<polygon fill="#ff00bf" stroke="#ff00bf" points="337.06,-220.22 326.48,-220.83 335.13,-226.95 337.06,-220.22"/>
+</g>
+<!-- module~modthermodynamics -->
+<g id="proc~~tests_sgs_statistics~~UsesGraph_node14" class="node">
+<title>module~modthermodynamics</title>
+<g id="a_proc~~tests_sgs_statistics~~UsesGraph_node14"><a xlink:href="../module/modthermodynamics.html" xlink:title="modthermodynamics">
+<polygon fill="#337ab7" stroke="#337ab7" points="350.79,-302.27 225.27,-302.27 225.27,-278 350.79,-278 350.79,-302.27"/>
+<text xml:space="preserve" text-anchor="middle" x="288.03" y="-286.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">modthermodynamics</text>
+</a>
+</g>
+</g>
+<!-- module~stats&#45;&gt;module~modthermodynamics -->
+<g id="proc~~tests_sgs_statistics~~UsesGraph_edge25" class="edge">
+<title>module~stats&#45;&gt;module~modthermodynamics</title>
+<path fill="none" stroke="#ff00bf" stroke-dasharray="5,2" d="M402.71,-257.66C386.2,-262.38 364.3,-268.63 344.13,-274.4"/>
+<polygon fill="#ff00bf" stroke="#ff00bf" points="343.25,-271.01 334.6,-277.12 345.17,-277.74 343.25,-271.01"/>
+</g>
+<!-- module~vegetation -->
+<g id="proc~~tests_sgs_statistics~~UsesGraph_node15" class="node">
+<title>module~vegetation</title>
+<g id="a_proc~~tests_sgs_statistics~~UsesGraph_node15"><a xlink:href="../module/vegetation.html" xlink:title="vegetation">
+<polygon fill="#337ab7" stroke="#337ab7" points="173.89,-138.27 105.38,-138.27 105.38,-114 173.89,-114 173.89,-138.27"/>
+<text xml:space="preserve" text-anchor="middle" x="139.63" y="-122.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">vegetation</text>
+</a>
+</g>
+</g>
+<!-- module~stats&#45;&gt;module~vegetation -->
+<g id="proc~~tests_sgs_statistics~~UsesGraph_edge26" class="edge">
+<title>module~stats&#45;&gt;module~vegetation</title>
+<path fill="none" stroke="#ff00bf" stroke-dasharray="5,2" d="M416.24,-237.72C401.53,-224.07 376.15,-202.35 350.79,-189.13 325.32,-175.87 316.17,-179.53 289.03,-170.13"/>
+<path fill="none" stroke="#ff00bf" stroke-dasharray="5,2" d="M287.03,-170.13C277.19,-166.73 224.43,-150.97 185.05,-139.28"/>
+<polygon fill="#ff00bf" stroke="#ff00bf" points="186.13,-135.95 175.54,-136.46 184.14,-142.66 186.13,-135.95"/>
+</g>
+<!-- module~stats&#45;&gt;mpi -->
+<g id="proc~~tests_sgs_statistics~~UsesGraph_edge27" class="edge">
+<title>module~stats&#45;&gt;mpi</title>
+<path fill="none" stroke="#ff00bf" stroke-dasharray="5,2" d="M287.03,-250.13C199.25,-244.25 175.88,-250.21 90,-231.13 81.8,-229.31 73.19,-226.72 65.09,-223.95"/>
+<polygon fill="#ff00bf" stroke="#ff00bf" points="66.45,-220.73 55.86,-220.64 64.09,-227.31 66.45,-220.73"/>
+</g>
+<!-- module~stats&#45;&gt;netcdf -->
+<g id="proc~~tests_sgs_statistics~~UsesGraph_edge28" class="edge">
+<title>module~stats&#45;&gt;netcdf</title>
+<path fill="none" stroke="#ff00bf" stroke-dasharray="5,2" d="M402.69,-251.19C374.52,-252.06 328.56,-252.79 289.03,-250.13"/>
+<path fill="none" stroke="#ff00bf" stroke-dasharray="5,2" d="M287.03,-250.13C248.8,-247.57 206.76,-235.01 177.58,-224.64"/>
+<polygon fill="#ff00bf" stroke="#ff00bf" points="179.08,-221.46 168.48,-221.32 176.68,-228.04 179.08,-221.46"/>
+</g>
+<!-- module~modmpi&#45;&gt;mpi -->
+<g id="proc~~tests_sgs_statistics~~UsesGraph_edge29" class="edge">
+<title>module~modmpi&#45;&gt;mpi</title>
+<path fill="none" stroke="#ffbf00" stroke-dasharray="5,2" d="M111.29,-178.27C97.28,-183.46 80.03,-189.85 64.87,-195.47"/>
+<polygon fill="#ffbf00" stroke="#ffbf00" points="63.85,-192.12 55.69,-198.87 66.28,-198.68 63.85,-192.12"/>
+</g>
+<!-- module~modstat_nc&#45;&gt;module~modmpi -->
+<g id="proc~~tests_sgs_statistics~~UsesGraph_edge30" class="edge">
+<title>module~modstat_nc&#45;&gt;module~modmpi</title>
+<path fill="none" stroke="#7fff00" stroke-dasharray="5,2" d="M251.22,-199.86C229.2,-193.54 201.02,-185.46 178.62,-179.03"/>
+<polygon fill="#7fff00" stroke="#7fff00" points="179.85,-175.74 169.27,-176.35 177.92,-182.47 179.85,-175.74"/>
+</g>
+<!-- module~modstat_nc&#45;&gt;netcdf -->
+<g id="proc~~tests_sgs_statistics~~UsesGraph_edge31" class="edge">
+<title>module~modstat_nc&#45;&gt;netcdf</title>
+<path fill="none" stroke="#7fff00" stroke-dasharray="5,2" d="M251.22,-210.13C229.12,-210.13 200.8,-210.13 178.36,-210.13"/>
+<polygon fill="#7fff00" stroke="#7fff00" points="178.41,-206.64 168.41,-210.14 178.41,-213.64 178.41,-206.64"/>
+</g>
+<!-- module~vegetation&#45;&gt;mpi -->
+<g id="proc~~tests_sgs_statistics~~UsesGraph_edge32" class="edge">
+<title>module~vegetation&#45;&gt;mpi</title>
+<path fill="none" stroke="#003fff" stroke-dasharray="5,2" d="M105.05,-138.64C99.83,-141.14 94.64,-143.98 90,-147.13 73.01,-158.67 56.72,-175.26 45.1,-188.38"/>
+<polygon fill="#003fff" stroke="#003fff" points="42.71,-185.79 38.84,-195.65 48.01,-190.35 42.71,-185.79"/>
+</g>
+</g>
+</svg>
+</div>          <div>
+            <a type="button" class="graph-help" data-bs-toggle="modal" href="#UsesGraph-help-text">Help</a>
+          </div>
+          <div class="modal fade" id="UsesGraph-help-text" tabindex="-1" role="dialog">
+            <div class="modal-dialog modal-lg" role="document">
+              <div class="modal-content">
+                <div class="modal-header">
+                  <h4 class="modal-title" id="-graph-help-label">Graph Key</h4>
+                  <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+<p>Nodes of different colours represent the following: </p>
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
+ "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<!-- Generated by graphviz version 14.1.3 (0)
+ -->
+<!-- Title: Graph Key Pages: 1 -->
+<svg width="511pt" height="32pt"
+ viewBox="0.00 0.00 511.00 32.00" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<g id="graph0" class="graph" transform="scale(1 1) rotate(0) translate(4 28.27)">
+<title>Graph Key</title>
+<polygon fill="white" stroke="none" points="-4,4 -4,-28.27 506.88,-28.27 506.88,4 -4,4"/>
+<!-- Module -->
+<g id="node1" class="node">
+<title>Module</title>
+<polygon fill="#337ab7" stroke="#337ab7" points="54,-24.27 0,-24.27 0,0 54,0 54,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="27" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Module</text>
+</g>
+<!-- Submodule -->
+<g id="node2" class="node">
+<title>Submodule</title>
+<polygon fill="#5bc0de" stroke="#5bc0de" points="144.13,-24.27 71.87,-24.27 71.87,0 144.13,0 144.13,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="108" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Submodule</text>
+</g>
+<!-- Subroutine -->
+<g id="node3" class="node">
+<title>Subroutine</title>
+<polygon fill="#d9534f" stroke="#d9534f" points="231.63,-24.27 162.37,-24.27 162.37,0 231.63,0 231.63,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="197" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Subroutine</text>
+</g>
+<!-- Function -->
+<g id="node4" class="node">
+<title>Function</title>
+<polygon fill="#d94e8f" stroke="#d94e8f" points="306.26,-24.27 249.74,-24.27 249.74,0 306.26,0 306.26,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="278" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Function</text>
+</g>
+<!-- Program -->
+<g id="node5" class="node">
+<title>Program</title>
+<polygon fill="#f0ad4e" stroke="#f0ad4e" points="381.26,-24.27 324.74,-24.27 324.74,0 381.26,0 381.26,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="353" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Program</text>
+</g>
+<!-- This Page&#39;s Entity -->
+<g id="node6" class="node">
+<title>This Page&#39;s Entity</title>
+<polygon fill="none" stroke="black" points="502.88,-24.27 399.12,-24.27 399.12,0 502.88,0 502.88,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="451" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50">This Page&#39;s Entity</text>
+</g>
+</g>
+</svg>
+
+<p>Solid arrows point from a submodule to the (sub)module which it is
+descended from. Dashed arrows point from a module or program unit to 
+modules which it uses.
+</p>
+ Where possible, edges connecting nodes are
+given different colours to make them easier to distinguish in
+large graphs.</div>
+            </div>
+          </div>
+        </div>
+            </li>
+        </ul>
+      </div>
+    </div>
+
+
+
+
+    <h3>Arguments</h3>
+    <em>None</em>
+    <br>
+      <h3>Return Value
+        <small>
+          <span class="anchor" id="variable-tests_sgs_statistics"></span>
+          logical
+        </small>
+      </h3>
+      
+    <br>
+    <div class="card">
+      <div class="card-header">
+  <h3 class="card-title">Calls</h3>
+      </div>
+      <div class="card-body">
+  <div class="depgraph"><?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
+ "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<!-- Generated by graphviz version 14.1.3 (0)
+ -->
+<!-- Title: proc~~tests_sgs_statistics~~CallsGraph Pages: 1 -->
+<svg id="proctests_sgs_statisticsCallsGraph" width="641pt" height="949pt"
+ viewBox="0.00 0.00 641.00 949.00" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<g id="proc~~tests_sgs_statistics~~CallsGraph" class="graph" transform="scale(0.903963 0.903963) rotate(0) translate(4 1045.78)">
+<title>proc~~tests_sgs_statistics~~CallsGraph</title>
+<polygon fill="white" stroke="none" points="-4,4 -4,-1045.78 705.1,-1045.78 705.1,4 -4,4"/>
+<!-- proc~tests_sgs_statistics -->
+<g id="proc~~tests_sgs_statistics~~CallsGraph_node1" class="node">
+<title>proc~tests_sgs_statistics</title>
+<polygon fill="none" stroke="black" points="109.77,-735.2 0,-735.2 0,-710.93 109.77,-710.93 109.77,-735.2"/>
+<text xml:space="preserve" text-anchor="middle" x="54.88" y="-719.46" font-family="Helvetica,sans-Serif" font-size="10.50">tests_sgs_statistics</text>
+</g>
+<!-- proc~compare_real_3d -->
+<g id="proc~~tests_sgs_statistics~~CallsGraph_node2" class="node">
+<title>proc~compare_real_3d</title>
+<g id="a_proc~~tests_sgs_statistics~~CallsGraph_node2"><a xlink:href="../proc/compare_real_3d.html" xlink:title="compare_real_3d">
+<polygon fill="#d94e8f" stroke="#d94e8f" points="248.79,-966.2 145.77,-966.2 145.77,-941.93 248.79,-941.93 248.79,-966.2"/>
+<text xml:space="preserve" text-anchor="middle" x="197.28" y="-950.46" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">compare_real_3d</text>
+</a>
+</g>
+</g>
+<!-- proc~tests_sgs_statistics&#45;&gt;proc~compare_real_3d -->
+<g id="proc~~tests_sgs_statistics~~CallsGraph_edge1" class="edge">
+<title>proc~tests_sgs_statistics&#45;&gt;proc~compare_real_3d</title>
+<path fill="none" stroke="#ff0000" d="M57.86,-735.55C64.12,-771.19 86.72,-874.62 145.77,-933.06 146.49,-933.78 147.25,-934.47 148.02,-935.14"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="145.66,-937.76 155.86,-940.63 149.67,-932.03 145.66,-937.76"/>
+</g>
+<!-- proc~createmasks -->
+<g id="proc~~tests_sgs_statistics~~CallsGraph_node3" class="node">
+<title>proc~createmasks</title>
+<g id="a_proc~~tests_sgs_statistics~~CallsGraph_node3"><a xlink:href="../proc/createmasks.html" xlink:title="createmasks">
+<polygon fill="#d9534f" stroke="#d9534f" points="236.79,-924.2 157.77,-924.2 157.77,-899.93 236.79,-899.93 236.79,-924.2"/>
+<text xml:space="preserve" text-anchor="middle" x="197.28" y="-908.46" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">createmasks</text>
+</a>
+</g>
+</g>
+<!-- proc~tests_sgs_statistics&#45;&gt;proc~createmasks -->
+<g id="proc~~tests_sgs_statistics~~CallsGraph_edge2" class="edge">
+<title>proc~tests_sgs_statistics&#45;&gt;proc~createmasks</title>
+<path fill="none" stroke="#ff0000" d="M59.32,-735.43C68.39,-765.96 95.79,-845.72 145.77,-891.06 146.67,-891.88 147.6,-892.66 148.56,-893.42"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="146.33,-896.14 156.62,-898.67 150.15,-890.27 146.33,-896.14"/>
+</g>
+<!-- proc~diffc -->
+<g id="proc~~tests_sgs_statistics~~CallsGraph_node4" class="node">
+<title>proc~diffc</title>
+<g id="a_proc~~tests_sgs_statistics~~CallsGraph_node4"><a xlink:href="../proc/diffc.html" xlink:title="diffc">
+<polygon fill="#d9534f" stroke="#d9534f" points="224.28,-882.2 170.28,-882.2 170.28,-857.93 224.28,-857.93 224.28,-882.2"/>
+<text xml:space="preserve" text-anchor="middle" x="197.28" y="-866.46" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">diffc</text>
+</a>
+</g>
+</g>
+<!-- proc~tests_sgs_statistics&#45;&gt;proc~diffc -->
+<g id="proc~~tests_sgs_statistics~~CallsGraph_edge3" class="edge">
+<title>proc~tests_sgs_statistics&#45;&gt;proc~diffc</title>
+<path fill="none" stroke="#ff0000" d="M61.78,-735.55C74.08,-760.4 104.78,-816.42 145.77,-849.06 149.96,-852.4 154.76,-855.29 159.69,-857.76"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="157.9,-860.8 168.46,-861.65 160.74,-854.4 157.9,-860.8"/>
+</g>
+<!-- proc~diffu -->
+<g id="proc~~tests_sgs_statistics~~CallsGraph_node5" class="node">
+<title>proc~diffu</title>
+<g id="a_proc~~tests_sgs_statistics~~CallsGraph_node5"><a xlink:href="../proc/diffu.html" xlink:title="diffu">
+<polygon fill="#d9534f" stroke="#d9534f" points="224.28,-840.2 170.28,-840.2 170.28,-815.93 224.28,-815.93 224.28,-840.2"/>
+<text xml:space="preserve" text-anchor="middle" x="197.28" y="-824.46" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">diffu</text>
+</a>
+</g>
+</g>
+<!-- proc~tests_sgs_statistics&#45;&gt;proc~diffu -->
+<g id="proc~~tests_sgs_statistics~~CallsGraph_edge4" class="edge">
+<title>proc~tests_sgs_statistics&#45;&gt;proc~diffu</title>
+<path fill="none" stroke="#ff0000" d="M66.67,-735.67C82.5,-753.53 113.64,-786.34 145.77,-807.06 150.06,-809.83 154.78,-812.36 159.55,-814.63"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="158,-817.78 168.57,-818.58 160.81,-811.36 158,-817.78"/>
+</g>
+<!-- proc~diffw -->
+<g id="proc~~tests_sgs_statistics~~CallsGraph_node6" class="node">
+<title>proc~diffw</title>
+<g id="a_proc~~tests_sgs_statistics~~CallsGraph_node6"><a xlink:href="../proc/diffw.html" xlink:title="diffw">
+<polygon fill="#d9534f" stroke="#d9534f" points="224.28,-798.2 170.28,-798.2 170.28,-773.93 224.28,-773.93 224.28,-798.2"/>
+<text xml:space="preserve" text-anchor="middle" x="197.28" y="-782.46" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">diffw</text>
+</a>
+</g>
+</g>
+<!-- proc~tests_sgs_statistics&#45;&gt;proc~diffw -->
+<g id="proc~~tests_sgs_statistics~~CallsGraph_edge5" class="edge">
+<title>proc~tests_sgs_statistics&#45;&gt;proc~diffw</title>
+<path fill="none" stroke="#ff0000" d="M82.1,-735.68C99.96,-744.18 124.18,-755.54 145.77,-765.06 150.17,-767 154.8,-769 159.41,-770.95"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="158,-774.15 168.58,-774.79 160.71,-767.7 158,-774.15"/>
+</g>
+<!-- proc~initboundary -->
+<g id="proc~~tests_sgs_statistics~~CallsGraph_node7" class="node">
+<title>proc~initboundary</title>
+<g id="a_proc~~tests_sgs_statistics~~CallsGraph_node7"><a xlink:href="../proc/initboundary.html" xlink:title="initboundary">
+<polygon fill="#d9534f" stroke="#d9534f" points="236.79,-756.2 157.77,-756.2 157.77,-731.93 236.79,-731.93 236.79,-756.2"/>
+<text xml:space="preserve" text-anchor="middle" x="197.28" y="-740.46" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">initboundary</text>
+</a>
+</g>
+</g>
+<!-- proc~tests_sgs_statistics&#45;&gt;proc~initboundary -->
+<g id="proc~~tests_sgs_statistics~~CallsGraph_edge6" class="edge">
+<title>proc~tests_sgs_statistics&#45;&gt;proc~initboundary</title>
+<path fill="none" stroke="#ff0000" d="M110.17,-731.18C121.97,-732.95 134.41,-734.81 146.05,-736.55"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="145.47,-740 155.88,-738.02 146.5,-733.08 145.47,-740"/>
+</g>
+<!-- proc~initfields -->
+<g id="proc~~tests_sgs_statistics~~CallsGraph_node8" class="node">
+<title>proc~initfields</title>
+<g id="a_proc~~tests_sgs_statistics~~CallsGraph_node8"><a xlink:href="../proc/initfields.html" xlink:title="initfields">
+<polygon fill="#d9534f" stroke="#d9534f" points="225.54,-714.2 169.02,-714.2 169.02,-689.93 225.54,-689.93 225.54,-714.2"/>
+<text xml:space="preserve" text-anchor="middle" x="197.28" y="-698.46" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">initfields</text>
+</a>
+</g>
+</g>
+<!-- proc~tests_sgs_statistics&#45;&gt;proc~initfields -->
+<g id="proc~~tests_sgs_statistics~~CallsGraph_edge7" class="edge">
+<title>proc~tests_sgs_statistics&#45;&gt;proc~initfields</title>
+<path fill="none" stroke="#ff0000" d="M110.17,-714.94C126,-712.58 142.97,-710.04 157.62,-707.85"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="157.94,-711.34 167.31,-706.4 156.91,-704.41 157.94,-711.34"/>
+</g>
+<!-- proc~initibm -->
+<g id="proc~~tests_sgs_statistics~~CallsGraph_node9" class="node">
+<title>proc~initibm</title>
+<g id="a_proc~~tests_sgs_statistics~~CallsGraph_node9"><a xlink:href="../proc/initibm.html" xlink:title="initibm">
+<polygon fill="#d9534f" stroke="#d9534f" points="224.28,-630.2 170.28,-630.2 170.28,-605.93 224.28,-605.93 224.28,-630.2"/>
+<text xml:space="preserve" text-anchor="middle" x="197.28" y="-614.46" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">initibm</text>
+</a>
+</g>
+</g>
+<!-- proc~tests_sgs_statistics&#45;&gt;proc~initibm -->
+<g id="proc~~tests_sgs_statistics~~CallsGraph_edge8" class="edge">
+<title>proc~tests_sgs_statistics&#45;&gt;proc~initibm</title>
+<path fill="none" stroke="#ff0000" d="M66.67,-710.46C82.5,-692.6 113.64,-659.78 145.77,-639.06 150.06,-636.3 154.78,-633.76 159.55,-631.49"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="160.81,-634.76 168.57,-627.55 158,-628.35 160.81,-634.76"/>
+</g>
+<!-- proc~initsubgrid -->
+<g id="proc~~tests_sgs_statistics~~CallsGraph_node10" class="node">
+<title>proc~initsubgrid</title>
+<g id="a_proc~~tests_sgs_statistics~~CallsGraph_node10"><a xlink:href="../proc/initsubgrid.html" xlink:title="initsubgrid">
+<polygon fill="#d9534f" stroke="#d9534f" points="231.16,-672.2 163.39,-672.2 163.39,-647.93 231.16,-647.93 231.16,-672.2"/>
+<text xml:space="preserve" text-anchor="middle" x="197.28" y="-656.46" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">initsubgrid</text>
+</a>
+</g>
+</g>
+<!-- proc~tests_sgs_statistics&#45;&gt;proc~initsubgrid -->
+<g id="proc~~tests_sgs_statistics~~CallsGraph_edge9" class="edge">
+<title>proc~tests_sgs_statistics&#45;&gt;proc~initsubgrid</title>
+<path fill="none" stroke="#ff0000" d="M82.1,-710.45C99.96,-701.95 124.18,-690.59 145.77,-681.06 148.74,-679.75 151.82,-678.41 154.93,-677.08"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="156.23,-680.33 164.08,-673.21 153.51,-673.89 156.23,-680.33"/>
+</g>
+<!-- proc~readfacetfiles -->
+<g id="proc~~tests_sgs_statistics~~CallsGraph_node11" class="node">
+<title>proc~readfacetfiles</title>
+<g id="a_proc~~tests_sgs_statistics~~CallsGraph_node11"><a xlink:href="../proc/readfacetfiles.html" xlink:title="readfacetfiles">
+<polygon fill="#d9534f" stroke="#d9534f" points="390.06,-478.2 305.79,-478.2 305.79,-453.93 390.06,-453.93 390.06,-478.2"/>
+<text xml:space="preserve" text-anchor="middle" x="347.92" y="-462.46" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">readfacetfiles</text>
+</a>
+</g>
+</g>
+<!-- proc~tests_sgs_statistics&#45;&gt;proc~readfacetfiles -->
+<g id="proc~~tests_sgs_statistics~~CallsGraph_edge10" class="edge">
+<title>proc~tests_sgs_statistics&#45;&gt;proc~readfacetfiles</title>
+<path fill="none" stroke="#ff0000" d="M62.73,-710.45C76.25,-686.34 108.33,-632.95 145.77,-597.06 196.94,-548.01 268.91,-506.31 311.46,-483.85"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="313.01,-486.98 320.26,-479.26 309.78,-480.78 313.01,-486.98"/>
+</g>
+<!-- proc~stats_sgs_fluxes -->
+<g id="proc~~tests_sgs_statistics~~CallsGraph_node12" class="node">
+<title>proc~stats_sgs_fluxes</title>
+<g id="a_proc~~tests_sgs_statistics~~CallsGraph_node12"><a xlink:href="../proc/stats_sgs_fluxes.html" xlink:title="stats_sgs_fluxes">
+<polygon fill="#d9534f" stroke="#d9534f" points="245.04,-129.2 149.52,-129.2 149.52,-104.93 245.04,-104.93 245.04,-129.2"/>
+<text xml:space="preserve" text-anchor="middle" x="197.28" y="-113.46" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">stats_sgs_fluxes</text>
+</a>
+</g>
+</g>
+<!-- proc~tests_sgs_statistics&#45;&gt;proc~stats_sgs_fluxes -->
+<g id="proc~~tests_sgs_statistics~~CallsGraph_edge11" class="edge">
+<title>proc~tests_sgs_statistics&#45;&gt;proc~stats_sgs_fluxes</title>
+<path fill="none" stroke="#ff0000" d="M58.75,-710.68C76.13,-635.68 167.36,-241.9 190.79,-140.76"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="194.17,-141.68 193.02,-131.15 187.35,-140.1 194.17,-141.68"/>
+</g>
+<!-- zstart -->
+<g id="proc~~tests_sgs_statistics~~CallsGraph_node13" class="node">
+<title>zstart</title>
+<polygon fill="#777777" stroke="#777777" points="688.21,-51.2 634.21,-51.2 634.21,-26.93 688.21,-26.93 688.21,-51.2"/>
+<text xml:space="preserve" text-anchor="middle" x="661.21" y="-35.46" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">zstart</text>
+</g>
+<!-- proc~tests_sgs_statistics&#45;&gt;zstart -->
+<g id="proc~~tests_sgs_statistics~~CallsGraph_edge12" class="edge">
+<title>proc~tests_sgs_statistics&#45;&gt;zstart</title>
+<path fill="none" stroke="#ff0000" d="M55.91,-710.63C56.33,-631.03 62.45,-193.02 145.77,-96.06 266.49,44.41 526.32,-4.37 622.98,-28.71"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="621.92,-32.05 632.48,-31.17 623.67,-25.28 621.92,-32.05"/>
+</g>
+<!-- mpi_allreduce -->
+<g id="proc~~tests_sgs_statistics~~CallsGraph_node16" class="node">
+<title>mpi_allreduce</title>
+<polygon fill="#777777" stroke="#777777" points="391.18,-940.2 304.66,-940.2 304.66,-915.93 391.18,-915.93 391.18,-940.2"/>
+<text xml:space="preserve" text-anchor="middle" x="347.92" y="-924.46" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">mpi_allreduce</text>
+</g>
+<!-- proc~createmasks&#45;&gt;mpi_allreduce -->
+<g id="proc~~tests_sgs_statistics~~CallsGraph_edge13" class="edge">
+<title>proc~createmasks&#45;&gt;mpi_allreduce</title>
+<path fill="none" stroke="#ff7f00" d="M236.95,-916.22C254.04,-918.06 274.44,-920.26 293,-922.26"/>
+<polygon fill="#ff7f00" stroke="#ff7f00" points="292.45,-925.72 302.76,-923.31 293.19,-918.76 292.45,-925.72"/>
+</g>
+<!-- alloc_z -->
+<g id="proc~~tests_sgs_statistics~~CallsGraph_node14" class="node">
+<title>alloc_z</title>
+<polygon fill="#777777" stroke="#777777" points="374.92,-898.2 320.92,-898.2 320.92,-873.93 374.92,-873.93 374.92,-898.2"/>
+<text xml:space="preserve" text-anchor="middle" x="347.92" y="-882.46" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">alloc_z</text>
+</g>
+<!-- proc~initfields&#45;&gt;alloc_z -->
+<g id="proc~~tests_sgs_statistics~~CallsGraph_edge14" class="edge">
+<title>proc~initfields&#45;&gt;alloc_z</title>
+<path fill="none" stroke="#00ffff" d="M225.82,-708.33C234.24,-711.49 242.83,-716.16 248.79,-723.06 291.35,-772.33 240.57,-817.27 284.79,-865.06 291.33,-872.13 300.34,-876.82 309.46,-879.94"/>
+<polygon fill="#00ffff" stroke="#00ffff" points="308.46,-883.29 319.03,-882.6 310.34,-876.55 308.46,-883.29"/>
+</g>
+<!-- exchange_halo_z -->
+<g id="proc~~tests_sgs_statistics~~CallsGraph_node15" class="node">
+<title>exchange_halo_z</title>
+<polygon fill="#777777" stroke="#777777" points="399.06,-614.2 296.79,-614.2 296.79,-589.93 399.06,-589.93 399.06,-614.2"/>
+<text xml:space="preserve" text-anchor="middle" x="347.92" y="-598.46" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">exchange_halo_z</text>
+</g>
+<!-- proc~initibm&#45;&gt;exchange_halo_z -->
+<g id="proc~~tests_sgs_statistics~~CallsGraph_edge15" class="edge">
+<title>proc~initibm&#45;&gt;exchange_halo_z</title>
+<path fill="none" stroke="#007fff" d="M224.51,-615.24C241.33,-613.43 263.9,-611 285.07,-608.72"/>
+<polygon fill="#007fff" stroke="#007fff" points="285.24,-612.22 294.81,-607.67 284.49,-605.26 285.24,-612.22"/>
+</g>
+<!-- proc~define_nc -->
+<g id="proc~~tests_sgs_statistics~~CallsGraph_node21" class="node">
+<title>proc~define_nc</title>
+<g id="a_proc~~tests_sgs_statistics~~CallsGraph_node21"><a xlink:href="../proc/define_nc.html" xlink:title="define_nc">
+<polygon fill="#d9534f" stroke="#d9534f" points="379.56,-814.2 316.29,-814.2 316.29,-789.93 379.56,-789.93 379.56,-814.2"/>
+<text xml:space="preserve" text-anchor="middle" x="347.92" y="-798.46" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">define_nc</text>
+</a>
+</g>
+</g>
+<!-- proc~initibm&#45;&gt;proc~define_nc -->
+<g id="proc~~tests_sgs_statistics~~CallsGraph_edge16" class="edge">
+<title>proc~initibm&#45;&gt;proc~define_nc</title>
+<path fill="none" stroke="#007fff" d="M224.77,-624.28C233.4,-627.46 242.41,-632.16 248.79,-639.06 283.72,-676.82 256.15,-706.33 284.79,-749.06 293.51,-762.07 306.27,-773.72 317.97,-782.77"/>
+<polygon fill="#007fff" stroke="#007fff" points="315.67,-785.42 325.8,-788.54 319.83,-779.79 315.67,-785.42"/>
+</g>
+<!-- proc~initibmnorm -->
+<g id="proc~~tests_sgs_statistics~~CallsGraph_node22" class="node">
+<title>proc~initibmnorm</title>
+<g id="a_proc~~tests_sgs_statistics~~CallsGraph_node22"><a xlink:href="../proc/initibmnorm.html" xlink:title="initibmnorm">
+<polygon fill="#d9534f" stroke="#d9534f" points="386.31,-171.2 309.54,-171.2 309.54,-146.93 386.31,-146.93 386.31,-171.2"/>
+<text xml:space="preserve" text-anchor="middle" x="347.92" y="-155.46" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">initibmnorm</text>
+</a>
+</g>
+</g>
+<!-- proc~initibm&#45;&gt;proc~initibmnorm -->
+<g id="proc~~tests_sgs_statistics~~CallsGraph_edge17" class="edge">
+<title>proc~initibm&#45;&gt;proc~initibmnorm</title>
+<path fill="none" stroke="#007fff" d="M199.1,-605.45C203.53,-540.73 226.66,-246.35 284.79,-180.06 288.68,-175.63 293.54,-172.13 298.81,-169.37"/>
+<polygon fill="#007fff" stroke="#007fff" points="300.1,-172.63 307.94,-165.5 297.37,-166.18 300.1,-172.63"/>
+</g>
+<!-- proc~initibmwallfun -->
+<g id="proc~~tests_sgs_statistics~~CallsGraph_node23" class="node">
+<title>proc~initibmwallfun</title>
+<g id="a_proc~~tests_sgs_statistics~~CallsGraph_node23"><a xlink:href="../proc/initibmwallfun.html" xlink:title="initibmwallfun">
+<polygon fill="#d9534f" stroke="#d9534f" points="391.18,-213.2 304.66,-213.2 304.66,-188.93 391.18,-188.93 391.18,-213.2"/>
+<text xml:space="preserve" text-anchor="middle" x="347.92" y="-197.46" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">initibmwallfun</text>
+</a>
+</g>
+</g>
+<!-- proc~initibm&#45;&gt;proc~initibmwallfun -->
+<g id="proc~~tests_sgs_statistics~~CallsGraph_edge18" class="edge">
+<title>proc~initibm&#45;&gt;proc~initibmwallfun</title>
+<path fill="none" stroke="#007fff" d="M202.73,-605.58C223.54,-547.19 311.45,-300.59 338.78,-223.91"/>
+<polygon fill="#007fff" stroke="#007fff" points="341.92,-225.51 341.99,-214.92 335.33,-223.16 341.92,-225.51"/>
+</g>
+<!-- proc~ncinfo -->
+<g id="proc~~tests_sgs_statistics~~CallsGraph_node24" class="node">
+<title>proc~ncinfo</title>
+<g id="a_proc~~tests_sgs_statistics~~CallsGraph_node24"><a xlink:href="../proc/ncinfo.html" xlink:title="ncinfo">
+<polygon fill="#d9534f" stroke="#d9534f" points="374.92,-740.2 320.92,-740.2 320.92,-715.93 374.92,-715.93 374.92,-740.2"/>
+<text xml:space="preserve" text-anchor="middle" x="347.92" y="-724.46" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">ncinfo</text>
+</a>
+</g>
+</g>
+<!-- proc~initibm&#45;&gt;proc~ncinfo -->
+<g id="proc~~tests_sgs_statistics~~CallsGraph_edge19" class="edge">
+<title>proc~initibm&#45;&gt;proc~ncinfo</title>
+<path fill="none" stroke="#007fff" d="M224.65,-625.12C233.08,-628.34 241.98,-632.86 248.79,-639.06 274.07,-662.09 258.74,-684.9 284.79,-707.06 291.86,-713.08 300.74,-717.4 309.55,-720.48"/>
+<polygon fill="#007fff" stroke="#007fff" points="308.49,-723.82 319.08,-723.34 310.5,-717.11 308.49,-723.82"/>
+</g>
+<!-- proc~open_nc -->
+<g id="proc~~tests_sgs_statistics~~CallsGraph_node25" class="node">
+<title>proc~open_nc</title>
+<g id="a_proc~~tests_sgs_statistics~~CallsGraph_node25"><a xlink:href="../proc/open_nc.html" xlink:title="open_nc">
+<polygon fill="#d9534f" stroke="#d9534f" points="376.18,-656.2 319.66,-656.2 319.66,-631.93 376.18,-631.93 376.18,-656.2"/>
+<text xml:space="preserve" text-anchor="middle" x="347.92" y="-640.46" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">open_nc</text>
+</a>
+</g>
+</g>
+<!-- proc~initibm&#45;&gt;proc~open_nc -->
+<g id="proc~~tests_sgs_statistics~~CallsGraph_edge20" class="edge">
+<title>proc~initibm&#45;&gt;proc~open_nc</title>
+<path fill="none" stroke="#007fff" d="M224.51,-622.65C247.67,-626.7 281.75,-632.66 308.07,-637.27"/>
+<polygon fill="#007fff" stroke="#007fff" points="307.25,-640.68 317.7,-638.95 308.45,-633.78 307.25,-640.68"/>
+</g>
+<!-- proc~solid -->
+<g id="proc~~tests_sgs_statistics~~CallsGraph_node27" class="node">
+<title>proc~solid</title>
+<g id="a_proc~~tests_sgs_statistics~~CallsGraph_node27"><a xlink:href="../proc/solid.html" xlink:title="solid">
+<polygon fill="#d9534f" stroke="#d9534f" points="374.92,-698.2 320.92,-698.2 320.92,-673.93 374.92,-673.93 374.92,-698.2"/>
+<text xml:space="preserve" text-anchor="middle" x="347.92" y="-682.46" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">solid</text>
+</a>
+</g>
+</g>
+<!-- proc~initibm&#45;&gt;proc~solid -->
+<g id="proc~~tests_sgs_statistics~~CallsGraph_edge21" class="edge">
+<title>proc~initibm&#45;&gt;proc~solid</title>
+<path fill="none" stroke="#007fff" d="M224.78,-627.73C232.68,-630.97 241.25,-634.85 248.79,-639.06 266.02,-648.69 267.24,-656.02 284.79,-665.06 292.6,-669.09 301.35,-672.59 309.76,-675.53"/>
+<polygon fill="#007fff" stroke="#007fff" points="308.49,-678.79 319.08,-678.58 310.67,-672.14 308.49,-678.79"/>
+</g>
+<!-- proc~writestat_dims_nc -->
+<g id="proc~~tests_sgs_statistics~~CallsGraph_node31" class="node">
+<title>proc~writestat_dims_nc</title>
+<g id="a_proc~~tests_sgs_statistics~~CallsGraph_node31"><a xlink:href="../proc/writestat_dims_nc.html" xlink:title="writestat_dims_nc">
+<polygon fill="#d9534f" stroke="#d9534f" points="400.93,-562.2 294.91,-562.2 294.91,-537.93 400.93,-537.93 400.93,-562.2"/>
+<text xml:space="preserve" text-anchor="middle" x="347.92" y="-546.46" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">writestat_dims_nc</text>
+</a>
+</g>
+</g>
+<!-- proc~initibm&#45;&gt;proc~writestat_dims_nc -->
+<g id="proc~~tests_sgs_statistics~~CallsGraph_edge22" class="edge">
+<title>proc~initibm&#45;&gt;proc~writestat_dims_nc</title>
+<path fill="none" stroke="#007fff" d="M224.51,-606.06C247.95,-595.34 282.58,-579.5 309.03,-567.4"/>
+<polygon fill="#007fff" stroke="#007fff" points="310.43,-570.61 318.07,-563.26 307.52,-564.24 310.43,-570.61"/>
+</g>
+<!-- proc~subgridnamelist -->
+<g id="proc~~tests_sgs_statistics~~CallsGraph_node30" class="node">
+<title>proc~subgridnamelist</title>
+<g id="a_proc~~tests_sgs_statistics~~CallsGraph_node30"><a xlink:href="../proc/subgridnamelist.html" xlink:title="subgridnamelist">
+<polygon fill="#d9534f" stroke="#d9534f" points="396.43,-856.2 299.41,-856.2 299.41,-831.93 396.43,-831.93 396.43,-856.2"/>
+<text xml:space="preserve" text-anchor="middle" x="347.92" y="-840.46" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">subgridnamelist</text>
+</a>
+</g>
+</g>
+<!-- proc~initsubgrid&#45;&gt;proc~subgridnamelist -->
+<g id="proc~~tests_sgs_statistics~~CallsGraph_edge23" class="edge">
+<title>proc~initsubgrid&#45;&gt;proc~subgridnamelist</title>
+<path fill="none" stroke="#0000ff" d="M231.6,-668.75C238.04,-671.75 244.2,-675.74 248.79,-681.06 291.35,-730.33 240.57,-775.27 284.79,-823.06 286.3,-824.69 287.94,-826.2 289.68,-827.58"/>
+<polygon fill="#0000ff" stroke="#0000ff" points="287.51,-830.35 297.82,-832.78 291.27,-824.45 287.51,-830.35"/>
+</g>
+<!-- mpi_bcast -->
+<g id="proc~~tests_sgs_statistics~~CallsGraph_node17" class="node">
+<title>mpi_bcast</title>
+<polygon fill="#777777" stroke="#777777" points="693.97,-335.2 628.45,-335.2 628.45,-310.93 693.97,-310.93 693.97,-335.2"/>
+<text xml:space="preserve" text-anchor="middle" x="661.21" y="-319.46" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">mpi_bcast</text>
+</g>
+<!-- proc~readfacetfiles&#45;&gt;mpi_bcast -->
+<g id="proc~~tests_sgs_statistics~~CallsGraph_edge24" class="edge">
+<title>proc~readfacetfiles&#45;&gt;mpi_bcast</title>
+<path fill="none" stroke="#7f00ff" d="M360.03,-453.56C377,-435.21 411.21,-401.1 447.06,-382.06 503.35,-352.18 523.92,-361.11 585.33,-344.06 595.65,-341.2 606.76,-338.09 617.19,-335.17"/>
+<polygon fill="#7f00ff" stroke="#7f00ff" points="618.02,-338.57 626.7,-332.5 616.13,-331.83 618.02,-338.57"/>
+</g>
+<!-- nf90_get_var -->
+<g id="proc~~tests_sgs_statistics~~CallsGraph_node18" class="node">
+<title>nf90_get_var</title>
+<polygon fill="#777777" stroke="#777777" points="556.45,-457.2 475.93,-457.2 475.93,-432.93 556.45,-432.93 556.45,-457.2"/>
+<text xml:space="preserve" text-anchor="middle" x="516.19" y="-441.46" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">nf90_get_var</text>
+</g>
+<!-- proc~readfacetfiles&#45;&gt;nf90_get_var -->
+<g id="proc~~tests_sgs_statistics~~CallsGraph_edge25" class="edge">
+<title>proc~readfacetfiles&#45;&gt;nf90_get_var</title>
+<path fill="none" stroke="#7f00ff" d="M390.45,-460.82C412.85,-457.99 440.69,-454.47 464.37,-451.48"/>
+<polygon fill="#7f00ff" stroke="#7f00ff" points="464.64,-454.98 474.12,-450.25 463.76,-448.03 464.64,-454.98"/>
+</g>
+<!-- nf90_inq_varid -->
+<g id="proc~~tests_sgs_statistics~~CallsGraph_node19" class="node">
+<title>nf90_inq_varid</title>
+<polygon fill="#777777" stroke="#777777" points="560.95,-541.2 471.43,-541.2 471.43,-516.93 560.95,-516.93 560.95,-541.2"/>
+<text xml:space="preserve" text-anchor="middle" x="516.19" y="-525.46" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">nf90_inq_varid</text>
+</g>
+<!-- proc~readfacetfiles&#45;&gt;nf90_inq_varid -->
+<g id="proc~~tests_sgs_statistics~~CallsGraph_edge26" class="edge">
+<title>proc~readfacetfiles&#45;&gt;nf90_inq_varid</title>
+<path fill="none" stroke="#7f00ff" d="M376.11,-478.61C395.64,-487.4 422.7,-499.13 447.06,-508.06 451.7,-509.76 456.54,-511.44 461.42,-513.07"/>
+<polygon fill="#7f00ff" stroke="#7f00ff" points="460.04,-516.3 470.64,-516.06 462.2,-509.65 460.04,-516.3"/>
+</g>
+<!-- nf90_open -->
+<g id="proc~~tests_sgs_statistics~~CallsGraph_node20" class="node">
+<title>nf90_open</title>
+<polygon fill="#777777" stroke="#777777" points="550.08,-499.2 482.31,-499.2 482.31,-474.93 550.08,-474.93 550.08,-499.2"/>
+<text xml:space="preserve" text-anchor="middle" x="516.19" y="-483.46" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">nf90_open</text>
+</g>
+<!-- proc~readfacetfiles&#45;&gt;nf90_open -->
+<g id="proc~~tests_sgs_statistics~~CallsGraph_edge27" class="edge">
+<title>proc~readfacetfiles&#45;&gt;nf90_open</title>
+<path fill="none" stroke="#7f00ff" d="M390.45,-471.31C414.87,-474.39 445.73,-478.29 470.65,-481.44"/>
+<polygon fill="#7f00ff" stroke="#7f00ff" points="470.13,-484.9 480.49,-482.68 471.01,-477.95 470.13,-484.9"/>
+</g>
+<!-- proc~qsat -->
+<g id="proc~~tests_sgs_statistics~~CallsGraph_node26" class="node">
+<title>proc~qsat</title>
+<g id="a_proc~~tests_sgs_statistics~~CallsGraph_node26"><a xlink:href="../proc/qsat.html" xlink:title="qsat">
+<polygon fill="#d94e8f" stroke="#d94e8f" points="543.19,-335.2 489.19,-335.2 489.19,-310.93 543.19,-310.93 543.19,-335.2"/>
+<text xml:space="preserve" text-anchor="middle" x="516.19" y="-319.46" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">qsat</text>
+</a>
+</g>
+</g>
+<!-- proc~readfacetfiles&#45;&gt;proc~qsat -->
+<g id="proc~~tests_sgs_statistics~~CallsGraph_edge28" class="edge">
+<title>proc~readfacetfiles&#45;&gt;proc~qsat</title>
+<path fill="none" stroke="#7f00ff" d="M356.26,-453.68C370.77,-430.17 405.38,-378.74 447.06,-349.06 456.32,-342.47 467.47,-337.3 478.04,-333.37"/>
+<polygon fill="#7f00ff" stroke="#7f00ff" points="478.98,-336.75 487.32,-330.2 476.72,-330.12 478.98,-336.75"/>
+</g>
+<!-- proc~stats_compute_sgs -->
+<g id="proc~~tests_sgs_statistics~~CallsGraph_node28" class="node">
+<title>proc~stats_compute_sgs</title>
+<g id="a_proc~~tests_sgs_statistics~~CallsGraph_node28"><a xlink:href="../proc/stats_compute_sgs.html" xlink:title="stats_compute_sgs">
+<polygon fill="#d9534f" stroke="#d9534f" points="403.56,-87.2 292.29,-87.2 292.29,-62.93 403.56,-62.93 403.56,-87.2"/>
+<text xml:space="preserve" text-anchor="middle" x="347.92" y="-71.46" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">stats_compute_sgs</text>
+</a>
+</g>
+</g>
+<!-- proc~stats_sgs_fluxes&#45;&gt;proc~stats_compute_sgs -->
+<g id="proc~~tests_sgs_statistics~~CallsGraph_edge29" class="edge">
+<title>proc~stats_sgs_fluxes&#45;&gt;proc~stats_compute_sgs</title>
+<path fill="none" stroke="#ff00ff" d="M242.88,-104.46C258.16,-100.14 275.46,-95.26 291.5,-90.72"/>
+<polygon fill="#ff00ff" stroke="#ff00ff" points="292.23,-94.15 300.9,-88.07 290.33,-87.42 292.23,-94.15"/>
+</g>
+<!-- proc~stats_sgs_momentum -->
+<g id="proc~~tests_sgs_statistics~~CallsGraph_node29" class="node">
+<title>proc~stats_sgs_momentum</title>
+<g id="a_proc~~tests_sgs_statistics~~CallsGraph_node29"><a xlink:href="../proc/stats_sgs_momentum.html" xlink:title="stats_sgs_momentum">
+<polygon fill="#d9534f" stroke="#d9534f" points="411.06,-129.2 284.79,-129.2 284.79,-104.93 411.06,-104.93 411.06,-129.2"/>
+<text xml:space="preserve" text-anchor="middle" x="347.92" y="-113.46" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">stats_sgs_momentum</text>
+</a>
+</g>
+</g>
+<!-- proc~stats_sgs_fluxes&#45;&gt;proc~stats_sgs_momentum -->
+<g id="proc~~tests_sgs_statistics~~CallsGraph_edge30" class="edge">
+<title>proc~stats_sgs_fluxes&#45;&gt;proc~stats_sgs_momentum</title>
+<path fill="none" stroke="#ff00ff" d="M245.31,-117.06C254.14,-117.06 263.57,-117.06 272.98,-117.06"/>
+<polygon fill="#ff00ff" stroke="#ff00ff" points="272.91,-120.56 282.91,-117.06 272.91,-113.56 272.91,-120.56"/>
+</g>
+<!-- proc~define_nc&#45;&gt;nf90_inq_varid -->
+<g id="proc~~tests_sgs_statistics~~CallsGraph_edge34" class="edge">
+<title>proc~define_nc&#45;&gt;nf90_inq_varid</title>
+<path fill="none" stroke="#00ff55" d="M370.14,-789.47C384.01,-780.1 401.31,-766.03 411.06,-749.06 455.86,-671.14 387.43,-617.31 447.06,-550.06 450.91,-545.72 455.64,-542.26 460.8,-539.51"/>
+<polygon fill="#00ff55" stroke="#00ff55" points="461.94,-542.83 469.73,-535.65 459.16,-536.4 461.94,-542.83"/>
+</g>
+<!-- nf90_def_var -->
+<g id="proc~~tests_sgs_statistics~~CallsGraph_node35" class="node">
+<title>nf90_def_var</title>
+<polygon fill="#777777" stroke="#777777" points="556.45,-877.2 475.93,-877.2 475.93,-852.93 556.45,-852.93 556.45,-877.2"/>
+<text xml:space="preserve" text-anchor="middle" x="516.19" y="-861.46" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">nf90_def_var</text>
+</g>
+<!-- proc~define_nc&#45;&gt;nf90_def_var -->
+<g id="proc~~tests_sgs_statistics~~CallsGraph_edge31" class="edge">
+<title>proc~define_nc&#45;&gt;nf90_def_var</title>
+<path fill="none" stroke="#00ff55" d="M380.06,-811.22C390.12,-814.54 401.21,-818.58 411.06,-823.06 427.92,-830.73 430.1,-836.62 447.06,-844.06 452.73,-846.55 458.78,-848.87 464.85,-850.98"/>
+<polygon fill="#00ff55" stroke="#00ff55" points="463.69,-854.29 474.28,-854.1 465.89,-847.64 463.69,-854.29"/>
+</g>
+<!-- nf90_enddef -->
+<g id="proc~~tests_sgs_statistics~~CallsGraph_node36" class="node">
+<title>nf90_enddef</title>
+<polygon fill="#777777" stroke="#777777" points="555.33,-835.2 477.06,-835.2 477.06,-810.93 555.33,-810.93 555.33,-835.2"/>
+<text xml:space="preserve" text-anchor="middle" x="516.19" y="-819.46" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">nf90_enddef</text>
+</g>
+<!-- proc~define_nc&#45;&gt;nf90_enddef -->
+<g id="proc~~tests_sgs_statistics~~CallsGraph_edge32" class="edge">
+<title>proc~define_nc&#45;&gt;nf90_enddef</title>
+<path fill="none" stroke="#00ff55" d="M379.81,-805.96C403.83,-809 437.63,-813.27 465.46,-816.78"/>
+<polygon fill="#00ff55" stroke="#00ff55" points="464.71,-820.21 475.07,-818 465.59,-813.27 464.71,-820.21"/>
+</g>
+<!-- nf90_inq_dimid -->
+<g id="proc~~tests_sgs_statistics~~CallsGraph_node37" class="node">
+<title>nf90_inq_dimid</title>
+<polygon fill="#777777" stroke="#777777" points="562.45,-793.2 469.93,-793.2 469.93,-768.93 562.45,-768.93 562.45,-793.2"/>
+<text xml:space="preserve" text-anchor="middle" x="516.19" y="-777.46" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">nf90_inq_dimid</text>
+</g>
+<!-- proc~define_nc&#45;&gt;nf90_inq_dimid -->
+<g id="proc~~tests_sgs_statistics~~CallsGraph_edge33" class="edge">
+<title>proc~define_nc&#45;&gt;nf90_inq_dimid</title>
+<path fill="none" stroke="#00ff55" d="M379.81,-798.16C401.82,-795.38 432.04,-791.57 458.34,-788.24"/>
+<polygon fill="#00ff55" stroke="#00ff55" points="458.74,-791.72 468.22,-787 457.86,-784.78 458.74,-791.72"/>
+</g>
+<!-- nf90_put_att -->
+<g id="proc~~tests_sgs_statistics~~CallsGraph_node40" class="node">
+<title>nf90_put_att</title>
+<polygon fill="#777777" stroke="#777777" points="554.95,-919.2 477.43,-919.2 477.43,-894.93 554.95,-894.93 554.95,-919.2"/>
+<text xml:space="preserve" text-anchor="middle" x="516.19" y="-903.46" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">nf90_put_att</text>
+</g>
+<!-- proc~define_nc&#45;&gt;nf90_put_att -->
+<g id="proc~~tests_sgs_statistics~~CallsGraph_edge35" class="edge">
+<title>proc~define_nc&#45;&gt;nf90_put_att</title>
+<path fill="none" stroke="#00ff55" d="M379.91,-807.8C390.64,-810.94 402.18,-815.75 411.06,-823.06 435.96,-843.56 421.89,-865.9 447.06,-886.06 452.7,-890.58 459.32,-894.13 466.17,-896.92"/>
+<polygon fill="#00ff55" stroke="#00ff55" points="464.99,-900.22 475.59,-900.21 467.3,-893.61 464.99,-900.22"/>
+</g>
+<!-- nf90_redef -->
+<g id="proc~~tests_sgs_statistics~~CallsGraph_node42" class="node">
+<title>nf90_redef</title>
+<polygon fill="#777777" stroke="#777777" points="550.45,-961.2 481.93,-961.2 481.93,-936.93 550.45,-936.93 550.45,-961.2"/>
+<text xml:space="preserve" text-anchor="middle" x="516.19" y="-945.46" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">nf90_redef</text>
+</g>
+<!-- proc~define_nc&#45;&gt;nf90_redef -->
+<g id="proc~~tests_sgs_statistics~~CallsGraph_edge36" class="edge">
+<title>proc~define_nc&#45;&gt;nf90_redef</title>
+<path fill="none" stroke="#00ff55" d="M379.75,-806.64C390.84,-809.67 402.67,-814.71 411.06,-823.06 446.02,-857.87 411.63,-893.73 447.06,-928.06 453.56,-934.36 461.91,-938.78 470.51,-941.87"/>
+<polygon fill="#00ff55" stroke="#00ff55" points="469.4,-945.19 479.98,-944.69 471.4,-938.48 469.4,-945.19"/>
+</g>
+<!-- proc~nchandle_error -->
+<g id="proc~~tests_sgs_statistics~~CallsGraph_node45" class="node">
+<title>proc~nchandle_error</title>
+<g id="a_proc~~tests_sgs_statistics~~CallsGraph_node45"><a xlink:href="../proc/nchandle_error.html" xlink:title="nchandle_error">
+<polygon fill="#d9534f" stroke="#d9534f" points="562.45,-1003.2 469.93,-1003.2 469.93,-978.93 562.45,-978.93 562.45,-1003.2"/>
+<text xml:space="preserve" text-anchor="middle" x="516.19" y="-987.46" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">nchandle_error</text>
+</a>
+</g>
+</g>
+<!-- proc~define_nc&#45;&gt;proc~nchandle_error -->
+<g id="proc~~tests_sgs_statistics~~CallsGraph_edge37" class="edge">
+<title>proc~define_nc&#45;&gt;proc~nchandle_error</title>
+<path fill="none" stroke="#00ff55" d="M379.84,-806.17C391.07,-809.14 402.98,-814.25 411.06,-823.06 456.54,-872.62 400.92,-921.12 447.06,-970.06 450.59,-973.81 454.78,-976.9 459.31,-979.43"/>
+<polygon fill="#00ff55" stroke="#00ff55" points="457.74,-982.57 468.3,-983.53 460.65,-976.2 457.74,-982.57"/>
+</g>
+<!-- proc~read_sparse_ijk -->
+<g id="proc~~tests_sgs_statistics~~CallsGraph_node47" class="node">
+<title>proc~read_sparse_ijk</title>
+<g id="a_proc~~tests_sgs_statistics~~CallsGraph_node47"><a xlink:href="../proc/read_sparse_ijk.html" xlink:title="read_sparse_ijk">
+<polygon fill="#d9534f" stroke="#d9534f" points="562.83,-91.2 469.56,-91.2 469.56,-66.93 562.83,-66.93 562.83,-91.2"/>
+<text xml:space="preserve" text-anchor="middle" x="516.19" y="-75.46" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">read_sparse_ijk</text>
+</a>
+</g>
+</g>
+<!-- proc~initibmnorm&#45;&gt;proc~read_sparse_ijk -->
+<g id="proc~~tests_sgs_statistics~~CallsGraph_edge38" class="edge">
+<title>proc~initibmnorm&#45;&gt;proc~read_sparse_ijk</title>
+<path fill="none" stroke="#00ffa9" d="M386.51,-149.16C394.88,-146.2 403.51,-142.52 411.06,-138.06 429.74,-127.02 428.59,-116.47 447.06,-105.06 452.51,-101.7 458.47,-98.64 464.52,-95.91"/>
+<polygon fill="#00ffa9" stroke="#00ffa9" points="465.47,-99.31 473.33,-92.21 462.76,-92.86 465.47,-99.31"/>
+</g>
+<!-- proc~initibmwallfun&#45;&gt;zstart -->
+<g id="proc~~tests_sgs_statistics~~CallsGraph_edge45" class="edge">
+<title>proc~initibmwallfun&#45;&gt;zstart</title>
+<path fill="none" stroke="#00ffff" d="M391.55,-192.75C398.79,-189.74 405.69,-185.64 411.06,-180.06 450.25,-139.32 403.33,-93.89 447.06,-58.06 496.6,-17.47 576.08,-22.93 622.71,-30.83"/>
+<polygon fill="#00ffff" stroke="#00ffff" points="621.86,-34.23 632.33,-32.59 623.12,-27.35 621.86,-34.23"/>
+</g>
+<!-- proc~initibmwallfun&#45;&gt;mpi_bcast -->
+<g id="proc~~tests_sgs_statistics~~CallsGraph_edge40" class="edge">
+<title>proc~initibmwallfun&#45;&gt;mpi_bcast</title>
+<path fill="none" stroke="#00ffff" d="M365.06,-213.62C383.83,-227.68 416.18,-250.29 447.06,-264.06 505.27,-290.02 523.92,-285.01 585.33,-302.06 595.65,-304.93 606.76,-308.03 617.19,-310.95"/>
+<polygon fill="#00ffff" stroke="#00ffff" points="616.13,-314.29 626.7,-313.62 618.02,-307.55 616.13,-314.29"/>
+</g>
+<!-- mpi_abort -->
+<g id="proc~~tests_sgs_statistics~~CallsGraph_node32" class="node">
+<title>mpi_abort</title>
+<polygon fill="#777777" stroke="#777777" points="548.95,-255.2 483.43,-255.2 483.43,-230.93 548.95,-230.93 548.95,-255.2"/>
+<text xml:space="preserve" text-anchor="middle" x="516.19" y="-239.46" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">mpi_abort</text>
+</g>
+<!-- proc~initibmwallfun&#45;&gt;mpi_abort -->
+<g id="proc~~tests_sgs_statistics~~CallsGraph_edge39" class="edge">
+<title>proc~initibmwallfun&#45;&gt;mpi_abort</title>
+<path fill="none" stroke="#00ffff" d="M391.31,-211.77C416.09,-218.03 447.29,-225.91 472.18,-232.2"/>
+<polygon fill="#00ffff" stroke="#00ffff" points="471.1,-235.53 481.66,-234.59 472.82,-228.75 471.1,-235.53"/>
+</g>
+<!-- proc~alignment -->
+<g id="proc~~tests_sgs_statistics~~CallsGraph_node44" class="node">
+<title>proc~alignment</title>
+<g id="a_proc~~tests_sgs_statistics~~CallsGraph_node44"><a xlink:href="../proc/alignment.html" xlink:title="alignment">
+<polygon fill="#d94e8f" stroke="#d94e8f" points="548.95,-171.2 483.43,-171.2 483.43,-146.93 548.95,-146.93 548.95,-171.2"/>
+<text xml:space="preserve" text-anchor="middle" x="516.19" y="-155.46" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">alignment</text>
+</a>
+</g>
+</g>
+<!-- proc~initibmwallfun&#45;&gt;proc~alignment -->
+<g id="proc~~tests_sgs_statistics~~CallsGraph_edge41" class="edge">
+<title>proc~initibmwallfun&#45;&gt;proc~alignment</title>
+<path fill="none" stroke="#00ffff" d="M391.31,-190.36C416.09,-184.1 447.29,-176.22 472.18,-169.93"/>
+<polygon fill="#00ffff" stroke="#00ffff" points="472.82,-173.38 481.66,-167.53 471.1,-166.59 472.82,-173.38"/>
+</g>
+<!-- proc~plane_line_intersection -->
+<g id="proc~~tests_sgs_statistics~~CallsGraph_node46" class="node">
+<title>proc~plane_line_intersection</title>
+<g id="a_proc~~tests_sgs_statistics~~CallsGraph_node46"><a xlink:href="../proc/plane_line_intersection.html" xlink:title="plane_line_intersection">
+<polygon fill="#d9534f" stroke="#d9534f" points="583.45,-213.2 448.93,-213.2 448.93,-188.93 583.45,-188.93 583.45,-213.2"/>
+<text xml:space="preserve" text-anchor="middle" x="516.19" y="-197.46" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">plane_line_intersection</text>
+</a>
+</g>
+</g>
+<!-- proc~initibmwallfun&#45;&gt;proc~plane_line_intersection -->
+<g id="proc~~tests_sgs_statistics~~CallsGraph_edge42" class="edge">
+<title>proc~initibmwallfun&#45;&gt;proc~plane_line_intersection</title>
+<path fill="none" stroke="#00ffff" d="M391.31,-201.06C405.33,-201.06 421.39,-201.06 437.21,-201.06"/>
+<polygon fill="#00ffff" stroke="#00ffff" points="437.13,-204.56 447.13,-201.06 437.13,-197.56 437.13,-204.56"/>
+</g>
+<!-- proc~initibmwallfun&#45;&gt;proc~read_sparse_ijk -->
+<g id="proc~~tests_sgs_statistics~~CallsGraph_edge43" class="edge">
+<title>proc~initibmwallfun&#45;&gt;proc~read_sparse_ijk</title>
+<path fill="none" stroke="#00ffff" d="M391.5,-191.76C398.58,-188.85 405.43,-185.04 411.06,-180.06 438.75,-155.55 419.85,-130.1 447.06,-105.06 450.72,-101.69 454.87,-98.74 459.26,-96.17"/>
+<polygon fill="#00ffff" stroke="#00ffff" points="460.52,-99.46 467.83,-91.79 457.33,-93.22 460.52,-99.46"/>
+</g>
+<!-- zend -->
+<g id="proc~~tests_sgs_statistics~~CallsGraph_node48" class="node">
+<title>zend</title>
+<polygon fill="#777777" stroke="#777777" points="688.21,-111.2 634.21,-111.2 634.21,-86.93 688.21,-86.93 688.21,-111.2"/>
+<text xml:space="preserve" text-anchor="middle" x="661.21" y="-95.46" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">zend</text>
+</g>
+<!-- proc~initibmwallfun&#45;&gt;zend -->
+<g id="proc~~tests_sgs_statistics~~CallsGraph_edge44" class="edge">
+<title>proc~initibmwallfun&#45;&gt;zend</title>
+<path fill="none" stroke="#00ffff" d="M391.49,-190.1C398.33,-187.39 405.12,-184.08 411.06,-180.06 431.43,-166.3 425.74,-150.31 447.06,-138.06 502.34,-106.3 577.83,-99.5 622.56,-98.53"/>
+<polygon fill="#00ffff" stroke="#00ffff" points="622.58,-102.03 632.53,-98.41 622.49,-95.03 622.58,-102.03"/>
+</g>
+<!-- proc~open_nc&#45;&gt;nf90_get_var -->
+<g id="proc~~tests_sgs_statistics~~CallsGraph_edge50" class="edge">
+<title>proc~open_nc&#45;&gt;nf90_get_var</title>
+<path fill="none" stroke="#0054ff" d="M376.4,-640.88C388.61,-638.09 402.2,-632.86 411.06,-623.06 459.07,-569.96 398.34,-518.51 447.06,-466.06 451.98,-460.77 458.2,-456.79 464.88,-453.82"/>
+<polygon fill="#0054ff" stroke="#0054ff" points="465.99,-457.14 474.19,-450.43 463.6,-450.56 465.99,-457.14"/>
+</g>
+<!-- proc~open_nc&#45;&gt;nf90_inq_varid -->
+<g id="proc~~tests_sgs_statistics~~CallsGraph_edge52" class="edge">
+<title>proc~open_nc&#45;&gt;nf90_inq_varid</title>
+<path fill="none" stroke="#0054ff" d="M376.68,-639.58C388.37,-636.53 401.47,-631.47 411.06,-623.06 438.27,-599.23 419.53,-573.53 447.06,-550.06 451.14,-546.58 455.8,-543.68 460.71,-541.26"/>
+<polygon fill="#0054ff" stroke="#0054ff" points="461.79,-544.6 469.67,-537.51 459.09,-538.14 461.79,-544.6"/>
+</g>
+<!-- proc~open_nc&#45;&gt;nf90_open -->
+<g id="proc~~tests_sgs_statistics~~CallsGraph_edge55" class="edge">
+<title>proc~open_nc&#45;&gt;nf90_open</title>
+<path fill="none" stroke="#0054ff" d="M376.38,-640.49C388.44,-637.61 401.91,-632.43 411.06,-623.06 448.5,-584.77 409.11,-545.85 447.06,-508.06 453.67,-501.48 462.29,-496.95 471.17,-493.84"/>
+<polygon fill="#0054ff" stroke="#0054ff" points="471.92,-497.27 480.55,-491.13 469.98,-490.55 471.92,-497.27"/>
+</g>
+<!-- nf90_create -->
+<g id="proc~~tests_sgs_statistics~~CallsGraph_node33" class="node">
+<title>nf90_create</title>
+<polygon fill="#777777" stroke="#777777" points="553.45,-667.2 478.93,-667.2 478.93,-642.93 553.45,-642.93 553.45,-667.2"/>
+<text xml:space="preserve" text-anchor="middle" x="516.19" y="-651.46" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">nf90_create</text>
+</g>
+<!-- proc~open_nc&#45;&gt;nf90_create -->
+<g id="proc~~tests_sgs_statistics~~CallsGraph_edge46" class="edge">
+<title>proc~open_nc&#45;&gt;nf90_create</title>
+<path fill="none" stroke="#0054ff" d="M376.38,-645.88C401.05,-647.51 437.84,-649.94 467.34,-651.9"/>
+<polygon fill="#0054ff" stroke="#0054ff" points="466.94,-655.38 477.15,-652.55 467.4,-648.39 466.94,-655.38"/>
+</g>
+<!-- nf90_def_dim -->
+<g id="proc~~tests_sgs_statistics~~CallsGraph_node34" class="node">
+<title>nf90_def_dim</title>
+<polygon fill="#777777" stroke="#777777" points="557.95,-625.2 474.43,-625.2 474.43,-600.93 557.95,-600.93 557.95,-625.2"/>
+<text xml:space="preserve" text-anchor="middle" x="516.19" y="-609.46" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">nf90_def_dim</text>
+</g>
+<!-- proc~open_nc&#45;&gt;nf90_def_dim -->
+<g id="proc~~tests_sgs_statistics~~CallsGraph_edge47" class="edge">
+<title>proc~open_nc&#45;&gt;nf90_def_dim</title>
+<path fill="none" stroke="#0054ff" d="M376.38,-638.94C399.83,-634.57 434.22,-628.16 462.91,-622.81"/>
+<polygon fill="#0054ff" stroke="#0054ff" points="463.31,-626.3 472.5,-621.02 462.03,-619.42 463.31,-626.3"/>
+</g>
+<!-- proc~open_nc&#45;&gt;nf90_def_var -->
+<g id="proc~~tests_sgs_statistics~~CallsGraph_edge48" class="edge">
+<title>proc~open_nc&#45;&gt;nf90_def_var</title>
+<path fill="none" stroke="#0054ff" d="M376.52,-647.14C388.76,-649.91 402.33,-655.15 411.06,-665.06 464.67,-725.98 392.63,-783.87 447.06,-844.06 451.91,-849.43 458.09,-853.43 464.75,-856.43"/>
+<polygon fill="#0054ff" stroke="#0054ff" points="463.46,-859.68 474.05,-859.82 465.86,-853.11 463.46,-859.68"/>
+</g>
+<!-- proc~open_nc&#45;&gt;nf90_enddef -->
+<g id="proc~~tests_sgs_statistics~~CallsGraph_edge49" class="edge">
+<title>proc~open_nc&#45;&gt;nf90_enddef</title>
+<path fill="none" stroke="#0054ff" d="M376.58,-647.44C388.68,-650.28 402.13,-655.49 411.06,-665.06 454.02,-711.09 403.49,-756.62 447.06,-802.06 452.36,-807.59 459.07,-811.67 466.2,-814.68"/>
+<polygon fill="#0054ff" stroke="#0054ff" points="464.81,-817.9 475.41,-817.87 467.11,-811.29 464.81,-817.9"/>
+</g>
+<!-- proc~open_nc&#45;&gt;nf90_inq_dimid -->
+<g id="proc~~tests_sgs_statistics~~CallsGraph_edge51" class="edge">
+<title>proc~open_nc&#45;&gt;nf90_inq_dimid</title>
+<path fill="none" stroke="#0054ff" d="M376.44,-647.96C388.37,-650.9 401.72,-656.05 411.06,-665.06 443.56,-696.41 414.14,-729.16 447.06,-760.06 450.71,-763.49 454.91,-766.36 459.4,-768.76"/>
+<polygon fill="#0054ff" stroke="#0054ff" points="457.62,-771.8 468.18,-772.69 460.48,-765.41 457.62,-771.8"/>
+</g>
+<!-- nf90_inquire -->
+<g id="proc~~tests_sgs_statistics~~CallsGraph_node38" class="node">
+<title>nf90_inquire</title>
+<polygon fill="#777777" stroke="#777777" points="554.95,-751.2 477.43,-751.2 477.43,-726.93 554.95,-726.93 554.95,-751.2"/>
+<text xml:space="preserve" text-anchor="middle" x="516.19" y="-735.46" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">nf90_inquire</text>
+</g>
+<!-- proc~open_nc&#45;&gt;nf90_inquire -->
+<g id="proc~~tests_sgs_statistics~~CallsGraph_edge53" class="edge">
+<title>proc~open_nc&#45;&gt;nf90_inquire</title>
+<path fill="none" stroke="#0054ff" d="M376.46,-649.28C387.98,-652.45 401,-657.41 411.06,-665.06 433.73,-682.3 424.16,-701.14 447.06,-718.06 452.81,-722.31 459.43,-725.71 466.24,-728.43"/>
+<polygon fill="#0054ff" stroke="#0054ff" points="464.97,-731.7 475.57,-731.67 467.27,-725.08 464.97,-731.7"/>
+</g>
+<!-- nf90_inquire_dimension -->
+<g id="proc~~tests_sgs_statistics~~CallsGraph_node39" class="node">
+<title>nf90_inquire_dimension</title>
+<polygon fill="#777777" stroke="#777777" points="585.33,-583.2 447.06,-583.2 447.06,-558.93 585.33,-558.93 585.33,-583.2"/>
+<text xml:space="preserve" text-anchor="middle" x="516.19" y="-567.46" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">nf90_inquire_dimension</text>
+</g>
+<!-- proc~open_nc&#45;&gt;nf90_inquire_dimension -->
+<g id="proc~~tests_sgs_statistics~~CallsGraph_edge54" class="edge">
+<title>proc~open_nc&#45;&gt;nf90_inquire_dimension</title>
+<path fill="none" stroke="#0054ff" d="M376.5,-637.23C387.65,-633.85 400.38,-629.16 411.06,-623.06 429.4,-612.6 428.58,-602.28 447.06,-592.06 449.71,-590.6 452.48,-589.22 455.31,-587.93"/>
+<polygon fill="#0054ff" stroke="#0054ff" points="456.49,-591.23 464.4,-584.19 453.82,-584.76 456.49,-591.23"/>
+</g>
+<!-- proc~open_nc&#45;&gt;nf90_put_att -->
+<g id="proc~~tests_sgs_statistics~~CallsGraph_edge56" class="edge">
+<title>proc~open_nc&#45;&gt;nf90_put_att</title>
+<path fill="none" stroke="#0054ff" d="M376.37,-646.92C388.73,-649.64 402.45,-654.9 411.06,-665.06 475.41,-740.97 381.69,-811.03 447.06,-886.06 452.2,-891.96 458.94,-896.22 466.2,-899.3"/>
+<polygon fill="#0054ff" stroke="#0054ff" points="465.03,-902.6 475.62,-902.53 467.29,-895.98 465.03,-902.6"/>
+</g>
+<!-- nf90_sync -->
+<g id="proc~~tests_sgs_statistics~~CallsGraph_node43" class="node">
+<title>nf90_sync</title>
+<polygon fill="#777777" stroke="#777777" points="548.58,-709.2 483.81,-709.2 483.81,-684.93 548.58,-684.93 548.58,-709.2"/>
+<text xml:space="preserve" text-anchor="middle" x="516.19" y="-693.46" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">nf90_sync</text>
+</g>
+<!-- proc~open_nc&#45;&gt;nf90_sync -->
+<g id="proc~~tests_sgs_statistics~~CallsGraph_edge57" class="edge">
+<title>proc~open_nc&#45;&gt;nf90_sync</title>
+<path fill="none" stroke="#0054ff" d="M376.38,-653.15C396.04,-659.62 423.15,-668.48 447.06,-676.06 455.35,-678.69 464.21,-681.46 472.72,-684.09"/>
+<polygon fill="#0054ff" stroke="#0054ff" points="471.58,-687.4 482.17,-687 473.64,-680.71 471.58,-687.4"/>
+</g>
+<!-- proc~subgridnamelist&#45;&gt;mpi_bcast -->
+<g id="proc~~tests_sgs_statistics~~CallsGraph_edge58" class="edge">
+<title>proc~subgridnamelist&#45;&gt;mpi_bcast</title>
+<path fill="none" stroke="#ff00aa" d="M396.78,-854.5C402.12,-857.24 407.06,-860.7 411.06,-865.06 456.54,-914.62 394.14,-970.54 447.06,-1012.06 495.41,-1050 539.59,-1053.1 585.33,-1012.06 635.99,-966.61 655.6,-463.25 659.47,-346.95"/>
+<polygon fill="#ff00aa" stroke="#ff00aa" points="662.96,-347.16 659.79,-337.05 655.97,-346.94 662.96,-347.16"/>
+</g>
+<!-- proc~writestat_dims_nc&#45;&gt;nf90_inq_varid -->
+<g id="proc~~tests_sgs_statistics~~CallsGraph_edge59" class="edge">
+<title>proc~writestat_dims_nc&#45;&gt;nf90_inq_varid</title>
+<path fill="none" stroke="#ff0055" d="M401.08,-543.48C419.78,-541.11 440.92,-538.44 459.88,-536.05"/>
+<polygon fill="#ff0055" stroke="#ff0055" points="460.07,-539.55 469.56,-534.83 459.2,-532.61 460.07,-539.55"/>
+</g>
+<!-- proc~writestat_dims_nc&#45;&gt;nf90_inquire_dimension -->
+<g id="proc~~tests_sgs_statistics~~CallsGraph_edge60" class="edge">
+<title>proc~writestat_dims_nc&#45;&gt;nf90_inquire_dimension</title>
+<path fill="none" stroke="#ff0055" d="M401.08,-556.65C412.05,-558.04 423.86,-559.53 435.57,-561.01"/>
+<polygon fill="#ff0055" stroke="#ff0055" points="434.89,-564.45 445.25,-562.23 435.77,-557.5 434.89,-564.45"/>
+</g>
+<!-- nf90_put_var -->
+<g id="proc~~tests_sgs_statistics~~CallsGraph_node41" class="node">
+<title>nf90_put_var</title>
+<polygon fill="#777777" stroke="#777777" points="556.45,-415.2 475.93,-415.2 475.93,-390.93 556.45,-390.93 556.45,-415.2"/>
+<text xml:space="preserve" text-anchor="middle" x="516.19" y="-399.46" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">nf90_put_var</text>
+</g>
+<!-- proc~writestat_dims_nc&#45;&gt;nf90_put_var -->
+<g id="proc~~tests_sgs_statistics~~CallsGraph_edge61" class="edge">
+<title>proc~writestat_dims_nc&#45;&gt;nf90_put_var</title>
+<path fill="none" stroke="#ff0055" d="M363.33,-537.47C376.67,-525.38 396.58,-506.16 411.06,-487.06 430.55,-461.37 421.89,-444.22 447.06,-424.06 452.32,-419.85 458.43,-416.48 464.78,-413.78"/>
+<polygon fill="#ff0055" stroke="#ff0055" points="465.97,-417.07 474.18,-410.37 463.58,-410.49 465.97,-417.07"/>
+</g>
+<!-- proc~is_equal -->
+<g id="proc~~tests_sgs_statistics~~CallsGraph_node50" class="node">
+<title>proc~is_equal</title>
+<g id="a_proc~~tests_sgs_statistics~~CallsGraph_node50"><a xlink:href="../proc/is_equal.html" xlink:title="is_equal">
+<polygon fill="#d94e8f" stroke="#d94e8f" points="688.72,-171.2 633.7,-171.2 633.7,-146.93 688.72,-146.93 688.72,-171.2"/>
+<text xml:space="preserve" text-anchor="middle" x="661.21" y="-155.46" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">is_equal</text>
+</a>
+</g>
+</g>
+<!-- proc~alignment&#45;&gt;proc~is_equal -->
+<g id="proc~~tests_sgs_statistics~~CallsGraph_edge62" class="edge">
+<title>proc~alignment&#45;&gt;proc~is_equal</title>
+<path fill="none" stroke="#3c00ff" d="M549.29,-159.06C570.89,-159.06 599.47,-159.06 622.21,-159.06"/>
+<polygon fill="#3c00ff" stroke="#3c00ff" points="621.99,-162.56 631.99,-159.06 621.99,-155.56 621.99,-162.56"/>
+</g>
+<!-- nf90_strerror -->
+<g id="proc~~tests_sgs_statistics~~CallsGraph_node49" class="node">
+<title>nf90_strerror</title>
+<polygon fill="#777777" stroke="#777777" points="701.1,-1003.2 621.33,-1003.2 621.33,-978.93 701.1,-978.93 701.1,-1003.2"/>
+<text xml:space="preserve" text-anchor="middle" x="661.21" y="-987.46" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">nf90_strerror</text>
+</g>
+<!-- proc~nchandle_error&#45;&gt;nf90_strerror -->
+<g id="proc~~tests_sgs_statistics~~CallsGraph_edge63" class="edge">
+<title>proc~nchandle_error&#45;&gt;nf90_strerror</title>
+<path fill="none" stroke="#9500ff" d="M562.84,-991.06C577.82,-991.06 594.56,-991.06 609.87,-991.06"/>
+<polygon fill="#9500ff" stroke="#9500ff" points="609.73,-994.56 619.73,-991.06 609.73,-987.56 609.73,-994.56"/>
+</g>
+<!-- proc~read_sparse_ijk&#45;&gt;zstart -->
+<g id="proc~~tests_sgs_statistics~~CallsGraph_edge66" class="edge">
+<title>proc~read_sparse_ijk&#45;&gt;zstart</title>
+<path fill="none" stroke="#ff00b4" d="M562.06,-66.52C581.59,-61.05 604.23,-54.72 622.84,-49.52"/>
+<polygon fill="#ff00b4" stroke="#ff00b4" points="623.69,-52.91 632.38,-46.85 621.81,-46.17 623.69,-52.91"/>
+</g>
+<!-- proc~read_sparse_ijk&#45;&gt;mpi_bcast -->
+<g id="proc~~tests_sgs_statistics~~CallsGraph_edge64" class="edge">
+<title>proc~read_sparse_ijk&#45;&gt;mpi_bcast</title>
+<path fill="none" stroke="#ff00b4" d="M536.15,-91.65C551.19,-102.45 571.86,-119.23 585.33,-138.06 622.46,-189.97 644.92,-262.95 654.61,-299.81"/>
+<polygon fill="#ff00b4" stroke="#ff00b4" points="651.18,-300.54 657.03,-309.37 657.97,-298.82 651.18,-300.54"/>
+</g>
+<!-- proc~read_sparse_ijk&#45;&gt;zend -->
+<g id="proc~~tests_sgs_statistics~~CallsGraph_edge65" class="edge">
+<title>proc~read_sparse_ijk&#45;&gt;zend</title>
+<path fill="none" stroke="#ff00b4" d="M563.23,-85.5C582.39,-88.18 604.36,-91.25 622.53,-93.79"/>
+<polygon fill="#ff00b4" stroke="#ff00b4" points="621.97,-97.25 632.36,-95.17 622.94,-90.32 621.97,-97.25"/>
+</g>
+</g>
+</svg>
+</div>                <script>
+                  var panproctests_sgs_statisticsCallsGraph = svgPanZoom('#proctests_sgs_statisticsCallsGraph',
+                    {zoomEnabled: true, controlIconsEnabled: true, fit: true, center: true,}
+                  );
+                </script>          <div>
+            <a type="button" class="graph-help" data-bs-toggle="modal" href="#CallsGraph-help-text">Help</a>
+          </div>
+          <div class="modal fade" id="CallsGraph-help-text" tabindex="-1" role="dialog">
+            <div class="modal-dialog modal-lg" role="document">
+              <div class="modal-content">
+                <div class="modal-header">
+                  <h4 class="modal-title" id="-graph-help-label">Graph Key</h4>
+                  <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+<p>Nodes of different colours represent the following: </p>
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
+ "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<!-- Generated by graphviz version 14.1.3 (0)
+ -->
+<!-- Title: Graph Key Pages: 1 -->
+<svg width="641pt" height="28pt"
+ viewBox="0.00 0.00 641.00 28.00" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<g id="graph0" class="graph" transform="scale(0.873868 0.873868) rotate(0) translate(4 28.27)">
+<title>Graph Key</title>
+<polygon fill="white" stroke="none" points="-4,4 -4,-28.27 729.52,-28.27 729.52,4 -4,4"/>
+<!-- Subroutine -->
+<g id="node1" class="node">
+<title>Subroutine</title>
+<polygon fill="#d9534f" stroke="#d9534f" points="69.27,-24.27 0,-24.27 0,0 69.27,0 69.27,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="34.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Subroutine</text>
+</g>
+<!-- Function -->
+<g id="node2" class="node">
+<title>Function</title>
+<polygon fill="#d94e8f" stroke="#d94e8f" points="143.89,-24.27 87.38,-24.27 87.38,0 143.89,0 143.89,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="115.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Function</text>
+</g>
+<!-- Interface -->
+<g id="node3" class="node">
+<title>Interface</title>
+<polygon fill="#a7506f" stroke="#a7506f" points="221.39,-24.27 161.88,-24.27 161.88,0 221.39,0 221.39,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="191.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Interface</text>
+</g>
+<!-- Type Bound Procedure -->
+<g id="node4" class="node">
+<title>Type Bound Procedure</title>
+<polygon fill="#a7506f" stroke="#a7506f" points="368.27,-24.27 239,-24.27 239,0 368.27,0 368.27,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="303.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Type Bound Procedure</text>
+</g>
+<!-- Unknown Procedure Type -->
+<g id="node5" class="node">
+<title>Unknown Procedure Type</title>
+<polygon fill="#777777" stroke="#777777" points="529.39,-24.27 385.88,-24.27 385.88,0 529.39,0 529.39,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="457.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Unknown Procedure Type</text>
+</g>
+<!-- Program -->
+<g id="node6" class="node">
+<title>Program</title>
+<polygon fill="#f0ad4e" stroke="#f0ad4e" points="603.89,-24.27 547.38,-24.27 547.38,0 603.89,0 603.89,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="575.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Program</text>
+</g>
+<!-- This Page&#39;s Entity -->
+<g id="node7" class="node">
+<title>This Page&#39;s Entity</title>
+<polygon fill="none" stroke="black" points="725.52,-24.27 621.75,-24.27 621.75,0 725.52,0 725.52,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="673.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50">This Page&#39;s Entity</text>
+</g>
+</g>
+</svg>
+
+<p>Solid arrows point from a procedure to one which it calls. Dashed 
+arrows point from an interface to procedures which implement that interface.
+This could include the module procedures in a generic interface or the
+implementation in a submodule of an interface in a parent module.
+</p>
+ Where possible, edges connecting nodes are
+given different colours to make them easier to distinguish in
+large graphs.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-header">
+  <h3 class="card-title">Called by</h3>
+      </div>
+      <div class="card-body">
+  <div class="depgraph"><?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
+ "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<!-- Generated by graphviz version 14.1.3 (0)
+ -->
+<!-- Title: proc~~tests_sgs_statistics~~CalledByGraph Pages: 1 -->
+<svg id="proctests_sgs_statisticsCalledByGraph" width="395pt" height="32pt"
+ viewBox="0.00 0.00 395.00 32.00" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<g id="proc~~tests_sgs_statistics~~CalledByGraph" class="graph" transform="scale(1 1) rotate(0) translate(4 28.27)">
+<title>proc~~tests_sgs_statistics~~CalledByGraph</title>
+<polygon fill="white" stroke="none" points="-4,4 -4,-28.27 390.79,-28.27 390.79,4 -4,4"/>
+<!-- proc~tests_sgs_statistics -->
+<g id="proc~~tests_sgs_statistics~~CalledByGraph_node1" class="node">
+<title>proc~tests_sgs_statistics</title>
+<polygon fill="none" stroke="black" points="386.79,-24.27 277.02,-24.27 277.02,0 386.79,0 386.79,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="331.9" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50">tests_sgs_statistics</text>
+</g>
+<!-- proc~execute_runmode_actions -->
+<g id="proc~~tests_sgs_statistics~~CalledByGraph_node2" class="node">
+<title>proc~execute_runmode_actions</title>
+<g id="a_proc~~tests_sgs_statistics~~CalledByGraph_node2"><a xlink:href="../proc/execute_runmode_actions.html" xlink:title="execute_runmode_actions">
+<polygon fill="#d9534f" stroke="#d9534f" points="241.02,-24.27 90,-24.27 90,0 241.02,0 241.02,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="165.51" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">execute_runmode_actions</text>
+</a>
+</g>
+</g>
+<!-- proc~execute_runmode_actions&#45;&gt;proc~tests_sgs_statistics -->
+<g id="proc~~tests_sgs_statistics~~CalledByGraph_edge1" class="edge">
+<title>proc~execute_runmode_actions&#45;&gt;proc~tests_sgs_statistics</title>
+<path fill="none" stroke="#ff0000" d="M241.49,-12.13C249.46,-12.13 257.51,-12.13 265.36,-12.13"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="265.15,-15.64 275.15,-12.14 265.15,-8.64 265.15,-15.64"/>
+</g>
+<!-- program~udales -->
+<g id="proc~~tests_sgs_statistics~~CalledByGraph_node3" class="node">
+<title>program~udales</title>
+<g id="a_proc~~tests_sgs_statistics~~CalledByGraph_node3"><a xlink:href="../program/udales.html" xlink:title="uDALES">
+<polygon fill="#f0ad4e" stroke="#f0ad4e" points="54,-24.27 0,-24.27 0,0 54,0 54,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="27" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">uDALES</text>
+</a>
+</g>
+</g>
+<!-- program~udales&#45;&gt;proc~execute_runmode_actions -->
+<g id="proc~~tests_sgs_statistics~~CalledByGraph_edge2" class="edge">
+<title>program~udales&#45;&gt;proc~execute_runmode_actions</title>
+<path fill="none" stroke="#ff0000" d="M54.32,-12.13C61.49,-12.13 69.66,-12.13 78.24,-12.13"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="78.19,-15.64 88.19,-12.14 78.19,-8.64 78.19,-15.64"/>
+</g>
+</g>
+</svg>
+</div>          <div>
+            <a type="button" class="graph-help" data-bs-toggle="modal" href="#CalledByGraph-help-text">Help</a>
+          </div>
+          <div class="modal fade" id="CalledByGraph-help-text" tabindex="-1" role="dialog">
+            <div class="modal-dialog modal-lg" role="document">
+              <div class="modal-content">
+                <div class="modal-header">
+                  <h4 class="modal-title" id="-graph-help-label">Graph Key</h4>
+                  <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+<p>Nodes of different colours represent the following: </p>
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
+ "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<!-- Generated by graphviz version 14.1.3 (0)
+ -->
+<!-- Title: Graph Key Pages: 1 -->
+<svg width="641pt" height="28pt"
+ viewBox="0.00 0.00 641.00 28.00" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<g id="graph0" class="graph" transform="scale(0.873868 0.873868) rotate(0) translate(4 28.27)">
+<title>Graph Key</title>
+<polygon fill="white" stroke="none" points="-4,4 -4,-28.27 729.52,-28.27 729.52,4 -4,4"/>
+<!-- Subroutine -->
+<g id="node1" class="node">
+<title>Subroutine</title>
+<polygon fill="#d9534f" stroke="#d9534f" points="69.27,-24.27 0,-24.27 0,0 69.27,0 69.27,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="34.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Subroutine</text>
+</g>
+<!-- Function -->
+<g id="node2" class="node">
+<title>Function</title>
+<polygon fill="#d94e8f" stroke="#d94e8f" points="143.89,-24.27 87.38,-24.27 87.38,0 143.89,0 143.89,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="115.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Function</text>
+</g>
+<!-- Interface -->
+<g id="node3" class="node">
+<title>Interface</title>
+<polygon fill="#a7506f" stroke="#a7506f" points="221.39,-24.27 161.88,-24.27 161.88,0 221.39,0 221.39,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="191.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Interface</text>
+</g>
+<!-- Type Bound Procedure -->
+<g id="node4" class="node">
+<title>Type Bound Procedure</title>
+<polygon fill="#a7506f" stroke="#a7506f" points="368.27,-24.27 239,-24.27 239,0 368.27,0 368.27,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="303.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Type Bound Procedure</text>
+</g>
+<!-- Unknown Procedure Type -->
+<g id="node5" class="node">
+<title>Unknown Procedure Type</title>
+<polygon fill="#777777" stroke="#777777" points="529.39,-24.27 385.88,-24.27 385.88,0 529.39,0 529.39,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="457.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Unknown Procedure Type</text>
+</g>
+<!-- Program -->
+<g id="node6" class="node">
+<title>Program</title>
+<polygon fill="#f0ad4e" stroke="#f0ad4e" points="603.89,-24.27 547.38,-24.27 547.38,0 603.89,0 603.89,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="575.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Program</text>
+</g>
+<!-- This Page&#39;s Entity -->
+<g id="node7" class="node">
+<title>This Page&#39;s Entity</title>
+<polygon fill="none" stroke="black" points="725.52,-24.27 621.75,-24.27 621.75,0 725.52,0 725.52,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="673.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50">This Page&#39;s Entity</text>
+</g>
+</g>
+</svg>
+
+<p>Solid arrows point from a procedure to one which it calls. Dashed 
+arrows point from an interface to procedures which implement that interface.
+This could include the module procedures in a generic interface or the
+implementation in a submodule of an interface in a parent module.
+</p>
+ Where possible, edges connecting nodes are
+given different colours to make them easier to distinguish in
+large graphs.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <br>
+
+
+    
+    
+
+    
+    
+
+
+
+    
+    <section>
+    <h2><span class="anchor" id="src"></span>Source Code</h2>
+    <div class="hl codehilite"><pre><span></span><span class="w">  </span><span class="kt">logical </span><span class="k">function </span><span class="n">tests_sgs_statistics</span><span class="p">()</span>
+<span class="w">    </span><span class="k">use </span><span class="n">modglobal</span><span class="p">,</span><span class="w">    </span><span class="k">only</span><span class="w"> </span><span class="p">:</span><span class="w"> </span><span class="n">ib</span><span class="p">,</span><span class="w"> </span><span class="n">ie</span><span class="p">,</span><span class="w"> </span><span class="n">ih</span><span class="p">,</span><span class="w"> </span><span class="n">jb</span><span class="p">,</span><span class="w"> </span><span class="n">je</span><span class="p">,</span><span class="w"> </span><span class="n">jh</span><span class="p">,</span><span class="w"> </span><span class="n">kb</span><span class="p">,</span><span class="w"> </span><span class="n">ke</span><span class="p">,</span><span class="w"> </span><span class="n">kh</span><span class="p">,</span><span class="w"> </span><span class="n">runmode</span><span class="p">,</span><span class="w"> </span><span class="p">&amp;</span>
+<span class="w">                             </span><span class="n">dx</span><span class="p">,</span><span class="w"> </span><span class="n">dzf</span><span class="p">,</span><span class="w"> </span><span class="n">dzfi</span><span class="p">,</span><span class="w"> </span><span class="n">dzh</span><span class="p">,</span><span class="w"> </span><span class="n">dzhi</span><span class="p">,</span><span class="w"> </span><span class="n">zf</span><span class="p">,</span><span class="w"> </span><span class="n">zh</span>
+<span class="w">    </span><span class="k">use </span><span class="n">modfields</span><span class="p">,</span><span class="w">    </span><span class="k">only</span><span class="w"> </span><span class="p">:</span><span class="w"> </span><span class="n">initfields</span><span class="p">,</span><span class="w"> </span><span class="n">um</span><span class="p">,</span><span class="w"> </span><span class="n">vm</span><span class="p">,</span><span class="w"> </span><span class="n">wm</span><span class="p">,</span><span class="w"> </span><span class="n">thlm</span><span class="p">,</span><span class="w"> </span><span class="n">u0</span><span class="p">,</span><span class="w"> </span><span class="n">v0</span><span class="p">,</span><span class="w"> </span><span class="n">w0</span><span class="p">,</span><span class="w"> </span><span class="n">thl0</span><span class="p">,</span><span class="w"> </span><span class="n">up</span><span class="p">,</span><span class="w"> </span><span class="n">wp</span><span class="p">,</span><span class="w"> </span><span class="n">thlp</span>
+<span class="w">    </span><span class="k">use </span><span class="n">modsubgrid</span><span class="p">,</span><span class="w">   </span><span class="k">only</span><span class="w"> </span><span class="p">:</span><span class="w"> </span><span class="n">initsubgrid</span><span class="p">,</span><span class="w"> </span><span class="n">diffc</span><span class="p">,</span><span class="w"> </span><span class="n">diffu</span><span class="p">,</span><span class="w"> </span><span class="n">diffw</span><span class="p">,</span><span class="w"> </span><span class="n">ekh</span><span class="p">,</span><span class="w"> </span><span class="n">ekm</span>
+<span class="w">    </span><span class="k">use </span><span class="n">modboundary</span><span class="p">,</span><span class="w">  </span><span class="k">only</span><span class="w"> </span><span class="p">:</span><span class="w"> </span><span class="n">initboundary</span>
+<span class="w">    </span><span class="k">use </span><span class="n">modibm</span><span class="p">,</span><span class="w">       </span><span class="k">only</span><span class="w"> </span><span class="p">:</span><span class="w"> </span><span class="n">initibm</span><span class="p">,</span><span class="w"> </span><span class="n">createmasks</span>
+<span class="w">    </span><span class="k">use </span><span class="n">stats</span><span class="p">,</span><span class="w">        </span><span class="k">only</span><span class="w"> </span><span class="p">:</span><span class="w"> </span><span class="n">stats_sgs_fluxes</span>
+<span class="w">    </span><span class="k">use </span><span class="n">initfac</span><span class="p">,</span><span class="w">      </span><span class="k">only</span><span class="w"> </span><span class="p">:</span><span class="w"> </span><span class="n">readfacetfiles</span>
+<span class="w">    </span><span class="k">use </span><span class="n">decomp_2d</span><span class="p">,</span><span class="w">    </span><span class="k">only</span><span class="w"> </span><span class="p">:</span><span class="w"> </span><span class="n">zstart</span>
+
+<span class="w">    </span><span class="k">implicit none</span>
+
+<span class="k">    </span><span class="kt">real</span><span class="p">,</span><span class="w"> </span><span class="k">parameter</span><span class="w"> </span><span class="kd">::</span><span class="w"> </span><span class="n">acoef</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">0.37</span><span class="w">   </span><span class="c">! u   = acoef*z^2</span>
+<span class="w">    </span><span class="kt">real</span><span class="p">,</span><span class="w"> </span><span class="k">parameter</span><span class="w"> </span><span class="kd">::</span><span class="w"> </span><span class="n">bcoef</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">0.21</span><span class="w">   </span><span class="c">! w   = bcoef*x + dcoef*z</span>
+<span class="w">    </span><span class="kt">real</span><span class="p">,</span><span class="w"> </span><span class="k">parameter</span><span class="w"> </span><span class="kd">::</span><span class="w"> </span><span class="n">ccoef</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">0.53</span><span class="w">   </span><span class="c">! thl = ccoef*z^2</span>
+<span class="w">    </span><span class="kt">real</span><span class="p">,</span><span class="w"> </span><span class="k">parameter</span><span class="w"> </span><span class="kd">::</span><span class="w"> </span><span class="n">dcoef</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">0.43</span>
+<span class="w">    </span><span class="kt">real</span><span class="p">,</span><span class="w"> </span><span class="k">parameter</span><span class="w"> </span><span class="kd">::</span><span class="w"> </span><span class="n">nuconst</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">0.17</span><span class="w"> </span><span class="c">! constant ekm for the manufactured solution</span>
+<span class="w">    </span><span class="kt">real</span><span class="p">,</span><span class="w"> </span><span class="k">parameter</span><span class="w"> </span><span class="kd">::</span><span class="w"> </span><span class="n">kaconst</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">0.29</span><span class="w"> </span><span class="c">! constant ekh for the manufactured solution</span>
+
+<span class="w">    </span><span class="kt">real</span><span class="p">,</span><span class="w"> </span><span class="k">allocatable</span><span class="w"> </span><span class="kd">::</span><span class="w"> </span><span class="n">usgs</span><span class="p">(:,:,:),</span><span class="w"> </span><span class="n">vsgs</span><span class="p">(:,:,:),</span><span class="w"> </span><span class="n">wsgs</span><span class="p">(:,:,:)</span>
+<span class="w">    </span><span class="kt">real</span><span class="p">,</span><span class="w"> </span><span class="k">allocatable</span><span class="w"> </span><span class="kd">::</span><span class="w"> </span><span class="n">thlsgs</span><span class="p">(:,:,:),</span><span class="w"> </span><span class="n">qtsgs</span><span class="p">(:,:,:)</span>
+<span class="w">    </span><span class="kt">real</span><span class="p">,</span><span class="w"> </span><span class="k">allocatable</span><span class="w"> </span><span class="kd">::</span><span class="w"> </span><span class="n">zc</span><span class="p">(:),</span><span class="w"> </span><span class="n">zw</span><span class="p">(:),</span><span class="w"> </span><span class="n">got</span><span class="p">(:,:,:),</span><span class="w"> </span><span class="nb">exp</span><span class="p">(:,:,:)</span>
+<span class="w">    </span><span class="kt">logical</span><span class="w"> </span><span class="kd">::</span><span class="w"> </span><span class="n">all_passed</span>
+<span class="w">    </span><span class="kt">real</span><span class="w">    </span><span class="kd">::</span><span class="w"> </span><span class="n">trunc_tol</span><span class="p">,</span><span class="w"> </span><span class="nb">scale</span>
+<span class="nb">    </span><span class="kt">integer</span><span class="w"> </span><span class="kd">::</span><span class="w"> </span><span class="n">i</span><span class="p">,</span><span class="w"> </span><span class="n">j</span><span class="p">,</span><span class="w"> </span><span class="n">k</span><span class="p">,</span><span class="w"> </span><span class="n">gi</span>
+
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">myid</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="mi">0</span><span class="p">)</span><span class="w"> </span><span class="k">then</span>
+<span class="k">      write</span><span class="p">(</span><span class="o">*</span><span class="p">,</span><span class="w"> </span><span class="s1">'(A)'</span><span class="p">)</span><span class="w"> </span><span class="s1">'================================================'</span>
+<span class="w">      </span><span class="k">write</span><span class="p">(</span><span class="o">*</span><span class="p">,</span><span class="w"> </span><span class="s1">'(A, I8)'</span><span class="p">)</span><span class="w"> </span><span class="s1">'runmode = '</span><span class="p">,</span><span class="w"> </span><span class="n">runmode</span>
+<span class="w">      </span><span class="k">write</span><span class="p">(</span><span class="o">*</span><span class="p">,</span><span class="w"> </span><span class="s1">'(A)'</span><span class="p">)</span><span class="w"> </span><span class="s1">'tests_sgs_statistics: SGS STATISTICS TEST'</span>
+<span class="w">      </span><span class="k">write</span><span class="p">(</span><span class="o">*</span><span class="p">,</span><span class="w"> </span><span class="s1">'(A)'</span><span class="p">)</span><span class="w"> </span><span class="s1">'------------------------------------------------'</span>
+<span class="w">      </span><span class="k">write</span><span class="p">(</span><span class="o">*</span><span class="p">,</span><span class="w"> </span><span class="s1">'(A)'</span><span class="p">)</span><span class="w"> </span><span class="s1">'Using stretched-grid case 300 to validate the out_stats SGS fluxes'</span>
+<span class="w">    </span><span class="k">end if</span>
+
+<span class="k">    call </span><span class="n">initfields</span>
+<span class="w">    </span><span class="k">call </span><span class="n">initboundary</span>
+<span class="w">    </span><span class="k">call </span><span class="n">initsubgrid</span>
+<span class="w">    </span><span class="k">call </span><span class="n">readfacetfiles</span>
+<span class="w">    </span><span class="k">call </span><span class="n">initibm</span>
+<span class="w">    </span><span class="k">call </span><span class="n">createmasks</span>
+
+<span class="w">    </span><span class="c">! the statistics hold the SGS fluxes on the interior cells only</span>
+<span class="w">    </span><span class="k">allocate</span><span class="p">(</span><span class="n">usgs</span><span class="w">  </span><span class="p">(</span><span class="n">ib</span><span class="p">:</span><span class="n">ie</span><span class="p">,</span><span class="n">jb</span><span class="p">:</span><span class="n">je</span><span class="p">,</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="o">+</span><span class="n">kh</span><span class="p">))</span>
+<span class="w">    </span><span class="k">allocate</span><span class="p">(</span><span class="n">vsgs</span><span class="w">  </span><span class="p">(</span><span class="n">ib</span><span class="p">:</span><span class="n">ie</span><span class="p">,</span><span class="n">jb</span><span class="p">:</span><span class="n">je</span><span class="p">,</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="o">+</span><span class="n">kh</span><span class="p">))</span>
+<span class="w">    </span><span class="k">allocate</span><span class="p">(</span><span class="n">wsgs</span><span class="w">  </span><span class="p">(</span><span class="n">ib</span><span class="p">:</span><span class="n">ie</span><span class="p">,</span><span class="n">jb</span><span class="p">:</span><span class="n">je</span><span class="p">,</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="o">+</span><span class="n">kh</span><span class="p">))</span>
+<span class="w">    </span><span class="k">allocate</span><span class="p">(</span><span class="n">thlsgs</span><span class="p">(</span><span class="n">ib</span><span class="p">:</span><span class="n">ie</span><span class="p">,</span><span class="n">jb</span><span class="p">:</span><span class="n">je</span><span class="p">,</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="o">+</span><span class="n">kh</span><span class="p">))</span>
+<span class="w">    </span><span class="k">allocate</span><span class="p">(</span><span class="n">qtsgs</span><span class="w"> </span><span class="p">(</span><span class="n">ib</span><span class="p">:</span><span class="n">ie</span><span class="p">,</span><span class="n">jb</span><span class="p">:</span><span class="n">je</span><span class="p">,</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="o">+</span><span class="n">kh</span><span class="p">))</span>
+<span class="w">    </span><span class="k">allocate</span><span class="p">(</span><span class="n">got</span><span class="p">(</span><span class="n">ib</span><span class="p">:</span><span class="n">ie</span><span class="p">,</span><span class="n">jb</span><span class="p">:</span><span class="n">je</span><span class="p">,</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="o">+</span><span class="n">kh</span><span class="p">),</span><span class="w"> </span><span class="nb">exp</span><span class="p">(</span><span class="n">ib</span><span class="p">:</span><span class="n">ie</span><span class="p">,</span><span class="n">jb</span><span class="p">:</span><span class="n">je</span><span class="p">,</span><span class="n">kb</span><span class="p">:</span><span class="n">ke</span><span class="o">+</span><span class="n">kh</span><span class="p">))</span>
+
+<span class="w">    </span><span class="c">! Cell-centre heights, extended one level below the surface by mirroring</span>
+<span class="w">    </span><span class="c">! (zh(kb) = 0), which is the level the kb stencils actually reach into.</span>
+<span class="w">    </span><span class="k">allocate</span><span class="p">(</span><span class="n">zc</span><span class="p">(</span><span class="n">kb</span><span class="o">-</span><span class="n">kh</span><span class="p">:</span><span class="n">ke</span><span class="o">+</span><span class="n">kh</span><span class="p">),</span><span class="w"> </span><span class="n">zw</span><span class="p">(</span><span class="n">kb</span><span class="o">-</span><span class="n">kh</span><span class="p">:</span><span class="n">ke</span><span class="o">+</span><span class="n">kh</span><span class="p">))</span>
+<span class="w">    </span><span class="k">do </span><span class="n">k</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">kb</span><span class="p">,</span><span class="w"> </span><span class="n">ke</span><span class="o">+</span><span class="n">kh</span>
+<span class="w">      </span><span class="n">zc</span><span class="p">(</span><span class="n">k</span><span class="p">)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">zf</span><span class="p">(</span><span class="n">k</span><span class="p">)</span>
+<span class="w">      </span><span class="n">zw</span><span class="p">(</span><span class="n">k</span><span class="p">)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">zh</span><span class="p">(</span><span class="n">k</span><span class="p">)</span>
+<span class="w">    </span><span class="k">end do</span>
+<span class="k">    </span><span class="n">zc</span><span class="p">(</span><span class="n">kb</span><span class="o">-</span><span class="n">kh</span><span class="p">)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">zf</span><span class="p">(</span><span class="n">kb</span><span class="p">)</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">dzh</span><span class="p">(</span><span class="n">kb</span><span class="p">)</span>
+<span class="w">    </span><span class="n">zw</span><span class="p">(</span><span class="n">kb</span><span class="o">-</span><span class="n">kh</span><span class="p">)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">zh</span><span class="p">(</span><span class="n">kb</span><span class="p">)</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">dzf</span><span class="p">(</span><span class="n">kb</span><span class="p">)</span>
+
+<span class="w">    </span><span class="n">all_passed</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">.</span><span class="n">true</span><span class="p">.</span>
+
+<span class="w">    </span><span class="c">!----------------------------------------------------------------------</span>
+<span class="w">    </span><span class="c">! (a) Manufactured solution on the stretched grid</span>
+<span class="w">    </span><span class="c">!----------------------------------------------------------------------</span>
+<span class="w">    </span><span class="n">ekm</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">nuconst</span>
+<span class="w">    </span><span class="n">ekh</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">kaconst</span>
+
+<span class="w">    </span><span class="k">do </span><span class="n">k</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">kb</span><span class="o">-</span><span class="n">kh</span><span class="p">,</span><span class="w"> </span><span class="n">ke</span><span class="o">+</span><span class="n">kh</span>
+<span class="w">      </span><span class="k">do </span><span class="n">j</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">jb</span><span class="o">-</span><span class="n">jh</span><span class="p">,</span><span class="w"> </span><span class="n">je</span><span class="o">+</span><span class="n">jh</span>
+<span class="w">        </span><span class="k">do </span><span class="n">i</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">ib</span><span class="o">-</span><span class="n">ih</span><span class="p">,</span><span class="w"> </span><span class="n">ie</span><span class="o">+</span><span class="n">ih</span>
+<span class="w">          </span><span class="n">gi</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">zstart</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">i</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="mi">1</span>
+<span class="w">          </span><span class="n">um</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="p">,</span><span class="n">k</span><span class="p">)</span><span class="w">   </span><span class="o">=</span><span class="w"> </span><span class="n">acoef</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">zc</span><span class="p">(</span><span class="n">k</span><span class="p">)</span><span class="o">**</span><span class="mi">2</span>
+<span class="w">          </span><span class="n">vm</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="p">,</span><span class="n">k</span><span class="p">)</span><span class="w">   </span><span class="o">=</span><span class="w"> </span><span class="mf">0.</span>
+<span class="w">          </span><span class="n">wm</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="p">,</span><span class="n">k</span><span class="p">)</span><span class="w">   </span><span class="o">=</span><span class="w"> </span><span class="n">bcoef</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="p">(</span><span class="kt">real</span><span class="p">(</span><span class="n">gi</span><span class="p">)</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="mf">0.5</span><span class="p">)</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">dx</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">dcoef</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">zw</span><span class="p">(</span><span class="n">k</span><span class="p">)</span>
+<span class="w">          </span><span class="n">thlm</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="p">,</span><span class="n">k</span><span class="p">)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">ccoef</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">zc</span><span class="p">(</span><span class="n">k</span><span class="p">)</span><span class="o">**</span><span class="mi">2</span>
+<span class="w">        </span><span class="k">end do</span>
+<span class="k">      end do</span>
+<span class="k">    end do</span>
+
+<span class="k">    call </span><span class="n">stats_sgs_fluxes</span><span class="p">(</span><span class="n">usgs</span><span class="p">,</span><span class="n">vsgs</span><span class="p">,</span><span class="n">wsgs</span><span class="p">,</span><span class="n">thlsgs</span><span class="p">,</span><span class="n">qtsgs</span><span class="p">)</span>
+
+<span class="w">    </span><span class="c">! (a1) exact discrete identity: the second-order stencils are exact for a</span>
+<span class="w">    </span><span class="c">!      quadratic in z and a linear in x, so no truncation error enters here.</span>
+<span class="w">    </span><span class="k">do </span><span class="n">k</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">kb</span><span class="p">,</span><span class="w"> </span><span class="n">ke</span><span class="o">+</span><span class="n">kh</span>
+<span class="w">      </span><span class="n">got</span><span class="p">(:,:,</span><span class="n">k</span><span class="p">)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">usgs</span><span class="p">(</span><span class="n">ib</span><span class="p">:</span><span class="n">ie</span><span class="p">,</span><span class="n">jb</span><span class="p">:</span><span class="n">je</span><span class="p">,</span><span class="n">k</span><span class="p">)</span>
+<span class="w">      </span><span class="nb">exp</span><span class="p">(:,:,</span><span class="n">k</span><span class="p">)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="o">-</span><span class="n">nuconst</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="p">(</span><span class="n">acoef</span><span class="o">*</span><span class="p">(</span><span class="n">zc</span><span class="p">(</span><span class="n">k</span><span class="p">)</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">zc</span><span class="p">(</span><span class="n">k</span><span class="o">-</span><span class="mi">1</span><span class="p">))</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">bcoef</span><span class="p">)</span>
+<span class="w">    </span><span class="k">end do</span>
+<span class="k">    if</span><span class="w"> </span><span class="p">(.</span><span class="nb">not</span><span class="p">.</span><span class="w"> </span><span class="n">compare_real_3d</span><span class="p">(</span><span class="s1">'usgs discrete'</span><span class="p">,</span><span class="w"> </span><span class="n">got</span><span class="p">,</span><span class="w"> </span><span class="nb">exp</span><span class="p">,</span><span class="w"> </span><span class="mf">1.e-10</span><span class="p">))</span><span class="w"> </span><span class="n">all_passed</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">.</span><span class="n">false</span><span class="p">.</span>
+
+<span class="w">    </span><span class="k">do </span><span class="n">k</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">kb</span><span class="p">,</span><span class="w"> </span><span class="n">ke</span><span class="o">+</span><span class="n">kh</span>
+<span class="w">      </span><span class="n">got</span><span class="p">(:,:,</span><span class="n">k</span><span class="p">)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">thlsgs</span><span class="p">(</span><span class="n">ib</span><span class="p">:</span><span class="n">ie</span><span class="p">,</span><span class="n">jb</span><span class="p">:</span><span class="n">je</span><span class="p">,</span><span class="n">k</span><span class="p">)</span>
+<span class="w">      </span><span class="nb">exp</span><span class="p">(:,:,</span><span class="n">k</span><span class="p">)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="o">-</span><span class="n">kaconst</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">ccoef</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="p">(</span><span class="n">zc</span><span class="p">(</span><span class="n">k</span><span class="p">)</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">zc</span><span class="p">(</span><span class="n">k</span><span class="o">-</span><span class="mi">1</span><span class="p">))</span>
+<span class="w">    </span><span class="k">end do</span>
+<span class="k">    if</span><span class="w"> </span><span class="p">(.</span><span class="nb">not</span><span class="p">.</span><span class="w"> </span><span class="n">compare_real_3d</span><span class="p">(</span><span class="s1">'thlsgs discrete'</span><span class="p">,</span><span class="w"> </span><span class="n">got</span><span class="p">,</span><span class="w"> </span><span class="nb">exp</span><span class="p">,</span><span class="w"> </span><span class="mf">1.e-10</span><span class="p">))</span><span class="w"> </span><span class="n">all_passed</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">.</span><span class="n">false</span><span class="p">.</span>
+
+<span class="w">    </span><span class="c">! wsgs is the normal stress tau_33 = -2*K_m*dw/dz at the CELL CENTRE, so with</span>
+<span class="w">    </span><span class="c">! dw/dz = dcoef it is exactly -2*nu*dcoef everywhere. If wsgs were the</span>
+<span class="w">    </span><span class="c">! vertical part of the diffw tendency instead (units m/s^2, not m^2/s^2) this</span>
+<span class="w">    </span><span class="c">! would be identically zero for a linear w and the check would fail.</span>
+<span class="w">    </span><span class="k">do </span><span class="n">k</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">kb</span><span class="p">,</span><span class="w"> </span><span class="n">ke</span>
+<span class="w">      </span><span class="n">got</span><span class="p">(:,:,</span><span class="n">k</span><span class="p">)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">wsgs</span><span class="p">(</span><span class="n">ib</span><span class="p">:</span><span class="n">ie</span><span class="p">,</span><span class="n">jb</span><span class="p">:</span><span class="n">je</span><span class="p">,</span><span class="n">k</span><span class="p">)</span>
+<span class="w">      </span><span class="nb">exp</span><span class="p">(:,:,</span><span class="n">k</span><span class="p">)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="o">-</span><span class="mf">2.</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">nuconst</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">dcoef</span>
+<span class="w">    </span><span class="k">end do</span>
+<span class="k">    </span><span class="n">got</span><span class="p">(:,:,</span><span class="n">ke</span><span class="o">+</span><span class="n">kh</span><span class="p">)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">0.</span><span class="p">;</span><span class="w"> </span><span class="nb">exp</span><span class="p">(:,:,</span><span class="n">ke</span><span class="o">+</span><span class="n">kh</span><span class="p">)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">0.</span>
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(.</span><span class="nb">not</span><span class="p">.</span><span class="w"> </span><span class="n">compare_real_3d</span><span class="p">(</span><span class="s1">'wsgs discrete'</span><span class="p">,</span><span class="w"> </span><span class="n">got</span><span class="p">,</span><span class="w"> </span><span class="nb">exp</span><span class="p">,</span><span class="w"> </span><span class="mf">1.e-10</span><span class="p">))</span><span class="w"> </span><span class="n">all_passed</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">.</span><span class="n">false</span><span class="p">.</span>
+
+<span class="w">    </span><span class="c">! (a2) second-order consistency with the analytic flux at the w-levels.</span>
+<span class="w">    </span><span class="c">!      The stretched grid gives zf(k)+zf(k-1) - 2*zh(k) = (dzf(k)-dzf(k-1))/2,</span>
+<span class="w">    </span><span class="c">!      so anything worse than that bound (a dzf/dzh swap, a missing factor,</span>
+<span class="w">    </span><span class="c">!      a sign error) is caught here.</span>
+<span class="w">    </span><span class="n">trunc_tol</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">0.</span>
+<span class="w">    </span><span class="k">do </span><span class="n">k</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">kb</span><span class="o">+</span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="n">ke</span><span class="o">+</span><span class="n">kh</span>
+<span class="w">      </span><span class="n">trunc_tol</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">max</span><span class="p">(</span><span class="n">trunc_tol</span><span class="p">,</span><span class="w"> </span><span class="nb">abs</span><span class="p">(</span><span class="n">dzf</span><span class="p">(</span><span class="n">k</span><span class="p">)</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">dzf</span><span class="p">(</span><span class="n">k</span><span class="o">-</span><span class="mi">1</span><span class="p">)))</span>
+<span class="w">    </span><span class="k">end do</span>
+<span class="k">    </span><span class="n">trunc_tol</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">0.5</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">trunc_tol</span>
+
+<span class="w">    </span><span class="k">do </span><span class="n">k</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">kb</span><span class="p">,</span><span class="w"> </span><span class="n">ke</span><span class="o">+</span><span class="n">kh</span>
+<span class="w">      </span><span class="n">got</span><span class="p">(:,:,</span><span class="n">k</span><span class="p">)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">usgs</span><span class="p">(</span><span class="n">ib</span><span class="p">:</span><span class="n">ie</span><span class="p">,</span><span class="n">jb</span><span class="p">:</span><span class="n">je</span><span class="p">,</span><span class="n">k</span><span class="p">)</span>
+<span class="w">      </span><span class="nb">exp</span><span class="p">(:,:,</span><span class="n">k</span><span class="p">)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="o">-</span><span class="n">nuconst</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="p">(</span><span class="mf">2.</span><span class="o">*</span><span class="n">acoef</span><span class="o">*</span><span class="n">zh</span><span class="p">(</span><span class="n">k</span><span class="p">)</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">bcoef</span><span class="p">)</span>
+<span class="w">    </span><span class="k">end do</span>
+<span class="k">    if</span><span class="w"> </span><span class="p">(.</span><span class="nb">not</span><span class="p">.</span><span class="w"> </span><span class="n">compare_real_3d</span><span class="p">(</span><span class="s1">'usgs vs analytic'</span><span class="p">,</span><span class="w"> </span><span class="n">got</span><span class="p">,</span><span class="w"> </span><span class="nb">exp</span><span class="p">,</span><span class="w"> </span><span class="p">&amp;</span>
+<span class="w">                              </span><span class="mf">1.05</span><span class="o">*</span><span class="n">nuconst</span><span class="o">*</span><span class="n">acoef</span><span class="o">*</span><span class="n">trunc_tol</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mf">1.e-10</span><span class="p">))</span><span class="w"> </span><span class="n">all_passed</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">.</span><span class="n">false</span><span class="p">.</span>
+
+<span class="w">    </span><span class="k">do </span><span class="n">k</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">kb</span><span class="p">,</span><span class="w"> </span><span class="n">ke</span><span class="o">+</span><span class="n">kh</span>
+<span class="w">      </span><span class="n">got</span><span class="p">(:,:,</span><span class="n">k</span><span class="p">)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">thlsgs</span><span class="p">(</span><span class="n">ib</span><span class="p">:</span><span class="n">ie</span><span class="p">,</span><span class="n">jb</span><span class="p">:</span><span class="n">je</span><span class="p">,</span><span class="n">k</span><span class="p">)</span>
+<span class="w">      </span><span class="nb">exp</span><span class="p">(:,:,</span><span class="n">k</span><span class="p">)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="o">-</span><span class="n">kaconst</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="mf">2.</span><span class="o">*</span><span class="n">ccoef</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">zh</span><span class="p">(</span><span class="n">k</span><span class="p">)</span>
+<span class="w">    </span><span class="k">end do</span>
+<span class="k">    if</span><span class="w"> </span><span class="p">(.</span><span class="nb">not</span><span class="p">.</span><span class="w"> </span><span class="n">compare_real_3d</span><span class="p">(</span><span class="s1">'thlsgs vs analytic'</span><span class="p">,</span><span class="w"> </span><span class="n">got</span><span class="p">,</span><span class="w"> </span><span class="nb">exp</span><span class="p">,</span><span class="w"> </span><span class="p">&amp;</span>
+<span class="w">                              </span><span class="mf">1.05</span><span class="o">*</span><span class="n">kaconst</span><span class="o">*</span><span class="n">ccoef</span><span class="o">*</span><span class="n">trunc_tol</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mf">1.e-10</span><span class="p">))</span><span class="w"> </span><span class="n">all_passed</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">.</span><span class="n">false</span><span class="p">.</span>
+
+<span class="w">    </span><span class="c">!----------------------------------------------------------------------</span>
+<span class="w">    </span><span class="c">! (c) Sign regression: monotone positive shear must give a negative</span>
+<span class="w">    </span><span class="c">!     (down-gradient) SGS momentum flux. One-line guard on the convention.</span>
+<span class="w">    </span><span class="c">!----------------------------------------------------------------------</span>
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="nb">maxval</span><span class="p">(</span><span class="n">usgs</span><span class="p">(</span><span class="n">ib</span><span class="p">:</span><span class="n">ie</span><span class="p">,</span><span class="n">jb</span><span class="p">:</span><span class="n">je</span><span class="p">,</span><span class="n">kb</span><span class="o">+</span><span class="mi">1</span><span class="p">:</span><span class="n">ke</span><span class="p">))</span><span class="w"> </span><span class="o">&gt;=</span><span class="w"> </span><span class="mf">0.</span><span class="p">)</span><span class="w"> </span><span class="k">then</span>
+<span class="k">      if</span><span class="w"> </span><span class="p">(</span><span class="n">myid</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="mi">0</span><span class="p">)</span><span class="w"> </span><span class="k">write</span><span class="p">(</span><span class="o">*</span><span class="p">,</span><span class="s1">'(A,1X,A,1X,ES12.4)'</span><span class="p">)</span><span class="w"> </span><span class="s1">'FAIL'</span><span class="p">,</span><span class="w"> </span><span class="s1">'usgs sign'</span><span class="p">,</span><span class="w"> </span><span class="p">&amp;</span>
+<span class="w">           </span><span class="nb">maxval</span><span class="p">(</span><span class="n">usgs</span><span class="p">(</span><span class="n">ib</span><span class="p">:</span><span class="n">ie</span><span class="p">,</span><span class="n">jb</span><span class="p">:</span><span class="n">je</span><span class="p">,</span><span class="n">kb</span><span class="o">+</span><span class="mi">1</span><span class="p">:</span><span class="n">ke</span><span class="p">))</span>
+<span class="w">      </span><span class="n">all_passed</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">.</span><span class="n">false</span><span class="p">.</span>
+<span class="w">    </span><span class="k">end if</span>
+<span class="k">    if</span><span class="w"> </span><span class="p">(</span><span class="nb">maxval</span><span class="p">(</span><span class="n">thlsgs</span><span class="p">(</span><span class="n">ib</span><span class="p">:</span><span class="n">ie</span><span class="p">,</span><span class="n">jb</span><span class="p">:</span><span class="n">je</span><span class="p">,</span><span class="n">kb</span><span class="o">+</span><span class="mi">1</span><span class="p">:</span><span class="n">ke</span><span class="p">))</span><span class="w"> </span><span class="o">&gt;=</span><span class="w"> </span><span class="mf">0.</span><span class="p">)</span><span class="w"> </span><span class="k">then</span>
+<span class="k">      if</span><span class="w"> </span><span class="p">(</span><span class="n">myid</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="mi">0</span><span class="p">)</span><span class="w"> </span><span class="k">write</span><span class="p">(</span><span class="o">*</span><span class="p">,</span><span class="s1">'(A,1X,A,1X,ES12.4)'</span><span class="p">)</span><span class="w"> </span><span class="s1">'FAIL'</span><span class="p">,</span><span class="w"> </span><span class="s1">'thlsgs sign'</span><span class="p">,</span><span class="w"> </span><span class="p">&amp;</span>
+<span class="w">           </span><span class="nb">maxval</span><span class="p">(</span><span class="n">thlsgs</span><span class="p">(</span><span class="n">ib</span><span class="p">:</span><span class="n">ie</span><span class="p">,</span><span class="n">jb</span><span class="p">:</span><span class="n">je</span><span class="p">,</span><span class="n">kb</span><span class="o">+</span><span class="mi">1</span><span class="p">:</span><span class="n">ke</span><span class="p">))</span>
+<span class="w">      </span><span class="n">all_passed</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">.</span><span class="n">false</span><span class="p">.</span>
+<span class="w">    </span><span class="k">end if</span>
+
+<span class="w">    </span><span class="c">!----------------------------------------------------------------------</span>
+<span class="w">    </span><span class="c">! (b) Consistency with the solver's diffusion terms.</span>
+<span class="w">    </span><span class="c">!     u, v and thl vary in z only and w varies in x only, so the x- and</span>
+<span class="w">    </span><span class="c">!     y-terms of diffu/diffc vanish identically and what is left is exactly</span>
+<span class="w">    </span><span class="c">!     minus the vertical divergence of the SGS fluxes.</span>
+<span class="w">    </span><span class="c">!----------------------------------------------------------------------</span>
+<span class="w">    </span><span class="k">do </span><span class="n">k</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">kb</span><span class="o">-</span><span class="n">kh</span><span class="p">,</span><span class="w"> </span><span class="n">ke</span><span class="o">+</span><span class="n">kh</span>
+<span class="w">      </span><span class="k">do </span><span class="n">j</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">jb</span><span class="o">-</span><span class="n">jh</span><span class="p">,</span><span class="w"> </span><span class="n">je</span><span class="o">+</span><span class="n">jh</span>
+<span class="w">        </span><span class="k">do </span><span class="n">i</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">ib</span><span class="o">-</span><span class="n">ih</span><span class="p">,</span><span class="w"> </span><span class="n">ie</span><span class="o">+</span><span class="n">ih</span>
+<span class="w">          </span><span class="n">gi</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">zstart</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">i</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="mi">1</span>
+<span class="w">          </span><span class="n">ekm</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="p">,</span><span class="n">k</span><span class="p">)</span><span class="w">  </span><span class="o">=</span><span class="w"> </span><span class="mf">0.5</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mf">0.4</span><span class="o">*</span><span class="nb">sin</span><span class="p">(</span><span class="mf">1.7</span><span class="o">*</span><span class="kt">real</span><span class="p">(</span><span class="n">gi</span><span class="p">)</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mf">0.9</span><span class="o">*</span><span class="kt">real</span><span class="p">(</span><span class="n">j</span><span class="p">)</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mf">0.31</span><span class="o">*</span><span class="kt">real</span><span class="p">(</span><span class="n">k</span><span class="p">))</span>
+<span class="w">          </span><span class="n">ekh</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="p">,</span><span class="n">k</span><span class="p">)</span><span class="w">  </span><span class="o">=</span><span class="w"> </span><span class="mf">0.6</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mf">0.3</span><span class="o">*</span><span class="nb">cos</span><span class="p">(</span><span class="mf">0.7</span><span class="o">*</span><span class="kt">real</span><span class="p">(</span><span class="n">gi</span><span class="p">)</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="mf">1.1</span><span class="o">*</span><span class="kt">real</span><span class="p">(</span><span class="n">j</span><span class="p">)</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mf">0.53</span><span class="o">*</span><span class="kt">real</span><span class="p">(</span><span class="n">k</span><span class="p">))</span>
+<span class="w">          </span><span class="n">um</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="p">,</span><span class="n">k</span><span class="p">)</span><span class="w">   </span><span class="o">=</span><span class="w"> </span><span class="nb">sin</span><span class="p">(</span><span class="mf">0.41</span><span class="o">*</span><span class="kt">real</span><span class="p">(</span><span class="n">k</span><span class="p">))</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mf">0.3</span><span class="o">*</span><span class="nb">cos</span><span class="p">(</span><span class="mf">0.17</span><span class="o">*</span><span class="kt">real</span><span class="p">(</span><span class="n">k</span><span class="p">))</span>
+<span class="w">          </span><span class="n">vm</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="p">,</span><span class="n">k</span><span class="p">)</span><span class="w">   </span><span class="o">=</span><span class="w"> </span><span class="nb">cos</span><span class="p">(</span><span class="mf">0.23</span><span class="o">*</span><span class="kt">real</span><span class="p">(</span><span class="n">k</span><span class="p">))</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="mf">0.2</span><span class="o">*</span><span class="nb">sin</span><span class="p">(</span><span class="mf">0.61</span><span class="o">*</span><span class="kt">real</span><span class="p">(</span><span class="n">k</span><span class="p">))</span>
+<span class="w">          </span><span class="n">wm</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="p">,</span><span class="n">k</span><span class="p">)</span><span class="w">   </span><span class="o">=</span><span class="w"> </span><span class="mf">0.7</span><span class="o">*</span><span class="nb">sin</span><span class="p">(</span><span class="mf">0.29</span><span class="o">*</span><span class="p">(</span><span class="kt">real</span><span class="p">(</span><span class="n">gi</span><span class="p">)</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="mf">0.5</span><span class="p">)</span><span class="o">*</span><span class="n">dx</span><span class="p">)</span>
+<span class="w">          </span><span class="n">thlm</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="p">,</span><span class="n">k</span><span class="p">)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">28</span><span class="mf">8.</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="nb">sin</span><span class="p">(</span><span class="mf">0.37</span><span class="o">*</span><span class="kt">real</span><span class="p">(</span><span class="n">k</span><span class="p">))</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mf">0.4</span><span class="o">*</span><span class="nb">cos</span><span class="p">(</span><span class="mf">0.13</span><span class="o">*</span><span class="kt">real</span><span class="p">(</span><span class="n">k</span><span class="p">))</span>
+<span class="w">        </span><span class="k">end do</span>
+<span class="k">      end do</span>
+<span class="k">    end do</span>
+<span class="k">    </span><span class="n">u0</span><span class="w">   </span><span class="o">=</span><span class="w"> </span><span class="n">um</span>
+<span class="w">    </span><span class="n">v0</span><span class="w">   </span><span class="o">=</span><span class="w"> </span><span class="n">vm</span>
+<span class="w">    </span><span class="n">w0</span><span class="w">   </span><span class="o">=</span><span class="w"> </span><span class="n">wm</span>
+<span class="w">    </span><span class="n">thl0</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">thlm</span>
+
+<span class="w">    </span><span class="k">call </span><span class="n">stats_sgs_fluxes</span><span class="p">(</span><span class="n">usgs</span><span class="p">,</span><span class="n">vsgs</span><span class="p">,</span><span class="n">wsgs</span><span class="p">,</span><span class="n">thlsgs</span><span class="p">,</span><span class="n">qtsgs</span><span class="p">)</span>
+
+<span class="w">    </span><span class="n">up</span><span class="w">   </span><span class="o">=</span><span class="w"> </span><span class="mf">0.</span>
+<span class="w">    </span><span class="n">thlp</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">0.</span>
+<span class="w">    </span><span class="k">call </span><span class="n">diffu</span><span class="p">(</span><span class="n">up</span><span class="p">)</span>
+<span class="w">    </span><span class="k">call </span><span class="n">diffc</span><span class="p">(</span><span class="n">ih</span><span class="p">,</span><span class="n">jh</span><span class="p">,</span><span class="n">kh</span><span class="p">,</span><span class="n">thl0</span><span class="p">,</span><span class="n">thlp</span><span class="p">)</span>
+
+<span class="w">    </span><span class="k">do </span><span class="n">k</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">kb</span><span class="p">,</span><span class="w"> </span><span class="n">ke</span>
+<span class="w">      </span><span class="n">got</span><span class="p">(:,:,</span><span class="n">k</span><span class="p">)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">up</span><span class="p">(</span><span class="n">ib</span><span class="p">:</span><span class="n">ie</span><span class="p">,</span><span class="n">jb</span><span class="p">:</span><span class="n">je</span><span class="p">,</span><span class="n">k</span><span class="p">)</span>
+<span class="w">      </span><span class="nb">exp</span><span class="p">(:,:,</span><span class="n">k</span><span class="p">)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="o">-</span><span class="p">(</span><span class="n">usgs</span><span class="p">(</span><span class="n">ib</span><span class="p">:</span><span class="n">ie</span><span class="p">,</span><span class="n">jb</span><span class="p">:</span><span class="n">je</span><span class="p">,</span><span class="n">k</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">usgs</span><span class="p">(</span><span class="n">ib</span><span class="p">:</span><span class="n">ie</span><span class="p">,</span><span class="n">jb</span><span class="p">:</span><span class="n">je</span><span class="p">,</span><span class="n">k</span><span class="p">))</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">dzfi</span><span class="p">(</span><span class="n">k</span><span class="p">)</span>
+<span class="w">    </span><span class="k">end do</span>
+<span class="k">    </span><span class="n">got</span><span class="p">(:,:,</span><span class="n">ke</span><span class="o">+</span><span class="n">kh</span><span class="p">)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">0.</span><span class="p">;</span><span class="w"> </span><span class="nb">exp</span><span class="p">(:,:,</span><span class="n">ke</span><span class="o">+</span><span class="n">kh</span><span class="p">)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">0.</span>
+<span class="w">    </span><span class="nb">scale</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">max</span><span class="p">(</span><span class="nb">maxval</span><span class="p">(</span><span class="nb">abs</span><span class="p">(</span><span class="nb">exp</span><span class="p">)),</span><span class="w"> </span><span class="mf">1.</span><span class="p">)</span>
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(.</span><span class="nb">not</span><span class="p">.</span><span class="w"> </span><span class="n">compare_real_3d</span><span class="p">(</span><span class="s1">'diffu vs div(usgs)'</span><span class="p">,</span><span class="w"> </span><span class="n">got</span><span class="p">,</span><span class="w"> </span><span class="nb">exp</span><span class="p">,</span><span class="w"> </span><span class="mf">1.e-10</span><span class="o">*</span><span class="nb">scale</span><span class="p">))</span><span class="w"> </span><span class="n">all_passed</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">.</span><span class="n">false</span><span class="p">.</span>
+
+<span class="w">    </span><span class="k">do </span><span class="n">k</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">kb</span><span class="p">,</span><span class="w"> </span><span class="n">ke</span>
+<span class="w">      </span><span class="n">got</span><span class="p">(:,:,</span><span class="n">k</span><span class="p">)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">thlp</span><span class="p">(</span><span class="n">ib</span><span class="p">:</span><span class="n">ie</span><span class="p">,</span><span class="n">jb</span><span class="p">:</span><span class="n">je</span><span class="p">,</span><span class="n">k</span><span class="p">)</span>
+<span class="w">      </span><span class="nb">exp</span><span class="p">(:,:,</span><span class="n">k</span><span class="p">)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="o">-</span><span class="p">(</span><span class="n">thlsgs</span><span class="p">(</span><span class="n">ib</span><span class="p">:</span><span class="n">ie</span><span class="p">,</span><span class="n">jb</span><span class="p">:</span><span class="n">je</span><span class="p">,</span><span class="n">k</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">thlsgs</span><span class="p">(</span><span class="n">ib</span><span class="p">:</span><span class="n">ie</span><span class="p">,</span><span class="n">jb</span><span class="p">:</span><span class="n">je</span><span class="p">,</span><span class="n">k</span><span class="p">))</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">dzfi</span><span class="p">(</span><span class="n">k</span><span class="p">)</span>
+<span class="w">    </span><span class="k">end do</span>
+<span class="k">    </span><span class="n">got</span><span class="p">(:,:,</span><span class="n">ke</span><span class="o">+</span><span class="n">kh</span><span class="p">)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">0.</span><span class="p">;</span><span class="w"> </span><span class="nb">exp</span><span class="p">(:,:,</span><span class="n">ke</span><span class="o">+</span><span class="n">kh</span><span class="p">)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">0.</span>
+<span class="w">    </span><span class="nb">scale</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">max</span><span class="p">(</span><span class="nb">maxval</span><span class="p">(</span><span class="nb">abs</span><span class="p">(</span><span class="nb">exp</span><span class="p">)),</span><span class="w"> </span><span class="mf">1.</span><span class="p">)</span>
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(.</span><span class="nb">not</span><span class="p">.</span><span class="w"> </span><span class="n">compare_real_3d</span><span class="p">(</span><span class="s1">'diffc vs div(thlsgs)'</span><span class="p">,</span><span class="w"> </span><span class="n">got</span><span class="p">,</span><span class="w"> </span><span class="nb">exp</span><span class="p">,</span><span class="w"> </span><span class="mf">1.e-10</span><span class="o">*</span><span class="nb">scale</span><span class="p">))</span><span class="w"> </span><span class="n">all_passed</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">.</span><span class="n">false</span><span class="p">.</span>
+
+<span class="w">    </span><span class="c">! Same idea for the normal stress: with u = v = 0 and w a function of z only,</span>
+<span class="w">    </span><span class="c">! the horizontal terms of diffw vanish and what is left is exactly minus the</span>
+<span class="w">    </span><span class="c">! vertical divergence of wsgs. This is the check that pins wsgs to a flux</span>
+<span class="w">    </span><span class="c">! (m^2/s^2) rather than a tendency (m/s^2).</span>
+<span class="w">    </span><span class="k">do </span><span class="n">k</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">kb</span><span class="o">-</span><span class="n">kh</span><span class="p">,</span><span class="w"> </span><span class="n">ke</span><span class="o">+</span><span class="n">kh</span>
+<span class="w">      </span><span class="k">do </span><span class="n">j</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">jb</span><span class="o">-</span><span class="n">jh</span><span class="p">,</span><span class="w"> </span><span class="n">je</span><span class="o">+</span><span class="n">jh</span>
+<span class="w">        </span><span class="k">do </span><span class="n">i</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">ib</span><span class="o">-</span><span class="n">ih</span><span class="p">,</span><span class="w"> </span><span class="n">ie</span><span class="o">+</span><span class="n">ih</span>
+<span class="w">          </span><span class="n">um</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="p">,</span><span class="n">k</span><span class="p">)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">0.</span>
+<span class="w">          </span><span class="n">vm</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="p">,</span><span class="n">k</span><span class="p">)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">0.</span>
+<span class="w">          </span><span class="n">wm</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="p">,</span><span class="n">k</span><span class="p">)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">sin</span><span class="p">(</span><span class="mf">0.33</span><span class="o">*</span><span class="kt">real</span><span class="p">(</span><span class="n">k</span><span class="p">))</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mf">0.5</span><span class="o">*</span><span class="nb">cos</span><span class="p">(</span><span class="mf">0.19</span><span class="o">*</span><span class="kt">real</span><span class="p">(</span><span class="n">k</span><span class="p">))</span>
+<span class="w">        </span><span class="k">end do</span>
+<span class="k">      end do</span>
+<span class="k">    end do</span>
+<span class="k">    </span><span class="n">u0</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">um</span>
+<span class="w">    </span><span class="n">v0</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">vm</span>
+<span class="w">    </span><span class="n">w0</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">wm</span>
+
+<span class="w">    </span><span class="k">call </span><span class="n">stats_sgs_fluxes</span><span class="p">(</span><span class="n">usgs</span><span class="p">,</span><span class="n">vsgs</span><span class="p">,</span><span class="n">wsgs</span><span class="p">,</span><span class="n">thlsgs</span><span class="p">,</span><span class="n">qtsgs</span><span class="p">)</span>
+
+<span class="w">    </span><span class="n">wp</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">0.</span>
+<span class="w">    </span><span class="k">call </span><span class="n">diffw</span><span class="p">(</span><span class="n">wp</span><span class="p">)</span>
+
+<span class="w">    </span><span class="n">got</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">0.</span><span class="p">;</span><span class="w"> </span><span class="nb">exp</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">0.</span>
+<span class="w">    </span><span class="k">do </span><span class="n">k</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">kb</span><span class="o">+</span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="n">ke</span>
+<span class="w">      </span><span class="n">got</span><span class="p">(:,:,</span><span class="n">k</span><span class="p">)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">wp</span><span class="p">(</span><span class="n">ib</span><span class="p">:</span><span class="n">ie</span><span class="p">,</span><span class="n">jb</span><span class="p">:</span><span class="n">je</span><span class="p">,</span><span class="n">k</span><span class="p">)</span>
+<span class="w">      </span><span class="nb">exp</span><span class="p">(:,:,</span><span class="n">k</span><span class="p">)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="o">-</span><span class="p">(</span><span class="n">wsgs</span><span class="p">(</span><span class="n">ib</span><span class="p">:</span><span class="n">ie</span><span class="p">,</span><span class="n">jb</span><span class="p">:</span><span class="n">je</span><span class="p">,</span><span class="n">k</span><span class="p">)</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">wsgs</span><span class="p">(</span><span class="n">ib</span><span class="p">:</span><span class="n">ie</span><span class="p">,</span><span class="n">jb</span><span class="p">:</span><span class="n">je</span><span class="p">,</span><span class="n">k</span><span class="o">-</span><span class="mi">1</span><span class="p">))</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">dzhi</span><span class="p">(</span><span class="n">k</span><span class="p">)</span>
+<span class="w">    </span><span class="k">end do</span>
+<span class="k">    </span><span class="nb">scale</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">max</span><span class="p">(</span><span class="nb">maxval</span><span class="p">(</span><span class="nb">abs</span><span class="p">(</span><span class="nb">exp</span><span class="p">)),</span><span class="w"> </span><span class="mf">1.</span><span class="p">)</span>
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(.</span><span class="nb">not</span><span class="p">.</span><span class="w"> </span><span class="n">compare_real_3d</span><span class="p">(</span><span class="s1">'diffw vs div(wsgs)'</span><span class="p">,</span><span class="w"> </span><span class="n">got</span><span class="p">,</span><span class="w"> </span><span class="nb">exp</span><span class="p">,</span><span class="w"> </span><span class="mf">1.e-10</span><span class="o">*</span><span class="nb">scale</span><span class="p">))</span><span class="w"> </span><span class="n">all_passed</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">.</span><span class="n">false</span><span class="p">.</span>
+
+<span class="w">    </span><span class="k">deallocate</span><span class="p">(</span><span class="n">usgs</span><span class="p">,</span><span class="w"> </span><span class="n">vsgs</span><span class="p">,</span><span class="w"> </span><span class="n">wsgs</span><span class="p">,</span><span class="w"> </span><span class="n">thlsgs</span><span class="p">,</span><span class="w"> </span><span class="n">qtsgs</span><span class="p">,</span><span class="w"> </span><span class="n">got</span><span class="p">,</span><span class="w"> </span><span class="nb">exp</span><span class="p">,</span><span class="w"> </span><span class="n">zc</span><span class="p">,</span><span class="w"> </span><span class="n">zw</span><span class="p">)</span>
+
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">all_passed</span><span class="w"> </span><span class="p">.</span><span class="nb">and</span><span class="p">.</span><span class="w"> </span><span class="n">myid</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="mi">0</span><span class="p">)</span><span class="w"> </span><span class="k">then</span>
+<span class="k">      write</span><span class="p">(</span><span class="o">*</span><span class="p">,</span><span class="w"> </span><span class="s1">'(A)'</span><span class="p">)</span><span class="w"> </span><span class="s1">'------------------------------------------------'</span>
+<span class="w">      </span><span class="k">write</span><span class="p">(</span><span class="o">*</span><span class="p">,</span><span class="w"> </span><span class="s1">'(A)'</span><span class="p">)</span><span class="w"> </span><span class="s1">'ALL TESTS PASSED: tests_sgs_statistics'</span>
+<span class="w">      </span><span class="k">write</span><span class="p">(</span><span class="o">*</span><span class="p">,</span><span class="w"> </span><span class="s1">'(A)'</span><span class="p">)</span><span class="w"> </span><span class="s1">'================================================'</span>
+<span class="w">    </span><span class="k">else if</span><span class="w"> </span><span class="p">((.</span><span class="nb">not</span><span class="p">.</span><span class="w"> </span><span class="n">all_passed</span><span class="p">)</span><span class="w"> </span><span class="p">.</span><span class="nb">and</span><span class="p">.</span><span class="w"> </span><span class="n">myid</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="mi">0</span><span class="p">)</span><span class="w"> </span><span class="k">then</span>
+<span class="k">      write</span><span class="p">(</span><span class="o">*</span><span class="p">,</span><span class="w"> </span><span class="s1">'(A)'</span><span class="p">)</span><span class="w"> </span><span class="s1">'------------------------------------------------'</span>
+<span class="w">      </span><span class="k">write</span><span class="p">(</span><span class="o">*</span><span class="p">,</span><span class="w"> </span><span class="s1">'(A)'</span><span class="p">)</span><span class="w"> </span><span class="s1">'TESTS FAILED: tests_sgs_statistics'</span>
+<span class="w">      </span><span class="k">write</span><span class="p">(</span><span class="o">*</span><span class="p">,</span><span class="w"> </span><span class="s1">'(A)'</span><span class="p">)</span><span class="w"> </span><span class="s1">'================================================'</span>
+<span class="w">    </span><span class="k">end if</span>
+
+<span class="k">    </span><span class="n">tests_sgs_statistics</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">all_passed</span>
+
+<span class="w">  </span><span class="k">end function </span><span class="n">tests_sgs_statistics</span>
+</pre></div>
+
+    </section>
+    <br>
+    
+    </div>
+  </div>
+
+      <hr>
+    </div> <!-- /container -->
+    <footer>
+      <div class="container">
+        <div class="row justify-content-between">
+          <div class="col">
+            <p>
+              uDALES
+ was developed by The uDALES Team<br>              &copy; 2026 
+</p>
+          </div>
+          <div class="col">
+            <p class="text-end">
+              Documentation generated by
+              <a href="https://github.com/Fortran-FOSS-Programmers/ford">FORD</a>
+ on 2026-11-27 14:34 +0000             </p>
+          </div>
+        </div>
+        <br>
+      </div> <!-- /container -->
+    </footer>
+  </body>
+</html>

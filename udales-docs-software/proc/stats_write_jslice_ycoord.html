@@ -1,0 +1,631 @@
+<!-- -*- mode: jinja2 -*- -->
+
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+      <meta name="description" content="API documentation of the Fortran source code of uDALES, the open-source multi-physics large-eddy simulation model for urban environments.">
+    <meta name="author" content="The uDALES Team" >
+    <link rel="icon" href="../favicon.png">
+
+    <title>stats_write_jslice_ycoord &ndash; uDALES</title>
+
+    <!-- Bootstrap -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet"
+          integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"
+            integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
+    <!-- Font Awesome -->
+    <link href="../css/fontawesome.min.css" rel="stylesheet">
+    <link href="../css/brands.min.css" rel="stylesheet">
+    <link href="../css/regular.min.css" rel="stylesheet">
+    <link href="../css/solid.min.css" rel="stylesheet">
+    <link href="../css/v4-font-face.min.css" rel="stylesheet">
+    <link href="../css/v4-shims.min.css" rel="stylesheet">
+    <!-- MathJax -->
+    <script type="text/x-mathjax-config">
+      MathJax.Hub.Config({
+        TeX: { equationNumbers: { autoNumber: "AMS" } }
+      });
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/mathjax@2.7.9/MathJax.js?config=TeX-AMS-MML_HTMLorMML" async
+            integrity="sha256-DViIOMYdwlM/axqoGDPeUyf0urLoHMN4QACBKyB58Uw=" crossorigin="anonymous"></script>
+    <!-- Other scripts and stylesheets -->
+    <link href="../css/local.css" rel="stylesheet">
+    <link href="../css/pygments.css" rel="stylesheet">
+    <script src="../js/svg-pan-zoom.min.js"></script>
+  </head>
+
+  <body>
+
+    <!-- Fixed navbar -->
+    <div class="container-fluid mb-sm-4 mb-xl-2">
+      <nav class="navbar navbar-expand-lg navbar-dark bg-dark fixed-top">
+        <div class="container">
+          <a class="navbar-brand" href="../index.html">uDALES </a>
+          <button type="button" class="navbar-toggler" data-bs-toggle="collapse" data-bs-target="#navbar"
+                  aria-expanded="false" aria-controls="navbar" aria-label="Toggle navigation">
+                  <span class="navbar-toggler-icon">
+          </button>
+
+          <div id="navbar" class="navbar-collapse collapse">
+            <ul class="navbar-nav">
+                  <li class="nav-item">
+                    <a class="nav-link" href="../lists/files.html">Source Files</a>
+                  </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="../lists/modules.html">Modules</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="../lists/procedures.html">Procedures</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="../lists/absint.html">Abstract Interfaces</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="../lists/types.html">Derived Types</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="../lists/namelists.html">Namelists</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="../program/udales.html">Program</a>
+                </li>
+            </ul>
+              <div class="d-flex align-items-end flex-grow-1">
+                <form action="../search.html" role="search" class="ms-auto">
+                  <input type="text" class="form-control" aria-label="Search" placeholder="Search" name="q" id="tipue_search_input" autocomplete="off" required>
+                </form>
+              </div>
+          </div><!--/.nav-collapse -->
+        </div>
+      </nav>
+    </div>
+
+    <div class="container">
+  <div class="row">
+    <h1>stats_write_jslice_ycoord
+      <small>Subroutine</small>
+      
+    </h1>
+      <div class="container p-2 mb-4 bg-light border rounded-3">
+    <div class="row align-items-center justify-content-between" id="info-bar">
+      <div class="col">
+        <ul class="list-inline" style="margin-bottom:0px;display:inline">
+
+            <li class="list-inline-item" id="statements"><i class="fa fa-list-ol"></i>
+              <a data-bs-toggle="tooltip" data-bs-placement="bottom" data-bs-html="true"
+                 title=" 0.2% of total for procedures.">32 statements</a>
+            </li>
+
+            <li class="list-inline-item" id="source-file">
+              <i class="fa fa-code"></i>
+              <a href="../src/out_stats.f90"> Source File</a>
+            </li>
+        </ul>
+      </div>
+      <div class="col">
+        <nav aria-label="breadcrumb">
+          <ol class="breadcrumb justify-content-end mb-0">
+                <li class="breadcrumb-item"><a href='../sourcefile/out_stats.f90.html'>out_stats.f90</a></li>
+                <li class="breadcrumb-item"><a href='../module/stats.html'>stats</a></li>
+            <li class="breadcrumb-item active" aria-current="page">stats_write_jslice_ycoord</li>
+          </ol>
+        </nav>
+      </div>
+    </div>
+  </div>
+  <script>
+    // Enable Bootstrap tooltips
+    (function () {
+      const tooltipTriggerList = document.querySelectorAll('[data-bs-toggle="tooltip"]')
+      const tooltipList = [...tooltipTriggerList].map(tooltipTriggerEl => new bootstrap.Tooltip(tooltipTriggerEl))
+    })();
+  </script>
+
+  </div>
+  
+  <div class="row">
+    <div class="col-md-3 hidden-xs hidden-sm visible-md visible-lg">
+      <div id="sidebar">
+      <h3>Contents</h3>
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+    <div class="card card-primary">
+      <div class="card-header text-left"><h3 class="card-title">Source Code</h3></div>
+      <div class="list-group">
+        <a class="list-group-item" href="../proc/stats_write_jslice_ycoord.html#src">stats_write_jslice_ycoord</a>
+      </div>
+    </div>
+
+
+  </div>
+
+    </div>
+    
+    <div class="col-md-9" id='text'>
+    <h2>private  subroutine stats_write_jslice_ycoord(ncid)  
+</h2>
+    
+
+
+
+    <h3>Arguments</h3>
+        <table class="table table-striped varlist">
+    <thead>
+      <tr>
+        <th scope="col">Type</th>
+<th scope="col">Intent</th><th scope="col">Optional</th>        <th scope="col">Attributes</th>
+        <th scope="col"></th>
+        <th scope="col">Name</th>
+        <th scope="col"></th>
+    </thead>
+    <tbody>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-ncid~8"></span>
+              integer,
+            </td>
+<td>intent(in)</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>ncid</strong></td>
+            <td>
+                
+            </td>
+        </tr>
+    </tbody>
+  </table>
+
+    <br>
+    <div class="card">
+      <div class="card-header">
+  <h3 class="card-title">Calls</h3>
+      </div>
+      <div class="card-body">
+  <div class="depgraph"><?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
+ "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<!-- Generated by graphviz version 14.1.3 (0)
+ -->
+<!-- Title: proc~~stats_write_jslice_ycoord~~CallsGraph Pages: 1 -->
+<svg id="procstats_write_jslice_ycoordCallsGraph" width="276pt" height="284pt"
+ viewBox="0.00 0.00 276.00 284.00" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<g id="proc~~stats_write_jslice_ycoord~~CallsGraph" class="graph" transform="scale(1 1) rotate(0) translate(4 280.27)">
+<title>proc~~stats_write_jslice_ycoord~~CallsGraph</title>
+<polygon fill="white" stroke="none" points="-4,4 -4,-280.27 271.54,-280.27 271.54,4 -4,4"/>
+<!-- proc~stats_write_jslice_ycoord -->
+<g id="proc~~stats_write_jslice_ycoord~~CallsGraph_node1" class="node">
+<title>proc~stats_write_jslice_ycoord</title>
+<polygon fill="none" stroke="black" points="142.02,-150.27 0,-150.27 0,-126 142.02,-126 142.02,-150.27"/>
+<text xml:space="preserve" text-anchor="middle" x="71.01" y="-134.53" font-family="Helvetica,sans-Serif" font-size="10.50">stats_write_jslice_ycoord</text>
+</g>
+<!-- nf90_enddef -->
+<g id="proc~~stats_write_jslice_ycoord~~CallsGraph_node2" class="node">
+<title>nf90_enddef</title>
+<polygon fill="#777777" stroke="#777777" points="261.91,-276.27 183.64,-276.27 183.64,-252 261.91,-252 261.91,-276.27"/>
+<text xml:space="preserve" text-anchor="middle" x="222.78" y="-260.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">nf90_enddef</text>
+</g>
+<!-- proc~stats_write_jslice_ycoord&#45;&gt;nf90_enddef -->
+<g id="proc~~stats_write_jslice_ycoord~~CallsGraph_edge1" class="edge">
+<title>proc~stats_write_jslice_ycoord&#45;&gt;nf90_enddef</title>
+<path fill="none" stroke="#ff0000" d="M82.05,-150.49C99.7,-171.6 138.22,-215.08 178.02,-243.13 179.4,-244.11 180.83,-245.05 182.29,-245.98"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="180.56,-249.01 190.98,-250.91 184.01,-242.93 180.56,-249.01"/>
+</g>
+<!-- nf90_inq_varid -->
+<g id="proc~~stats_write_jslice_ycoord~~CallsGraph_node3" class="node">
+<title>nf90_inq_varid</title>
+<polygon fill="#777777" stroke="#777777" points="267.54,-234.27 178.02,-234.27 178.02,-210 267.54,-210 267.54,-234.27"/>
+<text xml:space="preserve" text-anchor="middle" x="222.78" y="-218.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">nf90_inq_varid</text>
+</g>
+<!-- proc~stats_write_jslice_ycoord&#45;&gt;nf90_inq_varid -->
+<g id="proc~~stats_write_jslice_ycoord~~CallsGraph_edge2" class="edge">
+<title>proc~stats_write_jslice_ycoord&#45;&gt;nf90_inq_varid</title>
+<path fill="none" stroke="#ff0000" d="M92.03,-150.75C113.12,-163.88 147.45,-184.76 178.02,-201.13 180.11,-202.25 182.27,-203.38 184.45,-204.5"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="182.88,-207.63 193.39,-208.95 186,-201.36 182.88,-207.63"/>
+</g>
+<!-- nf90_put_att -->
+<g id="proc~~stats_write_jslice_ycoord~~CallsGraph_node4" class="node">
+<title>nf90_put_att</title>
+<polygon fill="#777777" stroke="#777777" points="261.54,-192.27 184.02,-192.27 184.02,-168 261.54,-168 261.54,-192.27"/>
+<text xml:space="preserve" text-anchor="middle" x="222.78" y="-176.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">nf90_put_att</text>
+</g>
+<!-- proc~stats_write_jslice_ycoord&#45;&gt;nf90_put_att -->
+<g id="proc~~stats_write_jslice_ycoord~~CallsGraph_edge3" class="edge">
+<title>proc~stats_write_jslice_ycoord&#45;&gt;nf90_put_att</title>
+<path fill="none" stroke="#ff0000" d="M116.95,-150.74C134.64,-155.7 155.01,-161.41 173.06,-166.47"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="171.92,-169.79 182.49,-169.12 173.81,-163.05 171.92,-169.79"/>
+</g>
+<!-- nf90_put_var -->
+<g id="proc~~stats_write_jslice_ycoord~~CallsGraph_node5" class="node">
+<title>nf90_put_var</title>
+<polygon fill="#777777" stroke="#777777" points="263.04,-150.27 182.52,-150.27 182.52,-126 263.04,-126 263.04,-150.27"/>
+<text xml:space="preserve" text-anchor="middle" x="222.78" y="-134.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">nf90_put_var</text>
+</g>
+<!-- proc~stats_write_jslice_ycoord&#45;&gt;nf90_put_var -->
+<g id="proc~~stats_write_jslice_ycoord~~CallsGraph_edge4" class="edge">
+<title>proc~stats_write_jslice_ycoord&#45;&gt;nf90_put_var</title>
+<path fill="none" stroke="#ff0000" d="M142.51,-138.13C152.11,-138.13 161.81,-138.13 170.97,-138.13"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="170.73,-141.64 180.73,-138.14 170.73,-134.64 170.73,-141.64"/>
+</g>
+<!-- nf90_redef -->
+<g id="proc~~stats_write_jslice_ycoord~~CallsGraph_node6" class="node">
+<title>nf90_redef</title>
+<polygon fill="#777777" stroke="#777777" points="257.04,-108.27 188.52,-108.27 188.52,-84 257.04,-84 257.04,-108.27"/>
+<text xml:space="preserve" text-anchor="middle" x="222.78" y="-92.54" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">nf90_redef</text>
+</g>
+<!-- proc~stats_write_jslice_ycoord&#45;&gt;nf90_redef -->
+<g id="proc~~stats_write_jslice_ycoord~~CallsGraph_edge5" class="edge">
+<title>proc~stats_write_jslice_ycoord&#45;&gt;nf90_redef</title>
+<path fill="none" stroke="#ff0000" d="M116.95,-125.53C136.11,-120.16 158.4,-113.91 177.48,-108.56"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="178.16,-112 186.85,-105.93 176.27,-105.26 178.16,-112"/>
+</g>
+<!-- zend -->
+<g id="proc~~stats_write_jslice_ycoord~~CallsGraph_node7" class="node">
+<title>zend</title>
+<polygon fill="#777777" stroke="#777777" points="249.78,-66.27 195.78,-66.27 195.78,-42 249.78,-42 249.78,-66.27"/>
+<text xml:space="preserve" text-anchor="middle" x="222.78" y="-50.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">zend</text>
+</g>
+<!-- proc~stats_write_jslice_ycoord&#45;&gt;zend -->
+<g id="proc~~stats_write_jslice_ycoord~~CallsGraph_edge6" class="edge">
+<title>proc~stats_write_jslice_ycoord&#45;&gt;zend</title>
+<path fill="none" stroke="#ff0000" d="M92.03,-125.52C113.12,-112.39 147.45,-91.51 178.02,-75.14 180.4,-73.86 182.87,-72.57 185.37,-71.3"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="186.91,-74.44 194.32,-66.87 183.8,-68.17 186.91,-74.44"/>
+</g>
+<!-- zstart -->
+<g id="proc~~stats_write_jslice_ycoord~~CallsGraph_node8" class="node">
+<title>zstart</title>
+<polygon fill="#777777" stroke="#777777" points="249.78,-24.27 195.78,-24.27 195.78,0 249.78,0 249.78,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="222.78" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">zstart</text>
+</g>
+<!-- proc~stats_write_jslice_ycoord&#45;&gt;zstart -->
+<g id="proc~~stats_write_jslice_ycoord~~CallsGraph_edge7" class="edge">
+<title>proc~stats_write_jslice_ycoord&#45;&gt;zstart</title>
+<path fill="none" stroke="#ff0000" d="M82.05,-125.78C99.7,-104.67 138.22,-61.19 178.02,-33.13 180.37,-31.48 182.87,-29.89 185.44,-28.38"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="187.03,-31.5 194.19,-23.7 183.72,-25.33 187.03,-31.5"/>
+</g>
+</g>
+</svg>
+</div>          <div>
+            <a type="button" class="graph-help" data-bs-toggle="modal" href="#CallsGraph-help-text">Help</a>
+          </div>
+          <div class="modal fade" id="CallsGraph-help-text" tabindex="-1" role="dialog">
+            <div class="modal-dialog modal-lg" role="document">
+              <div class="modal-content">
+                <div class="modal-header">
+                  <h4 class="modal-title" id="-graph-help-label">Graph Key</h4>
+                  <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+<p>Nodes of different colours represent the following: </p>
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
+ "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<!-- Generated by graphviz version 14.1.3 (0)
+ -->
+<!-- Title: Graph Key Pages: 1 -->
+<svg width="641pt" height="28pt"
+ viewBox="0.00 0.00 641.00 28.00" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<g id="graph0" class="graph" transform="scale(0.873868 0.873868) rotate(0) translate(4 28.27)">
+<title>Graph Key</title>
+<polygon fill="white" stroke="none" points="-4,4 -4,-28.27 729.52,-28.27 729.52,4 -4,4"/>
+<!-- Subroutine -->
+<g id="node1" class="node">
+<title>Subroutine</title>
+<polygon fill="#d9534f" stroke="#d9534f" points="69.27,-24.27 0,-24.27 0,0 69.27,0 69.27,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="34.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Subroutine</text>
+</g>
+<!-- Function -->
+<g id="node2" class="node">
+<title>Function</title>
+<polygon fill="#d94e8f" stroke="#d94e8f" points="143.89,-24.27 87.38,-24.27 87.38,0 143.89,0 143.89,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="115.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Function</text>
+</g>
+<!-- Interface -->
+<g id="node3" class="node">
+<title>Interface</title>
+<polygon fill="#a7506f" stroke="#a7506f" points="221.39,-24.27 161.88,-24.27 161.88,0 221.39,0 221.39,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="191.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Interface</text>
+</g>
+<!-- Type Bound Procedure -->
+<g id="node4" class="node">
+<title>Type Bound Procedure</title>
+<polygon fill="#a7506f" stroke="#a7506f" points="368.27,-24.27 239,-24.27 239,0 368.27,0 368.27,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="303.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Type Bound Procedure</text>
+</g>
+<!-- Unknown Procedure Type -->
+<g id="node5" class="node">
+<title>Unknown Procedure Type</title>
+<polygon fill="#777777" stroke="#777777" points="529.39,-24.27 385.88,-24.27 385.88,0 529.39,0 529.39,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="457.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Unknown Procedure Type</text>
+</g>
+<!-- Program -->
+<g id="node6" class="node">
+<title>Program</title>
+<polygon fill="#f0ad4e" stroke="#f0ad4e" points="603.89,-24.27 547.38,-24.27 547.38,0 603.89,0 603.89,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="575.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Program</text>
+</g>
+<!-- This Page&#39;s Entity -->
+<g id="node7" class="node">
+<title>This Page&#39;s Entity</title>
+<polygon fill="none" stroke="black" points="725.52,-24.27 621.75,-24.27 621.75,0 725.52,0 725.52,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="673.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50">This Page&#39;s Entity</text>
+</g>
+</g>
+</svg>
+
+<p>Solid arrows point from a procedure to one which it calls. Dashed 
+arrows point from an interface to procedures which implement that interface.
+This could include the module procedures in a generic interface or the
+implementation in a submodule of an interface in a parent module.
+</p>
+ Where possible, edges connecting nodes are
+given different colours to make them easier to distinguish in
+large graphs.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-header">
+  <h3 class="card-title">Called by</h3>
+      </div>
+      <div class="card-body">
+  <div class="depgraph"><?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
+ "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<!-- Generated by graphviz version 14.1.3 (0)
+ -->
+<!-- Title: proc~~stats_write_jslice_ycoord~~CalledByGraph Pages: 1 -->
+<svg id="procstats_write_jslice_ycoordCalledByGraph" width="623pt" height="32pt"
+ viewBox="0.00 0.00 623.00 32.00" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<g id="proc~~stats_write_jslice_ycoord~~CalledByGraph" class="graph" transform="scale(1 1) rotate(0) translate(4 28.27)">
+<title>proc~~stats_write_jslice_ycoord~~CalledByGraph</title>
+<polygon fill="white" stroke="none" points="-4,4 -4,-28.27 619.33,-28.27 619.33,4 -4,4"/>
+<!-- proc~stats_write_jslice_ycoord -->
+<g id="proc~~stats_write_jslice_ycoord~~CalledByGraph_node1" class="node">
+<title>proc~stats_write_jslice_ycoord</title>
+<polygon fill="none" stroke="black" points="615.33,-24.27 473.31,-24.27 473.31,0 615.33,0 615.33,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="544.32" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50">stats_write_jslice_ycoord</text>
+</g>
+<!-- proc~stats_createnc_tjslice -->
+<g id="proc~~stats_write_jslice_ycoord~~CalledByGraph_node2" class="node">
+<title>proc~stats_createnc_tjslice</title>
+<g id="a_proc~~stats_write_jslice_ycoord~~CalledByGraph_node2"><a xlink:href="../proc/stats_createnc_tjslice.html" xlink:title="stats_createnc_tjslice">
+<polygon fill="#d9534f" stroke="#d9534f" points="437.31,-24.27 313.29,-24.27 313.29,0 437.31,0 437.31,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="375.3" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">stats_createnc_tjslice</text>
+</a>
+</g>
+</g>
+<!-- proc~stats_createnc_tjslice&#45;&gt;proc~stats_write_jslice_ycoord -->
+<g id="proc~~stats_write_jslice_ycoord~~CalledByGraph_edge1" class="edge">
+<title>proc~stats_createnc_tjslice&#45;&gt;proc~stats_write_jslice_ycoord</title>
+<path fill="none" stroke="#ff0000" d="M437.54,-12.13C445.39,-12.13 453.52,-12.13 461.63,-12.13"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="461.53,-15.64 471.53,-12.14 461.53,-8.64 461.53,-15.64"/>
+</g>
+<!-- proc~stats_prepare -->
+<g id="proc~~stats_write_jslice_ycoord~~CalledByGraph_node3" class="node">
+<title>proc~stats_prepare</title>
+<g id="a_proc~~stats_write_jslice_ycoord~~CalledByGraph_node3"><a xlink:href="../proc/stats_prepare.html" xlink:title="stats_prepare">
+<polygon fill="#d9534f" stroke="#d9534f" points="277.29,-24.27 194.52,-24.27 194.52,0 277.29,0 277.29,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="235.9" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">stats_prepare</text>
+</a>
+</g>
+</g>
+<!-- proc~stats_prepare&#45;&gt;proc~stats_createnc_tjslice -->
+<g id="proc~~stats_write_jslice_ycoord~~CalledByGraph_edge2" class="edge">
+<title>proc~stats_prepare&#45;&gt;proc~stats_createnc_tjslice</title>
+<path fill="none" stroke="#ff0000" d="M277.76,-12.13C285.28,-12.13 293.35,-12.13 301.49,-12.13"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="301.49,-15.64 311.49,-12.14 301.49,-8.64 301.49,-15.64"/>
+</g>
+<!-- proc~stats_main -->
+<g id="proc~~stats_write_jslice_ycoord~~CalledByGraph_node4" class="node">
+<title>proc~stats_main</title>
+<g id="a_proc~~stats_write_jslice_ycoord~~CalledByGraph_node4"><a xlink:href="../proc/stats_main.html" xlink:title="stats_main">
+<polygon fill="#d9534f" stroke="#d9534f" points="158.52,-24.27 90,-24.27 90,0 158.52,0 158.52,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="124.26" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">stats_main</text>
+</a>
+</g>
+</g>
+<!-- proc~stats_main&#45;&gt;proc~stats_prepare -->
+<g id="proc~~stats_write_jslice_ycoord~~CalledByGraph_edge3" class="edge">
+<title>proc~stats_main&#45;&gt;proc~stats_prepare</title>
+<path fill="none" stroke="#ff0000" d="M158.75,-12.13C166.37,-12.13 174.64,-12.13 182.83,-12.13"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="182.76,-15.64 192.76,-12.14 182.76,-8.64 182.76,-15.64"/>
+</g>
+<!-- program~udales -->
+<g id="proc~~stats_write_jslice_ycoord~~CalledByGraph_node5" class="node">
+<title>program~udales</title>
+<g id="a_proc~~stats_write_jslice_ycoord~~CalledByGraph_node5"><a xlink:href="../program/udales.html" xlink:title="uDALES">
+<polygon fill="#f0ad4e" stroke="#f0ad4e" points="54,-24.27 0,-24.27 0,0 54,0 54,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="27" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">uDALES</text>
+</a>
+</g>
+</g>
+<!-- program~udales&#45;&gt;proc~stats_main -->
+<g id="proc~~stats_write_jslice_ycoord~~CalledByGraph_edge4" class="edge">
+<title>program~udales&#45;&gt;proc~stats_main</title>
+<path fill="none" stroke="#ff0000" d="M54.28,-12.13C61.69,-12.13 69.97,-12.13 78.16,-12.13"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="78.04,-15.64 88.04,-12.14 78.04,-8.64 78.04,-15.64"/>
+</g>
+</g>
+</svg>
+</div>          <div>
+            <a type="button" class="graph-help" data-bs-toggle="modal" href="#CalledByGraph-help-text">Help</a>
+          </div>
+          <div class="modal fade" id="CalledByGraph-help-text" tabindex="-1" role="dialog">
+            <div class="modal-dialog modal-lg" role="document">
+              <div class="modal-content">
+                <div class="modal-header">
+                  <h4 class="modal-title" id="-graph-help-label">Graph Key</h4>
+                  <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+<p>Nodes of different colours represent the following: </p>
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
+ "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<!-- Generated by graphviz version 14.1.3 (0)
+ -->
+<!-- Title: Graph Key Pages: 1 -->
+<svg width="641pt" height="28pt"
+ viewBox="0.00 0.00 641.00 28.00" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<g id="graph0" class="graph" transform="scale(0.873868 0.873868) rotate(0) translate(4 28.27)">
+<title>Graph Key</title>
+<polygon fill="white" stroke="none" points="-4,4 -4,-28.27 729.52,-28.27 729.52,4 -4,4"/>
+<!-- Subroutine -->
+<g id="node1" class="node">
+<title>Subroutine</title>
+<polygon fill="#d9534f" stroke="#d9534f" points="69.27,-24.27 0,-24.27 0,0 69.27,0 69.27,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="34.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Subroutine</text>
+</g>
+<!-- Function -->
+<g id="node2" class="node">
+<title>Function</title>
+<polygon fill="#d94e8f" stroke="#d94e8f" points="143.89,-24.27 87.38,-24.27 87.38,0 143.89,0 143.89,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="115.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Function</text>
+</g>
+<!-- Interface -->
+<g id="node3" class="node">
+<title>Interface</title>
+<polygon fill="#a7506f" stroke="#a7506f" points="221.39,-24.27 161.88,-24.27 161.88,0 221.39,0 221.39,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="191.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Interface</text>
+</g>
+<!-- Type Bound Procedure -->
+<g id="node4" class="node">
+<title>Type Bound Procedure</title>
+<polygon fill="#a7506f" stroke="#a7506f" points="368.27,-24.27 239,-24.27 239,0 368.27,0 368.27,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="303.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Type Bound Procedure</text>
+</g>
+<!-- Unknown Procedure Type -->
+<g id="node5" class="node">
+<title>Unknown Procedure Type</title>
+<polygon fill="#777777" stroke="#777777" points="529.39,-24.27 385.88,-24.27 385.88,0 529.39,0 529.39,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="457.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Unknown Procedure Type</text>
+</g>
+<!-- Program -->
+<g id="node6" class="node">
+<title>Program</title>
+<polygon fill="#f0ad4e" stroke="#f0ad4e" points="603.89,-24.27 547.38,-24.27 547.38,0 603.89,0 603.89,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="575.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Program</text>
+</g>
+<!-- This Page&#39;s Entity -->
+<g id="node7" class="node">
+<title>This Page&#39;s Entity</title>
+<polygon fill="none" stroke="black" points="725.52,-24.27 621.75,-24.27 621.75,0 725.52,0 725.52,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="673.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50">This Page&#39;s Entity</text>
+</g>
+</g>
+</svg>
+
+<p>Solid arrows point from a procedure to one which it calls. Dashed 
+arrows point from an interface to procedures which implement that interface.
+This could include the module procedures in a generic interface or the
+implementation in a submodule of an interface in a parent module.
+</p>
+ Where possible, edges connecting nodes are
+given different colours to make them easier to distinguish in
+large graphs.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <br>
+
+
+    
+    
+
+    
+    
+
+
+
+    
+    <section>
+    <h2><span class="anchor" id="src"></span>Source Code</h2>
+    <div class="hl codehilite"><pre><span></span><span class="w">    </span><span class="k">subroutine </span><span class="n">stats_write_jslice_ycoord</span><span class="p">(</span><span class="n">ncid</span><span class="p">)</span>
+<span class="w">      </span><span class="k">implicit none</span>
+<span class="k">      </span><span class="kt">integer</span><span class="p">,</span><span class="w"> </span><span class="k">intent</span><span class="p">(</span><span class="n">in</span><span class="p">)</span><span class="w"> </span><span class="kd">::</span><span class="w"> </span><span class="n">ncid</span>
+<span class="w">      </span><span class="kt">integer</span><span class="w"> </span><span class="kd">::</span><span class="w"> </span><span class="n">varid</span><span class="p">,</span><span class="w"> </span><span class="n">ierr</span><span class="p">,</span><span class="w"> </span><span class="n">j</span><span class="p">,</span><span class="w"> </span><span class="n">m</span>
+<span class="w">      </span><span class="kt">real</span><span class="w">    </span><span class="kd">::</span><span class="w"> </span><span class="n">ycf</span><span class="p">(</span><span class="n">local_ntjslice</span><span class="p">),</span><span class="w"> </span><span class="n">ych</span><span class="p">(</span><span class="n">local_ntjslice</span><span class="p">)</span>
+<span class="w">      </span><span class="kt">integer</span><span class="w"> </span><span class="kd">::</span><span class="w"> </span><span class="n">idx</span><span class="p">(</span><span class="n">local_ntjslice</span><span class="p">)</span>
+<span class="w">      </span><span class="n">m</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span>
+<span class="w">      </span><span class="k">do </span><span class="n">j</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="n">njslice</span>
+<span class="w">        </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">jslice</span><span class="p">(</span><span class="n">j</span><span class="p">)</span><span class="w"> </span><span class="o">&gt;=</span><span class="w"> </span><span class="n">zstart</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span><span class="w"> </span><span class="p">.</span><span class="nb">and</span><span class="p">.</span><span class="w"> </span><span class="n">jslice</span><span class="p">(</span><span class="n">j</span><span class="p">)</span><span class="w"> </span><span class="o">&lt;=</span><span class="w"> </span><span class="n">zend</span><span class="p">(</span><span class="mi">2</span><span class="p">))</span><span class="w"> </span><span class="k">then</span>
+<span class="k">          </span><span class="n">m</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">m</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span>
+<span class="w">          </span><span class="n">ycf</span><span class="p">(</span><span class="n">m</span><span class="p">)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">yf</span><span class="p">(</span><span class="n">jslice</span><span class="p">(</span><span class="n">j</span><span class="p">));</span><span class="w"> </span><span class="n">ych</span><span class="p">(</span><span class="n">m</span><span class="p">)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">yh</span><span class="p">(</span><span class="n">jslice</span><span class="p">(</span><span class="n">j</span><span class="p">));</span><span class="w"> </span><span class="n">idx</span><span class="p">(</span><span class="n">m</span><span class="p">)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">jslice</span><span class="p">(</span><span class="n">j</span><span class="p">)</span>
+<span class="w">        </span><span class="k">end if</span>
+<span class="k">      end do</span>
+<span class="k">      </span><span class="n">ierr</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">nf90_inq_varid</span><span class="p">(</span><span class="n">ncid</span><span class="p">,</span><span class="w"> </span><span class="s1">'yt'</span><span class="p">,</span><span class="w"> </span><span class="n">varid</span><span class="p">)</span>
+<span class="w">      </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">ierr</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="n">nf90_noerr</span><span class="p">)</span><span class="w"> </span><span class="k">then</span>
+<span class="k">        </span><span class="n">ierr</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">nf90_redef</span><span class="p">(</span><span class="n">ncid</span><span class="p">)</span>
+<span class="w">        </span><span class="n">ierr</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">nf90_put_att</span><span class="p">(</span><span class="n">ncid</span><span class="p">,</span><span class="w"> </span><span class="n">varid</span><span class="p">,</span><span class="w"> </span><span class="s1">'jslice_indices'</span><span class="p">,</span><span class="w"> </span><span class="n">idx</span><span class="p">)</span>
+<span class="w">        </span><span class="n">ierr</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">nf90_put_att</span><span class="p">(</span><span class="n">ncid</span><span class="p">,</span><span class="w"> </span><span class="n">varid</span><span class="p">,</span><span class="w"> </span><span class="s1">'long_name'</span><span class="p">,</span><span class="w"> </span><span class="s1">'y-coordinate of j-slices (cell center)'</span><span class="p">)</span>
+<span class="w">        </span><span class="n">ierr</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">nf90_enddef</span><span class="p">(</span><span class="n">ncid</span><span class="p">)</span>
+<span class="w">        </span><span class="n">ierr</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">nf90_put_var</span><span class="p">(</span><span class="n">ncid</span><span class="p">,</span><span class="w"> </span><span class="n">varid</span><span class="p">,</span><span class="w"> </span><span class="n">ycf</span><span class="p">)</span>
+<span class="w">      </span><span class="k">end if</span>
+<span class="k">      </span><span class="n">ierr</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">nf90_inq_varid</span><span class="p">(</span><span class="n">ncid</span><span class="p">,</span><span class="w"> </span><span class="s1">'ym'</span><span class="p">,</span><span class="w"> </span><span class="n">varid</span><span class="p">)</span>
+<span class="w">      </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">ierr</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="n">nf90_noerr</span><span class="p">)</span><span class="w"> </span><span class="k">then</span>
+<span class="k">        </span><span class="n">ierr</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">nf90_redef</span><span class="p">(</span><span class="n">ncid</span><span class="p">)</span>
+<span class="w">        </span><span class="n">ierr</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">nf90_put_att</span><span class="p">(</span><span class="n">ncid</span><span class="p">,</span><span class="w"> </span><span class="n">varid</span><span class="p">,</span><span class="w"> </span><span class="s1">'jslice_indices'</span><span class="p">,</span><span class="w"> </span><span class="n">idx</span><span class="p">)</span>
+<span class="w">        </span><span class="n">ierr</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">nf90_put_att</span><span class="p">(</span><span class="n">ncid</span><span class="p">,</span><span class="w"> </span><span class="n">varid</span><span class="p">,</span><span class="w"> </span><span class="s1">'long_name'</span><span class="p">,</span><span class="w"> </span><span class="s1">'y-coordinate of j-slices (cell edge)'</span><span class="p">)</span>
+<span class="w">        </span><span class="n">ierr</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">nf90_enddef</span><span class="p">(</span><span class="n">ncid</span><span class="p">)</span>
+<span class="w">        </span><span class="n">ierr</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">nf90_put_var</span><span class="p">(</span><span class="n">ncid</span><span class="p">,</span><span class="w"> </span><span class="n">varid</span><span class="p">,</span><span class="w"> </span><span class="n">ych</span><span class="p">)</span>
+<span class="w">      </span><span class="k">end if</span>
+<span class="k">    end subroutine </span><span class="n">stats_write_jslice_ycoord</span>
+</pre></div>
+
+    </section>
+    <br>
+    
+    </div>
+  </div>
+
+      <hr>
+    </div> <!-- /container -->
+    <footer>
+      <div class="container">
+        <div class="row justify-content-between">
+          <div class="col">
+            <p>
+              uDALES
+ was developed by The uDALES Team<br>              &copy; 2026 
+</p>
+          </div>
+          <div class="col">
+            <p class="text-end">
+              Documentation generated by
+              <a href="https://github.com/Fortran-FOSS-Programmers/ford">FORD</a>
+ on 2026-11-27 14:34 +0000             </p>
+          </div>
+        </div>
+        <br>
+      </div> <!-- /container -->
+    </footer>
+  </body>
+</html>

@@ -1,0 +1,879 @@
+<!-- -*- mode: jinja2 -*- -->
+
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+      <meta name="description" content="API documentation of the Fortran source code of uDALES, the open-source multi-physics large-eddy simulation model for urban environments.">
+    <meta name="author" content="The uDALES Team" >
+    <link rel="icon" href="../favicon.png">
+
+    <title>stats_compute_tavg &ndash; uDALES</title>
+
+    <!-- Bootstrap -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet"
+          integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"
+            integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
+    <!-- Font Awesome -->
+    <link href="../css/fontawesome.min.css" rel="stylesheet">
+    <link href="../css/brands.min.css" rel="stylesheet">
+    <link href="../css/regular.min.css" rel="stylesheet">
+    <link href="../css/solid.min.css" rel="stylesheet">
+    <link href="../css/v4-font-face.min.css" rel="stylesheet">
+    <link href="../css/v4-shims.min.css" rel="stylesheet">
+    <!-- MathJax -->
+    <script type="text/x-mathjax-config">
+      MathJax.Hub.Config({
+        TeX: { equationNumbers: { autoNumber: "AMS" } }
+      });
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/mathjax@2.7.9/MathJax.js?config=TeX-AMS-MML_HTMLorMML" async
+            integrity="sha256-DViIOMYdwlM/axqoGDPeUyf0urLoHMN4QACBKyB58Uw=" crossorigin="anonymous"></script>
+    <!-- Other scripts and stylesheets -->
+    <link href="../css/local.css" rel="stylesheet">
+    <link href="../css/pygments.css" rel="stylesheet">
+    <script src="../js/svg-pan-zoom.min.js"></script>
+  </head>
+
+  <body>
+
+    <!-- Fixed navbar -->
+    <div class="container-fluid mb-sm-4 mb-xl-2">
+      <nav class="navbar navbar-expand-lg navbar-dark bg-dark fixed-top">
+        <div class="container">
+          <a class="navbar-brand" href="../index.html">uDALES </a>
+          <button type="button" class="navbar-toggler" data-bs-toggle="collapse" data-bs-target="#navbar"
+                  aria-expanded="false" aria-controls="navbar" aria-label="Toggle navigation">
+                  <span class="navbar-toggler-icon">
+          </button>
+
+          <div id="navbar" class="navbar-collapse collapse">
+            <ul class="navbar-nav">
+                  <li class="nav-item">
+                    <a class="nav-link" href="../lists/files.html">Source Files</a>
+                  </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="../lists/modules.html">Modules</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="../lists/procedures.html">Procedures</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="../lists/absint.html">Abstract Interfaces</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="../lists/types.html">Derived Types</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="../lists/namelists.html">Namelists</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="../program/udales.html">Program</a>
+                </li>
+            </ul>
+              <div class="d-flex align-items-end flex-grow-1">
+                <form action="../search.html" role="search" class="ms-auto">
+                  <input type="text" class="form-control" aria-label="Search" placeholder="Search" name="q" id="tipue_search_input" autocomplete="off" required>
+                </form>
+              </div>
+          </div><!--/.nav-collapse -->
+        </div>
+      </nav>
+    </div>
+
+    <div class="container">
+  <div class="row">
+    <h1>stats_compute_tavg
+      <small>Interface</small>
+      
+    </h1>
+      <div class="container p-2 mb-4 bg-light border rounded-3">
+    <div class="row align-items-center justify-content-between" id="info-bar">
+      <div class="col">
+        <ul class="list-inline" style="margin-bottom:0px;display:inline">
+
+            <li class="list-inline-item" id="statements"><i class="fa fa-list-ol"></i>
+              <a data-bs-toggle="tooltip" data-bs-placement="bottom" data-bs-html="true"
+                 title="<p> 0.0% of total for procedures.</p>Including implementation: 23 statements,  0.1% of total for procedures.">5 statements</a>
+            </li>
+
+            <li class="list-inline-item" id="source-file">
+              <i class="fa fa-code"></i>
+              <a href="../src/out_stats.f90"> Source File</a>
+            </li>
+        </ul>
+      </div>
+      <div class="col">
+        <nav aria-label="breadcrumb">
+          <ol class="breadcrumb justify-content-end mb-0">
+                <li class="breadcrumb-item"><a href='../sourcefile/out_stats.f90.html'>out_stats.f90</a></li>
+                <li class="breadcrumb-item"><a href='../module/stats.html'>stats</a></li>
+            <li class="breadcrumb-item active" aria-current="page">stats_compute_tavg</li>
+          </ol>
+        </nav>
+      </div>
+    </div>
+  </div>
+  <script>
+    // Enable Bootstrap tooltips
+    (function () {
+      const tooltipTriggerList = document.querySelectorAll('[data-bs-toggle="tooltip"]')
+      const tooltipList = [...tooltipTriggerList].map(tooltipTriggerEl => new bootstrap.Tooltip(tooltipTriggerEl))
+    })();
+  </script>
+
+  </div>
+
+  <div class="row">
+    <div class="col-md-3 hidden-xs hidden-sm visible-md visible-lg">
+        <div id="sidebar">
+      <h3>Contents</h3>
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+      <div class="card mb-4">
+      <a data-bs-toggle="collapse" href="#modprocs-0"
+         aria-expanded="false" aria-controls="modprocs-0">
+         <h4 class="card-header bg-primary text-white">Module Procedures</h4>
+      </a>
+      <div id="modprocs-0" class="collapse">
+        <div class="list-group list-group-flush">
+            <a class="list-group-item" href="../interface/stats_compute_tavg.html#moduleprocedure-stats_compute_tavg_1d">stats_compute_tavg_1D</a>
+            <a class="list-group-item" href="../interface/stats_compute_tavg.html#moduleprocedure-stats_compute_tavg_2d">stats_compute_tavg_2D</a>
+            <a class="list-group-item" href="../interface/stats_compute_tavg.html#moduleprocedure-stats_compute_tavg_3d">stats_compute_tavg_3D</a>
+        </div>
+      </div>
+    </div>
+
+  
+
+
+  </div>
+
+    </div>
+
+    <div class="col-md-9" id='text'>
+      <h2>private interface stats_compute_tavg</h2>
+      
+        <div class="card">
+          <div class="card-header">
+            <h3 class="card-title">Calls</h3>
+          </div>
+          <div class="card-body">
+            <div class="depgraph"><?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
+ "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<!-- Generated by graphviz version 14.1.3 (0)
+ -->
+<!-- Title: interface~~stats_compute_tavg~~CallsGraph Pages: 1 -->
+<svg id="interfacestats_compute_tavgCallsGraph" width="299pt" height="116pt"
+ viewBox="0.00 0.00 299.00 116.00" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<g id="interface~~stats_compute_tavg~~CallsGraph" class="graph" transform="scale(1 1) rotate(0) translate(4 112.27)">
+<title>interface~~stats_compute_tavg~~CallsGraph</title>
+<polygon fill="white" stroke="none" points="-4,4 -4,-112.27 294.79,-112.27 294.79,4 -4,4"/>
+<!-- interface~stats_compute_tavg -->
+<g id="interface~~stats_compute_tavg~~CallsGraph_node1" class="node">
+<title>interface~stats_compute_tavg</title>
+<polygon fill="none" stroke="black" points="117.27,-66.27 0,-66.27 0,-42 117.27,-42 117.27,-66.27"/>
+<text xml:space="preserve" text-anchor="middle" x="58.63" y="-50.53" font-family="Helvetica,sans-Serif" font-size="10.50">stats_compute_tavg</text>
+</g>
+<!-- proc~stats_compute_tavg_1d -->
+<g id="interface~~stats_compute_tavg~~CallsGraph_node2" class="node">
+<title>proc~stats_compute_tavg_1d</title>
+<g id="a_interface~~stats_compute_tavg~~CallsGraph_node2"><a xlink:href="../proc/stats_compute_tavg_1d.html" xlink:title="stats_compute_tavg_1D">
+<polygon fill="#d9534f" stroke="#d9534f" points="290.79,-108.27 153.27,-108.27 153.27,-84 290.79,-84 290.79,-108.27"/>
+<text xml:space="preserve" text-anchor="middle" x="222.03" y="-92.54" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">stats_compute_tavg_1D</text>
+</a>
+</g>
+</g>
+<!-- interface~stats_compute_tavg&#45;&gt;proc~stats_compute_tavg_1d -->
+<g id="interface~~stats_compute_tavg~~CallsGraph_edge1" class="edge">
+<title>interface~stats_compute_tavg&#45;&gt;proc~stats_compute_tavg_1d</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M108.06,-66.74C124.9,-71.12 143.98,-76.08 161.6,-80.67"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="160.62,-84.03 171.18,-83.16 162.38,-77.26 160.62,-84.03"/>
+</g>
+<!-- proc~stats_compute_tavg_2d -->
+<g id="interface~~stats_compute_tavg~~CallsGraph_node3" class="node">
+<title>proc~stats_compute_tavg_2d</title>
+<g id="a_interface~~stats_compute_tavg~~CallsGraph_node3"><a xlink:href="../proc/stats_compute_tavg_2d.html" xlink:title="stats_compute_tavg_2D">
+<polygon fill="#d9534f" stroke="#d9534f" points="290.79,-66.27 153.27,-66.27 153.27,-42 290.79,-42 290.79,-66.27"/>
+<text xml:space="preserve" text-anchor="middle" x="222.03" y="-50.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">stats_compute_tavg_2D</text>
+</a>
+</g>
+</g>
+<!-- interface~stats_compute_tavg&#45;&gt;proc~stats_compute_tavg_2d -->
+<g id="interface~~stats_compute_tavg~~CallsGraph_edge2" class="edge">
+<title>interface~stats_compute_tavg&#45;&gt;proc~stats_compute_tavg_2d</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M117.45,-54.13C125.25,-54.13 133.37,-54.13 141.48,-54.13"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="141.38,-57.64 151.38,-54.14 141.38,-50.64 141.38,-57.64"/>
+</g>
+<!-- proc~stats_compute_tavg_3d -->
+<g id="interface~~stats_compute_tavg~~CallsGraph_node4" class="node">
+<title>proc~stats_compute_tavg_3d</title>
+<g id="a_interface~~stats_compute_tavg~~CallsGraph_node4"><a xlink:href="../proc/stats_compute_tavg_3d.html" xlink:title="stats_compute_tavg_3D">
+<polygon fill="#d9534f" stroke="#d9534f" points="290.79,-24.27 153.27,-24.27 153.27,0 290.79,0 290.79,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="222.03" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">stats_compute_tavg_3D</text>
+</a>
+</g>
+</g>
+<!-- interface~stats_compute_tavg&#45;&gt;proc~stats_compute_tavg_3d -->
+<g id="interface~~stats_compute_tavg~~CallsGraph_edge3" class="edge">
+<title>interface~stats_compute_tavg&#45;&gt;proc~stats_compute_tavg_3d</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M108.06,-41.53C124.9,-37.15 143.98,-32.19 161.6,-27.6"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="162.38,-31.01 171.18,-25.11 160.62,-24.24 162.38,-31.01"/>
+</g>
+</g>
+</svg>
+</div>          <div>
+            <a type="button" class="graph-help" data-bs-toggle="modal" href="#CallsGraph-help-text">Help</a>
+          </div>
+          <div class="modal fade" id="CallsGraph-help-text" tabindex="-1" role="dialog">
+            <div class="modal-dialog modal-lg" role="document">
+              <div class="modal-content">
+                <div class="modal-header">
+                  <h4 class="modal-title" id="-graph-help-label">Graph Key</h4>
+                  <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+<p>Nodes of different colours represent the following: </p>
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
+ "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<!-- Generated by graphviz version 14.1.3 (0)
+ -->
+<!-- Title: Graph Key Pages: 1 -->
+<svg width="641pt" height="28pt"
+ viewBox="0.00 0.00 641.00 28.00" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<g id="graph0" class="graph" transform="scale(0.873868 0.873868) rotate(0) translate(4 28.27)">
+<title>Graph Key</title>
+<polygon fill="white" stroke="none" points="-4,4 -4,-28.27 729.52,-28.27 729.52,4 -4,4"/>
+<!-- Subroutine -->
+<g id="node1" class="node">
+<title>Subroutine</title>
+<polygon fill="#d9534f" stroke="#d9534f" points="69.27,-24.27 0,-24.27 0,0 69.27,0 69.27,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="34.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Subroutine</text>
+</g>
+<!-- Function -->
+<g id="node2" class="node">
+<title>Function</title>
+<polygon fill="#d94e8f" stroke="#d94e8f" points="143.89,-24.27 87.38,-24.27 87.38,0 143.89,0 143.89,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="115.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Function</text>
+</g>
+<!-- Interface -->
+<g id="node3" class="node">
+<title>Interface</title>
+<polygon fill="#a7506f" stroke="#a7506f" points="221.39,-24.27 161.88,-24.27 161.88,0 221.39,0 221.39,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="191.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Interface</text>
+</g>
+<!-- Type Bound Procedure -->
+<g id="node4" class="node">
+<title>Type Bound Procedure</title>
+<polygon fill="#a7506f" stroke="#a7506f" points="368.27,-24.27 239,-24.27 239,0 368.27,0 368.27,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="303.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Type Bound Procedure</text>
+</g>
+<!-- Unknown Procedure Type -->
+<g id="node5" class="node">
+<title>Unknown Procedure Type</title>
+<polygon fill="#777777" stroke="#777777" points="529.39,-24.27 385.88,-24.27 385.88,0 529.39,0 529.39,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="457.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Unknown Procedure Type</text>
+</g>
+<!-- Program -->
+<g id="node6" class="node">
+<title>Program</title>
+<polygon fill="#f0ad4e" stroke="#f0ad4e" points="603.89,-24.27 547.38,-24.27 547.38,0 603.89,0 603.89,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="575.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Program</text>
+</g>
+<!-- This Page&#39;s Entity -->
+<g id="node7" class="node">
+<title>This Page&#39;s Entity</title>
+<polygon fill="none" stroke="black" points="725.52,-24.27 621.75,-24.27 621.75,0 725.52,0 725.52,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="673.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50">This Page&#39;s Entity</text>
+</g>
+</g>
+</svg>
+
+<p>Solid arrows point from a procedure to one which it calls. Dashed 
+arrows point from an interface to procedures which implement that interface.
+This could include the module procedures in a generic interface or the
+implementation in a submodule of an interface in a parent module.
+</p>
+ Where possible, edges connecting nodes are
+given different colours to make them easier to distinguish in
+large graphs.</div>
+            </div>
+          </div>
+        </div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-header">
+            <h3 class="card-title">Called by</h3>
+          </div>
+          <div class="card-body">
+            <div class="depgraph"><?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
+ "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<!-- Generated by graphviz version 14.1.3 (0)
+ -->
+<!-- Title: interface~~stats_compute_tavg~~CalledByGraph Pages: 1 -->
+<svg id="interfacestats_compute_tavgCalledByGraph" width="570pt" height="452pt"
+ viewBox="0.00 0.00 570.00 452.00" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<g id="interface~~stats_compute_tavg~~CalledByGraph" class="graph" transform="scale(1 1) rotate(0) translate(4 448.27)">
+<title>interface~~stats_compute_tavg~~CalledByGraph</title>
+<polygon fill="white" stroke="none" points="-4,4 -4,-448.27 565.81,-448.27 565.81,4 -4,4"/>
+<!-- interface~stats_compute_tavg -->
+<g id="interface~~stats_compute_tavg~~CalledByGraph_node1" class="node">
+<title>interface~stats_compute_tavg</title>
+<polygon fill="none" stroke="black" points="561.81,-234.27 444.54,-234.27 444.54,-210 561.81,-210 561.81,-234.27"/>
+<text xml:space="preserve" text-anchor="middle" x="503.18" y="-218.53" font-family="Helvetica,sans-Serif" font-size="10.50">stats_compute_tavg</text>
+</g>
+<!-- proc~stats_compute_tavg_moist -->
+<g id="interface~~stats_compute_tavg~~CalledByGraph_node2" class="node">
+<title>proc~stats_compute_tavg_moist</title>
+<g id="a_interface~~stats_compute_tavg~~CalledByGraph_node2"><a xlink:href="../proc/stats_compute_tavg_moist.html" xlink:title="stats_compute_tavg_moist">
+<polygon fill="#d9534f" stroke="#d9534f" points="377.42,-444.27 225.65,-444.27 225.65,-420 377.42,-420 377.42,-444.27"/>
+<text xml:space="preserve" text-anchor="middle" x="301.53" y="-428.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">stats_compute_tavg_moist</text>
+</a>
+</g>
+</g>
+<!-- proc~stats_compute_tavg_moist&#45;&gt;interface~stats_compute_tavg -->
+<g id="interface~~stats_compute_tavg~~CalledByGraph_edge1" class="edge">
+<title>proc~stats_compute_tavg_moist&#45;&gt;interface~stats_compute_tavg</title>
+<path fill="none" stroke="#ff0000" d="M377.8,-426.17C388.85,-422.84 399.53,-418.03 408.54,-411.13 463.36,-369.19 488.21,-286.54 497.51,-245.88"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="500.92,-246.69 499.6,-236.17 494.07,-245.22 500.92,-246.69"/>
+</g>
+<!-- proc~stats_compute_tavg_pedestrian_wind -->
+<g id="interface~~stats_compute_tavg~~CalledByGraph_node3" class="node">
+<title>proc~stats_compute_tavg_pedestrian_wind</title>
+<g id="a_interface~~stats_compute_tavg~~CalledByGraph_node3"><a xlink:href="../proc/stats_compute_tavg_pedestrian_wind.html" xlink:title="stats_compute_tavg_pedestrian_wind">
+<polygon fill="#d9534f" stroke="#d9534f" points="406.29,-402.27 196.77,-402.27 196.77,-378 406.29,-378 406.29,-402.27"/>
+<text xml:space="preserve" text-anchor="middle" x="301.53" y="-386.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">stats_compute_tavg_pedestrian_wind</text>
+</a>
+</g>
+</g>
+<!-- proc~stats_compute_tavg_pedestrian_wind&#45;&gt;interface~stats_compute_tavg -->
+<g id="interface~~stats_compute_tavg~~CalledByGraph_edge2" class="edge">
+<title>proc~stats_compute_tavg_pedestrian_wind&#45;&gt;interface~stats_compute_tavg</title>
+<path fill="none" stroke="#ff0000" d="M393.13,-377.59C398.55,-375.21 403.74,-372.42 408.54,-369.13 453.68,-338.28 481.75,-277.75 494.35,-244.8"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="497.49,-246.41 497.65,-235.81 490.92,-244 497.49,-246.41"/>
+</g>
+<!-- proc~stats_compute_tavg_pss -->
+<g id="interface~~stats_compute_tavg~~CalledByGraph_node4" class="node">
+<title>proc~stats_compute_tavg_pss</title>
+<g id="a_interface~~stats_compute_tavg~~CalledByGraph_node4"><a xlink:href="../proc/stats_compute_tavg_pss.html" xlink:title="stats_compute_tavg_PSS">
+<polygon fill="#d9534f" stroke="#d9534f" points="372.54,-360.27 230.52,-360.27 230.52,-336 372.54,-336 372.54,-360.27"/>
+<text xml:space="preserve" text-anchor="middle" x="301.53" y="-344.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">stats_compute_tavg_PSS</text>
+</a>
+</g>
+</g>
+<!-- proc~stats_compute_tavg_pss&#45;&gt;interface~stats_compute_tavg -->
+<g id="interface~~stats_compute_tavg~~CalledByGraph_edge3" class="edge">
+<title>proc~stats_compute_tavg_pss&#45;&gt;interface~stats_compute_tavg</title>
+<path fill="none" stroke="#ff0000" d="M372.99,-340.82C385.35,-337.72 397.71,-333.32 408.54,-327.13 443.98,-306.89 473.06,-268.33 488.97,-243.99"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="491.76,-246.13 494.16,-235.81 485.85,-242.38 491.76,-246.13"/>
+</g>
+<!-- proc~stats_compute_tavg_relative_humidity -->
+<g id="interface~~stats_compute_tavg~~CalledByGraph_node5" class="node">
+<title>proc~stats_compute_tavg_relative_humidity</title>
+<g id="a_interface~~stats_compute_tavg~~CalledByGraph_node5"><a xlink:href="../proc/stats_compute_tavg_relative_humidity.html" xlink:title="stats_compute_tavg_relative_humidity">
+<polygon fill="#d9534f" stroke="#d9534f" points="408.54,-318.27 194.52,-318.27 194.52,-294 408.54,-294 408.54,-318.27"/>
+<text xml:space="preserve" text-anchor="middle" x="301.53" y="-302.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">stats_compute_tavg_relative_humidity</text>
+</a>
+</g>
+</g>
+<!-- proc~stats_compute_tavg_relative_humidity&#45;&gt;interface~stats_compute_tavg -->
+<g id="interface~~stats_compute_tavg~~CalledByGraph_edge4" class="edge">
+<title>proc~stats_compute_tavg_relative_humidity&#45;&gt;interface~stats_compute_tavg</title>
+<path fill="none" stroke="#ff0000" d="M383.69,-293.54C392.23,-291.19 400.66,-288.41 408.54,-285.13 434.58,-274.31 460.93,-255.75 479.02,-241.57"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="480.89,-244.55 486.5,-235.56 476.51,-239.09 480.89,-244.55"/>
+</g>
+<!-- proc~stats_compute_tavg_scalar -->
+<g id="interface~~stats_compute_tavg~~CalledByGraph_node6" class="node">
+<title>proc~stats_compute_tavg_scalar</title>
+<g id="a_interface~~stats_compute_tavg~~CalledByGraph_node6"><a xlink:href="../proc/stats_compute_tavg_scalar.html" xlink:title="stats_compute_tavg_scalar">
+<polygon fill="#d9534f" stroke="#d9534f" points="378.92,-276.27 224.15,-276.27 224.15,-252 378.92,-252 378.92,-276.27"/>
+<text xml:space="preserve" text-anchor="middle" x="301.53" y="-260.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">stats_compute_tavg_scalar</text>
+</a>
+</g>
+</g>
+<!-- proc~stats_compute_tavg_scalar&#45;&gt;interface~stats_compute_tavg -->
+<g id="interface~~stats_compute_tavg~~CalledByGraph_edge5" class="edge">
+<title>proc~stats_compute_tavg_scalar&#45;&gt;interface~stats_compute_tavg</title>
+<path fill="none" stroke="#ff0000" d="M367.62,-251.51C381.15,-248.81 395.32,-245.93 408.54,-243.13 417.46,-241.25 426.85,-239.21 436.1,-237.17"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="436.79,-240.6 445.79,-235.02 435.27,-233.77 436.79,-240.6"/>
+</g>
+<!-- proc~stats_compute_tavg_temp -->
+<g id="interface~~stats_compute_tavg~~CalledByGraph_node7" class="node">
+<title>proc~stats_compute_tavg_temp</title>
+<g id="a_interface~~stats_compute_tavg~~CalledByGraph_node7"><a xlink:href="../proc/stats_compute_tavg_temp.html" xlink:title="stats_compute_tavg_temp">
+<polygon fill="#d9534f" stroke="#d9534f" points="376.67,-234.27 226.4,-234.27 226.4,-210 376.67,-210 376.67,-234.27"/>
+<text xml:space="preserve" text-anchor="middle" x="301.53" y="-218.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">stats_compute_tavg_temp</text>
+</a>
+</g>
+</g>
+<!-- proc~stats_compute_tavg_temp&#45;&gt;interface~stats_compute_tavg -->
+<g id="interface~~stats_compute_tavg~~CalledByGraph_edge6" class="edge">
+<title>proc~stats_compute_tavg_temp&#45;&gt;interface~stats_compute_tavg</title>
+<path fill="none" stroke="#ff0000" d="M377.15,-222.13C395.41,-222.13 414.87,-222.13 432.87,-222.13"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="432.64,-225.64 442.64,-222.14 432.64,-218.64 432.64,-225.64"/>
+</g>
+<!-- proc~stats_compute_tavg_vel -->
+<g id="interface~~stats_compute_tavg~~CalledByGraph_node8" class="node">
+<title>proc~stats_compute_tavg_vel</title>
+<g id="a_interface~~stats_compute_tavg~~CalledByGraph_node8"><a xlink:href="../proc/stats_compute_tavg_vel.html" xlink:title="stats_compute_tavg_vel">
+<polygon fill="#d9534f" stroke="#d9534f" points="370.67,-192.27 232.4,-192.27 232.4,-168 370.67,-168 370.67,-192.27"/>
+<text xml:space="preserve" text-anchor="middle" x="301.53" y="-176.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">stats_compute_tavg_vel</text>
+</a>
+</g>
+</g>
+<!-- proc~stats_compute_tavg_vel&#45;&gt;interface~stats_compute_tavg -->
+<g id="interface~~stats_compute_tavg~~CalledByGraph_edge7" class="edge">
+<title>proc~stats_compute_tavg_vel&#45;&gt;interface~stats_compute_tavg</title>
+<path fill="none" stroke="#ff0000" d="M367.62,-192.76C381.15,-195.46 395.32,-198.34 408.54,-201.13 417.46,-203.02 426.85,-205.06 436.1,-207.1"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="435.27,-210.5 445.79,-209.25 436.79,-203.67 435.27,-210.5"/>
+</g>
+<!-- proc~stats_compute_tree_moist -->
+<g id="interface~~stats_compute_tavg~~CalledByGraph_node9" class="node">
+<title>proc~stats_compute_tree_moist</title>
+<g id="a_interface~~stats_compute_tavg~~CalledByGraph_node9"><a xlink:href="../proc/stats_compute_tree_moist.html" xlink:title="stats_compute_tree_moist">
+<polygon fill="#d9534f" stroke="#d9534f" points="376.29,-150.27 226.77,-150.27 226.77,-126 376.29,-126 376.29,-150.27"/>
+<text xml:space="preserve" text-anchor="middle" x="301.53" y="-134.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">stats_compute_tree_moist</text>
+</a>
+</g>
+</g>
+<!-- proc~stats_compute_tree_moist&#45;&gt;interface~stats_compute_tavg -->
+<g id="interface~~stats_compute_tavg~~CalledByGraph_edge8" class="edge">
+<title>proc~stats_compute_tree_moist&#45;&gt;interface~stats_compute_tavg</title>
+<path fill="none" stroke="#ff0000" d="M376.65,-148.89C387.55,-151.6 398.49,-154.96 408.54,-159.13 434.58,-169.96 460.93,-188.52 479.02,-202.7"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="476.51,-205.18 486.5,-208.71 480.89,-199.72 476.51,-205.18"/>
+</g>
+<!-- proc~stats_compute_tree_scalar -->
+<g id="interface~~stats_compute_tavg~~CalledByGraph_node10" class="node">
+<title>proc~stats_compute_tree_scalar</title>
+<g id="a_interface~~stats_compute_tavg~~CalledByGraph_node10"><a xlink:href="../proc/stats_compute_tree_scalar.html" xlink:title="stats_compute_tree_scalar">
+<polygon fill="#d9534f" stroke="#d9534f" points="377.79,-108.27 225.27,-108.27 225.27,-84 377.79,-84 377.79,-108.27"/>
+<text xml:space="preserve" text-anchor="middle" x="301.53" y="-92.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">stats_compute_tree_scalar</text>
+</a>
+</g>
+</g>
+<!-- proc~stats_compute_tree_scalar&#45;&gt;interface~stats_compute_tavg -->
+<g id="interface~~stats_compute_tavg~~CalledByGraph_edge9" class="edge">
+<title>proc~stats_compute_tree_scalar&#45;&gt;interface~stats_compute_tavg</title>
+<path fill="none" stroke="#ff0000" d="M378.28,-104.86C388.85,-107.85 399.25,-111.83 408.54,-117.13 443.98,-137.38 473.06,-175.94 488.97,-200.28"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="485.85,-201.89 494.16,-208.46 491.76,-198.14 485.85,-201.89"/>
+</g>
+<!-- proc~stats_compute_tree_temp -->
+<g id="interface~~stats_compute_tavg~~CalledByGraph_node11" class="node">
+<title>proc~stats_compute_tree_temp</title>
+<g id="a_interface~~stats_compute_tavg~~CalledByGraph_node11"><a xlink:href="../proc/stats_compute_tree_temp.html" xlink:title="stats_compute_tree_temp">
+<polygon fill="#d9534f" stroke="#d9534f" points="375.54,-66.27 227.52,-66.27 227.52,-42 375.54,-42 375.54,-66.27"/>
+<text xml:space="preserve" text-anchor="middle" x="301.53" y="-50.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">stats_compute_tree_temp</text>
+</a>
+</g>
+</g>
+<!-- proc~stats_compute_tree_temp&#45;&gt;interface~stats_compute_tavg -->
+<g id="interface~~stats_compute_tavg~~CalledByGraph_edge10" class="edge">
+<title>proc~stats_compute_tree_temp&#45;&gt;interface~stats_compute_tavg</title>
+<path fill="none" stroke="#ff0000" d="M375.8,-60.57C387.41,-63.81 398.78,-68.46 408.54,-75.13 453.68,-105.99 481.75,-166.52 494.35,-199.47"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="490.92,-200.27 497.65,-208.46 497.49,-197.86 490.92,-200.27"/>
+</g>
+<!-- proc~stats_compute_tree_vel -->
+<g id="interface~~stats_compute_tavg~~CalledByGraph_node12" class="node">
+<title>proc~stats_compute_tree_vel</title>
+<g id="a_interface~~stats_compute_tavg~~CalledByGraph_node12"><a xlink:href="../proc/stats_compute_tree_vel.html" xlink:title="stats_compute_tree_vel">
+<polygon fill="#d9534f" stroke="#d9534f" points="369.54,-24.27 233.52,-24.27 233.52,0 369.54,0 369.54,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="301.53" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">stats_compute_tree_vel</text>
+</a>
+</g>
+</g>
+<!-- proc~stats_compute_tree_vel&#45;&gt;interface~stats_compute_tavg -->
+<g id="interface~~stats_compute_tavg~~CalledByGraph_edge11" class="edge">
+<title>proc~stats_compute_tree_vel&#45;&gt;interface~stats_compute_tavg</title>
+<path fill="none" stroke="#ff0000" d="M369.82,-15.96C383.64,-19.24 397.37,-24.58 408.54,-33.13 463.36,-75.08 488.21,-157.73 497.51,-198.39"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="494.07,-199.05 499.6,-208.1 500.92,-197.58 494.07,-199.05"/>
+</g>
+<!-- proc~stats_main -->
+<g id="interface~~stats_compute_tavg~~CalledByGraph_node13" class="node">
+<title>proc~stats_main</title>
+<g id="a_interface~~stats_compute_tavg~~CalledByGraph_node13"><a xlink:href="../proc/stats_main.html" xlink:title="stats_main">
+<polygon fill="#d9534f" stroke="#d9534f" points="158.52,-234.27 90,-234.27 90,-210 158.52,-210 158.52,-234.27"/>
+<text xml:space="preserve" text-anchor="middle" x="124.26" y="-218.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">stats_main</text>
+</a>
+</g>
+</g>
+<!-- proc~stats_main&#45;&gt;proc~stats_compute_tavg_moist -->
+<g id="interface~~stats_compute_tavg~~CalledByGraph_edge12" class="edge">
+<title>proc~stats_main&#45;&gt;proc~stats_compute_tavg_moist</title>
+<path fill="none" stroke="#ff0000" d="M125.83,-234.59C128.08,-268.65 139.28,-363.89 194.52,-411.13 200.53,-416.27 207.43,-420.29 214.77,-423.41"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="213.38,-426.63 223.97,-426.74 215.76,-420.05 213.38,-426.63"/>
+</g>
+<!-- proc~stats_main&#45;&gt;proc~stats_compute_tavg_pedestrian_wind -->
+<g id="interface~~stats_compute_tavg~~CalledByGraph_edge13" class="edge">
+<title>proc~stats_main&#45;&gt;proc~stats_compute_tavg_pedestrian_wind</title>
+<path fill="none" stroke="#ff8b00" d="M127.29,-234.74C132.62,-263.52 149.83,-334.23 194.52,-369.13 195.68,-370.04 196.88,-370.92 198.1,-371.76"/>
+<polygon fill="#ff8b00" stroke="#ff8b00" points="196.2,-374.7 206.6,-376.76 199.75,-368.67 196.2,-374.7"/>
+</g>
+<!-- proc~stats_main&#45;&gt;proc~stats_compute_tavg_pss -->
+<g id="interface~~stats_compute_tavg~~CalledByGraph_edge14" class="edge">
+<title>proc~stats_main&#45;&gt;proc~stats_compute_tavg_pss</title>
+<path fill="none" stroke="#e7ff00" d="M129.69,-234.51C138.39,-256.87 159.9,-303.87 194.52,-327.13 202.05,-332.19 210.51,-336.09 219.29,-339.08"/>
+<polygon fill="#e7ff00" stroke="#e7ff00" points="218.09,-342.38 228.67,-341.87 220.08,-335.67 218.09,-342.38"/>
+</g>
+<!-- proc~stats_main&#45;&gt;proc~stats_compute_tavg_relative_humidity -->
+<g id="interface~~stats_compute_tavg~~CalledByGraph_edge15" class="edge">
+<title>proc~stats_main&#45;&gt;proc~stats_compute_tavg_relative_humidity</title>
+<path fill="none" stroke="#5cff00" d="M135.32,-234.73C147.66,-249.28 169.99,-272.77 194.52,-285.13 197.79,-286.78 201.17,-288.3 204.64,-289.7"/>
+<polygon fill="#5cff00" stroke="#5cff00" points="203.22,-292.91 213.81,-293.03 205.61,-286.33 203.22,-292.91"/>
+</g>
+<!-- proc~stats_main&#45;&gt;proc~stats_compute_tavg_scalar -->
+<g id="interface~~stats_compute_tavg~~CalledByGraph_edge16" class="edge">
+<title>proc~stats_main&#45;&gt;proc~stats_compute_tavg_scalar</title>
+<path fill="none" stroke="#00ff2e" d="M158.89,-233.06C170.15,-236.52 182.82,-240.21 194.52,-243.13 202.9,-245.23 211.7,-247.25 220.49,-249.16"/>
+<polygon fill="#00ff2e" stroke="#00ff2e" points="219.61,-252.55 230.11,-251.19 221.05,-245.7 219.61,-252.55"/>
+</g>
+<!-- proc~stats_main&#45;&gt;proc~stats_compute_tavg_temp -->
+<g id="interface~~stats_compute_tavg~~CalledByGraph_edge17" class="edge">
+<title>proc~stats_main&#45;&gt;proc~stats_compute_tavg_temp</title>
+<path fill="none" stroke="#00ffb9" d="M158.64,-222.13C174.74,-222.13 194.87,-222.13 214.86,-222.13"/>
+<polygon fill="#00ffb9" stroke="#00ffb9" points="214.73,-225.64 224.73,-222.14 214.73,-218.64 214.73,-225.64"/>
+</g>
+<!-- proc~stats_main&#45;&gt;proc~stats_compute_tavg_vel -->
+<g id="interface~~stats_compute_tavg~~CalledByGraph_edge18" class="edge">
+<title>proc~stats_main&#45;&gt;proc~stats_compute_tavg_vel</title>
+<path fill="none" stroke="#00b9ff" d="M158.89,-211.21C170.15,-207.75 182.82,-204.06 194.52,-201.13 203.13,-198.98 212.17,-196.91 221.19,-194.96"/>
+<polygon fill="#00b9ff" stroke="#00b9ff" points="221.62,-198.45 230.68,-192.96 220.17,-191.6 221.62,-198.45"/>
+</g>
+<!-- proc~stats_main&#45;&gt;proc~stats_compute_tree_moist -->
+<g id="interface~~stats_compute_tavg~~CalledByGraph_edge19" class="edge">
+<title>proc~stats_main&#45;&gt;proc~stats_compute_tree_moist</title>
+<path fill="none" stroke="#002eff" d="M135.32,-209.54C147.66,-194.99 169.99,-171.5 194.52,-159.13 201.08,-155.83 208.12,-153.04 215.34,-150.69"/>
+<polygon fill="#002eff" stroke="#002eff" points="216.31,-154.05 224.93,-147.88 214.35,-147.33 216.31,-154.05"/>
+</g>
+<!-- proc~stats_main&#45;&gt;proc~stats_compute_tree_scalar -->
+<g id="interface~~stats_compute_tavg~~CalledByGraph_edge20" class="edge">
+<title>proc~stats_main&#45;&gt;proc~stats_compute_tree_scalar</title>
+<path fill="none" stroke="#5c00ff" d="M129.69,-209.76C138.39,-187.4 159.9,-140.4 194.52,-117.13 200.64,-113.02 207.38,-109.68 214.41,-106.96"/>
+<polygon fill="#5c00ff" stroke="#5c00ff" points="215.08,-110.43 223.43,-103.9 212.84,-103.8 215.08,-110.43"/>
+</g>
+<!-- proc~stats_main&#45;&gt;proc~stats_compute_tree_temp -->
+<g id="interface~~stats_compute_tavg~~CalledByGraph_edge21" class="edge">
+<title>proc~stats_main&#45;&gt;proc~stats_compute_tree_temp</title>
+<path fill="none" stroke="#e700ff" d="M127.29,-209.53C132.62,-180.75 149.83,-110.04 194.52,-75.13 201.03,-70.05 208.43,-66.1 216.22,-63.03"/>
+<polygon fill="#e700ff" stroke="#e700ff" points="217.26,-66.38 225.62,-59.87 215.03,-59.74 217.26,-66.38"/>
+</g>
+<!-- proc~stats_main&#45;&gt;proc~stats_compute_tree_vel -->
+<g id="interface~~stats_compute_tavg~~CalledByGraph_edge22" class="edge">
+<title>proc~stats_main&#45;&gt;proc~stats_compute_tree_vel</title>
+<path fill="none" stroke="#ff008b" d="M125.83,-209.68C128.08,-175.62 139.28,-80.38 194.52,-33.13 202.48,-26.33 212,-21.49 222.04,-18.09"/>
+<polygon fill="#ff008b" stroke="#ff008b" points="222.97,-21.46 231.62,-15.35 221.04,-14.73 222.97,-21.46"/>
+</g>
+<!-- program~udales -->
+<g id="interface~~stats_compute_tavg~~CalledByGraph_node14" class="node">
+<title>program~udales</title>
+<g id="a_interface~~stats_compute_tavg~~CalledByGraph_node14"><a xlink:href="../program/udales.html" xlink:title="uDALES">
+<polygon fill="#f0ad4e" stroke="#f0ad4e" points="54,-234.27 0,-234.27 0,-210 54,-210 54,-234.27"/>
+<text xml:space="preserve" text-anchor="middle" x="27" y="-218.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">uDALES</text>
+</a>
+</g>
+</g>
+<!-- program~udales&#45;&gt;proc~stats_main -->
+<g id="interface~~stats_compute_tavg~~CalledByGraph_edge23" class="edge">
+<title>program~udales&#45;&gt;proc~stats_main</title>
+<path fill="none" stroke="#ff0000" d="M54.28,-222.13C61.69,-222.13 69.97,-222.13 78.16,-222.13"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="78.04,-225.64 88.04,-222.14 78.04,-218.64 78.04,-225.64"/>
+</g>
+</g>
+</svg>
+</div>          <div>
+            <a type="button" class="graph-help" data-bs-toggle="modal" href="#CalledByGraph-help-text">Help</a>
+          </div>
+          <div class="modal fade" id="CalledByGraph-help-text" tabindex="-1" role="dialog">
+            <div class="modal-dialog modal-lg" role="document">
+              <div class="modal-content">
+                <div class="modal-header">
+                  <h4 class="modal-title" id="-graph-help-label">Graph Key</h4>
+                  <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+<p>Nodes of different colours represent the following: </p>
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
+ "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<!-- Generated by graphviz version 14.1.3 (0)
+ -->
+<!-- Title: Graph Key Pages: 1 -->
+<svg width="641pt" height="28pt"
+ viewBox="0.00 0.00 641.00 28.00" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<g id="graph0" class="graph" transform="scale(0.873868 0.873868) rotate(0) translate(4 28.27)">
+<title>Graph Key</title>
+<polygon fill="white" stroke="none" points="-4,4 -4,-28.27 729.52,-28.27 729.52,4 -4,4"/>
+<!-- Subroutine -->
+<g id="node1" class="node">
+<title>Subroutine</title>
+<polygon fill="#d9534f" stroke="#d9534f" points="69.27,-24.27 0,-24.27 0,0 69.27,0 69.27,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="34.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Subroutine</text>
+</g>
+<!-- Function -->
+<g id="node2" class="node">
+<title>Function</title>
+<polygon fill="#d94e8f" stroke="#d94e8f" points="143.89,-24.27 87.38,-24.27 87.38,0 143.89,0 143.89,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="115.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Function</text>
+</g>
+<!-- Interface -->
+<g id="node3" class="node">
+<title>Interface</title>
+<polygon fill="#a7506f" stroke="#a7506f" points="221.39,-24.27 161.88,-24.27 161.88,0 221.39,0 221.39,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="191.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Interface</text>
+</g>
+<!-- Type Bound Procedure -->
+<g id="node4" class="node">
+<title>Type Bound Procedure</title>
+<polygon fill="#a7506f" stroke="#a7506f" points="368.27,-24.27 239,-24.27 239,0 368.27,0 368.27,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="303.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Type Bound Procedure</text>
+</g>
+<!-- Unknown Procedure Type -->
+<g id="node5" class="node">
+<title>Unknown Procedure Type</title>
+<polygon fill="#777777" stroke="#777777" points="529.39,-24.27 385.88,-24.27 385.88,0 529.39,0 529.39,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="457.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Unknown Procedure Type</text>
+</g>
+<!-- Program -->
+<g id="node6" class="node">
+<title>Program</title>
+<polygon fill="#f0ad4e" stroke="#f0ad4e" points="603.89,-24.27 547.38,-24.27 547.38,0 603.89,0 603.89,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="575.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Program</text>
+</g>
+<!-- This Page&#39;s Entity -->
+<g id="node7" class="node">
+<title>This Page&#39;s Entity</title>
+<polygon fill="none" stroke="black" points="725.52,-24.27 621.75,-24.27 621.75,0 725.52,0 725.52,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="673.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50">This Page&#39;s Entity</text>
+</g>
+</g>
+</svg>
+
+<p>Solid arrows point from a procedure to one which it calls. Dashed 
+arrows point from an interface to procedures which implement that interface.
+This could include the module procedures in a generic interface or the
+implementation in a submodule of an interface in a parent module.
+</p>
+ Where possible, edges connecting nodes are
+given different colours to make them easier to distinguish in
+large graphs.</div>
+            </div>
+          </div>
+        </div>
+          </div>
+        </div>
+<br>
+
+
+        <h2>Module Procedures</h2>
+            <div class="card">
+    <div class="card-header codesum"><span class="anchor" id="proc-stats_compute_tavg_1d"></span> <h3>private  subroutine <a href='../proc/stats_compute_tavg_1d.html'>stats_compute_tavg_1D</a>(vart, var)  
+</h3></div>
+    <div class="card-body">
+          
+  
+
+  <h4>Arguments</h4>
+      <table class="table table-striped varlist">
+    <thead>
+      <tr>
+        <th scope="col">Type</th>
+<th scope="col">Intent</th><th scope="col">Optional</th>        <th scope="col">Attributes</th>
+        <th scope="col"></th>
+        <th scope="col">Name</th>
+        <th scope="col"></th>
+    </thead>
+    <tbody>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-vart"></span>
+              real,
+            </td>
+<td>intent(inout)</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>vart</strong>(:)</td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-var~8"></span>
+              real,
+            </td>
+<td>intent(in)</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>var</strong>(:)</td>
+            <td>
+
+            </td>
+        </tr>
+    </tbody>
+  </table>
+
+
+    </div>
+  </div>
+
+            <div class="card">
+    <div class="card-header codesum"><span class="anchor" id="proc-stats_compute_tavg_2d"></span> <h3>private  subroutine <a href='../proc/stats_compute_tavg_2d.html'>stats_compute_tavg_2D</a>(vart, var)  
+</h3></div>
+    <div class="card-body">
+          
+  
+
+  <h4>Arguments</h4>
+      <table class="table table-striped varlist">
+    <thead>
+      <tr>
+        <th scope="col">Type</th>
+<th scope="col">Intent</th><th scope="col">Optional</th>        <th scope="col">Attributes</th>
+        <th scope="col"></th>
+        <th scope="col">Name</th>
+        <th scope="col"></th>
+    </thead>
+    <tbody>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-vart~2"></span>
+              real,
+            </td>
+<td>intent(inout)</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>vart</strong>(:,:)</td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-var~9"></span>
+              real,
+            </td>
+<td>intent(in)</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>var</strong>(:,:)</td>
+            <td>
+
+            </td>
+        </tr>
+    </tbody>
+  </table>
+
+
+    </div>
+  </div>
+
+            <div class="card">
+    <div class="card-header codesum"><span class="anchor" id="proc-stats_compute_tavg_3d"></span> <h3>private  subroutine <a href='../proc/stats_compute_tavg_3d.html'>stats_compute_tavg_3D</a>(vart, var)  
+</h3></div>
+    <div class="card-body">
+          
+  
+
+  <h4>Arguments</h4>
+      <table class="table table-striped varlist">
+    <thead>
+      <tr>
+        <th scope="col">Type</th>
+<th scope="col">Intent</th><th scope="col">Optional</th>        <th scope="col">Attributes</th>
+        <th scope="col"></th>
+        <th scope="col">Name</th>
+        <th scope="col"></th>
+    </thead>
+    <tbody>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-vart~3"></span>
+              real,
+            </td>
+<td>intent(inout)</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>vart</strong>(:,:,:)</td>
+            <td>
+
+            </td>
+        </tr>
+        <tr>
+            <td>
+              <span class="anchor" id="variable-var~10"></span>
+              real,
+            </td>
+<td>intent(in)</td>
+              <td></td>            <td>
+              
+            </td>
+            <td>::</td>
+            <td><strong>var</strong>(:,:,:)</td>
+            <td>
+
+            </td>
+        </tr>
+    </tbody>
+  </table>
+
+
+    </div>
+  </div>
+
+</div>
+  </div>
+      <hr>
+    </div> <!-- /container -->
+    <footer>
+      <div class="container">
+        <div class="row justify-content-between">
+          <div class="col">
+            <p>
+              uDALES
+ was developed by The uDALES Team<br>              &copy; 2026 
+</p>
+          </div>
+          <div class="col">
+            <p class="text-end">
+              Documentation generated by
+              <a href="https://github.com/Fortran-FOSS-Programmers/ford">FORD</a>
+ on 2026-11-27 14:34 +0000             </p>
+          </div>
+        </div>
+        <br>
+      </div> <!-- /container -->
+    </footer>
+  </body>
+</html>

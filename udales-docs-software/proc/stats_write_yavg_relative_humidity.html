@@ -1,0 +1,795 @@
+<!-- -*- mode: jinja2 -*- -->
+
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+      <meta name="description" content="API documentation of the Fortran source code of uDALES, the open-source multi-physics large-eddy simulation model for urban environments.">
+    <meta name="author" content="The uDALES Team" >
+    <link rel="icon" href="../favicon.png">
+
+    <title>stats_write_yavg_relative_humidity &ndash; uDALES</title>
+
+    <!-- Bootstrap -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet"
+          integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"
+            integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
+    <!-- Font Awesome -->
+    <link href="../css/fontawesome.min.css" rel="stylesheet">
+    <link href="../css/brands.min.css" rel="stylesheet">
+    <link href="../css/regular.min.css" rel="stylesheet">
+    <link href="../css/solid.min.css" rel="stylesheet">
+    <link href="../css/v4-font-face.min.css" rel="stylesheet">
+    <link href="../css/v4-shims.min.css" rel="stylesheet">
+    <!-- MathJax -->
+    <script type="text/x-mathjax-config">
+      MathJax.Hub.Config({
+        TeX: { equationNumbers: { autoNumber: "AMS" } }
+      });
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/mathjax@2.7.9/MathJax.js?config=TeX-AMS-MML_HTMLorMML" async
+            integrity="sha256-DViIOMYdwlM/axqoGDPeUyf0urLoHMN4QACBKyB58Uw=" crossorigin="anonymous"></script>
+    <!-- Other scripts and stylesheets -->
+    <link href="../css/local.css" rel="stylesheet">
+    <link href="../css/pygments.css" rel="stylesheet">
+    <script src="../js/svg-pan-zoom.min.js"></script>
+  </head>
+
+  <body>
+
+    <!-- Fixed navbar -->
+    <div class="container-fluid mb-sm-4 mb-xl-2">
+      <nav class="navbar navbar-expand-lg navbar-dark bg-dark fixed-top">
+        <div class="container">
+          <a class="navbar-brand" href="../index.html">uDALES </a>
+          <button type="button" class="navbar-toggler" data-bs-toggle="collapse" data-bs-target="#navbar"
+                  aria-expanded="false" aria-controls="navbar" aria-label="Toggle navigation">
+                  <span class="navbar-toggler-icon">
+          </button>
+
+          <div id="navbar" class="navbar-collapse collapse">
+            <ul class="navbar-nav">
+                  <li class="nav-item">
+                    <a class="nav-link" href="../lists/files.html">Source Files</a>
+                  </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="../lists/modules.html">Modules</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="../lists/procedures.html">Procedures</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="../lists/absint.html">Abstract Interfaces</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="../lists/types.html">Derived Types</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="../lists/namelists.html">Namelists</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="../program/udales.html">Program</a>
+                </li>
+            </ul>
+              <div class="d-flex align-items-end flex-grow-1">
+                <form action="../search.html" role="search" class="ms-auto">
+                  <input type="text" class="form-control" aria-label="Search" placeholder="Search" name="q" id="tipue_search_input" autocomplete="off" required>
+                </form>
+              </div>
+          </div><!--/.nav-collapse -->
+        </div>
+      </nav>
+    </div>
+
+    <div class="container">
+  <div class="row">
+    <h1>stats_write_yavg_relative_humidity
+      <small>Subroutine</small>
+      
+    </h1>
+      <div class="container p-2 mb-4 bg-light border rounded-3">
+    <div class="row align-items-center justify-content-between" id="info-bar">
+      <div class="col">
+        <ul class="list-inline" style="margin-bottom:0px;display:inline">
+
+            <li class="list-inline-item" id="statements"><i class="fa fa-list-ol"></i>
+              <a data-bs-toggle="tooltip" data-bs-placement="bottom" data-bs-html="true"
+                 title=" 0.0% of total for procedures.">4 statements</a>
+            </li>
+
+            <li class="list-inline-item" id="source-file">
+              <i class="fa fa-code"></i>
+              <a href="../src/out_stats.f90"> Source File</a>
+            </li>
+        </ul>
+      </div>
+      <div class="col">
+        <nav aria-label="breadcrumb">
+          <ol class="breadcrumb justify-content-end mb-0">
+                <li class="breadcrumb-item"><a href='../sourcefile/out_stats.f90.html'>out_stats.f90</a></li>
+                <li class="breadcrumb-item"><a href='../module/stats.html'>stats</a></li>
+            <li class="breadcrumb-item active" aria-current="page">stats_write_yavg_relative_humidity</li>
+          </ol>
+        </nav>
+      </div>
+    </div>
+  </div>
+  <script>
+    // Enable Bootstrap tooltips
+    (function () {
+      const tooltipTriggerList = document.querySelectorAll('[data-bs-toggle="tooltip"]')
+      const tooltipList = [...tooltipTriggerList].map(tooltipTriggerEl => new bootstrap.Tooltip(tooltipTriggerEl))
+    })();
+  </script>
+
+  </div>
+  
+  <div class="row">
+    <div class="col-md-3 hidden-xs hidden-sm visible-md visible-lg">
+      <div id="sidebar">
+      <h3>Contents</h3>
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+    <div class="card card-primary">
+      <div class="card-header text-left"><h3 class="card-title">Source Code</h3></div>
+      <div class="list-group">
+        <a class="list-group-item" href="../proc/stats_write_yavg_relative_humidity.html#src">stats_write_yavg_relative_humidity</a>
+      </div>
+    </div>
+
+
+  </div>
+
+    </div>
+    
+    <div class="col-md-9" id='text'>
+    <h2>private  subroutine stats_write_yavg_relative_humidity()  
+</h2>
+    
+
+
+
+    <h3>Arguments</h3>
+    <em>None</em>
+    <br>
+    <br>
+    <div class="card">
+      <div class="card-header">
+  <h3 class="card-title">Calls</h3>
+      </div>
+      <div class="card-body">
+  <div class="depgraph"><?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
+ "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<!-- Generated by graphviz version 14.1.3 (0)
+ -->
+<!-- Title: proc~~stats_write_yavg_relative_humidity~~CallsGraph Pages: 1 -->
+<svg id="procstats_write_yavg_relative_humidityCallsGraph" width="608pt" height="368pt"
+ viewBox="0.00 0.00 608.00 368.00" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<g id="proc~~stats_write_yavg_relative_humidity~~CallsGraph" class="graph" transform="scale(1 1) rotate(0) translate(4 364.27)">
+<title>proc~~stats_write_yavg_relative_humidity~~CallsGraph</title>
+<polygon fill="white" stroke="none" points="-4,4 -4,-364.27 603.58,-364.27 603.58,4 -4,4"/>
+<!-- proc~stats_write_yavg_relative_humidity -->
+<g id="proc~~stats_write_yavg_relative_humidity~~CallsGraph_node1" class="node">
+<title>proc~stats_write_yavg_relative_humidity</title>
+<polygon fill="none" stroke="black" points="195.27,-192.27 0,-192.27 0,-168 195.27,-168 195.27,-192.27"/>
+<text xml:space="preserve" text-anchor="middle" x="97.63" y="-176.53" font-family="Helvetica,sans-Serif" font-size="10.50">stats_write_yavg_relative_humidity</text>
+</g>
+<!-- interface~writestat_nc -->
+<g id="proc~~stats_write_yavg_relative_humidity~~CallsGraph_node2" class="node">
+<title>interface~writestat_nc</title>
+<g id="a_proc~~stats_write_yavg_relative_humidity~~CallsGraph_node2"><a xlink:href="../interface/writestat_nc.html" xlink:title="writestat_nc">
+<polygon fill="#a7506f" stroke="#a7506f" points="306.54,-192.27 231.27,-192.27 231.27,-168 306.54,-168 306.54,-192.27"/>
+<text xml:space="preserve" text-anchor="middle" x="268.9" y="-176.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">writestat_nc</text>
+</a>
+</g>
+</g>
+<!-- proc~stats_write_yavg_relative_humidity&#45;&gt;interface~writestat_nc -->
+<g id="proc~~stats_write_yavg_relative_humidity~~CallsGraph_edge1" class="edge">
+<title>proc~stats_write_yavg_relative_humidity&#45;&gt;interface~writestat_nc</title>
+<path fill="none" stroke="#ff0000" d="M195.63,-180.13C203.87,-180.13 211.95,-180.13 219.55,-180.13"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="219.54,-183.64 229.54,-180.14 219.54,-176.64 219.54,-183.64"/>
+</g>
+<!-- proc~writestat_1d_nc -->
+<g id="proc~~stats_write_yavg_relative_humidity~~CallsGraph_node3" class="node">
+<title>proc~writestat_1d_nc</title>
+<g id="a_proc~~stats_write_yavg_relative_humidity~~CallsGraph_node3"><a xlink:href="../proc/writestat_1d_nc.html" xlink:title="writestat_1D_nc">
+<polygon fill="#d9534f" stroke="#d9534f" points="456.06,-108.27 360.54,-108.27 360.54,-84 456.06,-84 456.06,-108.27"/>
+<text xml:space="preserve" text-anchor="middle" x="408.3" y="-92.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">writestat_1D_nc</text>
+</a>
+</g>
+</g>
+<!-- interface~writestat_nc&#45;&gt;proc~writestat_1d_nc -->
+<g id="proc~~stats_write_yavg_relative_humidity~~CallsGraph_edge2" class="edge">
+<title>interface~writestat_nc&#45;&gt;proc~writestat_1d_nc</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M281.34,-167.56C294.75,-153.48 318.27,-130.84 342.54,-117.13 345.02,-115.74 347.6,-114.42 350.25,-113.17"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="351.46,-116.46 359.3,-109.32 348.73,-110.01 351.46,-116.46"/>
+</g>
+<!-- proc~writestat_1d_var_nc -->
+<g id="proc~~stats_write_yavg_relative_humidity~~CallsGraph_node4" class="node">
+<title>proc~writestat_1d_var_nc</title>
+<g id="a_proc~~stats_write_yavg_relative_humidity~~CallsGraph_node4"><a xlink:href="../proc/writestat_1d_var_nc.html" xlink:title="writestat_1D_var_nc">
+<polygon fill="#d9534f" stroke="#d9534f" points="467.31,-66.27 349.29,-66.27 349.29,-42 467.31,-42 467.31,-66.27"/>
+<text xml:space="preserve" text-anchor="middle" x="408.3" y="-50.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">writestat_1D_var_nc</text>
+</a>
+</g>
+</g>
+<!-- interface~writestat_nc&#45;&gt;proc~writestat_1d_var_nc -->
+<g id="proc~~stats_write_yavg_relative_humidity~~CallsGraph_edge3" class="edge">
+<title>interface~writestat_nc&#45;&gt;proc~writestat_1d_var_nc</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M275.16,-167.81C285.11,-145.93 308.75,-100.27 342.54,-75.13 344.07,-74 345.67,-72.92 347.32,-71.89"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="348.67,-75.13 355.86,-67.35 345.39,-68.95 348.67,-75.13"/>
+</g>
+<!-- proc~writestat_2d_nc -->
+<g id="proc~~stats_write_yavg_relative_humidity~~CallsGraph_node5" class="node">
+<title>proc~writestat_2d_nc</title>
+<g id="a_proc~~stats_write_yavg_relative_humidity~~CallsGraph_node5"><a xlink:href="../proc/writestat_2d_nc.html" xlink:title="writestat_2D_nc">
+<polygon fill="#d9534f" stroke="#d9534f" points="456.06,-24.27 360.54,-24.27 360.54,0 456.06,0 456.06,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="408.3" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">writestat_2D_nc</text>
+</a>
+</g>
+</g>
+<!-- interface~writestat_nc&#45;&gt;proc~writestat_2d_nc -->
+<g id="proc~~stats_write_yavg_relative_humidity~~CallsGraph_edge4" class="edge">
+<title>interface~writestat_nc&#45;&gt;proc~writestat_2d_nc</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M272.53,-167.88C279.16,-139.83 299.25,-70.55 342.54,-33.13 344.89,-31.1 347.44,-29.27 350.12,-27.61"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="351.69,-30.74 358.97,-23.04 348.48,-24.52 351.69,-30.74"/>
+</g>
+<!-- proc~writestat_2d_var_nc -->
+<g id="proc~~stats_write_yavg_relative_humidity~~CallsGraph_node6" class="node">
+<title>proc~writestat_2d_var_nc</title>
+<g id="a_proc~~stats_write_yavg_relative_humidity~~CallsGraph_node6"><a xlink:href="../proc/writestat_2d_var_nc.html" xlink:title="writestat_2D_var_nc">
+<polygon fill="#d9534f" stroke="#d9534f" points="467.31,-360.27 349.29,-360.27 349.29,-336 467.31,-336 467.31,-360.27"/>
+<text xml:space="preserve" text-anchor="middle" x="408.3" y="-344.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">writestat_2D_var_nc</text>
+</a>
+</g>
+</g>
+<!-- interface~writestat_nc&#45;&gt;proc~writestat_2d_var_nc -->
+<g id="proc~~stats_write_yavg_relative_humidity~~CallsGraph_edge5" class="edge">
+<title>interface~writestat_nc&#45;&gt;proc~writestat_2d_var_nc</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M272.53,-192.39C279.16,-220.44 299.25,-289.72 342.54,-327.13 343.62,-328.07 344.75,-328.96 345.91,-329.82"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="343.74,-332.6 354.1,-334.83 347.39,-326.62 343.74,-332.6"/>
+</g>
+<!-- proc~writestat_3d_nc -->
+<g id="proc~~stats_write_yavg_relative_humidity~~CallsGraph_node7" class="node">
+<title>proc~writestat_3d_nc</title>
+<g id="a_proc~~stats_write_yavg_relative_humidity~~CallsGraph_node7"><a xlink:href="../proc/writestat_3d_nc.html" xlink:title="writestat_3D_nc">
+<polygon fill="#d9534f" stroke="#d9534f" points="456.06,-318.27 360.54,-318.27 360.54,-294 456.06,-294 456.06,-318.27"/>
+<text xml:space="preserve" text-anchor="middle" x="408.3" y="-302.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">writestat_3D_nc</text>
+</a>
+</g>
+</g>
+<!-- interface~writestat_nc&#45;&gt;proc~writestat_3d_nc -->
+<g id="proc~~stats_write_yavg_relative_humidity~~CallsGraph_edge6" class="edge">
+<title>interface~writestat_nc&#45;&gt;proc~writestat_3d_nc</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M275.16,-192.46C285.11,-214.34 308.75,-260 342.54,-285.13 344.86,-286.86 347.34,-288.45 349.91,-289.92"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="348.32,-293.04 358.84,-294.28 351.39,-286.75 348.32,-293.04"/>
+</g>
+<!-- proc~writestat_3d_short_nc -->
+<g id="proc~~stats_write_yavg_relative_humidity~~CallsGraph_node8" class="node">
+<title>proc~writestat_3d_short_nc</title>
+<g id="a_proc~~stats_write_yavg_relative_humidity~~CallsGraph_node8"><a xlink:href="../proc/writestat_3d_short_nc.html" xlink:title="writestat_3D_short_nc">
+<polygon fill="#d9534f" stroke="#d9534f" points="472.18,-276.27 344.41,-276.27 344.41,-252 472.18,-252 472.18,-276.27"/>
+<text xml:space="preserve" text-anchor="middle" x="408.3" y="-260.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">writestat_3D_short_nc</text>
+</a>
+</g>
+</g>
+<!-- interface~writestat_nc&#45;&gt;proc~writestat_3d_short_nc -->
+<g id="proc~~stats_write_yavg_relative_humidity~~CallsGraph_edge7" class="edge">
+<title>interface~writestat_nc&#45;&gt;proc~writestat_3d_short_nc</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M281.34,-192.71C294.75,-206.79 318.27,-229.43 342.54,-243.13 345.02,-244.53 347.6,-245.85 350.25,-247.1"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="348.73,-250.26 359.3,-250.95 351.46,-243.81 348.73,-250.26"/>
+</g>
+<!-- proc~writestat_3d_var_nc -->
+<g id="proc~~stats_write_yavg_relative_humidity~~CallsGraph_node9" class="node">
+<title>proc~writestat_3d_var_nc</title>
+<g id="a_proc~~stats_write_yavg_relative_humidity~~CallsGraph_node9"><a xlink:href="../proc/writestat_3d_var_nc.html" xlink:title="writestat_3D_var_nc">
+<polygon fill="#d9534f" stroke="#d9534f" points="467.31,-234.27 349.29,-234.27 349.29,-210 467.31,-210 467.31,-234.27"/>
+<text xml:space="preserve" text-anchor="middle" x="408.3" y="-218.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">writestat_3D_var_nc</text>
+</a>
+</g>
+</g>
+<!-- interface~writestat_nc&#45;&gt;proc~writestat_3d_var_nc -->
+<g id="proc~~stats_write_yavg_relative_humidity~~CallsGraph_edge8" class="edge">
+<title>interface~writestat_nc&#45;&gt;proc~writestat_3d_var_nc</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M306.72,-191.39C321.58,-195.93 338.99,-201.25 355.11,-206.18"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="353.98,-209.5 364.57,-209.07 356.03,-202.8 353.98,-209.5"/>
+</g>
+<!-- proc~writestat_time_nc -->
+<g id="proc~~stats_write_yavg_relative_humidity~~CallsGraph_node10" class="node">
+<title>proc~writestat_time_nc</title>
+<g id="a_proc~~stats_write_yavg_relative_humidity~~CallsGraph_node10"><a xlink:href="../proc/writestat_time_nc.html" xlink:title="writestat_time_nc">
+<polygon fill="#d9534f" stroke="#d9534f" points="460.56,-192.27 356.04,-192.27 356.04,-168 460.56,-168 460.56,-192.27"/>
+<text xml:space="preserve" text-anchor="middle" x="408.3" y="-176.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">writestat_time_nc</text>
+</a>
+</g>
+</g>
+<!-- interface~writestat_nc&#45;&gt;proc~writestat_time_nc -->
+<g id="proc~~stats_write_yavg_relative_humidity~~CallsGraph_edge9" class="edge">
+<title>interface~writestat_nc&#45;&gt;proc~writestat_time_nc</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M306.72,-180.13C318.34,-180.13 331.53,-180.13 344.43,-180.13"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="344.14,-183.64 354.14,-180.14 344.14,-176.64 344.14,-183.64"/>
+</g>
+<!-- proc~writestat_time_new_nc -->
+<g id="proc~~stats_write_yavg_relative_humidity~~CallsGraph_node11" class="node">
+<title>proc~writestat_time_new_nc</title>
+<g id="a_proc~~stats_write_yavg_relative_humidity~~CallsGraph_node11"><a xlink:href="../proc/writestat_time_new_nc.html" xlink:title="writestat_time_new_nc">
+<polygon fill="#d9534f" stroke="#d9534f" points="474.06,-150.27 342.54,-150.27 342.54,-126 474.06,-126 474.06,-150.27"/>
+<text xml:space="preserve" text-anchor="middle" x="408.3" y="-134.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">writestat_time_new_nc</text>
+</a>
+</g>
+</g>
+<!-- interface~writestat_nc&#45;&gt;proc~writestat_time_new_nc -->
+<g id="proc~~stats_write_yavg_relative_humidity~~CallsGraph_edge10" class="edge">
+<title>interface~writestat_nc&#45;&gt;proc~writestat_time_new_nc</title>
+<path fill="none" stroke="#ff0000" stroke-dasharray="5,2" d="M306.72,-168.88C321.58,-164.34 338.99,-159.02 355.11,-154.09"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="356.03,-157.47 364.57,-151.2 353.98,-150.77 356.03,-157.47"/>
+</g>
+<!-- nf90_inq_varid -->
+<g id="proc~~stats_write_yavg_relative_humidity~~CallsGraph_node12" class="node">
+<title>nf90_inq_varid</title>
+<polygon fill="#777777" stroke="#777777" points="599.58,-234.27 510.06,-234.27 510.06,-210 599.58,-210 599.58,-234.27"/>
+<text xml:space="preserve" text-anchor="middle" x="554.82" y="-218.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">nf90_inq_varid</text>
+</g>
+<!-- proc~writestat_1d_nc&#45;&gt;nf90_inq_varid -->
+<g id="proc~~stats_write_yavg_relative_humidity~~CallsGraph_edge11" class="edge">
+<title>proc~writestat_1d_nc&#45;&gt;nf90_inq_varid</title>
+<path fill="none" stroke="#ff0000" d="M456.51,-106.1C462.9,-108.91 469,-112.51 474.06,-117.13 504.06,-144.52 481.96,-171.81 510.06,-201.13 510.65,-201.75 511.26,-202.35 511.89,-202.94"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="509.63,-205.62 519.75,-208.78 513.81,-200 509.63,-205.62"/>
+</g>
+<!-- nf90_put_var -->
+<g id="proc~~stats_write_yavg_relative_humidity~~CallsGraph_node13" class="node">
+<title>nf90_put_var</title>
+<polygon fill="#777777" stroke="#777777" points="595.08,-192.27 514.56,-192.27 514.56,-168 595.08,-168 595.08,-192.27"/>
+<text xml:space="preserve" text-anchor="middle" x="554.82" y="-176.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">nf90_put_var</text>
+</g>
+<!-- proc~writestat_1d_nc&#45;&gt;nf90_put_var -->
+<g id="proc~~stats_write_yavg_relative_humidity~~CallsGraph_edge12" class="edge">
+<title>proc~writestat_1d_nc&#45;&gt;nf90_put_var</title>
+<path fill="none" stroke="#ff0000" d="M456.37,-107.98C462.58,-110.5 468.65,-113.53 474.06,-117.13 494.52,-130.77 490.56,-144.16 510.06,-159.13 511.35,-160.13 512.7,-161.09 514.09,-162.03"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="511.97,-164.84 522.36,-166.94 515.55,-158.82 511.97,-164.84"/>
+</g>
+<!-- nf90_sync -->
+<g id="proc~~stats_write_yavg_relative_humidity~~CallsGraph_node14" class="node">
+<title>nf90_sync</title>
+<polygon fill="#777777" stroke="#777777" points="587.2,-150.27 522.43,-150.27 522.43,-126 587.2,-126 587.2,-150.27"/>
+<text xml:space="preserve" text-anchor="middle" x="554.82" y="-134.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">nf90_sync</text>
+</g>
+<!-- proc~writestat_1d_nc&#45;&gt;nf90_sync -->
+<g id="proc~~stats_write_yavg_relative_humidity~~CallsGraph_edge13" class="edge">
+<title>proc~writestat_1d_nc&#45;&gt;nf90_sync</title>
+<path fill="none" stroke="#ff0000" d="M452.66,-108.74C471.11,-114.1 492.58,-120.34 510.97,-125.68"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="509.94,-129.03 520.52,-128.46 511.9,-122.31 509.94,-129.03"/>
+</g>
+<!-- proc~writestat_1d_var_nc&#45;&gt;nf90_inq_varid -->
+<g id="proc~~stats_write_yavg_relative_humidity~~CallsGraph_edge14" class="edge">
+<title>proc~writestat_1d_var_nc&#45;&gt;nf90_inq_varid</title>
+<path fill="none" stroke="#ffaa00" d="M463.11,-66.67C467.13,-69.03 470.86,-71.82 474.06,-75.13 514.51,-117.04 472.5,-156.62 510.06,-201.13 510.5,-201.66 510.96,-202.17 511.43,-202.67"/>
+<polygon fill="#ffaa00" stroke="#ffaa00" points="508.99,-205.2 518.95,-208.81 513.42,-199.77 508.99,-205.2"/>
+</g>
+<!-- proc~writestat_1d_var_nc&#45;&gt;nf90_put_var -->
+<g id="proc~~stats_write_yavg_relative_humidity~~CallsGraph_edge15" class="edge">
+<title>proc~writestat_1d_var_nc&#45;&gt;nf90_put_var</title>
+<path fill="none" stroke="#ffaa00" d="M461.72,-66.61C466.19,-68.98 470.39,-71.79 474.06,-75.13 504.06,-102.52 481.96,-129.81 510.06,-159.13 510.65,-159.75 511.26,-160.35 511.89,-160.94"/>
+<polygon fill="#ffaa00" stroke="#ffaa00" points="509.63,-163.62 519.75,-166.78 513.81,-158 509.63,-163.62"/>
+</g>
+<!-- proc~writestat_1d_var_nc&#45;&gt;nf90_sync -->
+<g id="proc~~stats_write_yavg_relative_humidity~~CallsGraph_edge16" class="edge">
+<title>proc~writestat_1d_var_nc&#45;&gt;nf90_sync</title>
+<path fill="none" stroke="#ffaa00" d="M455.09,-66.72C461.61,-69.15 468.12,-71.96 474.06,-75.13 495.78,-86.75 517.53,-104.43 532.82,-118.11"/>
+<polygon fill="#ffaa00" stroke="#ffaa00" points="530.17,-120.43 539.91,-124.6 534.9,-115.27 530.17,-120.43"/>
+</g>
+<!-- proc~writestat_2d_nc&#45;&gt;nf90_inq_varid -->
+<g id="proc~~stats_write_yavg_relative_humidity~~CallsGraph_edge17" class="edge">
+<title>proc~writestat_2d_nc&#45;&gt;nf90_inq_varid</title>
+<path fill="none" stroke="#aaff00" d="M456.37,-20.81C463.02,-23.79 469.23,-27.78 474.06,-33.13 525.22,-89.83 462.81,-141.15 510.06,-201.13 510.39,-201.55 510.72,-201.95 511.07,-202.35"/>
+<polygon fill="#aaff00" stroke="#aaff00" points="508.49,-204.75 518.34,-208.66 513.08,-199.46 508.49,-204.75"/>
+</g>
+<!-- proc~writestat_2d_nc&#45;&gt;nf90_put_var -->
+<g id="proc~~stats_write_yavg_relative_humidity~~CallsGraph_edge18" class="edge">
+<title>proc~writestat_2d_nc&#45;&gt;nf90_put_var</title>
+<path fill="none" stroke="#aaff00" d="M456.39,-21.24C462.96,-24.17 469.13,-28.03 474.06,-33.13 514.51,-75.04 472.5,-114.62 510.06,-159.13 510.5,-159.66 510.96,-160.17 511.43,-160.67"/>
+<polygon fill="#aaff00" stroke="#aaff00" points="508.99,-163.2 518.95,-166.81 513.42,-157.77 508.99,-163.2"/>
+</g>
+<!-- proc~writestat_2d_nc&#45;&gt;nf90_sync -->
+<g id="proc~~stats_write_yavg_relative_humidity~~CallsGraph_edge19" class="edge">
+<title>proc~writestat_2d_nc&#45;&gt;nf90_sync</title>
+<path fill="none" stroke="#aaff00" d="M456.24,-23.54C462.53,-26.14 468.66,-29.3 474.06,-33.13 504.82,-54.97 529.02,-92.19 542.37,-115.95"/>
+<polygon fill="#aaff00" stroke="#aaff00" points="539.15,-117.37 547,-124.49 545.31,-114.03 539.15,-117.37"/>
+</g>
+<!-- proc~writestat_2d_var_nc&#45;&gt;nf90_inq_varid -->
+<g id="proc~~stats_write_yavg_relative_humidity~~CallsGraph_edge20" class="edge">
+<title>proc~writestat_2d_var_nc&#45;&gt;nf90_inq_varid</title>
+<path fill="none" stroke="#00ff00" d="M458.92,-335.58C464.27,-333.21 469.43,-330.42 474.06,-327.13 504.82,-305.3 529.02,-268.08 542.37,-244.32"/>
+<polygon fill="#00ff00" stroke="#00ff00" points="545.31,-246.24 547,-235.78 539.15,-242.9 545.31,-246.24"/>
+</g>
+<!-- proc~writestat_2d_var_nc&#45;&gt;nf90_put_var -->
+<g id="proc~~stats_write_yavg_relative_humidity~~CallsGraph_edge21" class="edge">
+<title>proc~writestat_2d_var_nc&#45;&gt;nf90_put_var</title>
+<path fill="none" stroke="#00ff00" d="M463.11,-335.6C467.13,-333.24 470.86,-330.45 474.06,-327.13 514.51,-285.23 472.5,-245.65 510.06,-201.13 510.5,-200.61 510.96,-200.1 511.43,-199.6"/>
+<polygon fill="#00ff00" stroke="#00ff00" points="513.42,-202.5 518.95,-193.46 508.99,-197.07 513.42,-202.5"/>
+</g>
+<!-- proc~writestat_2d_var_nc&#45;&gt;nf90_sync -->
+<g id="proc~~stats_write_yavg_relative_humidity~~CallsGraph_edge22" class="edge">
+<title>proc~writestat_2d_var_nc&#45;&gt;nf90_sync</title>
+<path fill="none" stroke="#00ff00" d="M463.66,-335.64C467.51,-333.28 471.05,-330.47 474.06,-327.13 525.22,-270.44 462.81,-219.12 510.06,-159.13 510.97,-157.98 511.96,-156.89 513.01,-155.85"/>
+<polygon fill="#00ff00" stroke="#00ff00" points="515.03,-158.71 520.88,-149.88 510.8,-153.13 515.03,-158.71"/>
+</g>
+<!-- proc~writestat_3d_nc&#45;&gt;nf90_inq_varid -->
+<g id="proc~~stats_write_yavg_relative_humidity~~CallsGraph_edge23" class="edge">
+<title>proc~writestat_3d_nc&#45;&gt;nf90_inq_varid</title>
+<path fill="none" stroke="#00ffa9" d="M455.09,-293.55C461.61,-291.12 468.12,-288.31 474.06,-285.13 495.78,-273.52 517.53,-255.84 532.82,-242.16"/>
+<polygon fill="#00ffa9" stroke="#00ffa9" points="534.9,-245 539.91,-235.67 530.17,-239.84 534.9,-245"/>
+</g>
+<!-- proc~writestat_3d_nc&#45;&gt;nf90_put_var -->
+<g id="proc~~stats_write_yavg_relative_humidity~~CallsGraph_edge24" class="edge">
+<title>proc~writestat_3d_nc&#45;&gt;nf90_put_var</title>
+<path fill="none" stroke="#00ffa9" d="M456.51,-296.17C462.9,-293.36 469,-289.76 474.06,-285.13 504.06,-257.75 481.96,-230.46 510.06,-201.13 510.65,-200.52 511.26,-199.92 511.89,-199.33"/>
+<polygon fill="#00ffa9" stroke="#00ffa9" points="513.81,-202.27 519.75,-193.49 509.63,-196.65 513.81,-202.27"/>
+</g>
+<!-- proc~writestat_3d_nc&#45;&gt;nf90_sync -->
+<g id="proc~~stats_write_yavg_relative_humidity~~CallsGraph_edge25" class="edge">
+<title>proc~writestat_3d_nc&#45;&gt;nf90_sync</title>
+<path fill="none" stroke="#00ffa9" d="M456.39,-297.03C462.96,-294.1 469.13,-290.24 474.06,-285.13 514.51,-243.23 472.5,-203.65 510.06,-159.13 511.01,-158.01 512.03,-156.94 513.11,-155.93"/>
+<polygon fill="#00ffa9" stroke="#00ffa9" points="515.12,-158.8 521.1,-150.05 510.97,-153.16 515.12,-158.8"/>
+</g>
+<!-- proc~writestat_3d_short_nc&#45;&gt;nf90_inq_varid -->
+<g id="proc~~stats_write_yavg_relative_humidity~~CallsGraph_edge26" class="edge">
+<title>proc~writestat_3d_short_nc&#45;&gt;nf90_inq_varid</title>
+<path fill="none" stroke="#00a9ff" d="M452.66,-251.53C467.38,-247.26 484.01,-242.42 499.48,-237.93"/>
+<polygon fill="#00a9ff" stroke="#00a9ff" points="500.41,-241.3 509.04,-235.15 498.46,-234.58 500.41,-241.3"/>
+</g>
+<!-- proc~writestat_3d_short_nc&#45;&gt;nf90_put_var -->
+<g id="proc~~stats_write_yavg_relative_humidity~~CallsGraph_edge27" class="edge">
+<title>proc~writestat_3d_short_nc&#45;&gt;nf90_put_var</title>
+<path fill="none" stroke="#00a9ff" d="M458.06,-251.59C463.68,-249.21 469.14,-246.41 474.06,-243.13 494.52,-229.5 490.56,-216.11 510.06,-201.13 511.35,-200.14 512.7,-199.18 514.09,-198.24"/>
+<polygon fill="#00a9ff" stroke="#00a9ff" points="515.55,-201.45 522.36,-193.33 511.97,-195.43 515.55,-201.45"/>
+</g>
+<!-- proc~writestat_3d_short_nc&#45;&gt;nf90_sync -->
+<g id="proc~~stats_write_yavg_relative_humidity~~CallsGraph_edge28" class="edge">
+<title>proc~writestat_3d_short_nc&#45;&gt;nf90_sync</title>
+<path fill="none" stroke="#00a9ff" d="M461.72,-251.66C466.19,-249.29 470.39,-246.48 474.06,-243.13 504.06,-215.75 481.96,-188.46 510.06,-159.13 511.04,-158.11 512.09,-157.13 513.18,-156.19"/>
+<polygon fill="#00a9ff" stroke="#00a9ff" points="514.88,-159.27 521.06,-150.66 510.86,-153.54 514.88,-159.27"/>
+</g>
+<!-- proc~writestat_3d_var_nc&#45;&gt;nf90_inq_varid -->
+<g id="proc~~stats_write_yavg_relative_humidity~~CallsGraph_edge29" class="edge">
+<title>proc~writestat_3d_var_nc&#45;&gt;nf90_inq_varid</title>
+<path fill="none" stroke="#0000ff" d="M467.67,-222.13C477.91,-222.13 488.54,-222.13 498.7,-222.13"/>
+<polygon fill="#0000ff" stroke="#0000ff" points="498.4,-225.64 508.4,-222.14 498.4,-218.64 498.4,-225.64"/>
+</g>
+<!-- proc~writestat_3d_var_nc&#45;&gt;nf90_put_var -->
+<g id="proc~~stats_write_yavg_relative_humidity~~CallsGraph_edge30" class="edge">
+<title>proc~writestat_3d_var_nc&#45;&gt;nf90_put_var</title>
+<path fill="none" stroke="#0000ff" d="M452.66,-209.53C468.76,-204.86 487.14,-199.51 503.79,-194.68"/>
+<polygon fill="#0000ff" stroke="#0000ff" points="504.35,-198.16 512.98,-192 502.4,-191.43 504.35,-198.16"/>
+</g>
+<!-- proc~writestat_3d_var_nc&#45;&gt;nf90_sync -->
+<g id="proc~~stats_write_yavg_relative_humidity~~CallsGraph_edge31" class="edge">
+<title>proc~writestat_3d_var_nc&#45;&gt;nf90_sync</title>
+<path fill="none" stroke="#0000ff" d="M458.06,-209.59C463.68,-207.21 469.14,-204.41 474.06,-201.13 494.52,-187.5 490.56,-174.11 510.06,-159.13 511.35,-158.14 512.7,-157.18 514.09,-156.24"/>
+<polygon fill="#0000ff" stroke="#0000ff" points="515.55,-159.45 522.36,-151.33 511.97,-153.43 515.55,-159.45"/>
+</g>
+<!-- proc~writestat_time_nc&#45;&gt;nf90_inq_varid -->
+<g id="proc~~stats_write_yavg_relative_humidity~~CallsGraph_edge32" class="edge">
+<title>proc~writestat_time_nc&#45;&gt;nf90_inq_varid</title>
+<path fill="none" stroke="#aa00ff" d="M452.66,-192.74C467.38,-197.01 484.01,-201.85 499.48,-206.34"/>
+<polygon fill="#aa00ff" stroke="#aa00ff" points="498.46,-209.69 509.04,-209.12 500.41,-202.97 498.46,-209.69"/>
+</g>
+<!-- proc~writestat_time_nc&#45;&gt;nf90_put_var -->
+<g id="proc~~stats_write_yavg_relative_humidity~~CallsGraph_edge33" class="edge">
+<title>proc~writestat_time_nc&#45;&gt;nf90_put_var</title>
+<path fill="none" stroke="#aa00ff" d="M460.66,-180.13C474.48,-180.13 489.41,-180.13 503.19,-180.13"/>
+<polygon fill="#aa00ff" stroke="#aa00ff" points="502.93,-183.64 512.93,-180.14 502.93,-176.64 502.93,-183.64"/>
+</g>
+<!-- proc~writestat_time_nc&#45;&gt;nf90_sync -->
+<g id="proc~~stats_write_yavg_relative_humidity~~CallsGraph_edge34" class="edge">
+<title>proc~writestat_time_nc&#45;&gt;nf90_sync</title>
+<path fill="none" stroke="#aa00ff" d="M452.66,-167.53C471.11,-162.17 492.58,-155.93 510.97,-150.59"/>
+<polygon fill="#aa00ff" stroke="#aa00ff" points="511.9,-153.96 520.52,-147.81 509.94,-147.24 511.9,-153.96"/>
+</g>
+<!-- proc~writestat_time_new_nc&#45;&gt;nf90_inq_varid -->
+<g id="proc~~stats_write_yavg_relative_humidity~~CallsGraph_edge35" class="edge">
+<title>proc~writestat_time_new_nc&#45;&gt;nf90_inq_varid</title>
+<path fill="none" stroke="#ff00aa" d="M458.06,-150.68C463.68,-153.06 469.14,-155.86 474.06,-159.13 494.52,-172.77 490.56,-186.16 510.06,-201.13 511.35,-202.13 512.7,-203.09 514.09,-204.03"/>
+<polygon fill="#ff00aa" stroke="#ff00aa" points="511.97,-206.84 522.36,-208.94 515.55,-200.82 511.97,-206.84"/>
+</g>
+<!-- proc~writestat_time_new_nc&#45;&gt;nf90_put_var -->
+<g id="proc~~stats_write_yavg_relative_humidity~~CallsGraph_edge36" class="edge">
+<title>proc~writestat_time_new_nc&#45;&gt;nf90_put_var</title>
+<path fill="none" stroke="#ff00aa" d="M452.66,-150.74C468.76,-155.41 487.14,-160.76 503.79,-165.59"/>
+<polygon fill="#ff00aa" stroke="#ff00aa" points="502.4,-168.84 512.98,-168.27 504.35,-162.11 502.4,-168.84"/>
+</g>
+<!-- proc~writestat_time_new_nc&#45;&gt;nf90_sync -->
+<g id="proc~~stats_write_yavg_relative_humidity~~CallsGraph_edge37" class="edge">
+<title>proc~writestat_time_new_nc&#45;&gt;nf90_sync</title>
+<path fill="none" stroke="#ff00aa" d="M474.37,-138.13C486.72,-138.13 499.34,-138.13 510.79,-138.13"/>
+<polygon fill="#ff00aa" stroke="#ff00aa" points="510.72,-141.64 520.72,-138.14 510.72,-134.64 510.72,-141.64"/>
+</g>
+</g>
+</svg>
+</div>          <div>
+            <a type="button" class="graph-help" data-bs-toggle="modal" href="#CallsGraph-help-text">Help</a>
+          </div>
+          <div class="modal fade" id="CallsGraph-help-text" tabindex="-1" role="dialog">
+            <div class="modal-dialog modal-lg" role="document">
+              <div class="modal-content">
+                <div class="modal-header">
+                  <h4 class="modal-title" id="-graph-help-label">Graph Key</h4>
+                  <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+<p>Nodes of different colours represent the following: </p>
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
+ "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<!-- Generated by graphviz version 14.1.3 (0)
+ -->
+<!-- Title: Graph Key Pages: 1 -->
+<svg width="641pt" height="28pt"
+ viewBox="0.00 0.00 641.00 28.00" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<g id="graph0" class="graph" transform="scale(0.873868 0.873868) rotate(0) translate(4 28.27)">
+<title>Graph Key</title>
+<polygon fill="white" stroke="none" points="-4,4 -4,-28.27 729.52,-28.27 729.52,4 -4,4"/>
+<!-- Subroutine -->
+<g id="node1" class="node">
+<title>Subroutine</title>
+<polygon fill="#d9534f" stroke="#d9534f" points="69.27,-24.27 0,-24.27 0,0 69.27,0 69.27,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="34.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Subroutine</text>
+</g>
+<!-- Function -->
+<g id="node2" class="node">
+<title>Function</title>
+<polygon fill="#d94e8f" stroke="#d94e8f" points="143.89,-24.27 87.38,-24.27 87.38,0 143.89,0 143.89,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="115.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Function</text>
+</g>
+<!-- Interface -->
+<g id="node3" class="node">
+<title>Interface</title>
+<polygon fill="#a7506f" stroke="#a7506f" points="221.39,-24.27 161.88,-24.27 161.88,0 221.39,0 221.39,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="191.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Interface</text>
+</g>
+<!-- Type Bound Procedure -->
+<g id="node4" class="node">
+<title>Type Bound Procedure</title>
+<polygon fill="#a7506f" stroke="#a7506f" points="368.27,-24.27 239,-24.27 239,0 368.27,0 368.27,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="303.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Type Bound Procedure</text>
+</g>
+<!-- Unknown Procedure Type -->
+<g id="node5" class="node">
+<title>Unknown Procedure Type</title>
+<polygon fill="#777777" stroke="#777777" points="529.39,-24.27 385.88,-24.27 385.88,0 529.39,0 529.39,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="457.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Unknown Procedure Type</text>
+</g>
+<!-- Program -->
+<g id="node6" class="node">
+<title>Program</title>
+<polygon fill="#f0ad4e" stroke="#f0ad4e" points="603.89,-24.27 547.38,-24.27 547.38,0 603.89,0 603.89,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="575.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Program</text>
+</g>
+<!-- This Page&#39;s Entity -->
+<g id="node7" class="node">
+<title>This Page&#39;s Entity</title>
+<polygon fill="none" stroke="black" points="725.52,-24.27 621.75,-24.27 621.75,0 725.52,0 725.52,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="673.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50">This Page&#39;s Entity</text>
+</g>
+</g>
+</svg>
+
+<p>Solid arrows point from a procedure to one which it calls. Dashed 
+arrows point from an interface to procedures which implement that interface.
+This could include the module procedures in a generic interface or the
+implementation in a submodule of an interface in a parent module.
+</p>
+ Where possible, edges connecting nodes are
+given different colours to make them easier to distinguish in
+large graphs.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-header">
+  <h3 class="card-title">Called by</h3>
+      </div>
+      <div class="card-body">
+  <div class="depgraph"><?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
+ "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<!-- Generated by graphviz version 14.1.3 (0)
+ -->
+<!-- Title: proc~~stats_write_yavg_relative_humidity~~CalledByGraph Pages: 1 -->
+<svg id="procstats_write_yavg_relative_humidityCalledByGraph" width="398pt" height="32pt"
+ viewBox="0.00 0.00 398.00 32.00" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<g id="proc~~stats_write_yavg_relative_humidity~~CalledByGraph" class="graph" transform="scale(1 1) rotate(0) translate(4 28.27)">
+<title>proc~~stats_write_yavg_relative_humidity~~CalledByGraph</title>
+<polygon fill="white" stroke="none" points="-4,4 -4,-28.27 393.79,-28.27 393.79,4 -4,4"/>
+<!-- proc~stats_write_yavg_relative_humidity -->
+<g id="proc~~stats_write_yavg_relative_humidity~~CalledByGraph_node1" class="node">
+<title>proc~stats_write_yavg_relative_humidity</title>
+<polygon fill="none" stroke="black" points="389.79,-24.27 194.52,-24.27 194.52,0 389.79,0 389.79,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="292.16" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50">stats_write_yavg_relative_humidity</text>
+</g>
+<!-- proc~stats_main -->
+<g id="proc~~stats_write_yavg_relative_humidity~~CalledByGraph_node2" class="node">
+<title>proc~stats_main</title>
+<g id="a_proc~~stats_write_yavg_relative_humidity~~CalledByGraph_node2"><a xlink:href="../proc/stats_main.html" xlink:title="stats_main">
+<polygon fill="#d9534f" stroke="#d9534f" points="158.52,-24.27 90,-24.27 90,0 158.52,0 158.52,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="124.26" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">stats_main</text>
+</a>
+</g>
+</g>
+<!-- proc~stats_main&#45;&gt;proc~stats_write_yavg_relative_humidity -->
+<g id="proc~~stats_write_yavg_relative_humidity~~CalledByGraph_edge1" class="edge">
+<title>proc~stats_main&#45;&gt;proc~stats_write_yavg_relative_humidity</title>
+<path fill="none" stroke="#ff0000" d="M158.83,-12.13C166.14,-12.13 174.25,-12.13 182.76,-12.13"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="182.62,-15.64 192.62,-12.14 182.62,-8.64 182.62,-15.64"/>
+</g>
+<!-- program~udales -->
+<g id="proc~~stats_write_yavg_relative_humidity~~CalledByGraph_node3" class="node">
+<title>program~udales</title>
+<g id="a_proc~~stats_write_yavg_relative_humidity~~CalledByGraph_node3"><a xlink:href="../program/udales.html" xlink:title="uDALES">
+<polygon fill="#f0ad4e" stroke="#f0ad4e" points="54,-24.27 0,-24.27 0,0 54,0 54,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="27" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">uDALES</text>
+</a>
+</g>
+</g>
+<!-- program~udales&#45;&gt;proc~stats_main -->
+<g id="proc~~stats_write_yavg_relative_humidity~~CalledByGraph_edge2" class="edge">
+<title>program~udales&#45;&gt;proc~stats_main</title>
+<path fill="none" stroke="#ff0000" d="M54.28,-12.13C61.69,-12.13 69.97,-12.13 78.16,-12.13"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="78.04,-15.64 88.04,-12.14 78.04,-8.64 78.04,-15.64"/>
+</g>
+</g>
+</svg>
+</div>          <div>
+            <a type="button" class="graph-help" data-bs-toggle="modal" href="#CalledByGraph-help-text">Help</a>
+          </div>
+          <div class="modal fade" id="CalledByGraph-help-text" tabindex="-1" role="dialog">
+            <div class="modal-dialog modal-lg" role="document">
+              <div class="modal-content">
+                <div class="modal-header">
+                  <h4 class="modal-title" id="-graph-help-label">Graph Key</h4>
+                  <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+<p>Nodes of different colours represent the following: </p>
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
+ "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<!-- Generated by graphviz version 14.1.3 (0)
+ -->
+<!-- Title: Graph Key Pages: 1 -->
+<svg width="641pt" height="28pt"
+ viewBox="0.00 0.00 641.00 28.00" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<g id="graph0" class="graph" transform="scale(0.873868 0.873868) rotate(0) translate(4 28.27)">
+<title>Graph Key</title>
+<polygon fill="white" stroke="none" points="-4,4 -4,-28.27 729.52,-28.27 729.52,4 -4,4"/>
+<!-- Subroutine -->
+<g id="node1" class="node">
+<title>Subroutine</title>
+<polygon fill="#d9534f" stroke="#d9534f" points="69.27,-24.27 0,-24.27 0,0 69.27,0 69.27,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="34.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Subroutine</text>
+</g>
+<!-- Function -->
+<g id="node2" class="node">
+<title>Function</title>
+<polygon fill="#d94e8f" stroke="#d94e8f" points="143.89,-24.27 87.38,-24.27 87.38,0 143.89,0 143.89,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="115.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Function</text>
+</g>
+<!-- Interface -->
+<g id="node3" class="node">
+<title>Interface</title>
+<polygon fill="#a7506f" stroke="#a7506f" points="221.39,-24.27 161.88,-24.27 161.88,0 221.39,0 221.39,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="191.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Interface</text>
+</g>
+<!-- Type Bound Procedure -->
+<g id="node4" class="node">
+<title>Type Bound Procedure</title>
+<polygon fill="#a7506f" stroke="#a7506f" points="368.27,-24.27 239,-24.27 239,0 368.27,0 368.27,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="303.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Type Bound Procedure</text>
+</g>
+<!-- Unknown Procedure Type -->
+<g id="node5" class="node">
+<title>Unknown Procedure Type</title>
+<polygon fill="#777777" stroke="#777777" points="529.39,-24.27 385.88,-24.27 385.88,0 529.39,0 529.39,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="457.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Unknown Procedure Type</text>
+</g>
+<!-- Program -->
+<g id="node6" class="node">
+<title>Program</title>
+<polygon fill="#f0ad4e" stroke="#f0ad4e" points="603.89,-24.27 547.38,-24.27 547.38,0 603.89,0 603.89,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="575.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Program</text>
+</g>
+<!-- This Page&#39;s Entity -->
+<g id="node7" class="node">
+<title>This Page&#39;s Entity</title>
+<polygon fill="none" stroke="black" points="725.52,-24.27 621.75,-24.27 621.75,0 725.52,0 725.52,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="673.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50">This Page&#39;s Entity</text>
+</g>
+</g>
+</svg>
+
+<p>Solid arrows point from a procedure to one which it calls. Dashed 
+arrows point from an interface to procedures which implement that interface.
+This could include the module procedures in a generic interface or the
+implementation in a submodule of an interface in a parent module.
+</p>
+ Where possible, edges connecting nodes are
+given different colours to make them easier to distinguish in
+large graphs.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <br>
+
+
+    
+    
+
+    
+    
+
+
+
+    
+    <section>
+    <h2><span class="anchor" id="src"></span>Source Code</h2>
+    <div class="hl codehilite"><pre><span></span><span class="w">    </span><span class="k">subroutine </span><span class="n">stats_write_yavg_relative_humidity</span>
+<span class="w">      </span><span class="k">implicit none</span>
+<span class="k">      call </span><span class="n">writestat_nc</span><span class="p">(</span><span class="n">ncidy</span><span class="p">,</span><span class="w"> </span><span class="s1">'rh'</span><span class="p">,</span><span class="w"> </span><span class="n">rhy</span><span class="p">,</span><span class="w"> </span><span class="n">nrecy</span><span class="p">,</span><span class="w"> </span><span class="n">xdim</span><span class="p">,</span><span class="w"> </span><span class="n">zdim</span><span class="p">)</span>
+<span class="w">    </span><span class="k">end subroutine </span><span class="n">stats_write_yavg_relative_humidity</span>
+</pre></div>
+
+    </section>
+    <br>
+    
+    </div>
+  </div>
+
+      <hr>
+    </div> <!-- /container -->
+    <footer>
+      <div class="container">
+        <div class="row justify-content-between">
+          <div class="col">
+            <p>
+              uDALES
+ was developed by The uDALES Team<br>              &copy; 2026 
+</p>
+          </div>
+          <div class="col">
+            <p class="text-end">
+              Documentation generated by
+              <a href="https://github.com/Fortran-FOSS-Programmers/ford">FORD</a>
+ on 2026-11-27 14:34 +0000             </p>
+          </div>
+        </div>
+        <br>
+      </div> <!-- /container -->
+    </footer>
+  </body>
+</html>

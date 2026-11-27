@@ -1,0 +1,856 @@
+<!-- -*- mode: jinja2 -*- -->
+
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+      <meta name="description" content="API documentation of the Fortran source code of uDALES, the open-source multi-physics large-eddy simulation model for urban environments.">
+    <meta name="author" content="The uDALES Team" >
+    <link rel="icon" href="../favicon.png">
+
+    <title>stats_createnc_tislice &ndash; uDALES</title>
+
+    <!-- Bootstrap -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet"
+          integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"
+            integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
+    <!-- Font Awesome -->
+    <link href="../css/fontawesome.min.css" rel="stylesheet">
+    <link href="../css/brands.min.css" rel="stylesheet">
+    <link href="../css/regular.min.css" rel="stylesheet">
+    <link href="../css/solid.min.css" rel="stylesheet">
+    <link href="../css/v4-font-face.min.css" rel="stylesheet">
+    <link href="../css/v4-shims.min.css" rel="stylesheet">
+    <!-- MathJax -->
+    <script type="text/x-mathjax-config">
+      MathJax.Hub.Config({
+        TeX: { equationNumbers: { autoNumber: "AMS" } }
+      });
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/mathjax@2.7.9/MathJax.js?config=TeX-AMS-MML_HTMLorMML" async
+            integrity="sha256-DViIOMYdwlM/axqoGDPeUyf0urLoHMN4QACBKyB58Uw=" crossorigin="anonymous"></script>
+    <!-- Other scripts and stylesheets -->
+    <link href="../css/local.css" rel="stylesheet">
+    <link href="../css/pygments.css" rel="stylesheet">
+    <script src="../js/svg-pan-zoom.min.js"></script>
+  </head>
+
+  <body>
+
+    <!-- Fixed navbar -->
+    <div class="container-fluid mb-sm-4 mb-xl-2">
+      <nav class="navbar navbar-expand-lg navbar-dark bg-dark fixed-top">
+        <div class="container">
+          <a class="navbar-brand" href="../index.html">uDALES </a>
+          <button type="button" class="navbar-toggler" data-bs-toggle="collapse" data-bs-target="#navbar"
+                  aria-expanded="false" aria-controls="navbar" aria-label="Toggle navigation">
+                  <span class="navbar-toggler-icon">
+          </button>
+
+          <div id="navbar" class="navbar-collapse collapse">
+            <ul class="navbar-nav">
+                  <li class="nav-item">
+                    <a class="nav-link" href="../lists/files.html">Source Files</a>
+                  </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="../lists/modules.html">Modules</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="../lists/procedures.html">Procedures</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="../lists/absint.html">Abstract Interfaces</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="../lists/types.html">Derived Types</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="../lists/namelists.html">Namelists</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="../program/udales.html">Program</a>
+                </li>
+            </ul>
+              <div class="d-flex align-items-end flex-grow-1">
+                <form action="../search.html" role="search" class="ms-auto">
+                  <input type="text" class="form-control" aria-label="Search" placeholder="Search" name="q" id="tipue_search_input" autocomplete="off" required>
+                </form>
+              </div>
+          </div><!--/.nav-collapse -->
+        </div>
+      </nav>
+    </div>
+
+    <div class="container">
+  <div class="row">
+    <h1>stats_createnc_tislice
+      <small>Subroutine</small>
+      
+    </h1>
+      <div class="container p-2 mb-4 bg-light border rounded-3">
+    <div class="row align-items-center justify-content-between" id="info-bar">
+      <div class="col">
+        <ul class="list-inline" style="margin-bottom:0px;display:inline">
+
+            <li class="list-inline-item" id="statements"><i class="fa fa-list-ol"></i>
+              <a data-bs-toggle="tooltip" data-bs-placement="bottom" data-bs-html="true"
+                 title=" 0.1% of total for procedures.">17 statements</a>
+            </li>
+
+            <li class="list-inline-item" id="source-file">
+              <i class="fa fa-code"></i>
+              <a href="../src/out_stats.f90"> Source File</a>
+            </li>
+        </ul>
+      </div>
+      <div class="col">
+        <nav aria-label="breadcrumb">
+          <ol class="breadcrumb justify-content-end mb-0">
+                <li class="breadcrumb-item"><a href='../sourcefile/out_stats.f90.html'>out_stats.f90</a></li>
+                <li class="breadcrumb-item"><a href='../module/stats.html'>stats</a></li>
+            <li class="breadcrumb-item active" aria-current="page">stats_createnc_tislice</li>
+          </ol>
+        </nav>
+      </div>
+    </div>
+  </div>
+  <script>
+    // Enable Bootstrap tooltips
+    (function () {
+      const tooltipTriggerList = document.querySelectorAll('[data-bs-toggle="tooltip"]')
+      const tooltipList = [...tooltipTriggerList].map(tooltipTriggerEl => new bootstrap.Tooltip(tooltipTriggerEl))
+    })();
+  </script>
+
+  </div>
+  
+  <div class="row">
+    <div class="col-md-3 hidden-xs hidden-sm visible-md visible-lg">
+      <div id="sidebar">
+      <h3>Contents</h3>
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+    <div class="card card-primary">
+      <div class="card-header text-left"><h3 class="card-title">Source Code</h3></div>
+      <div class="list-group">
+        <a class="list-group-item" href="../proc/stats_createnc_tislice.html#src">stats_createnc_tislice</a>
+      </div>
+    </div>
+
+
+  </div>
+
+    </div>
+    
+    <div class="col-md-9" id='text'>
+    <h2>private  subroutine stats_createnc_tislice()  
+</h2>
+    
+
+
+
+    <h3>Arguments</h3>
+    <em>None</em>
+    <br>
+    <br>
+    <div class="card">
+      <div class="card-header">
+  <h3 class="card-title">Calls</h3>
+      </div>
+      <div class="card-body">
+  <div class="depgraph"><?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
+ "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<!-- Generated by graphviz version 14.1.3 (0)
+ -->
+<!-- Title: proc~~stats_createnc_tislice~~CallsGraph Pages: 1 -->
+<svg id="procstats_createnc_tisliceCallsGraph" width="600pt" height="704pt"
+ viewBox="0.00 0.00 600.00 704.00" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<g id="proc~~stats_createnc_tislice~~CallsGraph" class="graph" transform="scale(1 1) rotate(0) translate(4 700.27)">
+<title>proc~~stats_createnc_tislice~~CallsGraph</title>
+<polygon fill="white" stroke="none" points="-4,4 -4,-700.27 596.08,-700.27 596.08,4 -4,4"/>
+<!-- proc~stats_createnc_tislice -->
+<g id="proc~~stats_createnc_tislice~~CallsGraph_node1" class="node">
+<title>proc~stats_createnc_tislice</title>
+<polygon fill="none" stroke="black" points="124.02,-502.27 0,-502.27 0,-478 124.02,-478 124.02,-502.27"/>
+<text xml:space="preserve" text-anchor="middle" x="62.01" y="-486.53" font-family="Helvetica,sans-Serif" font-size="10.50">stats_createnc_tislice</text>
+</g>
+<!-- proc~define_nc -->
+<g id="proc~~stats_createnc_tislice~~CallsGraph_node2" class="node">
+<title>proc~define_nc</title>
+<g id="a_proc~~stats_createnc_tislice~~CallsGraph_node2"><a xlink:href="../proc/define_nc.html" xlink:title="define_nc">
+<polygon fill="#d9534f" stroke="#d9534f" points="262.67,-481.27 199.4,-481.27 199.4,-457 262.67,-457 262.67,-481.27"/>
+<text xml:space="preserve" text-anchor="middle" x="231.03" y="-465.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">define_nc</text>
+</a>
+</g>
+</g>
+<!-- proc~stats_createnc_tislice&#45;&gt;proc~define_nc -->
+<g id="proc~~stats_createnc_tislice~~CallsGraph_edge1" class="edge">
+<title>proc~stats_createnc_tislice&#45;&gt;proc~define_nc</title>
+<path fill="none" stroke="#ff0000" d="M124.25,-482.43C145.48,-479.77 168.77,-476.84 188.09,-474.41"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="188.26,-477.91 197.75,-473.19 187.39,-470.97 188.26,-477.91"/>
+</g>
+<!-- proc~open_nc -->
+<g id="proc~~stats_createnc_tislice~~CallsGraph_node3" class="node">
+<title>proc~open_nc</title>
+<g id="a_proc~~stats_createnc_tislice~~CallsGraph_node3"><a xlink:href="../proc/open_nc.html" xlink:title="open_nc">
+<polygon fill="#d9534f" stroke="#d9534f" points="259.29,-276.27 202.77,-276.27 202.77,-252 259.29,-252 259.29,-276.27"/>
+<text xml:space="preserve" text-anchor="middle" x="231.03" y="-260.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">open_nc</text>
+</a>
+</g>
+</g>
+<!-- proc~stats_createnc_tislice&#45;&gt;proc~open_nc -->
+<g id="proc~~stats_createnc_tislice~~CallsGraph_edge2" class="edge">
+<title>proc~stats_createnc_tislice&#45;&gt;proc~open_nc</title>
+<path fill="none" stroke="#ff0000" d="M72.23,-477.66C99.43,-440.85 179.63,-332.34 214.04,-285.77"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="216.81,-287.91 219.94,-277.79 211.18,-283.75 216.81,-287.91"/>
+</g>
+<!-- proc~stats_write_islice_xcoord -->
+<g id="proc~~stats_createnc_tislice~~CallsGraph_node4" class="node">
+<title>proc~stats_write_islice_xcoord</title>
+<g id="a_proc~~stats_createnc_tislice~~CallsGraph_node4"><a xlink:href="../proc/stats_write_islice_xcoord.html" xlink:title="stats_write_islice_xcoord">
+<polygon fill="#d9534f" stroke="#d9534f" points="302.04,-533.27 160.02,-533.27 160.02,-509 302.04,-509 302.04,-533.27"/>
+<text xml:space="preserve" text-anchor="middle" x="231.03" y="-517.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">stats_write_islice_xcoord</text>
+</a>
+</g>
+</g>
+<!-- proc~stats_createnc_tislice&#45;&gt;proc~stats_write_islice_xcoord -->
+<g id="proc~~stats_createnc_tislice~~CallsGraph_edge3" class="edge">
+<title>proc~stats_createnc_tislice&#45;&gt;proc~stats_write_islice_xcoord</title>
+<path fill="none" stroke="#ff0000" d="M124.25,-501.5C132.89,-503.11 141.88,-504.77 150.8,-506.43"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="150.07,-509.85 160.54,-508.24 151.35,-502.97 150.07,-509.85"/>
+</g>
+<!-- proc~writestat_dims_nc -->
+<g id="proc~~stats_createnc_tislice~~CallsGraph_node5" class="node">
+<title>proc~writestat_dims_nc</title>
+<g id="a_proc~~stats_createnc_tislice~~CallsGraph_node5"><a xlink:href="../proc/writestat_dims_nc.html" xlink:title="writestat_dims_nc">
+<polygon fill="#d9534f" stroke="#d9534f" points="284.04,-418.27 178.02,-418.27 178.02,-394 284.04,-394 284.04,-418.27"/>
+<text xml:space="preserve" text-anchor="middle" x="231.03" y="-402.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">writestat_dims_nc</text>
+</a>
+</g>
+</g>
+<!-- proc~stats_createnc_tislice&#45;&gt;proc~writestat_dims_nc -->
+<g id="proc~~stats_createnc_tislice~~CallsGraph_edge4" class="edge">
+<title>proc~stats_createnc_tislice&#45;&gt;proc~writestat_dims_nc</title>
+<path fill="none" stroke="#ff0000" d="M88.01,-477.56C116.39,-463.29 162.86,-439.92 194.87,-423.82"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="196.41,-426.96 203.78,-419.34 193.27,-420.71 196.41,-426.96"/>
+</g>
+<!-- zend -->
+<g id="proc~~stats_createnc_tislice~~CallsGraph_node6" class="node">
+<title>zend</title>
+<polygon fill="#777777" stroke="#777777" points="434.18,-696.27 380.18,-696.27 380.18,-672 434.18,-672 434.18,-696.27"/>
+<text xml:space="preserve" text-anchor="middle" x="407.18" y="-680.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">zend</text>
+</g>
+<!-- proc~stats_createnc_tislice&#45;&gt;zend -->
+<g id="proc~~stats_createnc_tislice~~CallsGraph_edge5" class="edge">
+<title>proc~stats_createnc_tislice&#45;&gt;zend</title>
+<path fill="none" stroke="#ff0000" d="M72.53,-502.51C88.64,-522.76 123.13,-563.19 160.02,-588.13 227,-633.43 318.44,-661.86 368.91,-675.18"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="367.9,-678.53 378.46,-677.64 369.65,-671.76 367.9,-678.53"/>
+</g>
+<!-- zstart -->
+<g id="proc~~stats_createnc_tislice~~CallsGraph_node7" class="node">
+<title>zstart</title>
+<polygon fill="#777777" stroke="#777777" points="434.18,-654.27 380.18,-654.27 380.18,-630 434.18,-630 434.18,-654.27"/>
+<text xml:space="preserve" text-anchor="middle" x="407.18" y="-638.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">zstart</text>
+</g>
+<!-- proc~stats_createnc_tislice&#45;&gt;zstart -->
+<g id="proc~~stats_createnc_tislice~~CallsGraph_edge6" class="edge">
+<title>proc~stats_createnc_tislice&#45;&gt;zstart</title>
+<path fill="none" stroke="#ff0000" d="M85.11,-502.59C104.62,-513.43 133.93,-529.37 160.02,-542.13 237.78,-580.16 256.98,-590.78 338.04,-621.13 347.89,-624.83 358.72,-628.38 368.78,-631.48"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="367.69,-634.81 378.27,-634.34 369.71,-628.11 367.69,-634.81"/>
+</g>
+<!-- nf90_def_var -->
+<g id="proc~~stats_createnc_tislice~~CallsGraph_node10" class="node">
+<title>nf90_def_var</title>
+<polygon fill="#777777" stroke="#777777" points="447.44,-318.27 366.92,-318.27 366.92,-294 447.44,-294 447.44,-318.27"/>
+<text xml:space="preserve" text-anchor="middle" x="407.18" y="-302.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">nf90_def_var</text>
+</g>
+<!-- proc~define_nc&#45;&gt;nf90_def_var -->
+<g id="proc~~stats_createnc_tislice~~CallsGraph_edge7" class="edge">
+<title>proc~define_nc&#45;&gt;nf90_def_var</title>
+<path fill="none" stroke="#ff0000" d="M262.58,-456.59C276.25,-449.65 291.6,-439.84 302.04,-427.13 332.03,-390.64 303.87,-359.75 338.04,-327.13 343.15,-322.26 349.37,-318.51 355.95,-315.63"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="356.87,-319.02 365.06,-312.31 354.47,-312.45 356.87,-319.02"/>
+</g>
+<!-- nf90_enddef -->
+<g id="proc~~stats_createnc_tislice~~CallsGraph_node11" class="node">
+<title>nf90_enddef</title>
+<polygon fill="#777777" stroke="#777777" points="446.31,-528.27 368.04,-528.27 368.04,-504 446.31,-504 446.31,-528.27"/>
+<text xml:space="preserve" text-anchor="middle" x="407.18" y="-512.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">nf90_enddef</text>
+</g>
+<!-- proc~define_nc&#45;&gt;nf90_enddef -->
+<g id="proc~~stats_createnc_tislice~~CallsGraph_edge8" class="edge">
+<title>proc~define_nc&#45;&gt;nf90_enddef</title>
+<path fill="none" stroke="#ff0000" d="M263.16,-477.54C289.22,-484.57 326.86,-494.73 356.98,-502.86"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="355.68,-506.13 366.24,-505.36 357.5,-499.37 355.68,-506.13"/>
+</g>
+<!-- nf90_inq_dimid -->
+<g id="proc~~stats_createnc_tislice~~CallsGraph_node13" class="node">
+<title>nf90_inq_dimid</title>
+<polygon fill="#777777" stroke="#777777" points="453.44,-360.27 360.92,-360.27 360.92,-336 453.44,-336 453.44,-360.27"/>
+<text xml:space="preserve" text-anchor="middle" x="407.18" y="-344.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">nf90_inq_dimid</text>
+</g>
+<!-- proc~define_nc&#45;&gt;nf90_inq_dimid -->
+<g id="proc~~stats_createnc_tislice~~CallsGraph_edge9" class="edge">
+<title>proc~define_nc&#45;&gt;nf90_inq_dimid</title>
+<path fill="none" stroke="#ff0000" d="M259.37,-456.63C273.24,-449.38 289.72,-439.27 302.04,-427.13 323.66,-405.84 314.02,-387.67 338.04,-369.13 341.79,-366.24 345.94,-363.75 350.29,-361.59"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="351.47,-364.89 359.3,-357.75 348.73,-358.45 351.47,-364.89"/>
+</g>
+<!-- nf90_inq_varid -->
+<g id="proc~~stats_createnc_tislice~~CallsGraph_node14" class="node">
+<title>nf90_inq_varid</title>
+<polygon fill="#777777" stroke="#777777" points="451.94,-402.27 362.42,-402.27 362.42,-378 451.94,-378 451.94,-402.27"/>
+<text xml:space="preserve" text-anchor="middle" x="407.18" y="-386.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">nf90_inq_varid</text>
+</g>
+<!-- proc~define_nc&#45;&gt;nf90_inq_varid -->
+<g id="proc~~stats_createnc_tislice~~CallsGraph_edge10" class="edge">
+<title>proc~define_nc&#45;&gt;nf90_inq_varid</title>
+<path fill="none" stroke="#ff0000" d="M252.14,-456.53C273.02,-443.83 306.93,-424.28 338.04,-411.13 342.34,-409.32 346.85,-407.58 351.41,-405.94"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="352.33,-409.33 360.66,-402.78 350.06,-402.7 352.33,-409.33"/>
+</g>
+<!-- nf90_put_att -->
+<g id="proc~~stats_createnc_tislice~~CallsGraph_node18" class="node">
+<title>nf90_put_att</title>
+<polygon fill="#777777" stroke="#777777" points="445.94,-486.27 368.42,-486.27 368.42,-462 445.94,-462 445.94,-486.27"/>
+<text xml:space="preserve" text-anchor="middle" x="407.18" y="-470.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">nf90_put_att</text>
+</g>
+<!-- proc~define_nc&#45;&gt;nf90_put_att -->
+<g id="proc~~stats_createnc_tislice~~CallsGraph_edge11" class="edge">
+<title>proc~define_nc&#45;&gt;nf90_put_att</title>
+<path fill="none" stroke="#ff0000" d="M263.16,-470.03C289.19,-470.78 326.78,-471.86 356.88,-472.72"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="356.41,-476.21 366.51,-473 356.61,-469.21 356.41,-476.21"/>
+</g>
+<!-- nf90_redef -->
+<g id="proc~~stats_createnc_tislice~~CallsGraph_node20" class="node">
+<title>nf90_redef</title>
+<polygon fill="#777777" stroke="#777777" points="441.44,-612.27 372.92,-612.27 372.92,-588 441.44,-588 441.44,-612.27"/>
+<text xml:space="preserve" text-anchor="middle" x="407.18" y="-596.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">nf90_redef</text>
+</g>
+<!-- proc~define_nc&#45;&gt;nf90_redef -->
+<g id="proc~~stats_createnc_tislice~~CallsGraph_edge12" class="edge">
+<title>proc~define_nc&#45;&gt;nf90_redef</title>
+<path fill="none" stroke="#ff0000" d="M263.16,-477.46C276.47,-482.29 291.36,-489.57 302.04,-500.13 329.47,-527.27 309.06,-553.66 338.04,-579.13 344.77,-585.05 353.15,-589.3 361.7,-592.36"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="360.48,-595.64 371.07,-595.18 362.5,-588.94 360.48,-595.64"/>
+</g>
+<!-- proc~nchandle_error -->
+<g id="proc~~stats_createnc_tislice~~CallsGraph_node22" class="node">
+<title>proc~nchandle_error</title>
+<g id="a_proc~~stats_createnc_tislice~~CallsGraph_node22"><a xlink:href="../proc/nchandle_error.html" xlink:title="nchandle_error">
+<polygon fill="#d9534f" stroke="#d9534f" points="453.44,-444.27 360.92,-444.27 360.92,-420 453.44,-420 453.44,-444.27"/>
+<text xml:space="preserve" text-anchor="middle" x="407.18" y="-428.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">nchandle_error</text>
+</a>
+</g>
+</g>
+<!-- proc~define_nc&#45;&gt;proc~nchandle_error -->
+<g id="proc~~stats_createnc_tislice~~CallsGraph_edge13" class="edge">
+<title>proc~define_nc&#45;&gt;proc~nchandle_error</title>
+<path fill="none" stroke="#ff0000" d="M263.16,-462.52C287.09,-457.44 320.78,-450.28 349.46,-444.19"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="350.04,-447.64 359.09,-442.14 348.59,-440.79 350.04,-447.64"/>
+</g>
+<!-- nf90_create -->
+<g id="proc~~stats_createnc_tislice~~CallsGraph_node8" class="node">
+<title>nf90_create</title>
+<polygon fill="#777777" stroke="#777777" points="444.44,-234.27 369.92,-234.27 369.92,-210 444.44,-210 444.44,-234.27"/>
+<text xml:space="preserve" text-anchor="middle" x="407.18" y="-218.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">nf90_create</text>
+</g>
+<!-- proc~open_nc&#45;&gt;nf90_create -->
+<g id="proc~~stats_createnc_tislice~~CallsGraph_edge14" class="edge">
+<title>proc~open_nc&#45;&gt;nf90_create</title>
+<path fill="none" stroke="#ffff00" d="M259.62,-257.48C286.22,-251.07 327,-241.23 358.79,-233.56"/>
+<polygon fill="#ffff00" stroke="#ffff00" points="359.25,-237.05 368.15,-231.31 357.61,-230.25 359.25,-237.05"/>
+</g>
+<!-- nf90_def_dim -->
+<g id="proc~~stats_createnc_tislice~~CallsGraph_node9" class="node">
+<title>nf90_def_dim</title>
+<polygon fill="#777777" stroke="#777777" points="448.94,-192.27 365.42,-192.27 365.42,-168 448.94,-168 448.94,-192.27"/>
+<text xml:space="preserve" text-anchor="middle" x="407.18" y="-176.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">nf90_def_dim</text>
+</g>
+<!-- proc~open_nc&#45;&gt;nf90_def_dim -->
+<g id="proc~~stats_createnc_tislice~~CallsGraph_edge15" class="edge">
+<title>proc~open_nc&#45;&gt;nf90_def_dim</title>
+<path fill="none" stroke="#ffff00" d="M250.08,-251.59C270.62,-237.76 305.55,-215.55 338.04,-201.13 343.28,-198.81 348.85,-196.64 354.47,-194.64"/>
+<polygon fill="#ffff00" stroke="#ffff00" points="355.44,-198.01 363.81,-191.5 353.21,-191.37 355.44,-198.01"/>
+</g>
+<!-- proc~open_nc&#45;&gt;nf90_def_var -->
+<g id="proc~~stats_createnc_tislice~~CallsGraph_edge16" class="edge">
+<title>proc~open_nc&#45;&gt;nf90_def_var</title>
+<path fill="none" stroke="#ffff00" d="M259.62,-270.79C285.33,-276.99 324.3,-286.39 355.59,-293.93"/>
+<polygon fill="#ffff00" stroke="#ffff00" points="354.72,-297.32 365.26,-296.27 356.36,-290.52 354.72,-297.32"/>
+</g>
+<!-- proc~open_nc&#45;&gt;nf90_enddef -->
+<g id="proc~~stats_createnc_tislice~~CallsGraph_edge17" class="edge">
+<title>proc~open_nc&#45;&gt;nf90_enddef</title>
+<path fill="none" stroke="#ffff00" d="M240.51,-276.74C254.7,-298.24 283.52,-343.7 302.04,-385.13 323.03,-432.1 301.35,-459.08 338.04,-495.13 343.44,-500.44 350.14,-504.41 357.22,-507.38"/>
+<polygon fill="#ffff00" stroke="#ffff00" points="355.74,-510.56 366.33,-510.55 358.04,-503.95 355.74,-510.56"/>
+</g>
+<!-- nf90_get_var -->
+<g id="proc~~stats_createnc_tislice~~CallsGraph_node12" class="node">
+<title>nf90_get_var</title>
+<polygon fill="#777777" stroke="#777777" points="447.44,-24.27 366.92,-24.27 366.92,0 447.44,0 447.44,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="407.18" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">nf90_get_var</text>
+</g>
+<!-- proc~open_nc&#45;&gt;nf90_get_var -->
+<g id="proc~~stats_createnc_tislice~~CallsGraph_edge18" class="edge">
+<title>proc~open_nc&#45;&gt;nf90_get_var</title>
+<path fill="none" stroke="#ffff00" d="M234.06,-251.75C241.03,-213.31 267.53,-94.95 338.04,-33.13 343.29,-28.53 349.54,-24.93 356.09,-22.13"/>
+<polygon fill="#ffff00" stroke="#ffff00" points="356.91,-25.56 365.11,-18.85 354.51,-18.98 356.91,-25.56"/>
+</g>
+<!-- proc~open_nc&#45;&gt;nf90_inq_dimid -->
+<g id="proc~~stats_createnc_tislice~~CallsGraph_edge19" class="edge">
+<title>proc~open_nc&#45;&gt;nf90_inq_dimid</title>
+<path fill="none" stroke="#ffff00" d="M250.08,-276.68C270.62,-290.51 305.55,-312.72 338.04,-327.13 341.83,-328.82 345.79,-330.41 349.81,-331.93"/>
+<polygon fill="#ffff00" stroke="#ffff00" points="348.52,-335.18 359.12,-335.21 350.85,-328.58 348.52,-335.18"/>
+</g>
+<!-- proc~open_nc&#45;&gt;nf90_inq_varid -->
+<g id="proc~~stats_createnc_tislice~~CallsGraph_edge20" class="edge">
+<title>proc~open_nc&#45;&gt;nf90_inq_varid</title>
+<path fill="none" stroke="#ffff00" d="M241.12,-276.43C257.88,-298.25 295.82,-343.84 338.04,-369.13 342.28,-371.67 346.85,-373.93 351.54,-375.93"/>
+<polygon fill="#ffff00" stroke="#ffff00" points="349.95,-379.07 360.54,-379.37 352.45,-372.53 349.95,-379.07"/>
+</g>
+<!-- nf90_inquire -->
+<g id="proc~~stats_createnc_tislice~~CallsGraph_node15" class="node">
+<title>nf90_inquire</title>
+<polygon fill="#777777" stroke="#777777" points="445.94,-150.27 368.42,-150.27 368.42,-126 445.94,-126 445.94,-150.27"/>
+<text xml:space="preserve" text-anchor="middle" x="407.18" y="-134.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">nf90_inquire</text>
+</g>
+<!-- proc~open_nc&#45;&gt;nf90_inquire -->
+<g id="proc~~stats_createnc_tislice~~CallsGraph_edge21" class="edge">
+<title>proc~open_nc&#45;&gt;nf90_inquire</title>
+<path fill="none" stroke="#ffff00" d="M241.12,-251.84C257.88,-230.02 295.82,-184.43 338.04,-159.13 344.03,-155.54 350.69,-152.52 357.44,-149.98"/>
+<polygon fill="#ffff00" stroke="#ffff00" points="358.25,-153.4 366.59,-146.87 355.99,-146.77 358.25,-153.4"/>
+</g>
+<!-- nf90_inquire_dimension -->
+<g id="proc~~stats_createnc_tislice~~CallsGraph_node16" class="node">
+<title>nf90_inquire_dimension</title>
+<polygon fill="#777777" stroke="#777777" points="476.31,-276.27 338.04,-276.27 338.04,-252 476.31,-252 476.31,-276.27"/>
+<text xml:space="preserve" text-anchor="middle" x="407.18" y="-260.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">nf90_inquire_dimension</text>
+</g>
+<!-- proc~open_nc&#45;&gt;nf90_inquire_dimension -->
+<g id="proc~~stats_createnc_tislice~~CallsGraph_edge22" class="edge">
+<title>proc~open_nc&#45;&gt;nf90_inquire_dimension</title>
+<path fill="none" stroke="#ffff00" d="M259.62,-264.13C277.76,-264.13 302.48,-264.13 326.45,-264.13"/>
+<polygon fill="#ffff00" stroke="#ffff00" points="326.25,-267.64 336.25,-264.14 326.25,-260.64 326.25,-267.64"/>
+</g>
+<!-- nf90_open -->
+<g id="proc~~stats_createnc_tislice~~CallsGraph_node17" class="node">
+<title>nf90_open</title>
+<polygon fill="#777777" stroke="#777777" points="441.06,-108.27 373.29,-108.27 373.29,-84 441.06,-84 441.06,-108.27"/>
+<text xml:space="preserve" text-anchor="middle" x="407.18" y="-92.54" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">nf90_open</text>
+</g>
+<!-- proc~open_nc&#45;&gt;nf90_open -->
+<g id="proc~~stats_createnc_tislice~~CallsGraph_edge23" class="edge">
+<title>proc~open_nc&#45;&gt;nf90_open</title>
+<path fill="none" stroke="#ffff00" d="M237.49,-251.8C250.61,-223.6 286.66,-154.01 338.04,-117.14 345.17,-112.02 353.58,-108.12 362.01,-105.17"/>
+<polygon fill="#ffff00" stroke="#ffff00" points="363.02,-108.52 371.56,-102.24 360.97,-101.83 363.02,-108.52"/>
+</g>
+<!-- proc~open_nc&#45;&gt;nf90_put_att -->
+<g id="proc~~stats_createnc_tislice~~CallsGraph_edge24" class="edge">
+<title>proc~open_nc&#45;&gt;nf90_put_att</title>
+<path fill="none" stroke="#ffff00" d="M239.55,-276.76C252.54,-298.67 279.94,-345.22 302.04,-385.13 318.61,-415.05 311.7,-431.33 338.04,-453.13 343.81,-457.91 350.65,-461.6 357.74,-464.45"/>
+<polygon fill="#ffff00" stroke="#ffff00" points="356.18,-467.61 366.78,-467.56 358.46,-461 356.18,-467.61"/>
+</g>
+<!-- nf90_sync -->
+<g id="proc~~stats_createnc_tislice~~CallsGraph_node21" class="node">
+<title>nf90_sync</title>
+<polygon fill="#777777" stroke="#777777" points="439.56,-66.27 374.79,-66.27 374.79,-42 439.56,-42 439.56,-66.27"/>
+<text xml:space="preserve" text-anchor="middle" x="407.18" y="-50.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">nf90_sync</text>
+</g>
+<!-- proc~open_nc&#45;&gt;nf90_sync -->
+<g id="proc~~stats_createnc_tislice~~CallsGraph_edge25" class="edge">
+<title>proc~open_nc&#45;&gt;nf90_sync</title>
+<path fill="none" stroke="#ffff00" d="M235.39,-251.88C245.23,-218.34 277.16,-124.3 338.04,-75.14 345.43,-69.16 354.52,-64.89 363.62,-61.82"/>
+<polygon fill="#ffff00" stroke="#ffff00" points="364.52,-65.21 373.16,-59.07 362.58,-58.48 364.52,-65.21"/>
+</g>
+<!-- proc~stats_write_islice_xcoord&#45;&gt;zend -->
+<g id="proc~~stats_createnc_tislice~~CallsGraph_edge31" class="edge">
+<title>proc~stats_write_islice_xcoord&#45;&gt;zend</title>
+<path fill="none" stroke="#00ff00" d="M237.81,-533.46C251.34,-560.95 287.76,-627.67 338.04,-663.13 347.1,-669.53 358.17,-674.02 368.72,-677.15"/>
+<polygon fill="#00ff00" stroke="#00ff00" points="367.83,-680.54 378.39,-679.67 369.6,-673.76 367.83,-680.54"/>
+</g>
+<!-- proc~stats_write_islice_xcoord&#45;&gt;zstart -->
+<g id="proc~~stats_createnc_tislice~~CallsGraph_edge32" class="edge">
+<title>proc~stats_write_islice_xcoord&#45;&gt;zstart</title>
+<path fill="none" stroke="#00ff00" d="M245.19,-533.54C259.27,-546.8 282.24,-568.45 302.04,-587.13 318.05,-602.24 319.03,-610.05 338.04,-621.13 347.46,-626.63 358.47,-630.83 368.86,-633.98"/>
+<polygon fill="#00ff00" stroke="#00ff00" points="367.75,-637.3 378.32,-636.58 369.61,-630.55 367.75,-637.3"/>
+</g>
+<!-- proc~stats_write_islice_xcoord&#45;&gt;nf90_enddef -->
+<g id="proc~~stats_createnc_tislice~~CallsGraph_edge26" class="edge">
+<title>proc~stats_write_islice_xcoord&#45;&gt;nf90_enddef</title>
+<path fill="none" stroke="#00ff00" d="M302.36,-519.12C320.46,-518.6 339.56,-518.05 356.38,-517.56"/>
+<polygon fill="#00ff00" stroke="#00ff00" points="356.21,-521.07 366.1,-517.29 356.01,-514.07 356.21,-521.07"/>
+</g>
+<!-- proc~stats_write_islice_xcoord&#45;&gt;nf90_inq_varid -->
+<g id="proc~~stats_createnc_tislice~~CallsGraph_edge27" class="edge">
+<title>proc~stats_write_islice_xcoord&#45;&gt;nf90_inq_varid</title>
+<path fill="none" stroke="#00ff00" d="M273.62,-508.59C283.84,-504.03 294.1,-497.99 302.04,-490.13 329.47,-463 309.06,-436.61 338.04,-411.13 342.12,-407.54 346.81,-404.57 351.78,-402.1"/>
+<polygon fill="#00ff00" stroke="#00ff00" points="352.99,-405.39 360.86,-398.3 350.29,-398.93 352.99,-405.39"/>
+</g>
+<!-- proc~stats_write_islice_xcoord&#45;&gt;nf90_put_att -->
+<g id="proc~~stats_createnc_tislice~~CallsGraph_edge28" class="edge">
+<title>proc~stats_write_islice_xcoord&#45;&gt;nf90_put_att</title>
+<path fill="none" stroke="#00ff00" d="M278.7,-508.54C302.99,-501.98 332.66,-493.97 357.27,-487.33"/>
+<polygon fill="#00ff00" stroke="#00ff00" points="357.98,-490.77 366.72,-484.78 356.16,-484.01 357.98,-490.77"/>
+</g>
+<!-- nf90_put_var -->
+<g id="proc~~stats_createnc_tislice~~CallsGraph_node19" class="node">
+<title>nf90_put_var</title>
+<polygon fill="#777777" stroke="#777777" points="447.44,-570.27 366.92,-570.27 366.92,-546 447.44,-546 447.44,-570.27"/>
+<text xml:space="preserve" text-anchor="middle" x="407.18" y="-554.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">nf90_put_var</text>
+</g>
+<!-- proc~stats_write_islice_xcoord&#45;&gt;nf90_put_var -->
+<g id="proc~~stats_createnc_tislice~~CallsGraph_edge29" class="edge">
+<title>proc~stats_write_islice_xcoord&#45;&gt;nf90_put_var</title>
+<path fill="none" stroke="#00ff00" d="M291.47,-533.76C312.24,-538.18 335.36,-543.09 355.36,-547.34"/>
+<polygon fill="#00ff00" stroke="#00ff00" points="354.44,-550.72 364.94,-549.37 355.89,-543.87 354.44,-550.72"/>
+</g>
+<!-- proc~stats_write_islice_xcoord&#45;&gt;nf90_redef -->
+<g id="proc~~stats_createnc_tislice~~CallsGraph_edge30" class="edge">
+<title>proc~stats_write_islice_xcoord&#45;&gt;nf90_redef</title>
+<path fill="none" stroke="#00ff00" d="M252.14,-533.74C273.02,-546.44 306.93,-565.99 338.04,-579.13 345.48,-582.28 353.55,-585.18 361.45,-587.77"/>
+<polygon fill="#00ff00" stroke="#00ff00" points="360.39,-591.1 370.98,-590.75 362.48,-584.42 360.39,-591.1"/>
+</g>
+<!-- proc~writestat_dims_nc&#45;&gt;nf90_inq_varid -->
+<g id="proc~~stats_createnc_tislice~~CallsGraph_edge33" class="edge">
+<title>proc~writestat_dims_nc&#45;&gt;nf90_inq_varid</title>
+<path fill="none" stroke="#00ffff" d="M284.28,-401.33C305.34,-399.4 329.66,-397.17 351,-395.2"/>
+<polygon fill="#00ffff" stroke="#00ffff" points="351.04,-398.72 360.68,-394.31 350.4,-391.74 351.04,-398.72"/>
+</g>
+<!-- proc~writestat_dims_nc&#45;&gt;nf90_inquire_dimension -->
+<g id="proc~~stats_createnc_tislice~~CallsGraph_edge34" class="edge">
+<title>proc~writestat_dims_nc&#45;&gt;nf90_inquire_dimension</title>
+<path fill="none" stroke="#00ffff" d="M239.43,-393.84C254.75,-369.46 292.34,-314.76 338.04,-285.13 340.03,-283.85 342.1,-282.63 344.23,-281.49"/>
+<polygon fill="#00ffff" stroke="#00ffff" points="345.62,-284.71 353.19,-277.29 342.65,-278.37 345.62,-284.71"/>
+</g>
+<!-- proc~writestat_dims_nc&#45;&gt;nf90_put_var -->
+<g id="proc~~stats_createnc_tislice~~CallsGraph_edge35" class="edge">
+<title>proc~writestat_dims_nc&#45;&gt;nf90_put_var</title>
+<path fill="none" stroke="#00ffff" d="M262,-418.69C275.71,-425.67 291.26,-435.53 302.04,-448.13 329.77,-480.57 306.61,-508.28 338.04,-537.13 343.25,-541.91 349.52,-545.61 356.12,-548.46"/>
+<polygon fill="#00ffff" stroke="#00ffff" points="354.65,-551.65 365.25,-551.77 357.04,-545.07 354.65,-551.65"/>
+</g>
+<!-- nf90_strerror -->
+<g id="proc~~stats_createnc_tislice~~CallsGraph_node23" class="node">
+<title>nf90_strerror</title>
+<polygon fill="#777777" stroke="#777777" points="592.08,-444.27 512.31,-444.27 512.31,-420 592.08,-420 592.08,-444.27"/>
+<text xml:space="preserve" text-anchor="middle" x="552.2" y="-428.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">nf90_strerror</text>
+</g>
+<!-- proc~nchandle_error&#45;&gt;nf90_strerror -->
+<g id="proc~~stats_createnc_tislice~~CallsGraph_edge36" class="edge">
+<title>proc~nchandle_error&#45;&gt;nf90_strerror</title>
+<path fill="none" stroke="#ff0066" d="M453.82,-432.13C468.8,-432.13 485.54,-432.13 500.85,-432.13"/>
+<polygon fill="#ff0066" stroke="#ff0066" points="500.71,-435.64 510.71,-432.14 500.71,-428.64 500.71,-435.64"/>
+</g>
+</g>
+</svg>
+</div>          <div>
+            <a type="button" class="graph-help" data-bs-toggle="modal" href="#CallsGraph-help-text">Help</a>
+          </div>
+          <div class="modal fade" id="CallsGraph-help-text" tabindex="-1" role="dialog">
+            <div class="modal-dialog modal-lg" role="document">
+              <div class="modal-content">
+                <div class="modal-header">
+                  <h4 class="modal-title" id="-graph-help-label">Graph Key</h4>
+                  <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+<p>Nodes of different colours represent the following: </p>
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
+ "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<!-- Generated by graphviz version 14.1.3 (0)
+ -->
+<!-- Title: Graph Key Pages: 1 -->
+<svg width="641pt" height="28pt"
+ viewBox="0.00 0.00 641.00 28.00" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<g id="graph0" class="graph" transform="scale(0.873868 0.873868) rotate(0) translate(4 28.27)">
+<title>Graph Key</title>
+<polygon fill="white" stroke="none" points="-4,4 -4,-28.27 729.52,-28.27 729.52,4 -4,4"/>
+<!-- Subroutine -->
+<g id="node1" class="node">
+<title>Subroutine</title>
+<polygon fill="#d9534f" stroke="#d9534f" points="69.27,-24.27 0,-24.27 0,0 69.27,0 69.27,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="34.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Subroutine</text>
+</g>
+<!-- Function -->
+<g id="node2" class="node">
+<title>Function</title>
+<polygon fill="#d94e8f" stroke="#d94e8f" points="143.89,-24.27 87.38,-24.27 87.38,0 143.89,0 143.89,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="115.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Function</text>
+</g>
+<!-- Interface -->
+<g id="node3" class="node">
+<title>Interface</title>
+<polygon fill="#a7506f" stroke="#a7506f" points="221.39,-24.27 161.88,-24.27 161.88,0 221.39,0 221.39,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="191.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Interface</text>
+</g>
+<!-- Type Bound Procedure -->
+<g id="node4" class="node">
+<title>Type Bound Procedure</title>
+<polygon fill="#a7506f" stroke="#a7506f" points="368.27,-24.27 239,-24.27 239,0 368.27,0 368.27,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="303.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Type Bound Procedure</text>
+</g>
+<!-- Unknown Procedure Type -->
+<g id="node5" class="node">
+<title>Unknown Procedure Type</title>
+<polygon fill="#777777" stroke="#777777" points="529.39,-24.27 385.88,-24.27 385.88,0 529.39,0 529.39,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="457.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Unknown Procedure Type</text>
+</g>
+<!-- Program -->
+<g id="node6" class="node">
+<title>Program</title>
+<polygon fill="#f0ad4e" stroke="#f0ad4e" points="603.89,-24.27 547.38,-24.27 547.38,0 603.89,0 603.89,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="575.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Program</text>
+</g>
+<!-- This Page&#39;s Entity -->
+<g id="node7" class="node">
+<title>This Page&#39;s Entity</title>
+<polygon fill="none" stroke="black" points="725.52,-24.27 621.75,-24.27 621.75,0 725.52,0 725.52,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="673.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50">This Page&#39;s Entity</text>
+</g>
+</g>
+</svg>
+
+<p>Solid arrows point from a procedure to one which it calls. Dashed 
+arrows point from an interface to procedures which implement that interface.
+This could include the module procedures in a generic interface or the
+implementation in a submodule of an interface in a parent module.
+</p>
+ Where possible, edges connecting nodes are
+given different colours to make them easier to distinguish in
+large graphs.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-header">
+  <h3 class="card-title">Called by</h3>
+      </div>
+      <div class="card-body">
+  <div class="depgraph"><?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
+ "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<!-- Generated by graphviz version 14.1.3 (0)
+ -->
+<!-- Title: proc~~stats_createnc_tislice~~CalledByGraph Pages: 1 -->
+<svg id="procstats_createnc_tisliceCalledByGraph" width="445pt" height="32pt"
+ viewBox="0.00 0.00 445.00 32.00" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<g id="proc~~stats_createnc_tislice~~CalledByGraph" class="graph" transform="scale(1 1) rotate(0) translate(4 28.27)">
+<title>proc~~stats_createnc_tislice~~CalledByGraph</title>
+<polygon fill="white" stroke="none" points="-4,4 -4,-28.27 441.31,-28.27 441.31,4 -4,4"/>
+<!-- proc~stats_createnc_tislice -->
+<g id="proc~~stats_createnc_tislice~~CalledByGraph_node1" class="node">
+<title>proc~stats_createnc_tislice</title>
+<polygon fill="none" stroke="black" points="437.31,-24.27 313.29,-24.27 313.29,0 437.31,0 437.31,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="375.3" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50">stats_createnc_tislice</text>
+</g>
+<!-- proc~stats_prepare -->
+<g id="proc~~stats_createnc_tislice~~CalledByGraph_node2" class="node">
+<title>proc~stats_prepare</title>
+<g id="a_proc~~stats_createnc_tislice~~CalledByGraph_node2"><a xlink:href="../proc/stats_prepare.html" xlink:title="stats_prepare">
+<polygon fill="#d9534f" stroke="#d9534f" points="277.29,-24.27 194.52,-24.27 194.52,0 277.29,0 277.29,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="235.9" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">stats_prepare</text>
+</a>
+</g>
+</g>
+<!-- proc~stats_prepare&#45;&gt;proc~stats_createnc_tislice -->
+<g id="proc~~stats_createnc_tislice~~CalledByGraph_edge1" class="edge">
+<title>proc~stats_prepare&#45;&gt;proc~stats_createnc_tislice</title>
+<path fill="none" stroke="#ff0000" d="M277.76,-12.13C285.28,-12.13 293.35,-12.13 301.49,-12.13"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="301.49,-15.64 311.49,-12.14 301.49,-8.64 301.49,-15.64"/>
+</g>
+<!-- proc~stats_main -->
+<g id="proc~~stats_createnc_tislice~~CalledByGraph_node3" class="node">
+<title>proc~stats_main</title>
+<g id="a_proc~~stats_createnc_tislice~~CalledByGraph_node3"><a xlink:href="../proc/stats_main.html" xlink:title="stats_main">
+<polygon fill="#d9534f" stroke="#d9534f" points="158.52,-24.27 90,-24.27 90,0 158.52,0 158.52,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="124.26" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">stats_main</text>
+</a>
+</g>
+</g>
+<!-- proc~stats_main&#45;&gt;proc~stats_prepare -->
+<g id="proc~~stats_createnc_tislice~~CalledByGraph_edge2" class="edge">
+<title>proc~stats_main&#45;&gt;proc~stats_prepare</title>
+<path fill="none" stroke="#ff0000" d="M158.75,-12.13C166.37,-12.13 174.64,-12.13 182.83,-12.13"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="182.76,-15.64 192.76,-12.14 182.76,-8.64 182.76,-15.64"/>
+</g>
+<!-- program~udales -->
+<g id="proc~~stats_createnc_tislice~~CalledByGraph_node4" class="node">
+<title>program~udales</title>
+<g id="a_proc~~stats_createnc_tislice~~CalledByGraph_node4"><a xlink:href="../program/udales.html" xlink:title="uDALES">
+<polygon fill="#f0ad4e" stroke="#f0ad4e" points="54,-24.27 0,-24.27 0,0 54,0 54,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="27" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">uDALES</text>
+</a>
+</g>
+</g>
+<!-- program~udales&#45;&gt;proc~stats_main -->
+<g id="proc~~stats_createnc_tislice~~CalledByGraph_edge3" class="edge">
+<title>program~udales&#45;&gt;proc~stats_main</title>
+<path fill="none" stroke="#ff0000" d="M54.28,-12.13C61.69,-12.13 69.97,-12.13 78.16,-12.13"/>
+<polygon fill="#ff0000" stroke="#ff0000" points="78.04,-15.64 88.04,-12.14 78.04,-8.64 78.04,-15.64"/>
+</g>
+</g>
+</svg>
+</div>          <div>
+            <a type="button" class="graph-help" data-bs-toggle="modal" href="#CalledByGraph-help-text">Help</a>
+          </div>
+          <div class="modal fade" id="CalledByGraph-help-text" tabindex="-1" role="dialog">
+            <div class="modal-dialog modal-lg" role="document">
+              <div class="modal-content">
+                <div class="modal-header">
+                  <h4 class="modal-title" id="-graph-help-label">Graph Key</h4>
+                  <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+<p>Nodes of different colours represent the following: </p>
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
+ "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<!-- Generated by graphviz version 14.1.3 (0)
+ -->
+<!-- Title: Graph Key Pages: 1 -->
+<svg width="641pt" height="28pt"
+ viewBox="0.00 0.00 641.00 28.00" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<g id="graph0" class="graph" transform="scale(0.873868 0.873868) rotate(0) translate(4 28.27)">
+<title>Graph Key</title>
+<polygon fill="white" stroke="none" points="-4,4 -4,-28.27 729.52,-28.27 729.52,4 -4,4"/>
+<!-- Subroutine -->
+<g id="node1" class="node">
+<title>Subroutine</title>
+<polygon fill="#d9534f" stroke="#d9534f" points="69.27,-24.27 0,-24.27 0,0 69.27,0 69.27,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="34.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Subroutine</text>
+</g>
+<!-- Function -->
+<g id="node2" class="node">
+<title>Function</title>
+<polygon fill="#d94e8f" stroke="#d94e8f" points="143.89,-24.27 87.38,-24.27 87.38,0 143.89,0 143.89,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="115.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Function</text>
+</g>
+<!-- Interface -->
+<g id="node3" class="node">
+<title>Interface</title>
+<polygon fill="#a7506f" stroke="#a7506f" points="221.39,-24.27 161.88,-24.27 161.88,0 221.39,0 221.39,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="191.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Interface</text>
+</g>
+<!-- Type Bound Procedure -->
+<g id="node4" class="node">
+<title>Type Bound Procedure</title>
+<polygon fill="#a7506f" stroke="#a7506f" points="368.27,-24.27 239,-24.27 239,0 368.27,0 368.27,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="303.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Type Bound Procedure</text>
+</g>
+<!-- Unknown Procedure Type -->
+<g id="node5" class="node">
+<title>Unknown Procedure Type</title>
+<polygon fill="#777777" stroke="#777777" points="529.39,-24.27 385.88,-24.27 385.88,0 529.39,0 529.39,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="457.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Unknown Procedure Type</text>
+</g>
+<!-- Program -->
+<g id="node6" class="node">
+<title>Program</title>
+<polygon fill="#f0ad4e" stroke="#f0ad4e" points="603.89,-24.27 547.38,-24.27 547.38,0 603.89,0 603.89,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="575.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50" fill="white">Program</text>
+</g>
+<!-- This Page&#39;s Entity -->
+<g id="node7" class="node">
+<title>This Page&#39;s Entity</title>
+<polygon fill="none" stroke="black" points="725.52,-24.27 621.75,-24.27 621.75,0 725.52,0 725.52,-24.27"/>
+<text xml:space="preserve" text-anchor="middle" x="673.63" y="-8.53" font-family="Helvetica,sans-Serif" font-size="10.50">This Page&#39;s Entity</text>
+</g>
+</g>
+</svg>
+
+<p>Solid arrows point from a procedure to one which it calls. Dashed 
+arrows point from an interface to procedures which implement that interface.
+This could include the module procedures in a generic interface or the
+implementation in a submodule of an interface in a parent module.
+</p>
+ Where possible, edges connecting nodes are
+given different colours to make them easier to distinguish in
+large graphs.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <br>
+
+
+    
+    
+
+    
+    
+
+
+
+    
+    <section>
+    <h2><span class="anchor" id="src"></span>Source Code</h2>
+    <div class="hl codehilite"><pre><span></span><span class="w">    </span><span class="k">subroutine </span><span class="n">stats_createnc_tislice</span>
+<span class="w">      </span><span class="k">implicit none</span>
+<span class="k">      </span><span class="n">local_ntislice</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">count</span><span class="p">(</span><span class="n">islice</span><span class="p">(</span><span class="mi">1</span><span class="p">:</span><span class="n">nislice</span><span class="p">)</span><span class="w"> </span><span class="o">&gt;=</span><span class="w"> </span><span class="n">zstart</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span><span class="w"> </span><span class="p">.</span><span class="nb">and</span><span class="p">.</span><span class="w"> </span><span class="n">islice</span><span class="p">(</span><span class="mi">1</span><span class="p">:</span><span class="n">nislice</span><span class="p">)</span><span class="w"> </span><span class="o">&lt;=</span><span class="w"> </span><span class="n">zend</span><span class="p">(</span><span class="mi">1</span><span class="p">))</span>
+<span class="w">      </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">local_ntislice</span><span class="w"> </span><span class="o">&gt;</span><span class="w"> </span><span class="mi">0</span><span class="w"> </span><span class="p">.</span><span class="nb">and</span><span class="p">.</span><span class="w"> </span><span class="n">myidy</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="mi">0</span><span class="p">)</span><span class="w"> </span><span class="k">then</span>
+<span class="k">        </span><span class="n">filenametis</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s1">'stats_tislice.xxx.xxx.nc'</span>
+<span class="w">        </span><span class="n">filenametis</span><span class="p">(</span><span class="mi">15</span><span class="p">:</span><span class="mi">17</span><span class="p">)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">cmyidx</span>
+<span class="w">        </span><span class="n">filenametis</span><span class="p">(</span><span class="mi">19</span><span class="p">:</span><span class="mi">21</span><span class="p">)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">cexpnr</span>
+<span class="w">        </span><span class="n">nrectis</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span>
+<span class="w">        </span><span class="k">call </span><span class="n">open_nc</span><span class="p">(</span><span class="n">filenametis</span><span class="p">,</span><span class="w"> </span><span class="n">ncidtis</span><span class="p">,</span><span class="w"> </span><span class="n">nrectis</span><span class="p">,</span><span class="w"> </span><span class="n">n1</span><span class="o">=</span><span class="n">local_ntislice</span><span class="p">,</span><span class="w"> </span><span class="n">n2</span><span class="o">=</span><span class="n">jtot</span><span class="p">,</span><span class="w"> </span><span class="n">n3</span><span class="o">=</span><span class="n">zdim</span><span class="p">)</span>
+<span class="w">        </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">nrectis</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="mi">0</span><span class="p">)</span><span class="w"> </span><span class="k">then</span>
+<span class="k">          call </span><span class="n">define_nc</span><span class="p">(</span><span class="n">ncidtis</span><span class="p">,</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="n">timeVar</span><span class="p">)</span>
+<span class="w">          </span><span class="k">call </span><span class="n">writestat_dims_nc</span><span class="p">(</span><span class="n">ncidtis</span><span class="p">)</span>
+<span class="w">          </span><span class="k">call </span><span class="n">stats_write_islice_xcoord</span><span class="p">(</span><span class="n">ncidtis</span><span class="p">)</span>
+<span class="w">        </span><span class="k">end if</span>
+<span class="k">        call </span><span class="n">define_nc</span><span class="p">(</span><span class="n">ncidtis</span><span class="p">,</span><span class="w"> </span><span class="n">tVarsCount</span><span class="p">,</span><span class="w"> </span><span class="n">tVars</span><span class="p">)</span>
+<span class="w">      </span><span class="k">end if</span>
+<span class="k">    end subroutine </span><span class="n">stats_createnc_tislice</span>
+</pre></div>
+
+    </section>
+    <br>
+    
+    </div>
+  </div>
+
+      <hr>
+    </div> <!-- /container -->
+    <footer>
+      <div class="container">
+        <div class="row justify-content-between">
+          <div class="col">
+            <p>
+              uDALES
+ was developed by The uDALES Team<br>              &copy; 2026 
+</p>
+          </div>
+          <div class="col">
+            <p class="text-end">
+              Documentation generated by
+              <a href="https://github.com/Fortran-FOSS-Programmers/ford">FORD</a>
+ on 2026-11-27 14:34 +0000             </p>
+          </div>
+        </div>
+        <br>
+      </div> <!-- /container -->
+    </footer>
+  </body>
+</html>
