@@ -9,16 +9,19 @@ project(downloadBuild2decomp NONE)
 
 include(ExternalProject)
 
-# Pinned to the upstream dev branch at the merge of PR 426 (2025-12-11), the
-# fix for issue 401 (halo messages with the same tag when a periodic direction
-# has one rank; uDALES runs such decompositions). The commit before it,
-# cf8a75d, is the squash merge of PR 414, which brought in the halo_exchange
-# interfaces uDALES uses (previously taken from the fork branch
-# pbartholomew08/2decomp-fft feat--halo-exchange--udales, tree-identical to
-# cf8a75d). A commit hash, not a branch, so that builds are reproducible.
+# Pinned to the v2.2.0 release: the annotated tag v2.2.0 (a3faffdb) points at
+# this commit, "Release version 2.2" of 2026-10-14 on the upstream v2.2 branch.
+# Its code equals the dev branch of 2026-11-27 (4cb38be) apart from the version
+# string. Compared with the previous pin, c16656a (dev at the merge of PR 426,
+# 2025-12-11, the fix for halo messages with the same tag when a periodic
+# direction has one rank), it adds the cuFFT buffer rework (PR 447), the
+# memory-pool size fix for very large grids (PR 432) and the MPI_ALLTOALLV
+# displacement fix (PR 422). The halo_exchange interfaces uDALES uses came in
+# with PR 414 (cf8a75d). A commit hash, not a tag name, so that builds are
+# reproducible even if the tag were moved.
 ExternalProject_Add(downloadBuild2decomp
     GIT_REPOSITORY    "https://github.com/2decomp-fft/2decomp-fft"
-    GIT_TAG           "c16656a8206f5b7c87536e42d2a3d23b3c9b2a66"
+    GIT_TAG           "4db5a878a2727e6682b28704560614db0efe6607"   # tag v2.2.0
     CMAKE_ARGS        ${UDALES_DECOMP2D_ARGS}
     SOURCE_DIR        "${CMAKE_CURRENT_BINARY_DIR}/decomp2d-src"
     INSTALL_DIR       "${CMAKE_CURRENT_BINARY_DIR}/decomp2d-opt"
