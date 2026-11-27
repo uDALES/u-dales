@@ -2,8 +2,28 @@
 
 Below we specify the input parameters in the `namoptions` file of your experiment.
 
+## Schema Tooling
+
+The complete JSON schema with parameter definitions, types, defaults, and validation rules is available in [`schemas/udales_input_schema.json`](schemas/udales_input_schema.json). It is intended for tooling, editor support, and validation of machine-generated representations of the namelist interface. Runtime input remains namelist-based.
+
+Tools may represent the namelist structure in JSON like this:
+
+```json
+{
+  "RUN": {
+    "iexpnr": 1,
+    "runtime": 100.0,
+    "lwarmstart": false
+  },
+  "DOMAIN": {
+    "itot": 64,
+    "jtot": 64,
+    "ktot": 64
+  }
+}
+```
+
 <!--
-This list 
 This list refers to the original code-base [DALES](https://github.com/dalesteam/dales). The latest version of the namoptions overview of DALES is documented [here](https://github.com/dalesteam/dales/blob/master/utils/doc/input/Namoptions.pdf).
 -->
 ## Namelist RUN
@@ -173,14 +193,6 @@ BCs at the bottom (BCbot; only effective if not covered with ground facets): 1 =
 | nmason | 2 | > 0 | Exponent in Mason correction function.| - |
 --->
 
-<!---
-## Namelist NAMCHECKSIM
-
-| Name | Default | Possible values | Description | Unit |
-| ---- | ------- | --------------- | ----------- | ---- |
-| tcheck | 0 | > 0 |  Time interval between checks of velocity divergence and Courant numbers.| [s] |
---->
-
 ## Namelist WALLS
 
 1 = fixed flux
@@ -221,6 +233,7 @@ BCs at the bottom (BCbot; only effective if not covered with ground facets): 1 =
 | dtEB | 10. | `REAL` | Time interval between calculations of facet energy balance. | s |
 | bldT | 0. | `REAL` | Internal temperature of the buildings. | [K] |
 | flrT | 0. | `REAL` | Internal temperature of the ground. | [K] |
+| waterT | -1. | `REAL` | Anchor (deep-layer) temperature of water-body facets (walltype in (-30,-20]); negative means: use flrT. | [K] |
 | wsoil | 0. | `REAL` | Water content of soil. | [kg/m3] |
 | wgrmax | 450. | `REAL` | Maximum water content. | [kg/m3] |
 | wwilt | 171. | `REAL` | Water content at wilting point. | [kg/m3] |
@@ -259,21 +272,45 @@ BCs at the bottom (BCbot; only effective if not covered with ground facets): 1 =
 
 ## Namelist OUTPUT
 
+All output files are NetCDF; see [Output files](udales-output-files.md) for their names and contents. Two schedules exist: instantaneous output (3-D fields, slices, probes) is written at `tinstantstart + n*tinstantdump`; time-averaged statistics are sampled every `tsample` from `tstatstart` and written every `tstatsdump` (optionally with `tstatsgap` between windows). Variable labels in `fieldvars`, `slicevars` and `probevars` are two-character codes separated by commas without spaces.
+
 | Name | Default | Possible values | Description | Unit |
 | ---- | ------- | --------------- | ----------- | ---- |
-| lfielddump | .false. | .true. or .false. | Switch for instantaneous field output. | - |
-| tfielddump | 10000. | | Output time for fields. | [s] |
-| fieldvars | '' | Comma-separated two-letter codes, at most 17: u0,v0,w0,th,ql,qt,p0,s1,s2,s3,s4,s5 (prognostic fields); tx,ty,tz,hf (IBM wall stresses and heat flux); mu,mv,mw,mc (IBM masks); di,ux,vy,wz (divergence of the corrected velocity and its three terms); pd,pu,pv,pw (pressure correction and predicted velocities of the last substep); rs,du,dv,dw (right-hand side of the Poisson equation and its three terms). The di/ux/vy/wz/rs/du/dv/dw fields are computed at output time only. | Variable names of fields. | - |
-| tsample | 5. | `REAL` | Sample time for statistics. | [s] |
-| tstatsdump | 10000. | `REAL` | Output time for statistics. | [s] |
-| tstatstart | 0. | `REAL` | Time from which statistics computation or data sampling starts. | [s] |
-| ltdump | .false. | .true. or .false. | Switch to output time-averaged statistics. | - |
-| lydump | .false. | .true. or .false. | Switch to output y-averaged statistics. *Only functional if x-direction is not parallelised.* | - |
-| lytdump | .false. | .true. or .false. | Switch to output y- and time- averaged statistics. *Only functional if x-direction is not parallelised.* | - |
-| lxydump | .false. | .true. or .false. | Switch to output x- and y- averaged statistics. | - |
-| lxytdump | .false. | .true. or .false. | Switch to output x-, y- and time-averaged statistics. | - |
+| **Instantaneous output** | | | | |
+| tinstantstart | 0. | `REAL` >= 0 | Start of the instantaneous-output schedule; fields, slices and probes are all written at `tinstantstart + n*tinstantdump`. | [s] |
+| tinstantdump | 10000. | `REAL` > 0 | Interval of all instantaneous output (fields, slices and probes). Replaces the former `tfielddump`. | [s] |
+| lfielddump | .false. | .true. or .false. | Write instantaneous 3-D fields to `ins_field.<px>.<expnr>.nc`. | - |
+| fieldvars | '' | Comma-separated labels: `u0,v0,w0,p0,pa,th,ta,rh,qt,ql,s1,s2,s3,s4,s5` (prognostic and derived fields, written as `u,v,w,p,pabs,thl,tha,rh,qt,ql,s1..s5`); `tx,ty,tz,hf` (wall stresses `tau_x,tau_y,tau_z` and heat flux `thl_flux`); `mu,mv,mw,mc` (IBM masks `mask_u,mask_v,mask_w,mask_c`); `pd,pu,pv,pw` (pressure correction `p` and predicted velocities `pup,pvp,pwp` of the last substep); `rs,du,dv,dw` (Poisson right-hand side `rhs` and its terms `dpupdx,dpvpdy,dpwpdz`); `di,ux,vy,wz` (divergence `div` of the corrected velocity and its terms `dudx,dvdy,dwdz`) | Variables of the instantaneous 3-D fields. `ta`, `rh` and `pa` are derived at output time (`ta` needs `ltempeq`, `rh` needs `ltempeq` and `lmoist`); the divergence and Poisson terms are computed at output time only. | - |
+| lislicedump | .false. | .true. or .false. | Write instantaneous yz-slices at `i = islice(1:nislice)` to `ins_islice.<px>.<expnr>.nc`. | - |
+| ljslicedump | .false. | .true. or .false. | Write instantaneous xz-slices at `j = jslice(1:njslice)` to `ins_jslice.<py>.<expnr>.nc`. | - |
+| lkslicedump | .false. | .true. or .false. | Write instantaneous xy-slices at `k = kslice(1:nkslice)` to `ins_kslice.<px>.<expnr>.nc`. | - |
+| nislice, njslice, nkslice | 0 | `INTEGER` 0 to 1000 | Number of planes requested in each direction; must be > 0 when the corresponding `l?slicedump` or `lt?slicedump` is set. | - |
+| islice, jslice, kslice | - | Lists of `nislice`, `njslice`, `nkslice` global grid indices | Positions of the yz-, xz- and xy-planes, e.g. `kslice = 2, 5, 10`. Shared by the instantaneous slices and the time-averaged plane statistics. | - |
+| slicevars | '' | Comma-separated labels from `u0,v0,w0,p0,pa,th,ta,rh,qt,ql,s1,s2,s3,s4` | Variables of the instantaneous slices (written as `u,v,w,p,pabs,thl,tha,rh,qt,ql,s1..s4`). Applies to all three slice directions. | - |
+| lprobedump | .false. | .true. or .false. | Write time series at `nprobe` grid points to `ins_probe.<expnr>.nc` (one file, written by rank 0). The points are read from `probe.inp.<expnr>`: one header line, then one line `i j k` of global grid indices per probe. | - |
+| nprobe | 0 | `INTEGER` > 0 when `lprobedump` | Number of probe points in `probe.inp.<expnr>`. | - |
+| probevars | '' | Comma-separated labels from `u0,v0,w0,p0,pa,th,ta,rh,qt,ql,s1,s2,s3,s4` | Variables recorded at the probe points (same names as in the slices). | - |
+| **Time-averaged statistics** | | | | |
+| tsample | 5. | `REAL` > 0 | Sampling interval of the statistics. | [s] |
+| tstatsdump | 10000. | `REAL` > 0 | Length of each averaging window; one record of every time-averaged file is written at the end of each window. | [s] |
+| tstatstart | 0. | `REAL` >= 0 | Time from which sampling starts. | [s] |
+| tstatsgap | 0. | `REAL` >= 0 | If > 0, the time-averaged statistics are written on a fixed absolute schedule: records at `tstatstart + n*(tstatsdump + tstatsgap)` (n = 1, 2, ...), each averaging the `tstatsdump` seconds preceding it, with no sampling during the gap. The schedule is kept across warm starts. E.g. `tstatstart = 21600`, `tstatsdump = 900`, `tstatsgap = 13500` gives 15-min means ending at t = 36000, 50400, ... | [s] |
+| ltdump | .false. | .true. or .false. | Write time-averaged 3-D statistics to `stats_t.<px>.<expnr>.nc`, including the horizontal wind speed at the requested receptor height(s) (`ws_local`) and at z = 10 m (`ws_10`). | - |
+| ltislicedump | .false. | .true. or .false. | Write the time-averaged statistics (same variables and schedule as `ltdump`) only on the yz-planes `islice(1:nislice)`, to `stats_tislice.<px>.<expnr>.nc`. Can be used with or without `ltdump`. | - |
+| ltjslicedump | .false. | .true. or .false. | As `ltislicedump` for the xz-planes `jslice(1:njslice)`, to `stats_tjslice.<py>.<expnr>.nc`. | - |
+| ltkslicedump | .false. | .true. or .false. | As `ltislicedump` for the xy-planes `kslice(1:nkslice)`, to `stats_tkslice.<px>.<expnr>.nc`; also writes `ws_local` and `ws_10` on the full xy-plane, including when `ltdump = .false.`. | - |
+| lytdump | .false. | .true. or .false. | Write y- and time-averaged (x, z) statistics to `stats_yt.<px>.<expnr>.nc`. | - |
+| lxytdump | .false. | .true. or .false. | Write x-, y- and time-averaged profiles to `stats_xyt.<expnr>.nc`. | - |
+| lydump | .false. | .true. or .false. | Write y-averaged instantaneous (x, z) fields to `stats_y.<px>.<expnr>.nc` every `tsample`. | - |
+| lxydump | .false. | .true. or .false. | Write x- and y-averaged instantaneous profiles to `stats_xy.<expnr>.nc` every `tsample`. | - |
+| lmintdump | .false. | .true. or .false. | Legacy reduced time-averaged statistics (mean `u`, `v`, `w`, `thl`, `qt`, `p` only) to `mintdump.<px>.<py>.<expnr>.nc`, one file per pencil. | - |
+| receptor_height | 1.1 | `REAL` > 0 | Height above model ground (`z = 0`) used for the pedestrian-level wind speed `ws_local`. | [m] |
+| nreceptor_heights | 0 | `INTEGER` 0 to 1000 | Number of entries in `receptor_heights`; 0 keeps the single `receptor_height` output. | - |
+| receptor_heights | - | Positive, finite, strictly increasing list | Requested heights for `ws_local`; the first entry must equal `receptor_height`. With more than one height, `ws_local` gains a `receptor_height` dimension in `stats_t` and `stats_tkslice`. | [m] |
+| **Monitoring** | | | | |
+| tcheck | 0. | `REAL` >= 0 | Interval at which the Courant and diffusion numbers and the velocity divergence are written to the log; 0 writes them every time step. Raised to `dtmax` when `ladaptive = .false.`. | [s] |
 <!---
-| ltkedump | .false. | .true. or .false. | *Not supported in the current version.* | - |
+| ltkedump | .false. | .true. or .false. | *Not supported in the current version.* Setting it aborts the run (issue #352). | - |
 --->
 
 ## Namelist INPS
@@ -329,6 +366,7 @@ BCs at the bottom (BCbot; only effective if not covered with ground facets): 1 =
 | ifacsec | 1 | 1 or 2 | Option for facet section calculation. 1: Fortran (default, fast), 2: MATLAB (useful for debugging | - |
 | ishortwave   | MATLAB: 1; Python: 3 | 1, 2, 3, or 4 | Option for shortwave radiation calculation. 1: scanline rasterization in both toolchains (MATLAB standalone Fortran executable; Python f2py wrapper). 2: MATLAB-only scanline debug implementation. 3: Python-only facsec method. 4: Python-only moller method. MATLAB errors on 3/4; Python errors on 2. | -  |
 | isolar       | 1        | 1 , 2, 3| Option for solar radiation, 1 uses custom values, 2 uses lattitude and lonigtude, 3 uses weather file.             | -  |
+| isolarpos    | 1        | 1 or 2 | Solar-position algorithm used with `isolar = 2`, by the time-dependent shortwave preprocessing and by the thermal-comfort postprocessing: 1 is the built-in port of the NREL Solar Position Algorithm (Reda and Andreas, 2004, *Solar Energy* 76, 577-589); 2 is `pvlib.solarposition.get_solarposition` (requires the `pvlib` package). | - |
 | view3d_out   | MATLAB: 0; Python: 2 | 0 , 1 , 2                    | Output format for View3D: 0 is text, 1 is binary, 2 is sparse text.                   | - |
 | maxD         | Inf      |   `REAL` > 0   | Maximum distance to check view factors, otherwise they are zero.    | - |
 | xazimuth     | 90       |  `REAL`    | The azimuthal angle of the x-axis (with respect to North).     | [degrees]  |

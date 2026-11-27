@@ -13,6 +13,49 @@ that they are easy to find when upgrading.
 
 ### Breaking changes
 
+- **Output files and variables renamed; output modules rewritten.** The
+  statistics and instantaneous outputs are now written by `out_stats.f90`
+  (time- and space-averaged statistics), `out_instants.f90` (fields, slices,
+  probes) and `out_write_nc.f90`; `modstatsdump.f90` keeps only the legacy
+  `mintdump` and the disabled `tkedump` paths. Files are written **one per
+  x-rank** (`<name>.<px>.<expnr>.nc`, covering the rank's whole y-extent)
+  instead of one per 2-D pencil; xz-plane output is written per y-rank and
+  fully reduced output once. `gather_outputs.sh` was rewritten for the new
+  layout. File names:
+
+  | before | now |
+  |---|---|
+  | `tdump.<px>.<py>.<expnr>.nc` | `stats_t.<px>.<expnr>.nc` |
+  | `xytdump.<expnr>.nc` | `stats_xyt.<expnr>.nc` |
+  | `xydump.<expnr>.nc` | `stats_xy.<expnr>.nc` |
+  | `ytdump.<expnr>.nc` | `stats_yt.<px>.<expnr>.nc` |
+  | `ydump.<expnr>.nc` | `stats_y.<px>.<expnr>.nc` |
+  | `treedump.<px>.<py>.<expnr>.nc` | `stats_tree.<px>.<expnr>.nc` |
+  | `fielddump.<px>.<py>.<expnr>.nc` | `ins_field.<px>.<expnr>.nc` |
+  | `islicedump`/`jslicedump`/`kslicedump.<px>.<py>.<expnr>.nc` | `ins_islice.<px>`, `ins_jslice.<py>`, `ins_kslice.<px>.<expnr>.nc` |
+
+  Variable names no longer encode the averaging; the file name does, and the
+  same quantity has the same name in every file: `ut`/`uxyt`/`uyt`/`uy` →
+  `u`; `upwpt`/`upwpxyt` → `upwp`; `uwxyt` → `uw`; `upuptc` → `upup`;
+  `tketc` → `tke`; `thlt` → `thl`; `wpthlpt`/`wthlxyt` → `wpthlp`/`wthl`;
+  `usgsxyt` → `usgs`; scalars `sca1t` → `s1`, `sca1psca1pt` → `s1ps1p`,
+  `wpsca1pt` → `wps1p`, `sv1sgs` → `s1sgs`; instantaneous `sca1` → `s1`;
+  slices `u_kslice` → `u`. Earlier entries in this changelog refer to the
+  variables by their former names.
+- **`&OUTPUT` namelist.** `tfielddump` is replaced by `tinstantdump`, the
+  interval of *all* instantaneous output (fields, slices and probes), and
+  `tinstantstart` sets the start of that schedule; a namelist that still
+  contains `tfielddump` fails to read. `kslice`, `islice` and `jslice` are
+  now lists of `nkslice`, `nislice`, `njslice` planes (several planes per
+  direction) and `slicevars` selects the slice variables. `tcheck` moved from
+  `&NAMCHECKSIM` to `&OUTPUT`. All example and test cases are updated.
+- **Time-averaged statistics on an absolute schedule.** A warm start no
+  longer shortens an averaging window: the accumulators restart from zero and
+  the next record is written `tstatsdump` seconds later. `stats_xy` and
+  `stats_y` are instantaneous spatial averages written every `tsample`, as
+  before.
+- **Fatal output errors abort all ranks** (`MPI_ABORT`) instead of stopping
+  rank 0 and leaving the others waiting.
 - **Execute scripts refuse an existing output directory.** `local_execute.sh`,
   `hpc_execute.sh`, `archer_execute.sh` and `ecmwf_execute.sh` (and so
   `ud_run <machine> sim`) now exit with an error when `$DA_WORKDIR/<expnr>`
@@ -57,6 +100,12 @@ that they are easy to find when upgrading.
 
 ### Fixed
 
+- Cell-centre velocities used by the statistics (`wc`) are computed
+  correctly, and the statistics flag gating and window resets are consistent
+  after every dump and across restarts.
+- The chemistry update of `lchem` is kept: since the fusion of the scalar
+  update loop the `svm = sv0` copy ran before `chem`, discarding the
+  NO/NO2/O3 update every step (#427). A regression test covers the path.
 - **The geostrophic pressure gradient is now applied only with `lcoriol = .true.`**
   (#410). `modstartup` added `om23_gs*vg` and `-om23_gs*ug` to the large-scale
   pressure gradient whether or not the Coriolis force was on, so a run with
@@ -107,6 +156,53 @@ that they are easy to find when upgrading.
 
 ### Added
 
+- **Time-averaged statistics on selected planes.** `ltislicedump`,
+  `ltjslicedump`, `ltkslicedump` write the full `stats_t` variable set only on
+  the planes `islice(1:nislice)`, `jslice(1:njslice)`, `kslice(1:nkslice)`
+  (`stats_tislice`, `stats_tjslice`, `stats_tkslice`), independently of
+  `ltdump`.
+- **Point probes.** `lprobedump` writes the `probevars` variables at the
+  `nprobe` grid points listed in `probe.inp.<expnr>` (one header line, then
+  `i j k` per line) to `ins_probe.<expnr>.nc`; `copy_inputs.sh` copies
+  `probe.inp`.
+- **Gapped averaging schedule.** `tstatsgap > 0` writes the time-averaged
+  statistics at `tstatstart + n*(tstatsdump + tstatsgap)`, each record the
+  mean of the `tstatsdump` seconds preceding it, with no sampling in the gap.
+  The schedule is kept across warm starts.
+- **New output quantities.** Air temperature `tha` (`ltempeq`), relative
+  humidity `rh` (`ltempeq` and `lmoist`), hydrostatic absolute pressure
+  `pabs` and liquid water `ql` in the statistics files and, through the
+  `ta`, `rh`, `pa`, `ql` labels of `fieldvars`/`slicevars`/`probevars`, in the
+  instantaneous files. `fieldvars` also accepts the divergence of the
+  corrected velocity and its terms (`di,ux,vy,wz`), the pressure correction
+  and predicted velocities of the last substep (`pd,pu,pv,pw`) and the
+  Poisson right-hand side and its terms (`rs,du,dv,dw`), all computed at
+  output time.
+- **Pedestrian-level wind speed.** `ws_local`, the time-mean horizontal wind
+  speed at `receptor_height` (or at each of `receptor_heights`), and `ws_10`
+  at z = 10 m, in `stats_t` and as full xy-planes in `stats_tkslice`.
+- **Water-body facets.** Facets with wall types in (-30, -20] are treated as
+  open water with a fixed anchor temperature `waterT` (`&ENERGYBALANCE`;
+  negative falls back to `flrT`); see [Water bodies](udales-water-bodies.md).
+- **Namelist input refactor.** Namelists are read in `in_readnamelists.f90`
+  (before the domain decomposition is set up) and sparse `(i, j, k)` input
+  files in `in_readsparsefiles.f90`. A round-trip test mode writes the
+  namelists back for `tests/integration/input`, which also checks that every
+  namelist variable is broadcast and described in
+  `docs/schemas/udales_input_schema.json`. New entry points in `bin/`:
+  `ud_run` (run or gather a case on any supported machine), `ud_nml2json`,
+  `ud_nml2v3`, `ud_testenvironment`.
+- **Thermal-comfort post-processing** (`tools/python/udcomf`): one command,
+  `tools/ud_run_thermal_comfort.sh <case> [l|f|c] [common|icl|ecmwf] -- --heights ...`
+  (or `ud_run_thermal_comfort.py`), takes a finished case from `stats_t` (or
+  `stats_tkslice`) and `facEB` to MRT, UTCI, PET and WBGT at the requested
+  receptor heights, optionally merging the outputs of several restarted
+  segments first. Physical and sensor constants live in
+  `comfort_defaults.json`. See `tools/python/examples/thermal_comfort/`.
+- `isolarpos` (`&INPS`) selects the solar-position algorithm of the
+  preprocessing and post-processing (1 = built-in NREL SPA port, 2 = pvlib).
+- Tests reorganised into `tests/integration`, `tests/regression`,
+  `tests/system` and `tests/unit`, driven by `tests/test_suites.yml`.
 - **Preprocessing on ECMWF HPC2020, and a test suite that survives the
   terminal.** `tools/write_inputs.sh` takes a fourth argument, the system
   (`common`, `icl` or `ecmwf`), and a new start mode `f` that runs the

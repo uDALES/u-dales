@@ -13,7 +13,7 @@ libm         = .false.
 
 &OUTPUT
 lfielddump   = .false.
-tfielddump   = 60.
+tinstantdump = 60.
 fieldvars    = 'u0,v0,w0,p0'
 lxytdump     = .false.
 tsample      = 1.

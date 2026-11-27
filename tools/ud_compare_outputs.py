@@ -46,10 +46,10 @@ class SimulationComparison:
         self.nc_files = {}
         for i, dir_path in enumerate(output_dirs):
             self.nc_files[i] = {
-                'xytdump': os.path.join(dir_path, f'xytdump.{self.exp_str}.nc'),
-                'tdump': os.path.join(dir_path, f'tdump.{self.exp_str}.nc'),
-                'fielddump': os.path.join(dir_path, f'fielddump.{self.exp_str}.nc'),
-                'treedump': os.path.join(dir_path, f'treedump.{self.exp_str}.nc'),
+                'stats_xyt': os.path.join(dir_path, f'stats_xyt.{self.exp_str}.nc'),
+                'stats_t': os.path.join(dir_path, f'stats_t.{self.exp_str}.nc'),
+                'ins_field': os.path.join(dir_path, f'ins_field.{self.exp_str}.nc'),
+                'stats_tree': os.path.join(dir_path, f'stats_tree.{self.exp_str}.nc'),
             }
     
     def ncread(self, file_path: str, var_name: str):
@@ -149,124 +149,144 @@ class SimulationComparison:
             return False
     
     def compare_xyt_variables(self) -> None:
-        """Compare variables from xytdump files"""
-        print("\n=== Comparing XYT dump variables ===")
+        """Compare variables from stats_xyt files"""
+        print("\n=== Comparing stats_xyt variables ===")
 
-        status = self._check_file_pair('xytdump')
+        status = self._check_file_pair('stats_xyt')
         if status == 'skip':
-            print("[SKIP] xytdump files not present in either directory - skipping")
+            print("[SKIP] stats_xyt files not present in either directory - skipping")
             return
         if status == 'fail':
             return
         
         xyt_variables = [
-            # Basic velocity components
-            ('uxyt', 'Streamwise velocity'),
-            ('vxyt', 'Spanwise velocity'), 
-            ('wxyt', 'Vertical velocity'),
-            
-            # Velocity variances
-            ('upuptxyc', 'Variance of streamwise velocity'),
-            ('vpvptxyc', 'Variance of spanwise velocity'),
-            ('wpwptxyc', 'Variance of vertical velocity'),
-            ('wwxyt', 'Kinematic mom. flux ww'),
-            
-            # TKE
-            ('tketxyc', 'TKE'),
-            
-            # Reynolds stresses and momentum fluxes
-            ('upwpxyt', 'Reynolds stress u\'w\''),
-            ('uwxyt', 'Kinematic mom. flux uw'),
-            ('vpwpxyt', 'Reynolds stress v\'w\''),
-            ('vwxyt', 'Kinematic mom. flux vw'),
-            ('upvpxyt', 'Reynolds stress u\'v\''),
-            ('uvxyt', 'Kinematic mom. flux uv'),
-            
+            # Mean velocity and pressure
+            ('u', 'Streamwise velocity'),
+            ('v', 'Spanwise velocity'),
+            ('w', 'Vertical velocity'),
+            ('p', 'Modified pressure'),
+            ('pabs', 'Absolute pressure'),
+
+            # Velocity variances and TKE
+            ('upup', 'Variance of streamwise velocity'),
+            ('vpvp', 'Variance of spanwise velocity'),
+            ('wpwp', 'Variance of vertical velocity'),
+            ('tke', 'TKE'),
+
+            # Turbulent and dispersive momentum fluxes
+            ('upwp', 'Reynolds stress u\'w\''),
+            ('vpwp', 'Reynolds stress v\'w\''),
+            ('upvp', 'Reynolds stress u\'v\''),
+            ('uw', 'Kinematic mom. flux uw'),
+            ('vw', 'Kinematic mom. flux vw'),
+            ('uv', 'Kinematic mom. flux uv'),
+            ('uu', 'Kinematic mom. flux uu'),
+            ('vv', 'Kinematic mom. flux vv'),
+            ('ww', 'Kinematic mom. flux ww'),
+
             # Temperature related
-            ('thlxyt', 'Liquid potential temperature'),
-            ('wthlxyt', 'Kinematic heat flux'),
-            ('wpthlpxyt', 'Turbulent heat flux'),
-            ('thlpthlptxy', 'Variance of liquid potential temperature'),
-            
+            ('thl', 'Liquid potential temperature'),
+            ('tha', 'Absolute temperature'),
+            ('wpthlp', 'Turbulent heat flux'),
+            ('wthl', 'Kinematic heat flux'),
+            ('thlpthlp', 'Variance of liquid potential temperature'),
+
             # Moisture
-            ('qtxyt', 'Moisture'),
-            
-            # Pressure
-            ('pxyt', 'Pressure'),
-            
+            ('qt', 'Moisture'),
+            ('ql', 'Liquid water'),
+            ('wpqtp', 'Turbulent moisture flux'),
+            ('wqt', 'Kinematic moisture flux'),
+            ('qtpqtp', 'Variance of moisture'),
+            ('rh', 'Relative humidity'),
+
             # SGS fluxes
-            ('usgsxyt', 'SGS momentum flux u'),
-            ('vsgsxyt', 'SGS momentum flux v'),
-            ('thlsgsxyt', 'SGS temperature flux'),
+            ('usgs', 'SGS momentum flux u'),
+            ('vsgs', 'SGS momentum flux v'),
+            ('wsgs', 'SGS normal stress'),
+            ('thlsgs', 'SGS temperature flux'),
+            ('qtsgs', 'SGS moisture flux'),
         ]
-        
+
         for var_name, description in xyt_variables:
             tol = self.tol_thl if 'thl' in var_name.lower() else self.tolerance
-            self._compare_variable('xytdump', var_name, description, tol)
+            self._compare_variable('stats_xyt', var_name, description, tol)
 
     def compare_t_variables(self) -> None:
-        """Compare variables from tdump files"""
-        print("\n=== Comparing T dump variables ===")
+        """Compare variables from stats_t files"""
+        print("\n=== Comparing stats_t variables ===")
 
-        status = self._check_file_pair('tdump')
+        status = self._check_file_pair('stats_t')
         if status == 'skip':
-            print("[SKIP] tdump files not present in either directory - skipping")
+            print("[SKIP] stats_t files not present in either directory - skipping")
             return
         if status == 'fail':
             return
         
         t_variables = [
-            # Basic velocity components
-            ('ut', 'Streamwise velocity'),
-            ('vt', 'Spanwise velocity'),
-            ('wt', 'Vertical velocity'),
-            
-            # Velocity variances
-            ('upuptc', 'Variance of streamwise velocity'),
-            ('vpvptc', 'Variance of spanwise velocity'),
-            ('wpwptc', 'Variance of vertical velocity'),
-            
-            # TKE
-            ('tketc', 'TKE'),
-            
+            # Mean velocity and pressure
+            ('u', 'Streamwise velocity'),
+            ('v', 'Spanwise velocity'),
+            ('w', 'Vertical velocity'),
+            ('p', 'Modified pressure'),
+            ('pabs', 'Absolute pressure'),
+
+            # Velocity variances and TKE
+            ('upup', 'Variance of streamwise velocity'),
+            ('vpvp', 'Variance of spanwise velocity'),
+            ('wpwp', 'Variance of vertical velocity'),
+            ('tke', 'TKE'),
+
             # Reynolds stresses
-            ('upwpt', 'Reynolds stress u\'w\''),
-            
+            ('upwp', 'Reynolds stress u\'w\''),
+            ('vpwp', 'Reynolds stress v\'w\''),
+            ('upvp', 'Reynolds stress u\'v\''),
+
+            # SGS momentum
+            ('usgs', 'SGS momentum flux u'),
+            ('vsgs', 'SGS momentum flux v'),
+            ('wsgs', 'SGS normal stress'),
+
             # Temperature related
-            ('thlt', 'Liquid potential temperature'),
-            ('wpthlpt', 'Turbulent heat flux w\'thl\''),
-            ('thlpthlpt', 'Variance of liquid potential temperature'),
-            
+            ('thl', 'Liquid potential temperature'),
+            ('tha', 'Absolute temperature'),
+            ('wpthlp', 'Turbulent heat flux w\'thl\''),
+            ('thlpthlp', 'Variance of liquid potential temperature'),
+            ('thlsgs', 'SGS temperature flux'),
+
             # Moisture
-            ('qtt', 'Moisture'),
-            
-            # Pressure
-            ('pt', 'Pressure'),
-            
+            ('qt', 'Moisture'),
+            ('ql', 'Liquid water'),
+            ('wpqtp', 'Turbulent moisture flux'),
+            ('qtpqtp', 'Variance of moisture'),
+            ('qtsgs', 'SGS moisture flux'),
+            ('rh', 'Relative humidity'),
+
             # Scalar concentrations
-            ('sca1t', 'Scalar concentration 1'),
-            ('sca2t', 'Scalar concentration 2'),
-            ('wpsca1pt', 'Turbulent scalar flux 1'),
-            ('wpsca2pt', 'Turbulent scalar flux 2'),
-            ('sca1psca1pt', 'Variance of scalar concentration 1'),
-            ('sca2psca2pt', 'Variance of scalar concentration 2'),
-            
-            # SGS variables
-            ('sv1sgs', 'sv1sgs'),
-            ('sv2sgs', 'sv2sgs'),
+            ('s1', 'Scalar concentration 1'),
+            ('s2', 'Scalar concentration 2'),
+            ('wps1p', 'Turbulent scalar flux 1'),
+            ('wps2p', 'Turbulent scalar flux 2'),
+            ('s1ps1p', 'Variance of scalar concentration 1'),
+            ('s2ps2p', 'Variance of scalar concentration 2'),
+            ('s1sgs', 'SGS scalar flux 1'),
+            ('s2sgs', 'SGS scalar flux 2'),
+
+            # Pedestrian wind
+            ('ws_local', 'Wind speed at receptor height'),
+            ('ws_10', 'Wind speed at 10 m'),
         ]
-        
+
         for var_name, description in t_variables:
             tol = self.tol_thl if 'thl' in var_name.lower() else self.tolerance
-            self._compare_variable('tdump', var_name, description, tol)
+            self._compare_variable('stats_t', var_name, description, tol)
 
     def compare_field_variables(self) -> None:
-        """Compare variables from fielddump files"""
-        print("\n=== Comparing Field dump variables ===")
+        """Compare variables from ins_field files"""
+        print("\n=== Comparing ins_field variables ===")
 
-        status = self._check_file_pair('fielddump')
+        status = self._check_file_pair('ins_field')
         if status == 'skip':
-            print("[SKIP] fielddump files not present in either directory - skipping")
+            print("[SKIP] ins_field files not present in either directory - skipping")
             return
         if status == 'fail':
             return
@@ -277,20 +297,20 @@ class SimulationComparison:
             ('w',    'Vertical velocity'),
             ('thl',  'Liquid potential temperature'),
             ('qt',   'Moisture'),
-            ('sca1', 'Scalar concentration 1'),
+            ('s1',   'Scalar concentration 1'),
         ]
         
         for var_name, description in field_variables:
             tol = self.tol_thl if 'thl' in var_name.lower() else self.tolerance
-            self._compare_variable('fielddump', var_name, description, tol)
+            self._compare_variable('ins_field', var_name, description, tol)
 
     def compare_tree_variables(self) -> None:
-        """Compare variables from treedump files"""
-        print("\n=== Comparing Tree dump variables ===")
+        """Compare variables from stats_tree files"""
+        print("\n=== Comparing stats_tree variables ===")
 
-        status = self._check_file_pair('treedump')
+        status = self._check_file_pair('stats_tree')
         if status == 'skip':
-            print("[SKIP] treedump files not present in either directory - skipping")
+            print("[SKIP] stats_tree files not present in either directory - skipping")
             return
         if status == 'fail':
             return
@@ -310,7 +330,7 @@ class SimulationComparison:
 
         for var_name, description in tree_variables:
             tol = self.tol_thl if 'thl' in var_name.lower() else self.tolerance
-            self._compare_variable('treedump', var_name, description, tol)
+            self._compare_variable('stats_tree', var_name, description, tol)
 
     def run_comparison(self) -> bool:
         """Run the complete numerical comparison"""
@@ -360,7 +380,7 @@ def run_comparison(dir1, exp_str1, dir2, exp_str2, tolerance=DEFAULT_TOLERANCE, 
     comparison = SimulationComparison([dir1, dir2], exp_num, tolerance, tol_thl)
     # If the two cases carry different exp_strs, fix the file paths for dir2
     if exp_str1 != exp_str2:
-        for ftype in ('xytdump', 'tdump', 'fielddump', 'treedump'):
+        for ftype in ('stats_xyt', 'stats_t', 'ins_field', 'stats_tree'):
             comparison.nc_files[1][ftype] = os.path.join(dir2, f'{ftype}.{exp_str2}.nc')
     comparison.run_comparison()
     return {

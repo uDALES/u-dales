@@ -7,67 +7,68 @@ This page collects practical recipes for common developer tasks: adding a nameli
 Template: the `lydump` switch (`&OUTPUT`, y-averaged statistics output) is a simple, working logical option you can copy directly.
 
 1. **Declare the variable and its default** in `src/modglobal.f90`, e.g. `logical :: lydump = .false.` (declared alongside the other output switches around line 200). Pick a sensible default that preserves current behaviour when the option is absent from `namoptions`.
-2. **Add it to the relevant namelist group** in `src/modstartup.f90`, subroutine `readnamelists`. There are two places to touch:
-   - the `use modglobal, only : ...` import list at the top of `readnamelists` (`lydump` is imported there alongside the other `OUTPUT`-group switches)
+2. **Add it to the relevant namelist group** in `src/in_readnamelists.f90`, subroutine `read_namelist_inputs`. There are two places to touch:
+   - the `use modglobal, only : ...` import list in module `readnamelists` (`lydump` is imported there alongside the other `OUTPUT`-group switches)
    - the `namelist/OUTPUT/ &` declaration itself (`lydump` is listed there together with `ltdump, lytdump, lxydump, lxytdump, lmintdump, ...`)
    If you are adding a wholly new namelist group instead of extending an existing one, also add a `read (ifnamopt, YOURGROUP, iostat=ierr)` block (with the same `iostat` error-handling pattern used for `OUTPUT`, `BC`, etc.) and a `rewind (ifnamopt)` after it.
-3. **Broadcast it from rank 0 to all MPI ranks**, still in `readnamelists`: `call MPI_BCAST(lydump, 1, MPI_LOGICAL, 0, comm3d, mpierr)`. Match the MPI type to the Fortran type (`MPI_LOGICAL`, `MPI_INTEGER`, `MY_REAL`, or `MPI_CHARACTER` with `len(...)` for strings).
+3. **Broadcast it from rank 0 to all MPI ranks** in `broadcast_config_parameters`, also in `src/in_readnamelists.f90`: `call MPI_BCAST(lydump, 1, MPI_LOGICAL, 0, comm3d, mpierr)`. Match the MPI type to the Fortran type (`MPI_LOGICAL`, `MPI_INTEGER`, `MY_REAL`, or `MPI_CHARACTER` with `len(...)` for strings).
 4. **Use the value** wherever it is needed. `lydump` is consumed in two ways that are both worth knowing about as patterns:
-   - a sanity check in `checknamelistvalues` (also in `modstartup.f90`): the value is pulled in via `use modglobal, only : ..., lydump, lytdump, ...` and checked, e.g. `if ((lydump .or. lytdump) .and. (nprocx > 1)) then ... stop 1`.
-   - the actual behaviour, in `src/modstatsdump.f90`, which imports it with `use modglobal, only : dt, lydump, lytdump, ...` at module scope and gates both the NetCDF setup in `initstatsdump` and the sampling/writing in `statsdump` behind `if (lydump) then ... end if`.
-5. **Document the new option** in `docs/udales-namoptions-overview.md`, adding a row to the table for the namelist group it belongs to (name, default, possible values, description, unit).
+   - a sanity check right after the `read (ifnamopt, OUTPUT, iostat=ierr)` in `read_namelist_inputs` (see the `receptor_height` checks there) or in `checkinitvalues` (`src/modstartup.f90`) for checks that need other groups, each ending in `stop 1` with an explicit message.
+   - the actual behaviour, in `src/out_stats.f90`, which imports it with `use modglobal, only : ..., lydump, lytdump, ...` at module scope and gates the allocation in `stats_prepare`, the NetCDF setup (`stats_createnc_yavg`) and the sampling/writing in `stats_main` behind `if (lydump) then ... end if`.
+5. **Document the new option** in `docs/udales-namoptions-overview.md`, adding a row to the table for the namelist group it belongs to (name, default, possible values, description, unit), and in `docs/schemas/udales_input_schema.json` (type, default, description). `tests/integration/input/udales_variable_indexer.py` indexes namelist, broadcast and schema entries so that the three can be compared.
 
 Checklist:
 
 - [ ] Declare in `src/modglobal.f90` with a safe default
-- [ ] Add to the `use modglobal, only : ...` list and the `namelist/GROUP/` statement in `readnamelists` (`src/modstartup.f90`)
-- [ ] Broadcast with `MPI_BCAST` in the same subroutine
+- [ ] Add to the `use modglobal, only : ...` list and the `namelist/GROUP/` statement in `read_namelist_inputs` (`src/in_readnamelists.f90`)
+- [ ] Broadcast with `MPI_BCAST` in `broadcast_config_parameters`
 - [ ] Consume the value at its point of use, importing it with `use modglobal, only : ...` in that module
-- [ ] Add a row to `docs/udales-namoptions-overview.md`
+- [ ] Add a row to `docs/udales-namoptions-overview.md` and an entry to `docs/schemas/udales_input_schema.json`
 
 **Do not rename existing namelist keys or groups.** Live, user-facing namelist names (e.g. `idriver`, `&DRIVER`) must stay stable across releases — case files in the wild reference them by name. Renaming an existing option is a separate, explicitly-approved task, not something to bundle into feature work.
 
-## Adding a variable to fielddump
+## Adding a variable to the instantaneous output
 
-Template: `src/modfielddump.f90` already handles this generically — adding a new instantaneous 3D output field only means adding one `case` branch, using an existing one (e.g. `case('mc')` for the IBM cell mask, or `case('di')` for divergence, which is computed in-place) as a model.
+Template: `src/out_instants.f90` (module `instant`) handles the 3-D fields generically — adding a new instantaneous 3-D output field only means adding one `case` branch in `instant_field_init`, using an existing one (e.g. `case('mc')` for the IBM cell mask, or `case('di')` for the divergence, which is computed at output time) as a model.
 
-How it works: the namelist option `fieldvars` (declared in `src/modglobal.f90`, read in the `&OUTPUT` group in `modstartup.f90`) is a comma-separated string of two-character field codes, e.g. `'u0,v0,w0,th,s1'`. In `initfielddump`, `nvar = (LEN(trim(fieldvars))+1)/3` counts the fields (each code plus its separator is 3 characters), then a loop over `n=1,nvar` does `select case(fieldvars(3*n-2:3*n-1))` to pick out each two-character code in turn. Each `case` branch does two things: calls `ncinfo(ncname(n,:), 'ncvarname', 'long description', 'units', 'gridtag')` to describe the NetCDF variable, and points a module-level pointer at the data with `pfields(n)%point => somefield(ib:ie,jb:je,kb:ke)`. The generic `fielddump` subroutine later copies every `pfields(n)%point` into the output buffer and writes it via `writestat_nc` — it has no per-variable logic, so you never need to touch it.
+How it works: the namelist option `fieldvars` (declared in `src/modglobal.f90`, read in the `&OUTPUT` group in `src/in_readnamelists.f90`) is a comma-separated string of two-character labels, e.g. `'u0,v0,w0,th,s1'`. In `instant_field_init`, `nfieldvars` counts the labels (each label plus its separator is 3 characters), then a loop over `n = 1, nfieldvars` does `select case(fieldvars(3*n-2:3*n-1))` to pick out each label in turn. A `case` branch does two things: it calls `ncinfo(fldVars(n,:), 'ncvarname', 'long description', 'units', 'gridtag')` to describe the NetCDF variable, and it points a module-level pointer at the data with `pfields(n)%point => somefield(ib:ie,jb:je,kb:ke)`. For a quantity that has to be computed at output time instead of read from an existing array, the branch calls `register_derived(n, DERIV_XXX)` and `compute_derived` fills a buffer for that `DERIV_XXX` code (add a code and a `case` there). The generic `instant_field_main` then writes every variable with `writeoffset` — it has no per-variable logic beyond the derived fields `tha`, `rh` and `pabs`, so you normally never need to touch it. `instant_main` runs the field, slice and probe writers at the same instants, `tinstantstart + n*tinstantdump`, on substep 3 of the Runge–Kutta step.
 
-There are two nearly-identical `select case` blocks in `initfielddump`: one for `lhalos` (ghost cells included) and one for the normal case. `lhalos` is hard-coded `.false.` (see the assignment right above the `MPI_BCAST` calls), so in practice only the non-halo branch (starting `else` around the `do n=1,nvar` loop that includes `case('u0')`, ..., `case('mc')`, `case('di')`) is exercised — new fields normally only need adding there, and to the `lhalos` branch too if you want the option kept consistent (some existing fields, like `tx`/`ty`/`tz`/`hf`/`mu`/`mv`/`mw`/`mc`/`di`, are only implemented in the non-halo branch).
+There are two nearly identical `select case` blocks in `instant_field_init`: one for `lhalos_out` (ghost cells included) and one for the normal case. `lhalos_out` is hard-coded `.false.`, so in practice only the second block (the one that also knows `tx`, `ty`, `tz`, `hf`, `mu`, `mv`, `mw`, `mc`, `pd`–`pw`, `rs`–`dw`, `di`–`wz`) is exercised; new fields only need adding there. Update the error message of its `case default` as well, since it lists the accepted labels.
 
-The grid stagger tag (last `ncinfo` argument, e.g. `'tttt'`, `'mttt'`, `'ttmt'`) records which grid (cell-centre `t` vs. staggered `m`) each of the x, y, z, time dimensions uses — copy the tag from a field with the same staggering as yours (a cell-centred scalar like pressure uses `'tttt'`; a u-velocity-staggered flux like `tau_x` uses `'mttt'`).
+The grid stagger tag (last `ncinfo` argument, e.g. `'tttt'`, `'mttt'`, `'ttmt'`) records which grid (cell centre `t` or staggered `m`) each of the x, y, z, time dimensions uses — copy the tag from a field with the same staggering as yours (a cell-centred scalar like pressure uses `'tttt'`; a u-staggered quantity like `tau_x` uses `'mttt'`).
+
+Slices (`slicevars`) and probes (`probevars`) have their own, shorter label lists: `instant_ncdescription_islice`/`_jslice`/`_kslice` for the slices and `instant_gather_probe_var` plus `instant_add_var_atts` for the probes. A new label must be added to each of those if it should be available there too.
 
 Checklist:
 
-- [ ] Confirm the field you want to output already exists as a module-level array (e.g. in `modfields.f90` or wherever it's computed) and is reachable via a `use` statement in `modfielddump.f90`
-- [ ] Add a `use modsomething, only : yourfield` import in `initfielddump` if it isn't already imported
-- [ ] Add a `case('xx')` branch (pick an unused two-character code) in the non-halo `select case(fieldvars(3*n-2:3*n-1))` block, with `ncinfo(...)` and `pfields(n)%point => yourfield(ib:ie,jb:je,kb:ke)`
-- [ ] Mirror the branch in the `lhalos` block only if halo output for this field is wanted
-- [ ] Add the new code to the `fieldvars` row's list of labels in `docs/udales-namoptions-overview.md`
-- [ ] No changes needed in `fielddump` or `exitfielddump` — they iterate over `pfields` generically
+- [ ] Confirm the field you want to output already exists as a module-level array (e.g. in `modfields.f90` or wherever it is computed) and is reachable via a `use` statement in `out_instants.f90`; otherwise add a `DERIV_*` code and compute it in `compute_derived`
+- [ ] Add a `case('xx')` branch (pick an unused two-character label) in the non-halo `select case(fieldvars(3*n-2:3*n-1))` block of `instant_field_init`, with `ncinfo(...)` and `pfields(n)%point => yourfield(ib:ie,jb:je,kb:ke)` (or `register_derived`)
+- [ ] Extend the label list in the `case default` error message
+- [ ] Add the label to the `fieldvars` row in `docs/udales-namoptions-overview.md` and to the `fieldvars` description in `docs/schemas/udales_input_schema.json`, and the variable to the `ins_field` row of `docs/udales-output-files.md`
+- [ ] Add it to the slice and probe label lists only if it is wanted there
 
-## Adding a statistic to xytdump
+## Adding a statistic to stats_xyt
 
-Template: `pxyt` (domain-mean pressure) in `src/modstatsdump.f90`. It is the simplest xy/time-averaged statistic because it is a plain spatial-then-time average with no correlation/variance term to subtract — a good starting point before tackling flux or variance statistics.
+Template: the air temperature `tha` in `src/out_stats.f90` (module `stats`). It is the simplest time-averaged statistic because it is a plain time average of a 3-D field followed by a spatial average, with no correlation or variance term to subtract — a good starting point before tackling flux or variance statistics.
 
-`xytdump.xxx.nc` holds statistics that are averaged over x, y, *and* time (as opposed to `xydump`, which is only x/y-averaged, or `tdump`, which is only time-averaged). The pipeline for `pxyt` runs through three stages in `statsdump`:
+`stats_xyt.<expnr>.nc` holds statistics averaged over x, y *and* time (as opposed to `stats_xy`, which is only x/y-averaged, or `stats_t`, which is only time-averaged). All time-averaged files share the same 3-D accumulators; the module is organised by physical group (`vel`, `temp`, `moist`, `relative_humidity`, `scalar`, `tree`) and by stage (`allocate`, `ncdescription`/`init`, `reset`, `compute`, `write`), and `stats_main` calls the stages in order every `tsample` and at the end of every `tstatsdump` window. For `tha` the pipeline is:
 
-1. **Instantaneous xy-average** (`if (lxydump .or. lxytdump) then` block, module-level variable `pxy`, declared `real, dimension(kb:ke+kh) :: pxy` inside `modstatsdump.f90`): `call avexy_ibm(pxy(kb:ke+kh), pres0(ib:ie,jb:je,kb:ke+kh), ib,ie,jb,je,kb,ke,kh, IIc(...), IIcs(kb:ke+kh), .false.)` averages the instantaneous `pres0` field over x and y at each sample.
-2. **Running time-average** (`if (lxytdump) then` block further down): `pxyt(kb:ke+kh) = (pxyt(kb:ke+kh)*(tstatsdumpp-tsamplep) + pxy(kb:ke+kh)*tsamplep)*tstatsdumppi` accumulates `pxy` into the persistent, module-level array `pxyt`. `pxyt` is declared in `src/modfields.f90` (`real, allocatable :: pxyt(:)`) and allocated/zeroed alongside the other `xyt` accumulators (`allocate(pxyt(kb:ke+kh))`, `pxyt=0.`) in the same allocation block as `uxyt`, `vxyt`, etc.
-3. **NetCDF definition and write**, both in `initstatsdump`/`statsdump`:
-   - in `initstatsdump`, inside `if (lxytdump) then`, `call ncinfo(ncstatxyt(6,:), 'pxyt', 'Pressure', 'm^2/s^2', 'tt')` registers the variable at index 6 of the `nstatxyt`-sized `ncstatxyt` array (`ncstatxyt` is declared in `modfields.f90` and allocated `allocate(ncstatxyt(nstatxyt,4))` in `initstatsdump`);
-   - in `statsdump`, inside the final `if (lxytdump) then ... if (myid == 0) then` block, `varsxyt(:,6) = pxyt(kb:ke)` copies it into the write buffer, which is then written in one call: `call writestat_1D_nc(ncidxyt, nstatxyt, ncstatxyt, varsxyt, nrecxyt, khigh-klow+1)`.
+1. **3-D accumulator.** `stats_allocate_tavg_temp` allocates and zeroes `tempt(ib:ie,jb:je,kb:ke+kh)`; `stats_reset_tavg_temp` zeroes it again at the start of every averaging window. (The accumulators are allocated in `stats_prepare`, at the first sample, not at startup.)
+2. **Time average.** `stats_compute_tavg_temp` calls `stats_compute_tavg(tempt, tempnow)` every `tsample`, the running mean `(old*(tstatsdumpp-tsamplep) + new*tsamplep)*tstatsdumppi` that every accumulator uses. `tempnow` is the instantaneous field, computed in `stats_calculate_air_temperature` just before.
+3. **Output in `stats_t`.** `stats_ncdescription_tavg_temp` registers the variable with `ncinfo(tVars(ctrt+7,:), 'tha', 'Air temperature', 'K', 'tttt')` and bumps the counter `ctrt`; `stats_tavg_field` maps the name back to the accumulator (`case ('tha'); fld = tempt(:,:,kb:ke)`), and `stats_write_tavg` loops over all registered names, so no per-variable write code is needed. The same table serves the plane files `stats_tislice`, `stats_tjslice` and `stats_tkslice`.
+4. **Output in `stats_xyt`.** `stats_init_xytavg_temp` allocates the profile `tempxyt(kb:ke+kh)` and registers `ncinfo(xytVars(ctrxyt+6,:), 'tha', 'Air temperature', 'K', 'tt')`; `stats_compute_xytavg_temp` reduces the 3-D accumulator with `spatial_avg(tempxyt, tempt(...), kb, ke, IIc(...), IIcs(...), .false.)` (use `IIw`/`IIws` and `.true.` for w-staggered quantities so that masked levels become `-999.`); `stats_write_xytavg_temp` writes it with `writestat_nc(ncidxyt, 'tha', tempxyt(kb:ke), nrecxyt, zdim)`.
 
-Note the index (`6`) must be consistent between the `ncinfo` call and the `varsxyt(:,6) = ...` assignment, and `nstatxyt` (currently `23`, set in the module header alongside `nstaty`, `nstatt`, etc.) must be bumped if you add a new slot rather than reusing one.
+The index in the `ncinfo` call (`ctrxyt+6`) only has to be unique within the group and the group counter must be bumped by the number of variables the group registers; the `writestat_nc` call looks the variable up by name.
 
-Checklist (for `xytdump`; the same pattern applies to `tdump`/`ncstatt`/`varst`, `xydump`/`ncstatxy`/`varsxy`, etc., with `t`/`xy` suffixes swapped accordingly):
+Checklist (for `stats_xyt`; `stats_xy`, `stats_yt` and `stats_y` follow the same pattern with `xy`, `yt`, `y` in the subroutine names):
 
-- [ ] If accumulating in time, add a persistent array (e.g. `real, allocatable :: myvarxyt(:)`) in `src/modfields.f90`, and allocate + zero it in the same block as `uxyt`, `vxyt`, ...
-- [ ] Compute the instantaneous spatial average with `avexy_ibm(...)` (or reuse an existing `xy` intermediate) inside the `if (lxydump .or. lxytdump)` block in `statsdump`
-- [ ] Accumulate it into the time-average with the same `(old*(tstatsdumpp-tsamplep) + new*tsamplep)*tstatsdumppi` running-mean pattern, inside `if (lxytdump)`
-- [ ] Bump `nstatxyt` in the module header and `call ncinfo(ncstatxyt(N,:), 'name', 'description', 'units', 'gridtag')` in `initstatsdump`
-- [ ] Add `varsxyt(:,N) = myvarxyt(kb:ke)` next to the write call in `statsdump`
-- [ ] Document the new output variable in `docs/udales-output-files.md` if that page enumerates `xytdump` fields
+- [ ] If the quantity is a time average, add an accumulator in the matching `stats_allocate_tavg_<group>`, zero it in `stats_reset_tavg_<group>`, and accumulate it in `stats_compute_tavg_<group>` with `stats_compute_tavg`
+- [ ] Register it for `stats_t` in `stats_ncdescription_tavg_<group>` (bump the counter) and add its `case` to `stats_tavg_field`
+- [ ] Allocate the profile and register the variable in `stats_init_xytavg_<group>` (bump `ctrxyt`), reduce it in `stats_compute_xytavg_<group>` with `spatial_avg`, and write it in `stats_write_xytavg_<group>`
+- [ ] Guard a new physical group behind its switch (`ltempeq`, `lmoist`, `nsv > 0`, ...) in `stats_prepare` and `stats_main`, as the existing groups are
+- [ ] Use the same variable name in every file; the file name carries the averaging
+- [ ] If `gather_outputs.sh` must concatenate the variable along x (u-staggered) or y (v-staggered), add it to the `proposed_xmparam`/`proposed_ymparam` lists there
+- [ ] Document the variable in the relevant rows of `docs/udales-output-files.md`
 
 ## Adding an example case
 

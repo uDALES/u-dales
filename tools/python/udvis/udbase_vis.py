@@ -13,6 +13,7 @@ import warnings
 from typing import Any, Dict, List, Optional, Union
 
 import matplotlib.pyplot as plt
+import matplotlib.colors as mcolors
 from matplotlib.collections import PatchCollection
 from matplotlib.colors import to_rgb
 from matplotlib.patches import Polygon as mplPolygon
@@ -935,8 +936,9 @@ class UDVis:
         legend = []
         for idx, type_id in enumerate(unique_ids):
             type_mask = facids == type_id
-            hex_color = default_colors[idx % len(default_colors)].lstrip("#")
-            rgb = tuple(int(hex_color[i:i + 2], 16) for i in (0, 2, 4))
+            # prop_cycle colours are hex strings or RGB tuples depending on the
+            # matplotlib version; to_rgb accepts both.
+            rgb = tuple(int(round(255 * c)) for c in mcolors.to_rgb(default_colors[idx % len(default_colors)]))
             face_colors[type_mask, :3] = rgb
             face_colors[type_mask, 3] = 230
             name_idx = np.where(typeids == type_id)[0]

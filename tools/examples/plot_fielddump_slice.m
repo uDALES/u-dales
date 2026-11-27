@@ -17,12 +17,12 @@
 
 function plot_fielddump_slice(expnr, field_var, slice_var, slice_id, time_id)
 
-% Plots a slice of fielddump in 2D and 3D.
+% Plots a slice of the instantaneous 3-D field (ins_field) in 2D and 3D.
 %% Usage: matlab -nosplash -nodesktop -r "cd('tools/examples'); plot_fielddump_slice('$expnr','$field_var','$slice_var',$slice_id,$time_id); quit"
 
 this_dir = pwd;
 exp_dir = [this_dir, '/../../outputs/', expnr];
-filepath = [exp_dir, '/fielddump.', expnr, '.nc'];
+filepath = [exp_dir, '/ins_field.', expnr, '.nc'];
 field = ncread(filepath, field_var);
 zt = ncread(filepath, 'zt');
 xt = ncread(filepath, 'xt');

@@ -88,7 +88,7 @@ nfaclyrs     = 5
 
 &OUTPUT
 lfielddump   = .true.
-tfielddump   = 10.
+tinstantdump = 10.
 fieldvars    = 'u0,v0,w0,th,qt'
 ltdump       = .true.
 lxytdump     = .true.

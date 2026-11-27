@@ -10,7 +10,7 @@ nprocy       = 2
 
 &OUTPUT
 lfielddump   = .true.
-tfielddump   = 5.
+tinstantdump = 5.
 fieldvars    = 'u0,v0,w0'
 ltdump       = .true.
 lxytdump     = .true.

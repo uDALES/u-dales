@@ -529,6 +529,7 @@ for case_num in "${TEST_CASES[@]}"; do
         ! -name "namoptions.*"       \
         ! -name "timedepnudge.inp.*" \
         ! -name "timedeplw.inp.*"    \
+        ! -name "probe.inp.*"        \
         -delete
     echo ""
 

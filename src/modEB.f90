@@ -378,7 +378,7 @@ contains
     ! E = max(0,(1-vegetation%) * rhoa * (qa-qsat(TGR)*hu) * (1/(rs+ra))
 
     use modglobal, only:nfcts, rlv, rlvi, rhoa, wfc, wwilt, rsmin, GRLAI, tEB, rsmax, lconstW
-    use initfac, only:netSW, fachurel, faclGR, facwsoil, facf, facT, facefi, facqsat, facd, faca, qsat
+    use initfac, only:netSW, fachurel, faclGR, facwater, facwsoil, facf, facT, facefi, facqsat, facd, faca, qsat
 
     integer :: n
     real :: dum
@@ -405,6 +405,14 @@ contains
         facf(n, 4) = min(rsmin/GRLAI*facf(n, 1)*facf(n, 2)*facf(n, 3), rsmax)
         !store resistance for soil
         facf(n, 5) = min(rsmin*facf(n, 2), rsmax)
+        dum = facT(n, 1)
+        facqsat(n) = qsat(dum)
+
+      else if (facwater(n)) then
+        !water body: same conversion of the accumulated moisture flux to a mean
+        !energy flux; the surface stays saturated at the current skin
+        !temperature and needs no resistance or soil-moisture bookkeeping
+        facefi(n) = facefi(n)/tEB/faca(n)*rhoa*rlv
         dum = facT(n, 1)
         facqsat(n) = qsat(dum)
       end if

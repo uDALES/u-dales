@@ -7,6 +7,8 @@ present behaviour (a regression net), not on what the API "ought" to do.
 
 Covered methods:
   load_field, load_stat_xyt, load_stat_t, load_stat_tree, load_slice,
+  load_stat_y, load_stat_xy, load_stat_yt, load_stat_tslice, load_stat_tkslice,
+  load_probe,
   load_fac_momentum, load_fac_eb, load_fac_temperature, load_seb,
   area_average_fac, area_average_seb, convert_facvar_to_field,
   convert_facflx_to_field, calculate_frontal_properties.
@@ -96,7 +98,7 @@ class TestNetCDFLoaders(_CaseBase):
         # NetCDF (time, zt, yt, xm) = (2, 2, 3, 4) -> reversed (xm, yt, zt, time).
         data = np.arange(2 * 2 * 3 * 4, dtype=float).reshape(2, 2, 3, 4)
         _write_nc(
-            self.workdir / "fielddump.001.nc",
+            self.workdir / "ins_field.001.nc",
             {"u": (("time", "zt", "yt", "xm"), data)},
             {"time": [0, 1], "zt": [0, 1], "yt": [0, 1, 2], "xm": [0, 1, 2, 3]},
         )
@@ -109,7 +111,7 @@ class TestNetCDFLoaders(_CaseBase):
     def test_load_field_browse_returns_dataset(self):
         data = np.zeros((2, 2, 3, 4))
         _write_nc(
-            self.workdir / "fielddump.001.nc",
+            self.workdir / "ins_field.001.nc",
             {"u": (("time", "zt", "yt", "xm"), data)},
             {"time": [0, 1], "zt": [0, 1], "yt": [0, 1, 2], "xm": [0, 1, 2, 3]},
         )
@@ -127,18 +129,18 @@ class TestNetCDFLoaders(_CaseBase):
         # (time, zt) = (3, 2) -> (2, 3)
         data = np.arange(6.0).reshape(3, 2)
         _write_nc(
-            self.workdir / "xytdump.001.nc",
-            {"uxyt": (("time", "zt"), data)},
+            self.workdir / "stats_xyt.001.nc",
+            {"u": (("time", "zt"), data)},
             {"time": [0, 1, 2], "zt": [0, 1]},
         )
-        arr = self._sim().load_stat_xyt("uxyt")
+        arr = self._sim().load_stat_xyt("u")
         self.assertEqual(arr.shape, (2, 3))
         np.testing.assert_allclose(arr, data.T)
 
     def test_load_stat_t_returns_transposed_array(self):
         data = np.arange(2 * 2 * 3 * 4, dtype=float).reshape(2, 2, 3, 4)
         _write_nc(
-            self.workdir / "tdump.001.nc",
+            self.workdir / "stats_t.001.nc",
             {"u": (("time", "zt", "yt", "xt"), data)},
             {"time": [0, 1], "zt": [0, 1], "yt": [0, 1, 2], "xt": [0, 1, 2, 3]},
         )
@@ -148,23 +150,111 @@ class TestNetCDFLoaders(_CaseBase):
     def test_load_stat_tree_returns_transposed_array(self):
         data = np.arange(6.0).reshape(3, 2)
         _write_nc(
-            self.workdir / "treedump.001.nc",
-            {"tree_drag_u": (("time", "zt"), data)},
+            self.workdir / "stats_tree.001.nc",
+            {"tr_u": (("time", "zt"), data)},
             {"time": [0, 1, 2], "zt": [0, 1]},
         )
-        arr = self._sim().load_stat_tree("tree_drag_u")
+        arr = self._sim().load_stat_tree("tr_u")
         self.assertEqual(arr.shape, (2, 3))
 
     def test_load_slice_k_returns_transposed_array(self):
         # horizontal slice: (time, yt, xm) = (2, 3, 4) -> (4, 3, 2)
         data = np.arange(2 * 3 * 4, dtype=float).reshape(2, 3, 4)
         _write_nc(
-            self.workdir / "kslicedump.001.nc",
+            self.workdir / "ins_kslice.001.nc",
             {"u": (("time", "yt", "xm"), data)},
             {"time": [0, 1], "yt": [0, 1, 2], "xm": [0, 1, 2, 3]},
         )
         arr = self._sim().load_slice("k", "u")
         self.assertEqual(arr.shape, (4, 3, 2))
+
+    def test_load_stat_yt_returns_transposed_array(self):
+        # (time, zt, xt) = (2, 2, 4) -> (4, 2, 2)
+        data = np.arange(2 * 2 * 4, dtype=float).reshape(2, 2, 4)
+        _write_nc(
+            self.workdir / "stats_yt.001.nc",
+            {"u": (("time", "zt", "xt"), data)},
+            {"time": [0, 1], "zt": [0, 1], "xt": [0, 1, 2, 3]},
+        )
+        arr = self._sim().load_stat_yt("u")
+        self.assertEqual(arr.shape, (4, 2, 2))
+        self.assertEqual(arr[3, 1, 0], data[0, 1, 3])
+
+    def test_load_stat_y_returns_transposed_array(self):
+        data = np.arange(2 * 2 * 4, dtype=float).reshape(2, 2, 4)
+        _write_nc(
+            self.workdir / "stats_y.001.nc",
+            {"u": (("time", "zt", "xt"), data)},
+            {"time": [0, 1], "zt": [0, 1], "xt": [0, 1, 2, 3]},
+        )
+        arr = self._sim().load_stat_y("u")
+        self.assertEqual(arr.shape, (4, 2, 2))
+
+    def test_load_stat_xy_returns_transposed_array(self):
+        data = np.arange(6.0).reshape(3, 2)
+        _write_nc(
+            self.workdir / "stats_xy.001.nc",
+            {"u": (("time", "zt"), data)},
+            {"time": [0, 1, 2], "zt": [0, 1]},
+        )
+        arr = self._sim().load_stat_xy("u")
+        np.testing.assert_allclose(arr, data.T)
+
+    def _write_tslice(self, plane):
+        # i: (time, zt, yt, islice); j: (time, zt, jslice, xt); k: (time, kslice, yt, xt)
+        dims = {
+            "i": (("time", "zt", "yt", "islice"), {"time": [0, 1], "zt": [0, 1], "yt": [0, 1, 2], "islice": [0]}),
+            "j": (("time", "zt", "jslice", "xt"), {"time": [0, 1], "zt": [0, 1], "jslice": [0, 1, 2], "xt": [0, 1, 2, 3]}),
+            "k": (("time", "kslice", "yt", "xt"), {"time": [0, 1], "kslice": [0, 1], "yt": [0, 1, 2], "xt": [0, 1, 2, 3]}),
+        }[plane]
+        shape = tuple(len(dims[1][d]) for d in dims[0])
+        data = np.arange(np.prod(shape), dtype=float).reshape(shape)
+        _write_nc(self.workdir / f"stats_t{plane}slice.001.nc", {"u": (dims[0], data)}, dims[1])
+        return data
+
+    def test_load_stat_tslice_each_plane_returns_transposed_array(self):
+        for plane in "ijk":
+            data = self._write_tslice(plane)
+            arr = self._sim().load_stat_tslice(plane, "u")
+            self.assertEqual(arr.shape, data.shape[::-1], plane)
+
+    def test_load_stat_tslice_time_index_selects_record(self):
+        data = self._write_tslice("k")
+        arr = self._sim().load_stat_tslice("k", "u", time_index=1)
+        self.assertEqual(arr.shape, (4, 3, 2))
+        np.testing.assert_allclose(arr, data[1].T)
+
+    def test_load_stat_tslice_invalid_plane_raises(self):
+        with self.assertRaises(ValueError):
+            self._sim().load_stat_tslice("z", "u")
+
+    def test_load_stat_tkslice_is_alias_for_k_plane(self):
+        data = self._write_tslice("k")
+        arr = self._sim().load_stat_tkslice("u", time_index=0)
+        np.testing.assert_allclose(arr, data[0].T)
+
+    def test_load_probe_returns_point_time_and_coordinates(self):
+        # (time, point) = (3, 2) -> (2, 3); xt/yt/zt are (point,)
+        data = np.arange(6.0).reshape(3, 2)
+        _write_nc(
+            self.workdir / "ins_probe.001.nc",
+            {
+                "u": (("time", "point"), data),
+                "xt": (("point",), np.array([5.0, 15.0])),
+                "yt": (("point",), np.array([5.0, 5.0])),
+                "zt": (("point",), np.array([2.0, 10.0])),
+            },
+            {"time": [0.0, 1.0, 2.0]},
+        )
+        sim = self._sim()
+        u = sim.load_probe("u")
+        self.assertEqual(u.shape, (2, 3))
+        np.testing.assert_allclose(u, data.T)
+        np.testing.assert_allclose(sim.load_probe("zt"), [2.0, 10.0])
+
+    def test_load_probe_missing_file_raises(self):
+        with self.assertRaises(FileNotFoundError):
+            self._sim().load_probe("u")
 
     def test_load_slice_invalid_plane_raises(self):
         with self.assertRaises(ValueError):
@@ -192,6 +282,14 @@ class TestNetCDFLoaders(_CaseBase):
         arr = self._sim().load_fac_eb("hf")
         self.assertEqual(arr.shape, (3, 2))
 
+        one_record = self._sim().load_fac_eb("hf", time_index=1)
+        self.assertEqual(one_record.shape, (3,))
+        np.testing.assert_allclose(one_record, data[1])
+        with self.assertRaises(IndexError):
+            self._sim().load_fac_eb("hf", time_index=2)
+        with self.assertRaises(ValueError):
+            self._sim().load_fac_eb(time_index=0)
+
     def test_load_fac_temperature_returns_transposed_array(self):
         # (time, lyr, fct) = (2, 3, 4) -> (fct, lyr, time) = (4, 3, 2)
         data = np.arange(2 * 3 * 4, dtype=float).reshape(2, 3, 4)
@@ -202,6 +300,51 @@ class TestNetCDFLoaders(_CaseBase):
         )
         arr = self._sim().load_fac_temperature("T")
         self.assertEqual(arr.shape, (4, 3, 2))
+
+
+class TestRadiationInputLoaders(_CaseBase):
+    def test_shortwave_forcing_uses_existing_netcdf_reader(self):
+        _write_nc(
+            self.workdir / "shortwave_forcing.001.nc",
+            {"dni": (("time",), [0., 650.]),
+             "dsky": (("time",), [12., 90.])},
+            {"time": [0., 300.]},
+        )
+        sim = self._sim()
+        np.testing.assert_array_equal(sim.load_shortwave_forcing("dni"), [0., 650.])
+        with sim.load_shortwave_forcing() as archive:
+            self.assertIn("dsky", archive)
+
+    def test_sdir_uses_existing_netcdf_reader(self):
+        _write_nc(
+            self.workdir / "Sdir.nc",
+            {"Sdir": (("rows", "columns"), [[1., 2.], [3., 4.]]),
+             "tSP": (("columns",), [0., 300.])},
+            {"rows": [0, 1], "columns": [0, 1]},
+        )
+        sim = self._sim()
+        np.testing.assert_array_equal(sim.load_sdir("Sdir"), [[1., 3.], [2., 4.]])
+        np.testing.assert_array_equal(sim.load_sdir("tSP"), [0., 300.])
+
+    def test_time_dependent_shortwave_selection_and_longwave(self):
+        (self.workdir / "timedepsw.inp.001").write_text(
+            "# time then facet net SW\n0 300 600\n1 2 3\n4 5 6\n", encoding="ascii"
+        )
+        (self.workdir / "timedeplw.inp.001").write_text(
+            "Longwave forcing\ntime LWsky\n0 350\n300 360\n", encoding="ascii"
+        )
+        sim = self._sim()
+        sim.nfcts = 2
+        selected = sim.load_timedepsw(facet_indices=[1], time_index=2)
+        self.assertEqual(selected["time"], 600.)
+        np.testing.assert_array_equal(selected["netsw"], [6.])
+        with self.assertRaises(TypeError):
+            sim.load_timedepsw(facet_indices=[0.5])
+        whole = sim.load_timedepsw()
+        self.assertEqual(whole["netsw"].shape, (2, 3))
+        lw = sim.load_timedeplw()
+        np.testing.assert_array_equal(lw["time"], [0., 300.])
+        np.testing.assert_array_equal(lw["LWsky"], [350., 360.])
 
 
 class TestLoadSeb(_CaseBase):

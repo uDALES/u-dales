@@ -10,11 +10,16 @@ The **`udbase`** post-processing class reads in most important input parameters,
 
 **Field data:**
 
-- **load_stat_xyt**. This method load the 1D slab- and time-averaged statistics from the file `xytdump.expnr.nc`. Several time-intervals may be present in the data.
-- **load_stat_t**. This method loads the 3D time-averaged statistics from the file `tdump.expnr.nc`. Several time-intervals may be present in the data.
-- **load_stat_tree**. This method loads the 3D time-averaged statistics of the tree source terms from the file `treedump.expnr.nc`. This method works exactly the same way as `load\\_stat\\_t`.
-- **load_field**. This method loads instantaneous 3D data from the file `fielddump.expnr.nc`. Several output times may be present in the data.
-- **load_slice**. This method loads instantaneous 2D slices of instantaneous 3D data from the file `Xslicedump.expnr.nc`. Several output times may be present in the data.
+- **load_stat_y**. This method load the 2D span-averaged statistics from the file `stats_y.expnr.nc`. Several time instances should be present in the data.
+- **load_stat_xy**. This method load the 1D slab-averaged statistics from the file `stats_xy.expnr.nc`. Several time instances should be present in the data.
+- **load_stat_yt**. This method load the 2D span- and time-averaged statistics from the file `stats_yt.expnr.nc`. Several time-intervals may be present in the data.
+- **load_stat_xyt**. This method load the 1D slab- and time-averaged statistics from the file `stats_xyt.expnr.nc`. Several time-intervals may be present in the data.
+- **load_stat_t**. This method loads the 3D time-averaged statistics from the file `stats_t.expnr.nc`. Several time-intervals may be present in the data.
+- **load_stat_tree**. This method loads the 3D time-averaged statistics of the tree source terms from the file `stats_tree.expnr.nc`. This method works exactly the same way as `load_stat_t`.
+- **load_stat_tslice**. This method loads the time-averaged statistics on the selected planes from the file `stats_tXslice.expnr.nc` where `X` can be `i`, `j`, or `k`. Several time-intervals may be present in the data.
+- **load_field**. This method loads instantaneous 3D data from the file `ins_field.expnr.nc`. Several output times may be present in the data.
+- **load_slice**. This method loads instantaneous 2D slices of instantaneous 3D data from the file `ins_Xslice.expnr.nc` where `X` can be `i`, `j`, or `k`. Several output times may be present in the data.
+- **load_probe**. This method loads instantaneous time series at the probe points from the file `ins_probe.expnr.nc`. The first index is the probe point and the second index is time.
 
 **Facet data:**
 

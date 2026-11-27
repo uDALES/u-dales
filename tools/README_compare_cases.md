@@ -92,10 +92,10 @@ ud_compare_outputs.py <exp_num> <exppath> <ref_data_path> [tolerance] [tol_thl]
 
 | File | Variables checked |
 |------|------------------|
-| `xytdump.<case>.nc` | Horizontal-plane averages: velocities, TKE, Reynolds stresses, temperature, SGS fluxes |
-| `tdump.<case>.nc` | Vertical profiles: velocities, variances, scalars, SGS variables |
-| `fielddump.<case>.nc` | Full 3-D instantaneous fields: u, v, w, thl, qt, sca1 |
-| `treedump.<case>.nc` | Tree-resolved fields: tr_u, tr_v, tr_w, tr_thl, tr_qt, tr_qtR, tr_qtA, tr_sv1, tr_sv2, tr_omega |
+| `stats_xyt.<case>.nc` | Horizontal-plane and time averages: velocities, pressure, TKE, Reynolds stresses, dispersive fluxes, temperature, moisture, SGS fluxes |
+| `stats_t.<case>.nc` | Time-averaged 3-D statistics: velocities, pressure, variances, fluxes, temperature, moisture, scalars `s1`, `s2`, SGS variables, pedestrian wind speeds |
+| `ins_field.<case>.nc` | Full 3-D instantaneous fields: u, v, w, thl, qt, s1 |
+| `stats_tree.<case>.nc` | Tree-resolved fields: tr_u, tr_v, tr_w, tr_thl, tr_qt, tr_qtR, tr_qtA, tr_sv1, tr_sv2, tr_omega |
 
 For each variable the maximum absolute difference between the two files is computed. A test **passes** if that value is <= the applicable tolerance. Temperature-related variables (names containing `thl`) use `tol_thl`; all other variables use `tolerance`.
 
@@ -142,7 +142,7 @@ ud_compare_inputs.py <exp_num> <exppath> <ref_path> [tolerance]
 | Method | Files |
 |--------|-------|
 | **Exact text** | `namoptions.<case>` |
-| **Numeric** (max absolute error, `#` comments skipped) | `prof.inp`, `lscale.inp`, `scalar.inp`, `scalarsourcep.inp.N`, `scalarsourcel.inp.N`, `facetarea.inp`, `facets.inp`, `facets_unused`, `factypes.inp`, `svf.inp`, `netsw.inp`, `Tfacinit.inp`, `heatpump.inp`, `trees.inp`, `Sdir.txt`, `facet_sections_*.txt`, `fluid_boundary_*.txt`, `solid_*.txt` |
+| **Numeric** (max absolute error, `#` comments skipped) | `prof.inp`, `lscale.inp`, `probe.inp`, `scalar.inp`, `scalarsourcep.inp.N`, `scalarsourcel.inp.N`, `facetarea.inp`, `facets.inp`, `facets_unused`, `factypes.inp`, `svf.inp`, `netsw.inp`, `Tfacinit.inp`, `heatpump.inp`, `trees.inp`, `Sdir.txt`, `facet_sections_*.txt`, `fluid_boundary_*.txt`, `solid_*.txt` |
 | **NetCDF** (all numeric variables, max absolute error) | `vf.nc.inp.<case>` |
 
 - If a file is absent from **both** directories it is skipped with `[SKIP]`.

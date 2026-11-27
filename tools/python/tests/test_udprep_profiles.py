@@ -3,6 +3,7 @@ import unittest
 import warnings as _warnings
 from pathlib import Path
 from tempfile import TemporaryDirectory
+from unittest.mock import Mock, patch
 
 import numpy as np
 
@@ -381,6 +382,37 @@ class TestForcingSection(unittest.TestCase):
 
     # ---- update_prof_from_driver -----------------------------------------------
 
+    def test_update_prof_from_current_driver_output(self):
+        section = ForcingSection(
+            "forcing",
+            {"thl0": 295.0, "qt0": 0.0, "u0": 5.0, "v0": 0.0, "tke": 0.0, "lapse": 0.0},
+            sim=self.sim,
+            defaults={},
+        )
+        section.generate_prof()
+        section.write_prof()
+        driver_dir = self.workdir / "driver"
+        driver_dir.mkdir()
+        (driver_dir / "stats_xyt.999.nc").touch()
+        fields = {
+            "zt": np.array([0.5, 2.0, 4.5]),  # same grid as the case: values are copied
+            "thl": np.array([[300., 301.], [302., 303.], [304., 305.]]),
+            "qt": np.array([[0.010, 0.011], [0.012, 0.013], [0.014, 0.015]]),
+            "u": np.array([[1., 2.], [3., 4.], [5., 6.]]),
+            "v": np.array([[7., 8.], [9., 10.], [11., 12.]]),
+            "tke": np.array([[0.1, 0.2], [0.3, 0.4], [0.5, 0.6]]),
+        }
+        driver = Mock()
+        driver.load_stat_xyt.side_effect = fields.__getitem__
+        with patch("udbase.UDBase", return_value=driver), self.assertWarnsRegex(
+            UserWarning, "stats_xyt.999.nc"
+        ):
+            section.update_prof_from_driver("999", str(driver_dir), 2)
+
+        result = np.loadtxt(self.workdir / "prof.inp.321", skiprows=2)
+        for column, name in enumerate(("thl", "qt", "u", "v", "tke"), start=1):
+            np.testing.assert_allclose(result[:, column], fields[name][:, 1])
+
     def test_update_prof_from_driver_missing_driver_file_warns_and_returns(self):
         section = ForcingSection(
             "forcing",
@@ -441,11 +473,11 @@ class TestForcingSection(unittest.TestCase):
         zdriver = np.array([0.5, 1.5, 2.5, 3.5, 4.5, 5.5])
         fields = {
             "zt": zdriver.astype(np.float32),
-            "uxyt": np.column_stack([zdriver, 2.0 * zdriver]),
-            "vxyt": np.column_stack([0.0 * zdriver, 0.1 * zdriver]),
-            "thlxyt": np.column_stack([290.0 + zdriver, 300.0 + zdriver]),
-            "qtxyt": np.column_stack([0.0 * zdriver, 0.001 * zdriver]),
-            "tketxyc": np.column_stack([0.0 * zdriver, 0.5 + 0.0 * zdriver]),
+            "u": np.column_stack([zdriver, 2.0 * zdriver]),
+            "v": np.column_stack([0.0 * zdriver, 0.1 * zdriver]),
+            "thl": np.column_stack([290.0 + zdriver, 300.0 + zdriver]),
+            "qt": np.column_stack([0.0 * zdriver, 0.001 * zdriver]),
+            "tke": np.column_stack([0.0 * zdriver, 0.5 + 0.0 * zdriver]),
         }
 
         class FakeDriver:
@@ -455,7 +487,7 @@ class TestForcingSection(unittest.TestCase):
             def load_stat_xyt(self, var):
                 return fields[var]
 
-        (self.workdir / "xytdump.900.nc").write_bytes(b"")
+        (self.workdir / "stats_xyt.900.nc").write_bytes(b"")
         original = udbase.UDBase
         udbase.UDBase = FakeDriver
         try:

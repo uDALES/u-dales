@@ -77,7 +77,7 @@ lreadscal    = .true.
 
 &OUTPUT
 lfielddump   = .true.
-tfielddump   = 10.
+tinstantdump = 10.
 fieldvars    = 'u0,v0,w0,th,s1'
 lxytdump     = .true.
 tstatsdump   = 10.

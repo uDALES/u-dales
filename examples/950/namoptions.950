@@ -64,7 +64,7 @@ driverstore  = 101
 
 &OUTPUT
 lfielddump   = .true.
-tfielddump   = 20.
+tinstantdump = 20.
 fieldvars    = 'u0,v0'
 lxytdump     = .true.
 ltdump       = .true.

@@ -15,7 +15,7 @@ nprocy       = 2
 
 &OUTPUT
 lfielddump   = .true.
-tfielddump   = 49.
+tinstantdump = 49.
 fieldvars    = 'u0,v0,w0,th'
 ltdump       = .true.
 lydump       = .true.

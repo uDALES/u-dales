@@ -2,11 +2,11 @@
 %[text] This tutorial describes how to read and process facet data of the LES code uDALES using MATLAB. This tutorial introduces the `udbase` post-processing class. There are separate tutorials for processing field files and facet files.
 %[text] The **`udbase`** post-processing class reads in most important input parameters, and contains a number of methods to load field and facet data.
 %[text] **Field data:**
-%[text] - **load\_stat\_xyt**. This method load the 1D slab- and time-averaged statistics from the file `xytdump.expnr.nc`. Several time-intervals may be present in the data.
-%[text] - **load\_stat\_t**. This method loads the 3D time-averaged statistics from the file `tdump.expnr.nc`. Several time-intervals may be present in the data.
+%[text] - **load\_stat\_xyt**. This method load the 1D slab- and time-averaged statistics from the file `stats_xyt.expnr.nc`. Several time-intervals may be present in the data.
+%[text] - **load\_stat\_t**. This method loads the 3D time-averaged statistics from the file `stats_t.expnr.nc`. Several time-intervals may be present in the data.
 %[text] - **load\_stat\_tree**. This method loads the 3D time-averaged statistics of the tree source terms from the file `treedump.expnr.nc`. This method works exactly the same way as `load\_stat\_t`.
-%[text] - **load\_field**. This method loads instantaneous 3D data from the file `fielddump.expnr.nc`. Several output times may be present in the data.
-%[text] - **load\_slice**. This method loads instantaneous 2D slices of instantaneous 3D data from the file `Xslicedump.expnr.nc`. Several output times may be present in the data. \
+%[text] - **load\_field**. This method loads instantaneous 3D data from the file `ins_field.expnr.nc`. Several output times may be present in the data.
+%[text] - **load\_slice**. This method loads instantaneous 2D slices of instantaneous 3D data from the file `ins_Xslice.expnr.nc`. Several output times may be present in the data. \
 %[text] **Facet data:**
 %[text] - **calculate\_frontal\_properties**. This method calculates the skylines, frontal areas and blockage ratios in the x- and y-direction.
 %[text] - **plot\_fac\_type**. This method displays the type of surface for each facet.
