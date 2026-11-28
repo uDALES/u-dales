@@ -17,7 +17,7 @@ been stable for a suitable period.
 | --- | --- | --- |
 | `smoke` | four 8 x 8 x 8 cases, the surface-energy-balance case and two 8 x 8 x 8 cases on a stretched vertical grid | Debug development and trusted pull requests |
 | `scalar-sources` | two serial and two two-rank cases | scalar-source parity and global positioning |
-| `nightly` | 29 serial cases | single-GPU scheduled regression |
+| `nightly` | 32 serial cases | single-GPU scheduled regression |
 | `mpi` | dry (`ipoiss` 0 and 3), scalar-source, IBM, TKE-statistics and vegetation two-rank cases | manually dispatched two-GPU check |
 | `full` | nightly plus X, Y, and 2 x 2 MPI with both Poisson solvers | manual four-GPU validation |
 
@@ -32,7 +32,15 @@ The current coverage is:
   solver is checked against an exact discrete solution, on every rank and on
   both builds, by `tests/integration/poisson/run_test.sh` (runmode 1019), and
   `ipoiss=3` on the CPU and GPU builds is compared with `ipoiss=0` on the CPU
-  build to 1e-9 by `tests/integration/poisson/run_solver_equivalence.py`
+  build to 1e-9 by `tests/integration/poisson/run_solver_equivalence.py`.
+  Both runners repeat everything on the stretched vertical grid of
+  `fixtures/stretched/prof.inp.103`: neither solver transforms in z (the
+  z cosine transform of `ipoiss=0` is refused on a stretched grid), both
+  eliminate a variable-coefficient tridiagonal built from `dzf`, `dzh` and
+  `rhobh`, and these runs check that elimination
+- `ipoiss=3` on a stretched vertical grid, serial (`stretched-one-equation-poisson-fft`,
+  with buoyancy and the one-equation SGS model) and on a two-rank Y
+  decomposition (`stretched-poisson-fft-two-rank-y`)
 - temperature and moisture with second-order advection
 - Kappa temperature and scalar advection, including the temperature tendency
   conversion kernels
@@ -323,7 +331,9 @@ Generated outputs and binaries must not be committed.
 
 `fixtures/stretched/prof.inp.103` is the case-103 profile on a geometrically
 stretched grid (dz ratio 3 top to bottom, same height), used by the
-`stretched-one-equation` and `stretched-temperature-kappa` cases.
+`stretched-one-equation`, `stretched-one-equation-poisson-fft`,
+`stretched-temperature-kappa` and `stretched-poisson-fft-two-rank-y` cases
+and by the two Poisson runners in `tests/integration/poisson/`.
 `fixtures/stretched/064/` is the energy-balance case 064 preprocessed by the
 Python route with `lzstretch` (linear 0.5 m spacing to 8 m, exponential above,
 the recipe of `tests/integration/stretched_grid`), used by

@@ -192,7 +192,9 @@ between multiple components rather than one isolated API.
 - `poisson/`: Poisson solver validation for `runmode = 1019` on case `103`:
   both solvers, four decompositions, CPU or GPU build, exact-solution check on
   every rank, plus `run_solver_equivalence.py`, which compares `ipoiss=3` on CPU
-  and GPU builds against `ipoiss=0` on the CPU build within a tolerance
+  and GPU builds against `ipoiss=0` on the CPU build within a tolerance. Both
+  run on the uniform and on a stretched vertical grid
+  (`UDALES_POISSON_PROFILES`, `--profiles`)
 - `processor_boundaries/`: MPI decomposition parity checks on the Xie/Castro
   no-tree case `100` and the vegetation case `526`
 - `python_preproc_against_matlab/`: preprocessing parity test between the

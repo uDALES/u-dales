@@ -9,6 +9,10 @@ ipoiss=3 is run on the CPU build with 1, 2 (x), 2 (y) and 4 ranks and, when a
 GPU executable is given, on the GPU build with the same decompositions. Every
 requested output (fielddump, tdump, xytdump and the double-precision restart
 files) of every candidate must match the reference within the tolerance.
+Everything is run twice: on the case's uniform vertical grid and on the
+geometrically stretched profile of tests/integration/gpu/fixtures/stretched
+(dz ratio 3 top to bottom), so the variable-coefficient vertical elimination of
+ipoiss=3 is checked against the ipoiss=0 one (--profiles selects a subset).
 
 Why it exists: the ipoiss=3 solver once indexed its local spectral-pencil
 arrays with global bounds, which is invisible on one rank. Comparing every
@@ -49,6 +53,12 @@ TRESTART = 1.0
 IRANDOM = 43
 RANDU = 0.1
 DECOMPOSITIONS = (("1x1", 1, 1), ("2x1", 2, 1), ("1x2", 1, 2), ("2x2", 2, 2))
+# Vertical grids: the case's own prof.inp.103 (equidistant, dz = 1) and the
+# stretched profile shared with the GPU parity matrix.
+PROFILES = {
+    "uniform": None,
+    "stretched": GPU_TEST_DIR / "fixtures" / "stretched" / "prof.inp.103",
+}
 
 
 def _namelist_text(ipoiss: int, nprocx: int, nprocy: int) -> str:
@@ -72,8 +82,10 @@ def _namelist_text(ipoiss: int, nprocx: int, nprocy: int) -> str:
     return text
 
 
-def _stage(run_dir: Path, ipoiss: int, nprocx: int, nprocy: int) -> Path:
+def _stage(run_dir: Path, ipoiss: int, nprocx: int, nprocy: int, profile: Optional[Path]) -> Path:
     shutil.copytree(BASE_CASE, run_dir)
+    if profile is not None:
+        shutil.copy(profile, run_dir / f"prof.inp.{CASE_ID:03d}")
     namelist = run_dir / f"namoptions.{CASE_ID:03d}"
     namelist.write_text(_namelist_text(ipoiss, nprocx, nprocy), encoding="utf-8")
     return namelist
@@ -88,9 +100,10 @@ def _run(
     gpu: bool,
     work_root: Path,
     timeout: float,
+    profile: Optional[Path],
 ) -> Dict[str, Any]:
     run_dir = work_root / label
-    namelist = _stage(run_dir, ipoiss, nprocx, nprocy)
+    namelist = _stage(run_dir, ipoiss, nprocx, nprocy, profile)
     print(f"==> {label}: ipoiss={ipoiss} {nprocx}x{nprocy} on {executable}")
     result = _run_solver(executable, run_dir, namelist, nprocx * nprocy, timeout, gpu=gpu)
     result["dir"] = run_dir
@@ -110,6 +123,13 @@ def _parse_args() -> argparse.Namespace:
     parser.add_argument("--rtol", type=float, default=1.0e-9)
     parser.add_argument("--timeout", type=float, default=300.0, help="seconds per run")
     parser.add_argument("--work-root", type=Path, default=None, help="keep run directories here")
+    parser.add_argument(
+        "--profiles",
+        nargs="+",
+        choices=sorted(PROFILES),
+        default=sorted(PROFILES),
+        help="vertical grids to run (default: both)",
+    )
     return parser.parse_args()
 
 
@@ -159,48 +179,52 @@ def main() -> int:
     print(f"tolerance: atol={args.atol:g} rtol={args.rtol:g}   outputs: {', '.join(REQUIRED_OUTPUTS)}")
     print("reference for every decomposition: ipoiss=0 on the CPU build with the same nprocx x nprocy;")
     print("xytdump (one file for the whole domain) is also compared with the 1x1 reference.")
+    print(f"vertical grids: {', '.join(args.profiles)}")
 
     results: list[tuple[str, bool, str]] = []
-    reference_1x1: Optional[Dict[str, Any]] = None
-    for name, nprocx, nprocy in DECOMPOSITIONS:
-        nprocs = nprocx * nprocy
-        if nprocs > max(args.max_ranks, max_gpu_ranks):
-            print(f"==> {name}: skipped (needs {nprocs} ranks, limits cpu={args.max_ranks} gpu={max_gpu_ranks})")
-            continue
-        reference = _run(f"cpu-ipoiss0-{name}", cpu, 0, nprocx, nprocy, False, work_root, args.timeout)
-        if reference["returncode"] != 0:
-            results.append((f"cpu-ipoiss0-{name}", False, f"reference run exited with {reference['returncode']}"))
-            continue
-        if reference_1x1 is None:
-            reference_1x1 = reference
-        elif nprocs > 1:
-            # The ipoiss=0 reference on this decomposition must itself agree
-            # with the 1x1 reference in the domain-averaged statistics.
-            passed, detail = _compare(reference_1x1["dir"], reference["dir"], ("xytdump",), tolerance)
-            print(f"    xytdump vs 1x1 reference: {detail}\n    result: {'PASS' if passed else 'FAIL'}")
-            results.append((f"cpu-ipoiss0-{name} xytdump vs 1x1", passed, ""))
-
-        candidates = []
-        if nprocs <= args.max_ranks:
-            candidates.append(("cpu", cpu, False))
-        if nprocs <= max_gpu_ranks:
-            candidates.append(("gpu", gpu, True))
-        for kind, executable, is_gpu in candidates:
-            label = f"{kind}-ipoiss3-{name}"
-            run = _run(label, executable, 3, nprocx, nprocy, is_gpu, work_root, args.timeout)
-            if run["returncode"] != 0:
-                results.append((label, False, f"run exited with {run['returncode']}"))
-                print("    result: FAIL")
+    for profile_name in args.profiles:
+        profile = PROFILES[profile_name]
+        reference_1x1: Optional[Dict[str, Any]] = None
+        for name, nprocx, nprocy in DECOMPOSITIONS:
+            nprocs = nprocx * nprocy
+            tag = f"{name}-{profile_name}"
+            if nprocs > max(args.max_ranks, max_gpu_ranks):
+                print(f"==> {tag}: skipped (needs {nprocs} ranks, limits cpu={args.max_ranks} gpu={max_gpu_ranks})")
                 continue
-            passed, detail = _compare(reference["dir"], run["dir"], REQUIRED_OUTPUTS, tolerance)
-            print(f"    all outputs vs ipoiss=0 {name}: {detail}")
-            results.append((label, passed, ""))
-            if nprocs > 1:
-                passed_xy, detail_xy = _compare(reference_1x1["dir"], run["dir"], ("xytdump",), tolerance)
-                print(f"    xytdump vs 1x1 reference: {detail_xy}")
-                results.append((f"{label} xytdump vs 1x1", passed_xy, ""))
-                passed = passed and passed_xy
-            print(f"    result: {'PASS' if passed else 'FAIL'}")
+            reference = _run(f"cpu-ipoiss0-{tag}", cpu, 0, nprocx, nprocy, False, work_root, args.timeout, profile)
+            if reference["returncode"] != 0:
+                results.append((f"cpu-ipoiss0-{tag}", False, f"reference run exited with {reference['returncode']}"))
+                continue
+            if reference_1x1 is None:
+                reference_1x1 = reference
+            elif nprocs > 1:
+                # The ipoiss=0 reference on this decomposition must itself agree
+                # with the 1x1 reference in the domain-averaged statistics.
+                passed, detail = _compare(reference_1x1["dir"], reference["dir"], ("xytdump",), tolerance)
+                print(f"    xytdump vs 1x1 reference: {detail}\n    result: {'PASS' if passed else 'FAIL'}")
+                results.append((f"cpu-ipoiss0-{tag} xytdump vs 1x1", passed, ""))
+
+            candidates = []
+            if nprocs <= args.max_ranks:
+                candidates.append(("cpu", cpu, False))
+            if nprocs <= max_gpu_ranks:
+                candidates.append(("gpu", gpu, True))
+            for kind, executable, is_gpu in candidates:
+                label = f"{kind}-ipoiss3-{tag}"
+                run = _run(label, executable, 3, nprocx, nprocy, is_gpu, work_root, args.timeout, profile)
+                if run["returncode"] != 0:
+                    results.append((label, False, f"run exited with {run['returncode']}"))
+                    print("    result: FAIL")
+                    continue
+                passed, detail = _compare(reference["dir"], run["dir"], REQUIRED_OUTPUTS, tolerance)
+                print(f"    all outputs vs ipoiss=0 {tag}: {detail}")
+                results.append((label, passed, ""))
+                if nprocs > 1:
+                    passed_xy, detail_xy = _compare(reference_1x1["dir"], run["dir"], ("xytdump",), tolerance)
+                    print(f"    xytdump vs 1x1 reference: {detail_xy}")
+                    results.append((f"{label} xytdump vs 1x1", passed_xy, ""))
+                    passed = passed and passed_xy
+                print(f"    result: {'PASS' if passed else 'FAIL'}")
 
     print("\nSummary (reference: ipoiss=0 on the CPU build)")
     for label, passed, note in results:

@@ -58,6 +58,7 @@
       "statsdump-averages",
       "statsdump-slices",
       "stretched-one-equation",
+      "stretched-one-equation-poisson-fft",
       "stretched-temperature-kappa",
       "stretched-surface-energy-balance"
     ],
@@ -68,6 +69,7 @@
       "scalar-line-two-rank-y",
       "dry-poisson-fft-two-rank-x",
       "dry-poisson-fft-two-rank-y",
+      "stretched-poisson-fft-two-rank-y",
       "ibm-scalar-wall-two-rank-x",
       "vegetation-sveg-two-rank-x"
     ],
@@ -107,10 +109,12 @@
       "dry-four-rank-xy",
       "dry-poisson-fft-two-rank-x",
       "dry-poisson-fft-two-rank-y",
+      "stretched-poisson-fft-two-rank-y",
       "dry-poisson-fft-four-rank-xy",
       "ibm-scalar-wall-two-rank-x",
       "vegetation-sveg-two-rank-x",
       "stretched-one-equation",
+      "stretched-one-equation-poisson-fft",
       "stretched-temperature-kappa",
       "stretched-surface-energy-balance"
     ]
@@ -345,6 +349,34 @@
         "loneeqn": true,
         "lvreman": false,
         "iadv_tke": 2
+      },
+      "timeout_seconds": 180
+    },
+    {
+      "name": "stretched-one-equation-poisson-fft",
+      "case_id": 103,
+      "base_case": "tests/regression/david_tests/cases/103",
+      "namelist": "tests/integration/gpu/namelists/namoptions.103.one-equation-poisson-fft",
+      "overrides": [
+        "tests/integration/gpu/fixtures/stretched/prof.inp.103"
+      ],
+      "nprocs": 1,
+      "required_outputs": [
+        "fielddump",
+        "tdump",
+        "xytdump"
+      ],
+      "coverage": [
+        "stretched-vertical-grid",
+        "ipoiss-3",
+        "stretched-vertical-elimination",
+        "one-equation-SGS",
+        "buoyancy"
+      ],
+      "namelist_assertions": {
+        "ipoiss": 3,
+        "loneeqn": true,
+        "ltempeq": true
       },
       "timeout_seconds": 180
     },
@@ -1183,6 +1215,36 @@
         "multi-GPU",
         "Y-decomposition",
         "ipoiss-3",
+        "spectral-pencil-local-bounds"
+      ],
+      "namelist_assertions": {
+        "ipoiss": 3,
+        "nprocx": 1,
+        "nprocy": 2
+      },
+      "timeout_seconds": 300
+    },
+    {
+      "name": "stretched-poisson-fft-two-rank-y",
+      "case_id": 103,
+      "base_case": "tests/regression/david_tests/cases/103",
+      "namelist": "tests/integration/gpu/namelists/namoptions.103.poisson-mpi-y",
+      "overrides": [
+        "tests/integration/gpu/fixtures/stretched/prof.inp.103"
+      ],
+      "nprocs": 2,
+      "minimum_gpus": 2,
+      "required_outputs": [
+        "fielddump",
+        "tdump",
+        "xytdump"
+      ],
+      "coverage": [
+        "multi-GPU",
+        "Y-decomposition",
+        "ipoiss-3",
+        "stretched-vertical-grid",
+        "stretched-vertical-elimination",
         "spectral-pencil-local-bounds"
       ],
       "namelist_assertions": {

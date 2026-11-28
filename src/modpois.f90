@@ -308,10 +308,17 @@ contains
         yrt(j)=-4.*dyi*dyi*(sin(real((j-1))*pi*fac))**2
       end do
 
+      ! The same vertical operator as the ipoiss = 0 path above: Neumann at the
+      ! bottom and at the top for every mode, except the horizontal mean mode
+      ! (kx = ky = 0), whose Neumann-Neumann system is singular. That mode gets
+      ! the Dirichlet top row b_top_D, exactly as solmpj does through bxyzrt,
+      ! so the two solvers are algebraically identical and the pressure level
+      ! is fixed the same way. (Testing the last pivot for an exact zero, as
+      ! this path used to, only worked on an equidistant grid: with stretched
+      ! dzf the pivot is round-off and the division added an arbitrary constant
+      ! to the pressure.)
       kbc1 = 1 ! Neumann
-      ! top - Neumann
-      kbc2 = 1
-      ! Could also set a Dirichlet BC on the inlet at the top, like in SPARKLE?
+      kbc2 = 1 ! top - Neumann
 
       ! generate matrix coefficients
       do k=1,ktot
@@ -325,11 +332,13 @@ contains
       !b(1) = -c(1)
 
       ! top
+      b_top_N = b(ktot) + c(ktot)
+      b_top_D = b(ktot) - c(ktot)
       if (kbc2 .eq. 1) then ! Neumann
-        b(ktot) = b(ktot) + c(ktot)
+        b(ktot) = b_top_N
         !b(ktot) = -a(ktot)
       elseif (kbc2 .eq. 3) then ! Dirichlet
-        b(ktot) = b(ktot) - c(ktot)
+        b(ktot) = b_top_D
         !b(ktot) = a(ktot)
       end if
 
@@ -350,6 +359,9 @@ contains
       end do
       
       !! compute the coefficients necessary for the Gaussian elimination along z-direction
+      !! zz(:,:,k) holds the inverted pivot 1/(b_k + lambda - a_k dd_{k-1}) for
+      !! k < ktot and the pivot itself for k = ktot (solve_poisson divides by it);
+      !! the top row of the mean mode (xyzrt = 0 at k = ktot) is b_top_D, see above.
       do k=1,sp_zsz3
         do j=1,sp_zsz2
           do i=1,sp_zsz1
@@ -357,7 +369,11 @@ contains
               zz(i,j,k) = 1./( b(k) + xyzrt(i,j,k)                    )
               dd(i,j,k) = c(k)*zz(i,j,k)
             elseif (k==sp_zsz3) then
-              zz(i,j,k) =      b(k) + xyzrt(i,j,k) - a(k)*dd(i,j,k-1)
+              if (xyzrt(i,j,k) .eq. 0.) then
+                zz(i,j,k) =    b_top_D               - a(k)*dd(i,j,k-1)
+              else
+                zz(i,j,k) =    b(k) + xyzrt(i,j,k)   - a(k)*dd(i,j,k-1)
+              end if
             else
               zz(i,j,k) = 1./( b(k) + xyzrt(i,j,k) - a(k)*dd(i,j,k-1) )
               dd(i,j,k) = c(k)*zz(i,j,k)
@@ -697,21 +713,15 @@ contains
       end do
       !$acc end kernels
 
+      ! Top row: zz holds the (non-inverted) last pivot. It is never zero: the
+      ! mean mode has the Dirichlet top row b_top_D (initpois), as in solmpj.
       !$acc kernels default(present)
       do j=1,sp_zsz2
         do i=1,sp_zsz1
 #if defined(_GPU)
-          if(zz_d(i,j,sp_zsz3)/=0.) then
-            Fz(i,j,sp_zsz3) = (Fz(i,j,sp_zsz3)-a_d(sp_zsz3)*Fz(i,j,sp_zsz3-1))/zz_d(i,j,sp_zsz3)
-          else
-            Fz(i,j,sp_zsz3) =0.
-          end if
+          Fz(i,j,sp_zsz3) = (Fz(i,j,sp_zsz3)-a_d(sp_zsz3)*Fz(i,j,sp_zsz3-1))/zz_d(i,j,sp_zsz3)
 #else
-          if(zz(i,j,sp_zsz3)/=0.) then
-            Fz(i,j,sp_zsz3) = (Fz(i,j,sp_zsz3)-a(sp_zsz3)*Fz(i,j,sp_zsz3-1))/zz(i,j,sp_zsz3)
-          else
-            Fz(i,j,sp_zsz3) =0.
-          end if
+          Fz(i,j,sp_zsz3) = (Fz(i,j,sp_zsz3)-a(sp_zsz3)*Fz(i,j,sp_zsz3-1))/zz(i,j,sp_zsz3)
 #endif
         end do
       end do

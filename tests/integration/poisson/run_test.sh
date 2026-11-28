@@ -13,6 +13,14 @@
 #   UDALES_MAX_RANKS   skip decompositions needing more ranks (default 4;
 #                      set 2 on a two-GPU node, 1 on a single GPU)
 #   UDALES_POISSON_SOLVERS  ipoiss values to run (default "0 3")
+#   UDALES_POISSON_PROFILES vertical grids to run (default "uniform stretched"):
+#                      uniform is the case's own prof.inp.103, stretched
+#                      overlays tests/integration/gpu/fixtures/stretched/
+#                      prof.inp.103 (geometric spacing, dz ratio 3). The test
+#                      builds its right-hand side with the solver's own dzf,
+#                      dzh and rhobh stencil, so on the stretched grid it checks
+#                      the variable-coefficient vertical elimination of both
+#                      solvers exactly.
 #   MPIEXEC, MPI_LAUNCH_EXTRA_ARGS, UDALES_RUNTIME_MODULES as for the other
 #   integration runners
 
@@ -28,6 +36,8 @@ UDALES_GPU="${UDALES_GPU:-0}"
 UDALES_BUILD="${UDALES_BUILD:-${REPO_ROOT}/build/cpu/debug/u-dales}"
 UDALES_MAX_RANKS="${UDALES_MAX_RANKS:-4}"
 UDALES_POISSON_SOLVERS="${UDALES_POISSON_SOLVERS:-0 3}"
+UDALES_POISSON_PROFILES="${UDALES_POISSON_PROFILES:-uniform stretched}"
+STRETCHED_PROFILE="${REPO_ROOT}/tests/integration/gpu/fixtures/stretched/prof.inp.103"
 CASE_SOURCE="${CASE_SOURCE:-${REPO_ROOT}/tests/regression/david_tests/cases/103}"
 NAMELIST_DIR="${NAMELIST_DIR:-${SCRIPT_DIR}}"
 NAMELIST="namoptions.103"
@@ -90,12 +100,14 @@ skipped=0
 
 run_mode() {
     local ipoiss="$1"
-    local label="$2"
+    local decomposition="$2"
     local npx="$3"
     local npy="$4"
+    local profile="$5"
     local np=$((npx * npy))
-    local namelist_source="${NAMELIST_DIR}/namoptions.1019.${label}"
-    local run_dir="${ROOT_RUN_DIR}/ipoiss${ipoiss}-${label}"
+    local namelist_source="${NAMELIST_DIR}/namoptions.1019.${decomposition}"
+    local label="${decomposition} ${profile}"
+    local run_dir="${ROOT_RUN_DIR}/ipoiss${ipoiss}-${decomposition}-${profile}"
 
     if [ "$np" -gt "$UDALES_MAX_RANKS" ]; then
         echo "SKIP: TEST_POISSON [ipoiss=$ipoiss $label] needs $np ranks, UDALES_MAX_RANKS=$UDALES_MAX_RANKS"
@@ -109,13 +121,18 @@ run_mode() {
 
     mkdir -p "$run_dir"
     cp -r "$CASE_SOURCE"/. "$run_dir"/
+    case "$profile" in
+        uniform) ;;
+        stretched) cp "$STRETCHED_PROFILE" "$run_dir/prof.inp.103" ;;
+        *) echo "ERROR: unknown profile '$profile' in UDALES_POISSON_PROFILES (uniform, stretched)"; exit 1 ;;
+    esac
     # The committed namelists carry ipoiss = 3; the solver under test is a
     # parameter of this runner.
     sed "s/^ipoiss .*/ipoiss       = ${ipoiss}/" "$namelist_source" > "$run_dir/$NAMELIST"
 
     echo "=========================================="
     echo "Running TEST_POISSON [ipoiss=$ipoiss $label]"
-    echo "MPI processes: $np   nprocx/nprocy: $npx/$npy   executable: $UDALES_BUILD"
+    echo "MPI processes: $np   nprocx/nprocy: $npx/$npy   vertical grid: $profile   executable: $UDALES_BUILD"
     echo "Run directory: $run_dir"
     echo "=========================================="
     runs=$((runs + 1))
@@ -145,11 +162,13 @@ run_mode() {
     echo "PASS: TEST_POISSON [ipoiss=$ipoiss $label]"
 }
 
-for ipoiss in $UDALES_POISSON_SOLVERS; do
-    run_mode "$ipoiss" serial  1 1
-    run_mode "$ipoiss" xsplit  2 1
-    run_mode "$ipoiss" ysplit  1 2
-    run_mode "$ipoiss" xysplit 2 2
+for profile in $UDALES_POISSON_PROFILES; do
+    for ipoiss in $UDALES_POISSON_SOLVERS; do
+        run_mode "$ipoiss" serial  1 1 "$profile"
+        run_mode "$ipoiss" xsplit  2 1 "$profile"
+        run_mode "$ipoiss" ysplit  1 2 "$profile"
+        run_mode "$ipoiss" xysplit 2 2 "$profile"
+    done
 done
 
 echo "=========================================="
